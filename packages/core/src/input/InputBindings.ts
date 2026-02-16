@@ -65,6 +65,15 @@ export class InputBindings {
     // Create default profile
     this.createProfile('default', 'Default');
     this.activeProfileId = 'default';
+
+    // Default Bindings
+    const p = this.profiles.get('default')!;
+    p.bindings.push({
+        id: `bind_${_bindingId++}`,
+        action: 'VoicePushToTalk',
+        source: 'key',
+        code: 'KeyV'
+    });
   }
 
   // ---------------------------------------------------------------------------

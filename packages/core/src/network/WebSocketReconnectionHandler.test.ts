@@ -158,13 +158,7 @@ describe('WebSocketReconnectionHandler', () => {
 
       const promise = handler.scheduleReconnect(callback);
 
-      await new Promise((resolve) => setTimeout(resolve, 150));
-
-      try {
-        await promise;
-      } catch (err) {
-        expect(err).toBe(error);
-      }
+      await expect(promise).rejects.toBe(error);
     });
   });
 

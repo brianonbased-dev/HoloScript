@@ -1,118 +1,116 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HoloScriptPlusRuntimeImpl } from '../runtime/HoloScriptPlusRuntime';
 import { PressableTrait } from '../traits/PressableTrait';
 import { SlidableTrait } from '../traits/SlidableTrait';
+import { TraitContext } from '../traits/VRTraitSystem';
 
-// Mock Physics World
-vi.mock('../physics/PhysicsWorldImpl', () => {
-    return {
-        PhysicsWorldImpl: vi.fn().mockImplementation(function() {
-            return {
-                step: vi.fn(),
-                addBody: vi.fn(),
-                getBody: vi.fn(),
-                addConstraint: vi.fn(),
-                removeConstraints: vi.fn(),
-                raycast: vi.fn(),
-                getStates: vi.fn().mockReturnValue({}),
-                getContacts: vi.fn().mockReturnValue([]),
-            };
-        })
-    }
-});
-
-vi.mock('../render/webgpu/WebGPURenderer', () => ({ WebGPURenderer: vi.fn() }));
-
-describe('Tactile UI', () => {
-    let runtime: HoloScriptPlusRuntimeImpl;
-    let physicsWorld: any;
+describe('Tactile UI Interactions', () => {
+    let context: TraitContext;
+    let node: any;
+    let physicsBodyPos: any;
 
     beforeEach(() => {
-        const mockAST = {
-            root: { type: 'composition', id: 'root', children: [], traits: new Map(), properties: {} },
-            imports: [],
-            version: 1,
-        };
-        runtime = new HoloScriptPlusRuntimeImpl(mockAST as any, { vrEnabled: true });
-        physicsWorld = (runtime as any).physicsWorld;
-        // Ensure rootInstance is fully populated if constructor didn't do it (it should have)
-        // But since we mock AST, let's just make sure it's usable.
-        // constructor calls compile() -> createInstance().
-        // If mockAST is valid, rootInstance is valid.
-        if (!(runtime as any).rootInstance) {
-             (runtime as any).rootInstance = { 
-                id: 'root', 
-                children: [], 
-                traits: new Map(), 
-                properties: {},
-                lifecycleHandlers: new Map(),
-                node: { id: 'root', type: 'composition', children: [], traits: new Map(), properties: {} }
-             };
-        }
-    });
-
-    it('PressableTrait requests prismatic constraint on attach', () => {
-        const trait = new PressableTrait();
-        const node = { id: 'button1', properties: { distance: 0.05, stiffness: 200 } };
-        
-        // Manually trigger
-        (runtime as any).emit('physics_add_constraint', {
-            type: 'prismatic',
-            nodeId: 'button1',
-            axis: { x: 0, y: 0, z: 1 },
-            min: 0,
-            max: 0.05,
-            spring: { stiffness: 200, damping: 5, restLength: 0 }
-        });
-
-        expect(physicsWorld.addConstraint).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'prismatic',
-            bodyB: 'button1',
-            limits: { min: 0, max: 0.05 },
-            spring: expect.objectContaining({ stiffness: 200 })
-        }));
-    });
-
-    it('SlidableTrait requests prismatic constraint on attach', () => {
-        // Manually trigger
-        (runtime as any).emit('physics_add_constraint', {
-            type: 'prismatic',
-            nodeId: 'slider1',
-            axis: { x: 1, y: 0, z: 0 },
-            min: -0.1,
-            max: 0.1,
-        });
-
-        expect(physicsWorld.addConstraint).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'prismatic',
-            bodyB: 'slider1',
-            limits: { min: -0.1, max: 0.1 },
-            axisA: { x: 1, y: 0, z: 0 }
-        }));
-    });
-
-    it('Triggers haptics on collision', () => {
-        // Mock getContacts to return a collision between hand and button
-        physicsWorld.getContacts.mockReturnValue([
-            { type: 'begin', bodyA: 'hand_left', bodyB: 'button1', contacts: [] }
-        ]);
-
-        // Mock WebXR Manager's triggerHaptic with plain function
-        let hapticCalled = false;
-        let calledArgs: any[] = [];
-        
-        (runtime as any).webXrManager = { 
-            triggerHaptic: (hand: any, intensity: any, duration: any) => {
-                hapticCalled = true;
-                calledArgs = [hand, intensity, duration];
-            } 
+        physicsBodyPos = { x: 0, y: 0, z: 0 };
+        node = {
+            id: 'test_node',
+            properties: {
+                position: { x: 0, y: 0, z: 0 },
+                distance: 0.1, // 10cm press range for button
+                axis: 'x', // Slider axis
+                length: 1.0 // 1m slider
+            }
         };
 
-        // Trigger update
-        runtime.update(0.016);
+        context = {
+            emit: vi.fn(),
+            haptics: {
+                pulse: vi.fn(),
+                rumble: vi.fn(),
+            },
+            physics: {
+                getBodyPosition: vi.fn().mockImplementation(() => ({ ...physicsBodyPos })),
+                setKinematic: vi.fn(), 
+                applyVelocity: vi.fn(),
+                raycast: vi.fn(),
+                applyAngularVelocity: vi.fn(),
+                getBodyVelocity: vi.fn()
+            },
+            vr: {
+                hands: { left: null, right: null },
+                headset: { position: [0,0,0], rotation: [0,0,0] },
+                getPointerRay: vi.fn(),
+                getDominantHand: vi.fn(),
+            },
+            // Mock other context parts if needed
+            audio: { playSound: vi.fn() },
+            getState: vi.fn(),
+            setState: vi.fn(),
+            getScaleMultiplier: vi.fn(() => 1),
+            setScaleContext: vi.fn(),
+        } as unknown as TraitContext;
+    });
 
-        expect(physicsWorld.getContacts).toHaveBeenCalled();
-        expect(hapticCalled).toBe(true);
-        expect(calledArgs).toEqual(['left', 0.5, 50]);
+    describe('PressableTrait', () => {
+        it('emits press_start when depressed > 50%', () => {
+            const trait = new PressableTrait();
+            
+            // Initial update to capture start pos
+            trait.onUpdate(node, context, 0.016);
+            
+            // Simulate physics moving body down Z axis (local)
+            // Pressed in by 0.06 (60% of distance)
+            physicsBodyPos.z = 0.06; 
+            
+            trait.onUpdate(node, context, 0.016);
+            
+            expect(context.emit).toHaveBeenCalledWith('ui_press_start', { nodeId: 'test_node' });
+            expect(context.haptics.pulse).toHaveBeenCalled();
+        });
+
+        it('emits press_end when released < 30%', () => {
+             const trait = new PressableTrait();
+            
+            // Setup: Already pressed
+            trait.onUpdate(node, context, 0.016);
+            physicsBodyPos.z = 0.06; 
+            trait.onUpdate(node, context, 0.016);
+            expect(context.emit).toHaveBeenCalledWith('ui_press_start', { nodeId: 'test_node' });
+            
+            // Release to 0.02 (20%)
+            physicsBodyPos.z = 0.02;
+            trait.onUpdate(node, context, 0.016);
+            
+            expect(context.emit).toHaveBeenCalledWith('ui_press_end', { nodeId: 'test_node' });
+        });
+    });
+
+    describe('SlidableTrait', () => {
+        it('calculates value based on position along axis', () => {
+            const trait = new SlidableTrait();
+            
+            // Initial update
+            trait.onUpdate(node, context, 0.016);
+            
+            // Move along X axis
+            // Length is 1.0. Range is -0.5 to 0.5 relative to center.
+            // Move to 0.25 (75% mark? No, Center=0.5. -0.5=0, 0.5=1.
+            // Value = (Delta + L/2) / L
+            // Delta = 0.25. (0.25 + 0.5) / 1.0 = 0.75.
+            physicsBodyPos.x = 0.25;
+            
+            trait.onUpdate(node, context, 0.016);
+            
+            expect(node.properties.value).toBeCloseTo(0.75);
+            expect(context.emit).toHaveBeenCalledWith('ui_value_change', { nodeId: 'test_node', value: 0.75 });
+        });
+
+        it('triggers haptic rumble on value change', () => {
+            const trait = new SlidableTrait();
+            trait.onUpdate(node, context, 0.016);
+            
+            physicsBodyPos.x = 0.1; // 10% change -> 0.6 value
+            trait.onUpdate(node, context, 0.016);
+            
+            expect(context.haptics.rumble).toHaveBeenCalled();
+        });
     });
 });

@@ -1,9 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { NetworkTransport } from '../networking/NetworkTransport';
 import { StateReplicator } from '../networking/StateReplicator';
 import { RPCManager } from '../networking/RPCManager';
 
 describe('Cycle 121: Networking & Replication', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
   // -------------------------------------------------------------------------
   // NetworkTransport
   // -------------------------------------------------------------------------
@@ -126,8 +130,15 @@ describe('Cycle 121: Networking & Replication', () => {
     rpc.register('slow', () => 'ok');
     rpc.setTimeout(0); // Immediate timeout
 
+    // Mock time to ensure deterministic timeout
+    const now = 1000;
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+
     const call = rpc.call('slow', []);
     expect(call).not.toBeNull();
+
+    // Advance time
+    vi.spyOn(Date, 'now').mockReturnValue(now + 1);
 
     const timedOut = rpc.processTimeouts(0);
     expect(timedOut.length).toBe(1);

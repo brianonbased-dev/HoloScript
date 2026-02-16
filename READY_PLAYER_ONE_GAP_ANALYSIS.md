@@ -366,8 +366,8 @@ Not everything about the OASIS is wrong. Some ideas are worth absorbing:
 | OASIS Strength | HoloScript/Hololand Response |
 |---|---|
 | **Universal avatar persistence** | Planned via `@hololand/social` + persistent state |
-| **Intuitive VR combat** | 49 VR interaction traits (`@grabbable`, `@throwable`, etc.) |
-| **Haptic feedback** | `@hololand/haptics` — controller + wearable haptics ✅ |
+| **Tactile Physics-Based UI** | 49 VR interaction traits (`@pressable`, `@slidable`, `@grabbable`) with two-handed manipulation |
+| **Haptic feedback** | `@hololand/haptics` — context-aware pulse/rumble on UI interaction ✅ |
 | **Cultural nostalgia/references** | Component library — importable pop culture templates |
 | **Massive shared events** | Interest management + spatial partitioning handle scale |
 | **In-world economy** | `@hololand/commerce` (proprietary) |

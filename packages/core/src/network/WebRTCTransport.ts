@@ -26,6 +26,14 @@ export interface WebRTCTransportConfig {
   iceServers?: RTCIceServer[];
 }
 
+export type SocialPacketType = 'SOCIAL_REQUEST' | 'SOCIAL_ACCEPT' | 'SOCIAL_REJECT' | 'SOCIAL_STATUS';
+
+export interface SocialPacket {
+  type: SocialPacketType;
+  payload: any;
+  fromPeerId?: string;
+}
+
 export interface WebRTCPeer {
   peerId: string;
   connection: RTCPeerConnection;
@@ -39,10 +47,63 @@ export class WebRTCTransport {
   private peers = new Map<string, WebRTCPeer>();
   private messageHandlers = new Map<string, (msg: unknown) => void>();
   private signalingWs: WebSocket | null = null;
+  private socialMessageHandlers: Set<(packet: SocialPacket) => void> = new Set();
+  
+  // Batching
+  private socialBatchQueue: SocialPacket[] = [];
+  private batchInterval: any = null;
+  private readonly BATCH_DELAY_MS = 50;
+
+  private localStream: MediaStream | null = null;
+  private eventHandlers: Map<string, ((...args: any[]) => void)[]> = new Map();
 
   constructor(config: WebRTCTransportConfig) {
     this.config = config;
     this.peerId = config.peerId || this.generatePeerId();
+  }
+
+  /**
+   * Add local media stream (audio/video)
+   */
+  addStream(stream: MediaStream): void {
+    this.localStream = stream;
+    
+    // Add tracks to all existing peers
+    this.peers.forEach((peer) => {
+      stream.getTracks().forEach(track => {
+        peer.connection.addTrack(track, stream);
+      });
+      // Re-negotiate if needed (simplified for this implementation)
+      // In a real impl, we'd check negotiationneeded
+    });
+  }
+
+  /**
+   * Enable or disable local microphone tracks
+   */
+  setMicrophoneEnabled(enabled: boolean): void {
+    if (this.localStream) {
+        this.localStream.getAudioTracks().forEach(track => {
+            track.enabled = enabled;
+        });
+    }
+  }
+
+  /**
+   * Register event handler
+   */
+  on(event: string, handler: (...args: any[]) => void): void {
+    if (!this.eventHandlers.has(event)) {
+      this.eventHandlers.set(event, []);
+    }
+    this.eventHandlers.get(event)!.push(handler);
+  }
+
+  private emit(event: string, ...args: any[]): void {
+    const handlers = this.eventHandlers.get(event);
+    if (handlers) {
+      handlers.forEach(h => h(...args));
+    }
   }
 
   /**
@@ -103,12 +164,29 @@ export class WebRTCTransport {
     };
 
     const pc = new RTCPeerConnection(config);
+    
+    // Add local stream tracks to new connection
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(track => {
+        pc.addTrack(track, this.localStream!);
+      });
+    }
+
     this.peers.set(removalPeerId, {
       peerId: removalPeerId,
       connection: pc,
       dataChannels: new Map(),
       isConnected: false,
     });
+
+    // Handle incoming tracks (Voice Chat)
+    pc.ontrack = (evt) => {
+      this.emit('stream-added', {
+        peerId: removalPeerId,
+        stream: evt.streams[0],
+        track: evt.track
+      });
+    };
 
     // Handle ICE candidates
     pc.onicecandidate = (evt) => {
@@ -181,6 +259,65 @@ export class WebRTCTransport {
         }
       });
     }
+  }
+
+  /**
+   * Send a social system message
+   */
+  sendSocialMessage(packet: SocialPacket, targetPeerId?: string): void {
+    // Batch status updates to reduce overhead
+    if (packet.type === 'SOCIAL_STATUS') {
+        this.socialBatchQueue.push(packet);
+        if (!this.batchInterval) {
+            this.batchInterval = setInterval(() => this.flushBatch(), this.BATCH_DELAY_MS);
+        }
+        return;
+    }
+
+    const msg = {
+      _system: true,
+      ...packet
+    };
+    this.sendMessage(targetPeerId || null, msg); // Targeted or Broadcast
+  }
+
+  private flushBatch(): void {
+    if (this.socialBatchQueue.length === 0) {
+        clearInterval(this.batchInterval);
+        this.batchInterval = null;
+        return;
+    }
+
+    // Deduplicate status updates for same user (last wins)
+    // Only beneficial if we were sending multiple updates for same user, 
+    // but here we are sending OUR status to multiple people.
+    // Actually, if we have multiple packets, we should bundle them.
+    // BUT current protocol expects single packet. 
+    // Optimization: Just send the latest one if multiple updates queued for same user (us).
+    // Start simple: send all as individual messages (batching network calls is harder without protocol change)
+    // WAIT: To truly batch, we need a SOCIAL_BATCH packet type.
+    // For now, let's just use the interval to throttle the *sending* calls on the socket.
+    
+    // Better Optimization for now: Throttle/Debounce outgoing status
+    // If we have multiple SOCIAL_STATUS in queue, only send the last one.
+    
+    const lastStatus = this.socialBatchQueue.pop(); // Get latest
+    this.socialBatchQueue = []; // Clear rest (intermediate states don't matter)
+    
+    if (lastStatus) {
+        const msg = {
+            _system: true,
+            ...lastStatus
+        };
+        this.sendMessage(null, msg);
+    }
+  }
+
+  /**
+   * Register handler for social messages
+   */
+  onSocialMessage(handler: (packet: SocialPacket) => void): void {
+    this.socialMessageHandlers.add(handler);
   }
 
   /**
@@ -289,6 +426,13 @@ export class WebRTCTransport {
     channel.onmessage = (evt) => {
       try {
         const msg = JSON.parse(evt.data);
+        
+        // Intercept system messages
+        if (msg._system && this.socialMessageHandlers.size > 0) {
+           this.socialMessageHandlers.forEach(handler => handler(msg));
+           return;
+        }
+
         const handler = this.messageHandlers.get('default');
         if (handler) handler(msg);
       } catch (err) {

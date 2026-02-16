@@ -176,6 +176,7 @@ export class SystemScheduler {
 
   getSystem(name: string): SystemDef | undefined { return this.systems.get(name); }
   getSystemCount(): number { return this.systems.size; }
+  get systemCount(): number { return this.systems.size; }
   getExecutionOrder(): string[] { this.resolveExecutionOrder(); return [...this.executionOrder]; }
   getPhaseStats(): Map<SystemPhase, PhaseStats> { return new Map(this.phaseStats); }
 

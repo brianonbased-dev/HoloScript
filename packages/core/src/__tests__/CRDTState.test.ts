@@ -30,29 +30,28 @@ describe('CRDT State Synchronization', () => {
     stateA.set('count', 5);
     expect(stateB.get('count')).toBe(5);
 
-    // Incoming "remote" op with OLDER timestamp should be ignored
+    // Incoming "remote" op with OLDER/LOWER clock should be ignored
+    // Current local clock is 1 (from set('count', 5))
     eventBus.emit('state_sync:shared_session', {
       source: 'remote',
       op: {
         clientId: 'other_client',
-        timestamp: Date.now() - 10000,
+        clock: 0,
         key: 'count',
         value: 1,
-        seq: 1,
       },
     });
 
     expect(stateA.get('count')).toBe(5);
 
-    // Incoming "remote" op with NEWER timestamp should win
+    // Incoming "remote" op with NEWER/HIGHER clock should win
     eventBus.emit('state_sync:shared_session', {
       source: 'remote',
       op: {
         clientId: 'other_client',
-        timestamp: Date.now() + 10000,
+        clock: 10,
         key: 'count',
         value: 100,
-        seq: 1,
       },
     });
 
@@ -67,18 +66,18 @@ describe('CRDT State Synchronization', () => {
 
     // Client "Z" (higher) vs Client "A" (lower)
     eventBus.emit('state_sync:session', {
-      op: { clientId: 'Client_A', timestamp: now, key: 'val', value: 10, seq: 1 },
+      op: { clientId: 'Client_A', clock: 100, key: 'val', value: 10 },
     });
     expect(state.get('val')).toBe(10);
 
     eventBus.emit('state_sync:session', {
-      op: { clientId: 'Client_Z', timestamp: now, key: 'val', value: 20, seq: 1 },
+      op: { clientId: 'Client_Z', clock: 100, key: 'val', value: 20 },
     });
     expect(state.get('val')).toBe(20);
 
     // Lower clientId should NOT override even if it arrives later
     eventBus.emit('state_sync:session', {
-      op: { clientId: 'Client_B', timestamp: now, key: 'val', value: 15, seq: 1 },
+      op: { clientId: 'Client_B', clock: 100, key: 'val', value: 15 },
     });
     expect(state.get('val')).toBe(20);
   });

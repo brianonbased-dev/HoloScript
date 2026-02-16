@@ -370,15 +370,15 @@ export class HoloScriptRuntime {
       return { moved: target, to: position };
     });
 
-    // Data commands
-    builtins.set('set', (args): HoloScriptValue => {
-      const target = String(args[0]);
-      const value = args[1];
-      this.setVariable(target, value);
-      return { set: target, value };
-    });
+  // Data commands
+  builtins.set('set', (args): HoloScriptValue => {
+    const target = String(args[0]);
+    const value = args[1];
+    this.setVariable(target, value);
+    return { set: target, value };
+  });
 
-    builtins.set('get', (args): HoloScriptValue => {
+  builtins.set('get', (args): HoloScriptValue => {
       const target = String(args[0]);
       return this.getVariable(target);
     });
@@ -978,9 +978,8 @@ export class HoloScriptRuntime {
   }
 
   /**
-   * Evaluate an expression
+   * Evaluate an expression in current context
    */
-  @MethodMemoize(200)
   public evaluateExpression(expr: string): HoloScriptValue {
     if (!expr || typeof expr !== 'string') return expr;
 
@@ -988,6 +987,7 @@ export class HoloScriptRuntime {
     // Also include currently set variables in context
     const varContext: Record<string, any> = {};
     this.context.variables.forEach((v, k) => (varContext[k] = v));
+    
     evaluator.updateContext(varContext);
 
     return evaluator.evaluate(expr);

@@ -30,6 +30,7 @@ export interface SpatialAudioConfig {
   loop: boolean;
   cone: AudioCone | null;
   dopplerFactor: number;
+  rolloffFactor: number;  // New: 0-infinite, default 1
   spatialBlend: number;   // 0 = 2D, 1 = full 3D
 }
 
@@ -51,13 +52,14 @@ export class SpatialAudioSource {
       position: { x: 0, y: 0, z: 0 },
       velocity: { x: 0, y: 0, z: 0 },
       rolloff: 'inverse',
-      minDistance: 1,
+      minDistance: 3,     // Tuned for voice: audible within 3m
       maxDistance: 100,
       volume: 1,
       pitch: 1,
       loop: false,
       cone: null,
       dopplerFactor: 1,
+      rolloffFactor: 1,
       spatialBlend: 1,
       ...config,
     };
@@ -143,10 +145,12 @@ export class SpatialAudioSource {
         return 1 - (clamped - min) / (max - min);
       }
       case 'inverse': {
-        return min / (min + (clamped - min));
+        // min / (min + rolloffFactor * (distance - min))
+        return min / (min + this.config.rolloffFactor * (clamped - min));
       }
       case 'exponential': {
-        return Math.pow(clamped / min, -1);
+        // (distance / min) ^ -rolloffFactor
+        return Math.pow(clamped / min, -this.config.rolloffFactor);
       }
       default:
         return 1;

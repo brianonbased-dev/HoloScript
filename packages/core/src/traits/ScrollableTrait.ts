@@ -1,170 +1,138 @@
-/**
- * ScrollableTrait.ts
- *
- * Physics-based scrolling for UI containers.
- * Uses virtual content offset to scroll children within a viewport.
- *
- * @trait scrollable
- */
 
-import type { TraitHandler } from './TraitTypes';
-import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
+import { 
+    TraitHandler, 
+    TraitContext,
+    Vector3 
+} from '../types/HoloScriptPlus';
+import { SpringAnimator, SpringPresets } from '../animation/SpringAnimator';
 
 export interface ScrollableConfig {
-    axis: 'x' | 'y';
-    contentHeight: number;   // Total scrollable height
-    viewportHeight: number;  // Visible area height
-    scrollSpeed: number;     // Multiplier for scroll velocity
-    friction: number;        // Deceleration factor (0-1)
-    bounceStrength: number;  // Elastic bounce at edges
+    contentHeight: number;
+    viewportHeight: number;
+    friction?: number;
+    elasticity?: number;
+    /** Use spring physics for boundary snap-back (rubber-band effect) */
+    useSpringBounce?: boolean;
 }
 
 interface ScrollState {
-    offset: number;         // Current scroll offset
-    velocity: number;       // Current scroll velocity
+    offset: number;
+    velocity: number;
     isDragging: boolean;
-    dragStartY: number;
-    dragStartOffset: number;
-    lastDragY: number;
-    lastDragTime: number;
+    lastY: number;
+    bounceSpring: SpringAnimator | null;
 }
 
-const defaultConfig: ScrollableConfig = {
-    axis: 'y',
-    contentHeight: 1.0,
-    viewportHeight: 0.5,
-    scrollSpeed: 1.0,
-    friction: 0.92,
-    bounceStrength: 0.3,
-};
-
-// Internal state per node
 const scrollStates = new Map<string, ScrollState>();
 
-function getState(nodeId: string): ScrollState {
-    if (!scrollStates.has(nodeId)) {
-        scrollStates.set(nodeId, {
+export const scrollableHandler: TraitHandler<ScrollableConfig> = {
+    name: 'scrollable',
+    defaultConfig: {
+        contentHeight: 1.0,
+        viewportHeight: 0.5,
+        friction: 0.95,
+        elasticity: 0.1,
+        useSpringBounce: true
+    },
+
+    onAttach(node, config, context) {
+        const spring = config.useSpringBounce
+            ? new SpringAnimator(0, { ...SpringPresets.gentle, precision: 0.005 })
+            : null;
+
+        scrollStates.set(node.id!, {
             offset: 0,
             velocity: 0,
             isDragging: false,
-            dragStartY: 0,
-            dragStartOffset: 0,
-            lastDragY: 0,
-            lastDragTime: 0,
+            lastY: 0,
+            bounceSpring: spring
         });
-    }
-    return scrollStates.get(nodeId)!;
-}
-
-export const scrollableHandler: TraitHandler<ScrollableConfig> = {
-    name: 'scrollable' as any,
-    defaultConfig,
-
-    onAttach(node: HSPlusNode, config: ScrollableConfig, _context: any) {
-        const state = getState(node.id!);
-        state.offset = 0;
-        state.velocity = 0;
     },
 
-    onDetach(node: HSPlusNode, _config: ScrollableConfig, _context: any) {
+    onDetach(node, config, context) {
         scrollStates.delete(node.id!);
     },
 
-    onUpdate(node: HSPlusNode, config: ScrollableConfig, context: any, delta: number) {
-        const state = getState(node.id!);
-        const maxOffset = Math.max(0, config.contentHeight - config.viewportHeight);
+    onUpdate(node, config, context, delta) {
+        const state = scrollStates.get(node.id!);
+        if (!state) return;
 
-        // --- Drag Handling ---
-        const vrContext = (context as any).vr;
-        if (vrContext && vrContext.hands) {
-            const hand = vrContext.hands.right || vrContext.hands.left;
-            if (hand) {
-                const handY = (hand.position as any).y || 0;
+        const maxScroll = Math.max(0, config.contentHeight - config.viewportHeight);
 
-                if (hand.grip > 0.5 && !state.isDragging) {
-                    // Start drag
-                    state.isDragging = true;
-                    state.dragStartY = handY;
-                    state.dragStartOffset = state.offset;
-                    state.lastDragY = handY;
-                    state.lastDragTime = Date.now();
-                } else if (hand.grip > 0.5 && state.isDragging) {
-                    // Continue drag
-                    const deltaY = handY - state.dragStartY;
-                    state.offset = state.dragStartOffset - deltaY * config.scrollSpeed;
-
-                    // Track velocity
-                    const now = Date.now();
-                    const dt = (now - state.lastDragTime) / 1000;
-                    if (dt > 0) {
-                        state.velocity = (handY - state.lastDragY) / dt;
-                    }
-                    state.lastDragY = handY;
-                    state.lastDragTime = now;
-                } else if (hand.grip <= 0.5 && state.isDragging) {
-                    // Release: apply inertia
-                    state.isDragging = false;
-                    // velocity is already set from tracking
-                }
-            }
-        }
-
-        // --- Inertia ---
+        // Apply inertia if not dragging
         if (!state.isDragging && Math.abs(state.velocity) > 0.001) {
-            state.offset -= state.velocity * delta * config.scrollSpeed;
-            state.velocity *= config.friction;
+            state.offset += state.velocity * delta;
+            state.velocity *= (config.friction ?? 0.95);
         }
 
-        // --- Elastic Bounce ---
-        if (state.offset < 0) {
-            state.offset = state.offset * config.bounceStrength;
-            state.velocity *= -config.bounceStrength;
-        } else if (state.offset > maxOffset) {
-            const overshoot = state.offset - maxOffset;
-            state.offset = maxOffset + overshoot * config.bounceStrength;
-            state.velocity *= -config.bounceStrength;
-        }
+        // Boundary handling
+        if (!state.isDragging) {
+            if (state.bounceSpring) {
+                // Spring-based elastic snap-back
+                if (state.offset > 0) {
+                    state.bounceSpring.setTarget(0);
+                    state.bounceSpring.setValue(state.offset);
+                    state.velocity = 0;
+                } else if (state.offset < -maxScroll) {
+                    state.bounceSpring.setTarget(-maxScroll);
+                    state.bounceSpring.setValue(state.offset);
+                    state.velocity = 0;
+                }
 
-        // --- Clamp ---
-        state.offset = Math.max(-0.05, Math.min(state.offset, maxOffset + 0.05));
-
-        // --- Apply offset to children ---
-        if (node.children) {
-            for (const child of node.children) {
-                if (child.properties) {
-                    const basePos = (child.properties as any)._basePosition || child.properties.position || { x: 0, y: 0, z: 0 };
-                    // Save base position for first time
-                    if (!(child.properties as any)._basePosition) {
-                        (child.properties as any)._basePosition = { ...(child.properties.position as any || { x: 0, y: 0, z: 0 }) };
-                    }
-
-                    if (config.axis === 'y') {
-                        child.properties.position = {
-                            ...(basePos as any),
-                            y: (basePos as any).y + state.offset,
-                        };
-                    } else {
-                        child.properties.position = {
-                            ...(basePos as any),
-                            x: (basePos as any).x + state.offset,
-                        };
-                    }
-
-                    // --- Simple Clipping ---
-                    // Hide children that are outside viewport bounds
-                    const childPos = child.properties.position as any;
-                    const relativePos = config.axis === 'y' ? childPos.y : childPos.x;
-                    const halfViewport = config.viewportHeight / 2;
-                    (child.properties as any).visible = Math.abs(relativePos) <= halfViewport;
+                if (!state.bounceSpring.isAtRest()) {
+                    state.offset = state.bounceSpring.update(delta);
+                }
+            } else {
+                // Hard clamp
+                if (state.offset > 0) {
+                    state.offset = 0;
+                    state.velocity = 0;
+                } else if (state.offset < -maxScroll) {
+                    state.offset = -maxScroll;
+                    state.velocity = 0;
                 }
             }
         }
-
-        // Store scroll state on node for external access
-        if (node.properties) {
-            (node.properties as any).scrollOffset = state.offset;
-            (node.properties as any).scrollVelocity = state.velocity;
-            (node.properties as any).maxScrollOffset = maxOffset;
+        
+        // Apply offset to content container
+        const contentNode = context.getNode(`${node.id}_content`);
+        if (contentNode && contentNode.properties) {
+            contentNode.properties.position = { 
+                ...(contentNode.properties.position as Vector3), 
+                y: state.offset 
+            };
+            context.emit('property_changed', { nodeId: `${node.id}_content`, property: 'position', value: contentNode.properties.position });
         }
     },
+
+    onEvent(node, config, context, event) {
+        const state = scrollStates.get(node.id!);
+        if (!state) return;
+
+        if (event.type === 'ui_press_start') {
+            state.isDragging = true;
+            state.lastY = (event as any).position?.y || 0;
+            state.velocity = 0;
+        } else if (event.type === 'ui_press_end') {
+            state.isDragging = false;
+        } else if (event.type === 'ui_drag') {
+            if (state.isDragging) {
+                const currentY = (event as any).position?.y || 0;
+                const dy = currentY - state.lastY;
+                state.offset += dy;
+                state.velocity = dy / 0.016; // Approx velocity
+                state.lastY = currentY;
+                
+                // Immediate update
+                const contentNode = context.getNode(`${node.id}_content`);
+                if (contentNode && contentNode.properties) {
+                     contentNode.properties.position = { 
+                        ...(contentNode.properties.position as Vector3), 
+                        y: state.offset 
+                    };
+                    context.emit('property_changed', { nodeId: `${node.id}_content`, property: 'position', value: contentNode.properties.position });
+                }
+            }
+        }
+    }
 };

@@ -80,21 +80,36 @@ export class VRPhysicsBridge {
 
     if (body) {
       // Calculate Velocity (vital for throwing)
+      // Use a simple history buffer if needed, but for now simple delta is okay if smoothed
+      // Let's implement a small exponential smoothing or just raw delta if frame rate is high
+      
       const prevPos = this.lastPositions.get(bodyId) || { x: hand.position.x, y: hand.position.y, z: hand.position.z };
       
-      const velocity = {
-        x: (hand.position.x - prevPos.x) / delta,
-        y: (hand.position.y - prevPos.y) / delta,
-        z: (hand.position.z - prevPos.z) / delta,
+      // Prevent divide by zero
+      const safeDelta = delta > 0.001 ? delta : 0.016;
+
+      const rawVelocity = {
+        x: (hand.position.x - prevPos.x) / safeDelta,
+        y: (hand.position.y - prevPos.y) / safeDelta,
+        z: (hand.position.z - prevPos.z) / safeDelta,
+      };
+
+      // Simple smoothing (Lerp with previous velocity if available)
+      // This helps reduce jitter in physics interactions
+      const prevVel = body.velocity || { x: 0, y: 0, z: 0 };
+      const smoothingFactor = 0.5; // 0 = old, 1 = new
+      
+      const smoothedVelocity = {
+          x: prevVel.x * (1 - smoothingFactor) + rawVelocity.x * smoothingFactor,
+          y: prevVel.y * (1 - smoothingFactor) + rawVelocity.y * smoothingFactor,
+          z: prevVel.z * (1 - smoothingFactor) + rawVelocity.z * smoothingFactor,
       };
 
       // Update Body Transform
       body.position = { x: hand.position.x, y: hand.position.y, z: hand.position.z };
-      // body.rotation = ... (Need Euler to Quat conversion if input is Euler)
-      // Assuming input is Vector3 Euler for now based on HoloScriptTypes
       
-      // Update Body Velocity (Kinematic bodies drive velocity for solvers)
-      body.velocity = velocity;
+      // Update Body Velocity
+      body.velocity = smoothedVelocity;
 
       // Store history
       this.lastPositions.set(bodyId, { ...body.position });

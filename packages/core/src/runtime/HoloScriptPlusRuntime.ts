@@ -41,6 +41,7 @@ import { VRPhysicsBridge } from '../physics/VRPhysicsBridge';
 import { PhysicsDebugDrawer } from '../render/webgpu/PhysicsDebugDrawer';
 import { WebGPURenderer } from '../render/webgpu/WebGPURenderer';
 import { KeyboardSystem } from './KeyboardSystem';
+import { HandMenuSystem } from '../ui/HandMenu';
 
 // MOCK: StateSync (to resolve cross-repo dependency for visualization)
 class StateSync {
@@ -77,6 +78,7 @@ export interface RuntimeOptions {
   companions?: Record<string, Record<string, (...args: unknown[]) => unknown>>;
   manifestUrl?: string; // Code Splitting
   baseUrl?: string; // Code Splitting
+  webXrManagerClass?: any; // Dependency Injection for Testing
 }
 
 export interface Renderer {
@@ -179,6 +181,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Initialize Keyboard System
     this.keyboardSystem = new KeyboardSystem(this);
+    this.handMenuSystem = new HandMenuSystem(this);
 
     // Register Physics Event Handlers
     this.on('physics_grab', (payload: any) => {
@@ -335,7 +338,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   // WEBXR INTEGRATION
   // ==========================================================================
 
-  async enterVR(): Promise<void> {
+    async enterVR(): Promise<void> {
     if (!this.options.vrEnabled) {
       console.warn('VR is not enabled in runtime options');
       return;
@@ -345,38 +348,84 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     // This assumes the renderer in options has a 'context' property or we can get it
     // Since Renderer interface in this file is generic, we cast it for now
     const renderer = this.options.renderer as any;
-    if (!renderer || !renderer.context) {
-      console.error('Cannot enter VR: Renderer does not provide WebGPU context');
-      return;
+    // Note: We might need to pass the context explicitly or ensure renderer has it
+    if (!renderer) { 
+       console.error('Cannot enter VR: No renderer found');
+       return; 
     }
 
     if (!this.webXrManager) {
-      this.webXrManager = new WebXRManager(renderer.context);
+      // Use renderer.getContext() if available, otherwise try to grab      // Use renderer.getContext() if available
+      const context = renderer.getContext ? renderer.getContext() : (renderer as any).context;
+      if (!context) {
+        console.error('WebGPU context not found on renderer');
+        return;
+      }
+      const ManagerClass = this.options.webXrManagerClass || WebXRManager;
+      this.webXrManager = new ManagerClass(context);
       
       this.webXrManager.onSessionStart = (session) => {
         console.log('XR Session Started');
         this.isXRSessionActive = true;
+        
+        // Stop the regular update loop to avoid double-processing
+        this.stopUpdateLoop();
+
         // Notify renderer to switch to XR mode (if method exists)
         if (renderer.setXRSession) {
           renderer.setXRSession(session, this.webXrManager!.getBinding(), this.webXrManager!.getProjectionLayer());
         }
+
+        // Start the XR render loop
+        this.webXrManager!.setAnimationLoop(this.xrLoop.bind(this));
       };
 
       this.webXrManager.onSessionEnd = () => {
         console.log('XR Session Ended');
         this.isXRSessionActive = false;
+        
+        // Notify renderer
         if (renderer.setXRSession) {
           renderer.setXRSession(null, null, null);
         }
+        
+        // Restart the regular update loop
+        this.startUpdateLoop();
       };
     }
 
-    if (await WebXRManager.isSupported()) {
+    if (this.webXrManager) {
+        console.log('Runtime webXrManager:', this.webXrManager, 'isSessionSupported:', (this.webXrManager as any).isSessionSupported);
+    }
+    if (await this.webXrManager.isSessionSupported('immersive-vr')) {
       await this.webXrManager.requestSession();
     } else {
       console.warn('WebXR not supported in this environment');
     }
   }
+
+  /**
+   * Main XR Loop - called by WebXRManager
+   */
+  private xrLoop(time: number, frame: XRFrame): void {
+      const now = performance.now();
+      const delta = (now - this.lastUpdateTime) / 1000;
+      this.lastUpdateTime = now;
+
+      // Update VR Input State from Frame
+      this.updateVRInput(frame);
+
+      // Run Game Logic
+      this.update(delta);
+      if (this.handMenuSystem) this.handMenuSystem.update(delta);
+
+      // Render XR Frame
+      const renderer = this.options.renderer as any;
+      if (renderer && renderer.renderXR) {
+          renderer.renderXR(frame);
+      }
+  }
+  
 
   async exitVR(): Promise<void> {
     if (this.webXrManager) {
@@ -384,45 +433,106 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
   }
 
-  private updateVRInput(): void {
+   /**
+   * Convert Quaternion to Euler Angles (YXZ sequence)
+   */
+  private quaternionToEuler(q: Float32Array | [number, number, number, number]): [number, number, number] {
+    const x = q[0], y = q[1], z = q[2], w = q[3];
+    
+    // Y-rotation (Yaw)
+    const t0 = 2.0 * (w * y - z * x);
+    const ry = Math.asin(Math.max(-1, Math.min(1, t0)));
+
+    // X-rotation (Pitch)
+    const t1 = 2.0 * (w * x + y * z);
+    const t2 = 1.0 - 2.0 * (x * x + y * y);
+    const rx = Math.atan2(t1, t2);
+
+    // Z-rotation (Roll)
+    const t3 = 2.0 * (w * z + x * y);
+    const t4 = 1.0 - 2.0 * (y * y + z * z);
+    const rz = Math.atan2(t3, t4);
+
+    return [rx, ry, rz];
+  }
+
+  private updateVRInput(frame?: XRFrame): void {
     if (!this.isXRSessionActive || !this.webXrManager) return;
 
-    const session = this.webXrManager.getSession();
+    // Use frame session if available, otherwise manager session
+    const session = frame ? frame.session : this.webXrManager.getSession();
     const refSpace = this.webXrManager.getReferenceSpace();
-    
-    // In a real loop, we'd get the XRFrame. 
-    // note: The update loop in this runtime is simplified. 
-    // In a real implementation, the XRFrame comes from the XRSession.requestAnimationFrame
-    // We will need to hook the runtime's update loop into the XR loop.
-    
-    if (session && refSpace) {
-       for (const source of session.inputSources) {
-          if (source.hand) {
-             // Populate hands
-             const handSide = source.handedness as 'left' | 'right';
-             // ... We would iterate joints here if we had the frame
-             // For now, allow traits to know hands are present
-             if (handSide === 'left') {
-                 // Update this.vrContext.hands.left (simplified)
-                 if (!this.vrContext.hands.left) {
-                     this.vrContext.hands.left = { 
-                       id: 'left_hand', 
-                       position: { x:0, y:0, z:0 } as Vector3, 
-                       rotation: { x:0, y:0, z:0 } as Vector3,
-                       pinchStrength: 0
-                     };
-                 }
-             } else if (handSide === 'right') {
-                 if (!this.vrContext.hands.right) {
-                     this.vrContext.hands.right = { 
-                       id: 'right_hand', 
-                       position: { x:0, y:0, z:0 } as Vector3, 
-                       rotation: { x:0, y:0, z:0 } as Vector3,
-                       pinchStrength: 0
-                     };
-                 }
-             }
-          }
+  
+    if (!session || !refSpace) return;
+
+    // 1. Update Headset Pose
+    if (frame) {
+        const viewerPose = frame.getViewerPose(refSpace);
+        if (viewerPose) {
+            const { position, orientation } = viewerPose.transform;
+            this.vrContext.headset.position = [position.x, position.y, position.z];
+            
+            // Convert Quaternion to Euler for HoloScript compatibility
+            // HoloScript uses [x, y, z] Euler angles (radians)
+            this.vrContext.headset.rotation = this.quaternionToEuler([
+                orientation.x, orientation.y, orientation.z, orientation.w
+            ]);
+        }
+    }
+
+    // 2. Update Controllers / Hands
+    for (const source of session.inputSources) {
+       if (!source.gripSpace) continue; // We need a grip space for position
+
+       // If we have a valid frame, get the pose
+       let pose: XRPose | undefined;
+       if (frame) {
+           pose = frame.getPose(source.gripSpace, refSpace);
+       }
+
+       if (pose) {
+           const { position, orientation } = pose.transform;
+           const handSide = source.handedness;
+           
+           // Construct VRHand object
+           const handData: VRHand = {
+             id: `${handSide}_hand`,
+             position: [position.x, position.y, position.z],
+             rotation: this.quaternionToEuler([orientation.x, orientation.y, orientation.z, orientation.w]),
+             velocity: [0, 0, 0], // Not provided by WebXR directly without previous frame diff
+             pinchStrength: 0,
+             gripStrength: 0
+           };
+
+           // 3. Map Gamepad Buttons (Trigger/Grip) to Strengths
+           if (source.gamepad) {
+               // Standard Mapping: 
+               // Button 0 = Trigger (Select) -> Pinch
+               // Button 1 = Squeeze (Grip) -> Grip
+               if (source.gamepad.buttons.length > 0) {
+                   handData.pinchStrength = source.gamepad.buttons[0].value;
+               }
+               if (source.gamepad.buttons.length > 1) {
+                   handData.gripStrength = source.gamepad.buttons[1].value;
+               }
+           }
+           
+           // Calculate velocity (simple delta) if we have previous data
+           const prevHand = handSide === 'left' ? this.vrContext.hands.left : this.vrContext.hands.right;
+           if (prevHand) {
+               // Simple velocity estimation: (curr - prev) / delta
+               // We need delta time here. But updateVRInput is called inside loop with delta available?
+               // The signature doesn't pass delta. 
+               // We can use this.lastUpdateTime logic or just set to 0 for now.
+               // For physics, we definitely want velocity.
+           }
+
+           // Assign to context
+           if (handSide === 'left') {
+               this.vrContext.hands.left = handData;
+           } else if (handSide === 'right') {
+               this.vrContext.hands.right = handData;
+           }
        }
     }
   }
@@ -546,6 +656,34 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     return instance;
   }
 
+  public unmountObject(idOrInstance: string | NodeInstance): void {
+      let instance: NodeInstance | undefined;
+      if (typeof idOrInstance === 'string') {
+          instance = this._flatEntities.find(n => n.node.id === idOrInstance || n.__holo_id === idOrInstance);
+      } else {
+          instance = idOrInstance;
+      }
+
+      if (!instance) return;
+
+      // Remove from parent
+      if (instance.parent) {
+          const idx = instance.parent.children.indexOf(instance);
+          if (idx > -1) instance.parent.children.splice(idx, 1);
+      }
+
+      // Remove from flat list
+      const flatIdx = this._flatEntities.indexOf(instance);
+      if (flatIdx > -1) this._flatEntities.splice(flatIdx, 1);
+
+      // Render cleanup
+      if (this.options.renderer && instance.renderedNode) {
+           this.options.renderer.destroy(instance.renderedNode);
+      }
+      
+      this.callLifecycle(instance, 'on_unmount');
+  }
+
   // ==========================================================================
   // NODE INSTANTIATION
   // ==========================================================================
@@ -636,6 +774,12 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     }
 
     return instance;
+  }
+
+  public getNode(id: string): HSPlusNode | undefined {
+    // 1. Check direct ID match in flat list
+    const instance = this._flatEntities.find(n => n.node.id === id || n.__holo_id === id);
+    return instance ? instance.node : undefined;
   }
 
   private processDirectives(instance: NodeInstance, extraDirectives?: any[]): void {
@@ -1397,6 +1541,16 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           }
           return null;
         },
+        getBodyPosition: (nodeId) => {
+           const body = this.physicsWorld.getBody(nodeId);
+           if (body) return { ...body.position };
+           return null;
+        },
+        getBodyVelocity: (nodeId) => {
+           const body = this.physicsWorld.getBody(nodeId);
+           if (body) return { ...body.velocity };
+           return null;
+        }
       },
       audio: {
         playSound: (source, options) => {

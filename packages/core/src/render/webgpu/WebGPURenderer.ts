@@ -799,6 +799,7 @@ export class WebGPURenderer {
         ? this.msaaTexture!.createView()
         : this.context.context.getCurrentTexture().createView();
 
+
     const resolveTarget =
       this.options.sampleCount > 1
         ? this.context.context.getCurrentTexture().createView()
@@ -1115,5 +1116,94 @@ export class WebGPURenderer {
 
     this.context?.device.destroy();
     this.context = null;
+  }
+
+  /**
+   * Render an XR frame
+   */
+  renderXRFrame(
+    frame: XRFrame,
+    refSpace: XRReferenceSpace,
+    renderCallback: (pass: GPURenderPassEncoder, view: XRView) => void
+  ): void {
+    if (!this.context) return;
+    const { device } = this.context;
+    const session = frame.session;
+
+    // Lazy init binding if needed
+    if (!this.xrBinding) {
+      // @ts-ignore - XRWebGPUBinding experimental
+      if (typeof XRWebGPUBinding !== 'undefined') {
+         // @ts-ignore
+         this.xrBinding = new XRWebGPUBinding(session, device);
+         // @ts-ignore
+         this.xrProjectionLayer = this.xrBinding.createProjectionLayer({
+           space: refSpace,
+           stencil: false,
+         });
+         // @ts-ignore
+         session.updateRenderState({ layers: [this.xrProjectionLayer] });
+      } else {
+          console.warn('XRWebGPUBinding not defined');
+          return;
+      }
+    }
+
+    const pose = frame.getViewerPose(refSpace);
+    if (!pose) return;
+
+    for (const view of pose.views) {
+      // @ts-ignore
+      const subImage = this.xrBinding.getViewSubImage(this.xrProjectionLayer, view);
+      const viewAttachment = subImage.colorTexture.createView({
+        dimension: '2d',
+        baseArrayLayer: subImage.imageIndex,
+        arrayLayerCount: 1,
+      });
+
+      const viewport = subImage.viewport;
+
+      const commandEncoder = device.createCommandEncoder();
+      const renderPass = commandEncoder.beginRenderPass({
+        label: 'xr-pass',
+        colorAttachments: [
+          {
+            view: viewAttachment,
+            loadOp: 'clear',
+            storeOp: 'store',
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          },
+        ],
+        depthStencilAttachment: {
+          view: this.depthTexture!.createView(), // Reusing depth buffer (might need resize logic?)
+          depthLoadOp: 'clear',
+          depthStoreOp: 'store',
+          depthClearValue: 1.0,
+        },
+      });
+
+      renderPass.setViewport(viewport.x, viewport.y, viewport.width, viewport.height, 0, 1);
+
+      // Simple matrix multiplication for ViewProjection
+      // Note: In a real engine, use a math library. Here we just pass raw matrices if possible or stub.
+      // We'll update the camera uniforms directly.
+      
+      this.updateCameraUniforms({
+        projectionMatrix: view.projectionMatrix,
+        viewMatrix: view.transform.inverse.matrix,
+        // Mock VP matrix for now (or compute it if we had a math lib)
+        viewProjectionMatrix: view.projectionMatrix, 
+        cameraPosition: [
+          view.transform.position.x,
+          view.transform.position.y,
+          view.transform.position.z,
+        ],
+      });
+
+      renderCallback(renderPass, view);
+
+      renderPass.end();
+      device.queue.submit([commandEncoder.finish()]);
+    }
   }
 }

@@ -1,195 +1,108 @@
-/**
- * GestureTrait.ts
- *
- * Recognizes VR hand gestures by analyzing hand joint data over time.
- * Emits semantic gesture events that other traits/systems can react to.
- *
- * Supported Gestures:
- * - swipe_left / swipe_right / swipe_up / swipe_down
- * - pinch (thumb + index close)
- * - palm_open (all fingers extended)
- * - fist (all fingers curled)
- * - point (index extended, others curled)
- *
- * @trait gesture
- */
 
-import type { TraitHandler } from './TraitTypes';
-import type { HSPlusNode, Vector3, VRHand } from '../types/HoloScriptPlus';
+import { 
+    VRHand,
+    Vector3 
+} from '../types/HoloScriptPlus';
+import { 
+    TraitHandler, 
+    TraitContext,
+    VRContext 
+} from './TraitTypes';
+
+export type GestureType = 'swipe_left' | 'swipe_right' | 'swipe_up' | 'swipe_down' | 'pinch' | 'palm_open';
 
 export interface GestureConfig {
-    hand: 'left' | 'right' | 'both';
-    swipeThreshold: number;       // Min velocity for swipe detection (m/s)
-    swipeMinDistance: number;      // Min distance for swipe (meters)
-    pinchThreshold: number;       // Pinch strength threshold (0-1)
-    gestureTimeout: number;       // Cooldown between gestures (ms)
-    emitEvents: boolean;          // Whether to emit runtime events
+    enabledGestures: GestureType[];
+    swipeThreshold?: number; // Distance in meters
+    pinchThreshold?: number; // 0-1 strength
+    palmThreshold?: number; // 0-1 openness? No, usually distinct state.
+    debounce?: number; // ms
 }
 
-export type GestureType =
-    | 'swipe_left' | 'swipe_right' | 'swipe_up' | 'swipe_down'
-    | 'pinch_start' | 'pinch_end'
-    | 'palm_open' | 'fist' | 'point';
-
-interface HandHistory {
-    positions: Array<{ pos: Vector3; time: number }>;
-    wasPinching: boolean;
+interface GestureState {
+    lastPosition: Vector3 | null;
+    lastTime: number;
+    isPinching: boolean;
     lastGestureTime: number;
-    lastGesture: GestureType | null;
 }
 
-const handHistories = new Map<string, HandHistory>();
-const MAX_HISTORY = 10;
-
-function getHistory(key: string): HandHistory {
-    if (!handHistories.has(key)) {
-        handHistories.set(key, {
-            positions: [],
-            wasPinching: false,
-            lastGestureTime: 0,
-            lastGesture: null,
-        });
-    }
-    return handHistories.get(key)!;
-}
-
-function vec3Dist(a: Vector3, b: Vector3): number {
-    const dx = (a as any).x - (b as any).x;
-    const dy = (a as any).y - (b as any).y;
-    const dz = (a as any).z - (b as any).z;
-    return Math.sqrt(dx*dx + dy*dy + dz*dz);
-}
-
-const defaultGestureConfig: GestureConfig = {
-    hand: 'right',
-    swipeThreshold: 0.8,
-    swipeMinDistance: 0.1,
-    pinchThreshold: 0.7,
-    gestureTimeout: 500,
-    emitEvents: true,
-};
+const gestureStates = new Map<string, Record<string, GestureState>>(); // nodeId -> hand -> state
 
 export const gestureHandler: TraitHandler<GestureConfig> = {
-    name: 'gesture' as any,
-    defaultConfig: defaultGestureConfig,
-
-    onAttach(node: HSPlusNode, _config: GestureConfig, _context: any) {
-        // Initialize
+    name: 'gesture_recognition',
+    defaultConfig: {
+        enabledGestures: ['swipe_left', 'swipe_right', 'pinch'],
+        swipeThreshold: 0.1,
+        pinchThreshold: 0.9,
+        debounce: 300
     },
 
-    onDetach(node: HSPlusNode, _config: GestureConfig, _context: any) {
-        handHistories.delete(`${node.id}_left`);
-        handHistories.delete(`${node.id}_right`);
+    onAttach(node, config, context) {
+        gestureStates.set(node.id!, {
+            left: { lastPosition: null, lastTime: 0, isPinching: false, lastGestureTime: 0 },
+            right: { lastPosition: null, lastTime: 0, isPinching: false, lastGestureTime: 0 }
+        });
     },
 
-    onUpdate(node: HSPlusNode, config: GestureConfig, context: any, delta: number) {
-        const vrContext = (context as any).vr;
+    onDetach(node, config, context) {
+        gestureStates.delete(node.id!);
+    },
+
+    onUpdate(node, config, context, delta) {
+        const vrContext = (context as any).vr as VRContext;
         if (!vrContext || !vrContext.hands) return;
 
-        const now = Date.now();
-        const handsToCheck: Array<{ name: string; hand: VRHand }> = [];
+        const nodeStates = gestureStates.get(node.id!);
+        if (!nodeStates) return;
 
-        if (config.hand === 'both' || config.hand === 'left') {
-            if (vrContext.hands.left) handsToCheck.push({ name: 'left', hand: vrContext.hands.left });
-        }
-        if (config.hand === 'both' || config.hand === 'right') {
-            if (vrContext.hands.right) handsToCheck.push({ name: 'right', hand: vrContext.hands.right });
-        }
+        const time = performance.now();
 
-        for (const { name, hand } of handsToCheck) {
-            const histKey = `${node.id}_${name}`;
-            const history = getHistory(histKey);
+        ['left', 'right'].forEach((handName) => {
+            const hand = vrContext.hands[handName] as VRHand | null;
+            if (!hand) return;
 
-            // Record position
-            history.positions.push({ pos: hand.position, time: now });
-            if (history.positions.length > MAX_HISTORY) {
-                history.positions.shift();
+            const state = nodeStates[handName];
+            
+            // 1. Pinch Detection
+            if (config.enabledGestures.includes('pinch')) {
+                const isPinching = (hand.pinchStrength || 0) > (config.pinchThreshold || 0.9);
+                if (isPinching && !state.isPinching) {
+                     if (time - state.lastGestureTime > (config.debounce || 300)) {
+                         context.emit('gesture', { type: 'pinch', hand: handName, nodeId: node.id });
+                         state.lastGestureTime = time;
+                     }
+                }
+                state.isPinching = isPinching;
             }
 
-            // --- Pinch Detection ---
-            const pinchStrength = hand.pinch || 0;
-            if (pinchStrength >= config.pinchThreshold && !history.wasPinching) {
-                history.wasPinching = true;
-                emitGesture(node, context, config, history, 'pinch_start', now);
-            } else if (pinchStrength < config.pinchThreshold && history.wasPinching) {
-                history.wasPinching = false;
-                emitGesture(node, context, config, history, 'pinch_end', now);
-            }
-
-            // --- Palm Open / Fist / Point Detection ---
-            // These rely on finger extension data which we approximate from grip/trigger
-            const grip = hand.grip;
-            const trigger = hand.trigger;
-            const pointing = hand.pointing;
-
-            if (grip < 0.2 && trigger < 0.2 && pinchStrength < 0.3) {
-                emitGesture(node, context, config, history, 'palm_open', now);
-            } else if (grip > 0.8 && trigger > 0.8) {
-                emitGesture(node, context, config, history, 'fist', now);
-            } else if (pointing) {
-                emitGesture(node, context, config, history, 'point', now);
-            }
-
-            // --- Swipe Detection ---
-            if (history.positions.length >= 3) {
-                const oldest = history.positions[0];
-                const newest = history.positions[history.positions.length - 1];
-                const timeDiff = (newest.time - oldest.time) / 1000; // seconds
-
-                if (timeDiff > 0 && timeDiff < 0.5) { // Quick motion
-                    const dx = (newest.pos as any).x - (oldest.pos as any).x;
-                    const dy = (newest.pos as any).y - (oldest.pos as any).y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    const speed = dist / timeDiff;
-
-                    if (speed > config.swipeThreshold && dist > config.swipeMinDistance) {
-                        // Determine direction
+            // 2. Swipe Detection
+            // Require tracked movement over short window
+            if (state.lastPosition) {
+                const dx = hand.position.x - state.lastPosition.x;
+                const dy = hand.position.y - state.lastPosition.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist > (config.swipeThreshold || 0.1)) {
+                    if (time - state.lastGestureTime > (config.debounce || 300)) {
+                        let type: GestureType | null = null;
                         if (Math.abs(dx) > Math.abs(dy)) {
-                            // Horizontal swipe
-                            emitGesture(node, context, config, history,
-                                dx > 0 ? 'swipe_right' : 'swipe_left', now);
+                            type = dx > 0 ? 'swipe_right' : 'swipe_left';
                         } else {
-                            // Vertical swipe
-                            emitGesture(node, context, config, history,
-                                dy > 0 ? 'swipe_up' : 'swipe_down', now);
+                            type = dy > 0 ? 'swipe_up' : 'swipe_down';
                         }
-                        // Clear history to prevent duplicate detection
-                        history.positions = [];
+                        
+                        if (type && config.enabledGestures.includes(type)) {
+                             context.emit('gesture', { type, hand: handName, nodeId: node.id });
+                             state.lastGestureTime = time;
+                             // Reset position to prevent double triggers? 
+                             // Or just rely on debounce.
+                        }
                     }
                 }
             }
-        }
 
-        // Store last gesture on node
-        const rightHistory = getHistory(`${node.id}_right`);
-        if (node.properties) {
-            (node.properties as any).lastGesture = rightHistory.lastGesture;
-        }
-    },
-};
-
-function emitGesture(
-    node: HSPlusNode,
-    context: any,
-    config: GestureConfig,
-    history: HandHistory,
-    gesture: GestureType,
-    now: number,
-) {
-    // Cooldown check
-    if (now - history.lastGestureTime < config.gestureTimeout &&
-        gesture === history.lastGesture) {
-        return;
-    }
-
-    history.lastGestureTime = now;
-    history.lastGesture = gesture;
-
-    if (config.emitEvents && context.runtime) {
-        context.runtime.emit(`gesture_${gesture}`, {
-            nodeId: node.id,
-            gesture,
-            timestamp: now,
+            state.lastPosition = { ...hand.position };
+            state.lastTime = time;
         });
     }
-}
+};

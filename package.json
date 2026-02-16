@@ -28,6 +28,7 @@
     "publish": "pnpm -r publish --access public"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.36.0",
     "@stryker-mutator/core": "^9.5.1",
     "@stryker-mutator/typescript-checker": "^9.5.1",
     "@stryker-mutator/vitest-runner": "^9.5.1",

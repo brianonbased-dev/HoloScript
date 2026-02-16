@@ -36,26 +36,44 @@ export class PressableTrait implements Trait {
     });
   }
 
-  onUpdate(node: any, context: TraitContext, delta: number): void {
-    // We need to know the current physical offset along the axis
-    // Ideally, the Runtime updates `node.properties.position` or specific physics state
-    // Let's assume `node.params.depression` or we calculate magnitude of offset from initial
+  onUpdate(node: any, context: TraitContext, _delta: number): void {
+    if (!this.initialPos) {
+       // Capture initial position on first update (assuming simulation settled or static start)
+       // Better: capture onAttach, but onAttach might be before physics/layout settle.
+       // Let's rely on node.properties.position for initial reference if not set.
+       this.initialPos = node.properties.position ? { ...node.properties.position } : { x: 0, y: 0, z: 0 };
+    }
+
+    const currentPos = context.physics.getBodyPosition(node.id);
+    if (!currentPos || !this.initialPos) return;
+
+    // Calculate depression along Z axis (local)
+    // Assumptions: Button moves along Positive Z or Negative Z? 
+    // Prismatic setup was local Z (0,0,1).
+    // Depression = difference in Z. 
+    // TODO: Handle rotation! For now assume world-aligned or use local transform logic.
+    // If we assume the button only moves along Z, we can check distance.
     
-    // For now, we assume the Runtime/PhysicsEngine updates a specialized property for constrained bodies
-    // OR we rely on reading position relative to parent.
+    const dist = Math.abs(currentPos.z - this.initialPos.z);
     
-    // Simplification: We blindly trust the event system for now, OR we read the node's position if updated.
-    // If physics updates node.position, checking Z local deviation works.
-    
-    // Mock logic for detection (Real logic needs relative transform math):
-    // const depression = ...;
-    
-    // if (!this.isPressed && depression > triggerPoint) {
-    //    this.isPressed = true;
-    //    context.emit('ui_press_start', { nodeId: node.id });
-    // } else if (this.isPressed && depression < releasePoint) {
-    //    this.isPressed = false;
-    //    context.emit('ui_press_end', { nodeId: node.id });
-    // }
+    // Config
+    const maxDist = node.properties.distance || 0.01;
+    const triggerPoint = node.properties.triggerPoint || 0.5; // 50% max distance
+    const releasePoint = node.properties.releasePoint || 0.3; // Hysteresis
+
+    const depression = Math.min(dist / maxDist, 1.0);
+
+    // Check State
+    if (!this.isPressed && depression > triggerPoint) {
+       this.isPressed = true;
+       context.emit('ui_press_start', { nodeId: node.id });
+       context.haptics.pulse('left', 0.5, 20); // TODO: Which hand pressed? We don't know from physics alone.
+       context.haptics.pulse('right', 0.5, 20); // Pulse both for now or track collision contacts.
+    } else if (this.isPressed && depression < releasePoint) {
+       this.isPressed = false;
+       context.emit('ui_press_end', { nodeId: node.id });
+       context.haptics.pulse('left', 0.3, 10);
+       context.haptics.pulse('right', 0.3, 10);
+    }
   }
 }

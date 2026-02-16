@@ -112,16 +112,26 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
     presence: true,
   },
 
-  onAttach(node, _config, _context) {
+  onAttach(node, config, context) {
     const state: Record<string, unknown> = {
       users: new Map(),
       editHistory: [],
       isConnected: false,
+      localStream: null,
     };
     (node as any).__collaborativeState = state;
+
+    // Initialize Voice Chat if enabled
+    if (config.voice) {
+      this.initializeVoice(node, context);
+    }
   },
 
   onDetach(node) {
+    const state = (node as any).__collaborativeState;
+    if (state && state.localStream) {
+      (state.localStream as MediaStream).getTracks().forEach(track => track.stop());
+    }
     delete (node as any).__collaborativeState;
   },
 
@@ -129,6 +139,30 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
     const state = (node as any).__collaborativeState;
     if (!state) return;
     // Sync logic handled by WebRTC layer
+  },
+
+  async initializeVoice(node: any, context: any) {
+    try {
+      // In a real browser environment, this would request mic access
+      // navigator.mediaDevices.getUserMedia({ audio: true })
+      
+      // For now, we emit an event to request the host app to provide the stream
+      context.emit('request_mic_access', { 
+        node,
+        onStream: (stream: MediaStream) => {
+          const state = (node as any).__collaborativeState;
+          if (state) {
+            state.localStream = stream;
+            // Provide stream to network layer
+            // This assumes context has access to the transport or we emit an event
+            context.emit('local_voice_stream_ready', { stream });
+          }
+        }
+      });
+      
+    } catch (err) {
+      console.warn('Failed to initialize voice chat:', err);
+    }
   },
 
   onEvent(node, config, context, event) {
@@ -144,6 +178,15 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
         break;
       case 'edit':
         context.emit('on_edit', { node, edit: (event as any).edit });
+        break;
+      case 'voice_stream_received':
+        // Handle incoming voice stream from a peer
+        // This event would be triggered by the runtime bridging WebRTCTransport events to traits
+        context.emit('on_voice_stream', { 
+          node, 
+          peerId: (event as any).peerId,
+          stream: (event as any).stream 
+        });
         break;
     }
   },
