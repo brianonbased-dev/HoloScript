@@ -31,6 +31,7 @@ import type {
   HoloTransition,
   HoloEffects,
 } from '../parser/HoloCompositionTypes';
+import { TraitCompositor } from '../traits/visual/TraitCompositor';
 
 export interface BabylonCompilerOptions {
   className?: string;
@@ -352,6 +353,28 @@ export class BabylonCompiler {
         );
       } else {
         this.emit(`// @${trait.name}: ${JSON.stringify(trait.config || {})}`);
+      }
+    }
+
+    // ── Batch composition: apply multi-trait visual rules via TraitCompositor ──
+    // Uses TraitCompositor for layer-ordered merge with suppression,
+    // requirement, additive, and multi-trait merge rules.
+    if (obj.traits && Array.isArray(obj.traits) && obj.traits.length > 0) {
+      const traitNames = obj.traits.map((t: any) => t.name as string);
+      const compositor = new TraitCompositor();
+      const composed = compositor.compose(traitNames);
+      if (Object.keys(composed).length > 0) {
+        // Apply composed visual properties to the material
+        const matVar = `${v}ComposedMat`;
+        this.emit(`// TraitCompositor: composed ${traitNames.join(' + ')}`);
+        this.emit(`const ${matVar} = ${v}.material as BABYLON.PBRMaterial || new BABYLON.PBRMaterial("${matVar}", this.scene);`);
+        if (composed.color) this.emit(`${matVar}.albedoColor = ${this.toBabylonColor3(composed.color)};`);
+        if (composed.roughness !== undefined) this.emit(`${matVar}.roughness = ${composed.roughness};`);
+        if (composed.metalness !== undefined) this.emit(`${matVar}.metallic = ${composed.metalness};`);
+        if (composed.opacity !== undefined && composed.opacity < 1) this.emit(`${matVar}.alpha = ${composed.opacity};`);
+        if (composed.emissive) this.emit(`${matVar}.emissiveColor = ${this.toBabylonColor3(composed.emissive)};`);
+        if (composed.emissiveIntensity !== undefined) this.emit(`${matVar}.emissiveIntensity = ${composed.emissiveIntensity};`);
+        this.emit(`${v}.material = ${matVar};`);
       }
     }
 
