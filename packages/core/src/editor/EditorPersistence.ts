@@ -40,7 +40,7 @@ export class EditorPersistence {
      */
     save(name: string): boolean {
         try {
-            const json = this.serializer.serialize();
+            const json = JSON.stringify(this.serializer.serialize());
             if (!json) return false;
             
             // In a real app, this might use File System Access API

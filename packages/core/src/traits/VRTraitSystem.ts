@@ -71,6 +71,8 @@ import { hapticHandler } from './HapticTrait';
 import { eyeTrackedHandler } from './EyeTrackedTrait';
 import { planeDetectionHandler } from './PlaneDetectionTrait';
 import { meshDetectionHandler } from './MeshDetectionTrait';
+import { roomMeshHandler } from './RoomMeshTrait';
+import { aiUpscalingHandler, neuralUpscalingHandler } from './AiUpscalingTrait';
 import { anchorHandler } from './AnchorTrait';
 import { persistentAnchorHandler } from './PersistentAnchorTrait';
 import { sharedAnchorHandler } from './SharedAnchorTrait';
@@ -1139,6 +1141,7 @@ export class VRTraitRegistry {
     // Phase 1: Environment Understanding
     this.register(planeDetectionHandler as TraitHandler);
     this.register(meshDetectionHandler as TraitHandler);
+    this.register(roomMeshHandler as TraitHandler);
     this.register(anchorHandler as TraitHandler);
     this.register(persistentAnchorHandler as TraitHandler);
     this.register(sharedAnchorHandler as TraitHandler);
@@ -1260,6 +1263,10 @@ export class VRTraitRegistry {
 
     // v3.3 Multiplayer Networking
     this.register(networkedHandler as TraitHandler);
+
+    // V43 Tier 2: AI Upscaling
+    this.register(aiUpscalingHandler as TraitHandler);
+    this.register(neuralUpscalingHandler as TraitHandler);
   }
 
   register<T>(handler: TraitHandler<T>): void {
@@ -1392,6 +1399,7 @@ export {
   // Phase 1: Environment Understanding
   planeDetectionHandler,
   meshDetectionHandler,
+  roomMeshHandler,
   anchorHandler,
   persistentAnchorHandler,
   sharedAnchorHandler,
@@ -1487,6 +1495,9 @@ export {
   userMonitorHandler,
   emotionalVoiceHandler,
   flowFieldHandler,
+  // V43 Tier 2: AI Upscaling
+  aiUpscalingHandler,
+  neuralUpscalingHandler,
 };
 
 import { handMenuHandler } from './HandMenuTrait';

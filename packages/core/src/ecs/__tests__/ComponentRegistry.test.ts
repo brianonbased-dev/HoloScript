@@ -2,69 +2,98 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ComponentRegistry, registerBuiltInComponents } from '../ComponentRegistry';
 
 describe('ComponentRegistry', () => {
-  let reg: ComponentRegistry;
+  let registry: ComponentRegistry;
 
-  beforeEach(() => {
-    reg = new ComponentRegistry();
+  beforeEach(() => { registry = new ComponentRegistry(); });
+
+  // ---------------------------------------------------------------------------
+  // Registration
+  // ---------------------------------------------------------------------------
+
+  it('registers a component schema', () => {
+    registry.register({ type: 'health', defaultData: () => ({ hp: 100 }) });
+    expect(registry.has('health')).toBe(true);
+    expect(registry.count).toBe(1);
   });
 
-  it('starts empty', () => {
-    expect(reg.count).toBe(0);
+  it('overwrites duplicate type silently', () => {
+    registry.register({ type: 'a', defaultData: () => 1 });
+    registry.register({ type: 'a', defaultData: () => 2 });
+    expect(registry.count).toBe(1);
+    expect(registry.createDefault('a')).toBe(2);
   });
 
-  it('registers a schema', () => {
-    reg.register({ type: 'position', defaultData: () => ({ x: 0, y: 0, z: 0 }) });
-    expect(reg.has('position')).toBe(true);
-    expect(reg.count).toBe(1);
-  });
+  // ---------------------------------------------------------------------------
+  // Schema Retrieval
+  // ---------------------------------------------------------------------------
 
   it('getSchema returns registered schema', () => {
-    reg.register({ type: 'health', defaultData: () => ({ hp: 100 }), description: 'HP component' });
-    const schema = reg.getSchema('health');
+    registry.register({ type: 'foo', defaultData: () => 'bar', description: 'test' });
+    const schema = registry.getSchema('foo');
     expect(schema).toBeDefined();
-    expect(schema!.description).toBe('HP component');
+    expect(schema!.type).toBe('foo');
+    expect(schema!.description).toBe('test');
   });
 
   it('getSchema returns undefined for unknown type', () => {
-    expect(reg.getSchema('nonexistent')).toBeUndefined();
+    expect(registry.getSchema('nope')).toBeUndefined();
   });
 
-  it('createDefault returns default data', () => {
-    reg.register({ type: 'velocity', defaultData: () => ({ vx: 0, vy: 0 }) });
-    const data = reg.createDefault('velocity');
-    expect(data).toEqual({ vx: 0, vy: 0 });
+  // ---------------------------------------------------------------------------
+  // Default Data
+  // ---------------------------------------------------------------------------
+
+  it('createDefault produces fresh data each call', () => {
+    registry.register({ type: 'pos', defaultData: () => ({ x: 0, y: 0 }) });
+    const a = registry.createDefault('pos');
+    const b = registry.createDefault('pos');
+    expect(a).toEqual({ x: 0, y: 0 });
+    expect(a).not.toBe(b);
   });
 
   it('createDefault returns undefined for unknown type', () => {
-    expect(reg.createDefault('missing')).toBeUndefined();
+    expect(registry.createDefault('missing')).toBeUndefined();
   });
 
-  it('listTypes returns all registered type names', () => {
-    reg.register({ type: 'a', defaultData: () => ({}) });
-    reg.register({ type: 'b', defaultData: () => ({}) });
-    const types = reg.listTypes();
-    expect(types).toContain('a');
-    expect(types).toContain('b');
-  });
+  // ---------------------------------------------------------------------------
+  // Queries
+  // ---------------------------------------------------------------------------
 
   it('has returns false for unregistered type', () => {
-    expect(reg.has('ghost')).toBe(false);
+    expect(registry.has('ghost')).toBe(false);
   });
+
+  it('listTypes returns all registered type strings', () => {
+    registry.register({ type: 'a', defaultData: () => 1 });
+    registry.register({ type: 'b', defaultData: () => 2 });
+    expect(registry.listTypes().sort()).toEqual(['a', 'b']);
+  });
+
+  it('count reflects current size', () => {
+    expect(registry.count).toBe(0);
+    registry.register({ type: 'x', defaultData: () => 0 });
+    expect(registry.count).toBe(1);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Built-in Components
+  // ---------------------------------------------------------------------------
 
   it('registerBuiltInComponents adds standard schemas', () => {
-    registerBuiltInComponents(reg);
-    expect(reg.has('transform')).toBe(true);
-    expect(reg.has('renderable')).toBe(true);
-    expect(reg.has('collider')).toBe(true);
-    expect(reg.has('rigidbody')).toBe(true);
-    expect(reg.has('audio_source')).toBe(true);
-    expect(reg.has('ui_element')).toBe(true);
+    registerBuiltInComponents(registry);
+    expect(registry.has('transform')).toBe(true);
+    expect(registry.has('renderable')).toBe(true);
+    expect(registry.has('collider')).toBe(true);
+    expect(registry.has('rigidbody')).toBe(true);
+    expect(registry.has('audio_source')).toBe(true);
+    expect(registry.has('ui_element')).toBe(true);
+    expect(registry.count).toBe(6);
   });
 
-  it('built-in transform has correct defaults', () => {
-    registerBuiltInComponents(reg);
-    const data = reg.createDefault('transform');
-    expect(data.position).toEqual({ x: 0, y: 0, z: 0 });
-    expect(data.scale).toEqual({ x: 1, y: 1, z: 1 });
+  it('built-in transform default has position/rotation/scale', () => {
+    registerBuiltInComponents(registry);
+    const t = registry.createDefault('transform');
+    expect(t.position).toEqual({ x: 0, y: 0, z: 0 });
+    expect(t.scale).toEqual({ x: 1, y: 1, z: 1 });
   });
 });

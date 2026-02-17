@@ -127,12 +127,29 @@ export class LODManager {
     this.emit({ type: 'configUpdated', objectId, timestamp: Date.now() });
   }
 
+  /** Convenience alias: register an object with config and optional initial position */
+  register(objectId: string, config: LODConfig, position?: [number, number, number]): void {
+    this.registerConfig(objectId, config);
+    if (position) this.objectPositions.set(objectId, position);
+  }
+
   /**
    * Unregister LOD configuration
    */
   unregisterConfig(objectId: string): void {
     this.configs.delete(objectId);
     this.states.delete(objectId);
+  }
+
+  /** Convenience alias for unregisterConfig */
+  unregister(objectId: string): void {
+    this.unregisterConfig(objectId);
+    this.objectPositions.delete(objectId);
+  }
+
+  /** Convenience alias for setObjectPosition */
+  updatePosition(objectId: string, position: [number, number, number]): void {
+    this.setObjectPosition(objectId, position);
   }
 
   /**
@@ -273,11 +290,20 @@ export class LODManager {
   }
 
   /**
-   * Update LOD for all registered objects
+   * Update LOD for all registered objects.
+   * Accepts either a deltaTime (number) or a camera position ([x,y,z] array).
    */
-  update(deltaTime: number): void {
+  update(deltaTimeOrCameraPos: number | [number, number, number]): void {
     const startTime = performance.now();
-    this.frameTime = deltaTime * 1000;
+    let deltaTime: number;
+    if (Array.isArray(deltaTimeOrCameraPos)) {
+      this.cameraPosition = deltaTimeOrCameraPos as [number, number, number];
+      deltaTime = 0.016;
+      this.frameTime = 16;
+    } else {
+      deltaTime = deltaTimeOrCameraPos;
+      this.frameTime = deltaTimeOrCameraPos * 1000;
+    }
 
     // Reset per-frame metrics
     this.metrics.transitionsThisFrame = 0;

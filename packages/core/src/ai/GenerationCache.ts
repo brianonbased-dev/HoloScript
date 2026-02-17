@@ -119,7 +119,7 @@ export class GenerationCache {
     if (this.cache.size === 0) return;
 
     let oldestEntry: [string, CacheEntry] | null = null;
-    let oldestTime = Date.now();
+    let oldestTime = Infinity;
 
     for (const [key, entry] of this.cache) {
       if (entry.timestamp < oldestTime) {
