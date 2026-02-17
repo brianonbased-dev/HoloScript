@@ -3,20 +3,29 @@ import { SocialGraph, SocialUser } from '../SocialGraph';
 import { FriendManager } from '../FriendManager';
 import { PresenceManager } from '../PresenceManager';
 
+// Create a mock that satisfies the WebRTCTransport shape expected by the constructors
+function createMockTransport() {
+  return {
+    onSocialMessage: vi.fn(),
+    sendSocialMessage: vi.fn(),
+    // Other methods if needed by integration
+  } as any;
+}
+
 describe('Social System', () => {
   let graph: SocialGraph;
   let friends: FriendManager;
   let presence: PresenceManager;
-  let mockBroadcast: any;
+  let mockTransport: any;
 
   const userA: SocialUser = { id: 'u1', username: 'alice', displayName: 'Alice', status: 'online', lastSeen: 0 };
   const userB: SocialUser = { id: 'u2', username: 'bob', displayName: 'Bob', status: 'offline', lastSeen: 0 };
 
   beforeEach(() => {
     graph = new SocialGraph('local-user');
-    friends = new FriendManager(graph);
-    mockBroadcast = vi.fn();
-    presence = new PresenceManager(graph, mockBroadcast);
+    mockTransport = createMockTransport();
+    friends = new FriendManager(graph, mockTransport);
+    presence = new PresenceManager(graph, mockTransport);
   });
 
   describe('SocialGraph', () => {
@@ -68,7 +77,12 @@ describe('Social System', () => {
   describe('PresenceManager', () => {
     it('should broadcast local status', () => {
       presence.setLocalStatus('away');
-      expect(mockBroadcast).toHaveBeenCalledWith('away');
+      expect(mockTransport.sendSocialMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'SOCIAL_STATUS',
+          payload: expect.objectContaining({ status: 'away' }),
+        })
+      );
     });
 
     it('should update friend status', () => {

@@ -652,6 +652,24 @@ export class NetworkedTrait {
       this.syncState.set(key, value);
     }
 
+    // Also populate interpolation buffer if enabled
+    const interpConfig = this.getInterpolationConfig();
+    if (interpConfig.enabled) {
+      const sample: InterpolationSample = {
+        timestamp: Date.now(),
+        position: (state.position as [number, number, number]) || [0, 0, 0],
+        rotation: (state.rotation as [number, number, number, number]) || [0, 0, 0, 1],
+        scale: (state.scale as [number, number, number]) || [1, 1, 1],
+        properties: state,
+      };
+      this.interpolationBuffer.push(sample);
+
+      const maxBufferSize = 10;
+      while (this.interpolationBuffer.length > maxBufferSize) {
+        this.interpolationBuffer.shift();
+      }
+    }
+
     this.emit('stateReceived', {
       type: 'stateReceived',
       timestamp: Date.now(),

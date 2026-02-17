@@ -10,7 +10,7 @@
 
 import { World } from '../ecs/World';
 import { ComponentRegistry, registerBuiltInComponents } from '../ecs/ComponentRegistry';
-import { SystemScheduler, ECSSystem } from '../ecs/SystemScheduler';
+import { SystemScheduler, SystemPhase } from '../ecs/SystemScheduler';
 import { EventBus } from '../events/EventBus';
 import { ThemeEngine } from '../theming/ThemeEngine';
 import { StyleResolver } from '../theming/StyleResolver';
@@ -19,9 +19,21 @@ import { TraitBinder } from './TraitBinder';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 import type { Entity } from '../ecs/World';
 
+export interface SystemConfig {
+    name: string;
+    execute?: (dt: number) => void;
+    update?: (dt: number) => void;
+    phase?: SystemPhase;
+    priority?: number;
+    enabled?: boolean;
+    dependencies?: string[];
+    group?: string;
+    requiredComponents?: string[];
+}
+
 export interface RuntimeConfig {
     theme?: string;
-    systems?: ECSSystem[];
+    systems?: SystemConfig[];
 }
 
 export class RuntimeBridge {
@@ -60,7 +72,17 @@ export class RuntimeBridge {
         this.systemScheduler = new SystemScheduler();
         if (config.systems) {
             for (const sys of config.systems) {
-                this.systemScheduler.register(sys);
+                const executeFn = sys.execute || sys.update;
+                if (executeFn) {
+                    this.systemScheduler.register(
+                        sys.name,
+                        executeFn,
+                        sys.phase || 'update',
+                        sys.priority || 0,
+                        sys.dependencies || [],
+                        sys.group || 'default'
+                    );
+                }
             }
         }
 
@@ -91,7 +113,7 @@ export class RuntimeBridge {
     update(delta: number): void {
         if (!this.running) return;
         this.totalTime += delta;
-        this.systemScheduler.update(this.world, delta);
+        this.systemScheduler.update(delta);
         this.eventBus.emit('frame', { delta, totalTime: this.totalTime });
     }
 

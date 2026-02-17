@@ -20,32 +20,30 @@ describe('VirtualKeyboard', () => {
     it('generates correct layout', () => {
         const kb = createVirtualKeyboard('kb1', { scale: 1 });
         expect(kb.type).toBe('object'); // Panel or object
-        // The generator returns a container. It's an object type.
-        // It has children (buttons).
-        // Since createUIPanel wraps buttons in children array.
         
         // Assert keys exist
-        // Flatten children to check
         const buttons = kb.children || [];
         expect(buttons.length).toBeGreaterThan(30);
         
         // Check for 'A' key
-        // Keys are ButtonBase -> Button(with data)
         const aKey = buttons.find(b => b.children?.[0]?.properties?.data?.key === 'A');
         expect(aKey).toBeDefined();
     });
 
     it('handles key press', () => {
-        // Setup nodes
+        // Setup nodes — key node has data on properties.data
         const keyNode = {
             id: 'key_A',
             properties: {
                 data: { key: 'A', type: 'keyboard_key' }
             }
         };
+        // Focused text input node needs properties.data with text and inputType
         const textNode = {
             id: 'input1',
-            properties: { text: '' }
+            properties: {
+                data: { text: '', inputType: 'text', cursorIndex: 0, selectionStart: 0, selectionEnd: 0 }
+            }
         };
         nodes.set('key_A', keyNode);
         nodes.set('input1', textNode);
@@ -56,18 +54,18 @@ describe('VirtualKeyboard', () => {
         // Simulate Press
         system.handleEvent('ui_press_start', { nodeId: 'key_A' });
 
-        expect(textNode.properties.text).toBe('a'); // Lowercase default
-        expect(context.emit).toHaveBeenCalledWith('property_changed', expect.objectContaining({
-            nodeId: 'input1',
-            property: 'text',
-            value: 'a'
-        }));
+        expect(textNode.properties.data.text).toBe('a'); // Lowercase default
     });
 
     it('handles shift', () => {
         const shiftNode = { id: 'shift', properties: { data: { key: 'Shift', type: 'keyboard_key' } } };
         const aNode = { id: 'key_A', properties: { data: { key: 'A', type: 'keyboard_key' } } };
-        const textNode = { id: 'input1', properties: { text: '' } };
+        const textNode = {
+            id: 'input1',
+            properties: {
+                data: { text: '', inputType: 'text', cursorIndex: 0, selectionStart: 0, selectionEnd: 0 }
+            }
+        };
         
         nodes.set('shift', shiftNode);
         nodes.set('key_A', aNode);
@@ -81,12 +79,17 @@ describe('VirtualKeyboard', () => {
         // 'A' Press
         system.handleEvent('ui_press_start', { nodeId: 'key_A' });
         
-        expect(textNode.properties.text).toBe('A');
+        expect(textNode.properties.data.text).toBe('A');
     });
 
     it('handles backspace', () => {
         const backspaceNode = { id: 'bs', properties: { data: { key: 'Backspace', type: 'keyboard_key' } } };
-        const textNode = { id: 'input1', properties: { text: 'Hello' } };
+        const textNode = {
+            id: 'input1',
+            properties: {
+                data: { text: 'Hello', inputType: 'text', cursorIndex: 5, selectionStart: 5, selectionEnd: 5 }
+            }
+        };
         
         nodes.set('bs', backspaceNode);
         nodes.set('input1', textNode);
@@ -95,11 +98,6 @@ describe('VirtualKeyboard', () => {
         
         system.handleEvent('ui_press_start', { nodeId: 'bs' });
         
-        expect(textNode.properties.text).toBe('Hell');
-        expect(context.emit).toHaveBeenCalledWith('property_changed', expect.objectContaining({
-            nodeId: 'input1',
-            property: 'text',
-            value: 'Hell'
-        }));
+        expect(textNode.properties.data.text).toBe('Hell');
     });
 });

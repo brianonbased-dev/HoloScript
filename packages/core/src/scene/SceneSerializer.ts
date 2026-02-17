@@ -43,50 +43,62 @@ export class SceneSerializer {
     }
 
     /**
-     * Serialize the current World state.
+     * Serialize a scene.
+     * Overload 1: serialize(root: HSPlusNode, name?, metadata?) — from node tree
+     * Overload 2: serialize(name?, metadata?) — from World entities
      */
-    serialize(sceneName: string = 'untitled', metadata?: Record<string, any>): string | null {
-        if (!this.world) return null;
+    serialize(rootOrName?: HSPlusNode | string, sceneNameOrMeta?: string | Record<string, any>, metadata?: Record<string, any>): SerializedScene {
+        // Detect node-based call: first arg is an object with a 'type' property
+        if (rootOrName && typeof rootOrName === 'object' && 'type' in rootOrName) {
+            const root = rootOrName as HSPlusNode;
+            const sceneName = typeof sceneNameOrMeta === 'string' ? sceneNameOrMeta : 'untitled';
+            const meta = typeof sceneNameOrMeta === 'string' ? metadata : (sceneNameOrMeta as Record<string, any> | undefined);
+            return this.serializeFromNode(root, sceneName, meta);
+        }
+
+        // World-based serialization
+        const sceneName = typeof rootOrName === 'string' ? rootOrName : 'untitled';
+        const meta = typeof sceneNameOrMeta === 'object' ? (sceneNameOrMeta as Record<string, any>) : metadata;
+
+        if (!this.world) {
+            return {
+                version: 1, timestamp: new Date().toISOString(), name: sceneName,
+                root: { id: 'scene_root', type: 'root', properties: {}, traits: {}, children: [] },
+                metadata: meta,
+            };
+        }
         
         const entities = this.world.getAllEntities();
-        
-        // Find primitives (entities with NO parent)
         const childEntities = new Set<Entity>();
-        
         entities.forEach(e => {
              const t = this.world!.getComponent<any>(e, 'Transform');
-             if (t && t.parent !== undefined) {
-                 childEntities.add(e);
-             }
+             if (t && t.parent !== undefined) childEntities.add(e);
         });
-
-        // Roots are entities that are NOT children
         const roots = entities.filter(e => !childEntities.has(e));
-        
-        // Exclude internal/system entities if tagged 'NoSerialize' or similar?
-        // Or if ID starts with 'sys_'?
-        // For now, serialize everything visible.
-        // Or specifically exclude 'Gizmo' tag?
-        // Let's filter out 'NoSelect' tag usually implies editor gizmos.
         const validRoots = roots.filter(e => !this.world!.hasTag(e, 'NoSelect') && !this.world!.hasTag(e, 'Gizmo'));
-        
         const serializedRoots = validRoots.map(e => this.serializeEntity(e));
 
-        const scene: SerializedScene = {
+        return {
             version: 1,
             timestamp: new Date().toISOString(),
             name: sceneName,
-            root: {
-                id: 'scene_root',
-                type: 'root', // Virtual root
-                properties: {},
-                traits: {},
-                children: serializedRoots
-            },
-            metadata
+            root: { id: 'scene_root', type: 'root', properties: {}, traits: {}, children: serializedRoots },
+            metadata: meta
         };
-        
-        return JSON.stringify(scene, null, 2);
+    }
+
+    /**
+     * Node-based serialization helper.
+     */
+    private serializeFromNode(root: HSPlusNode, sceneName: string, metadata?: Record<string, any>): SerializedScene {
+        this.visitedIds.clear();
+        return {
+            version: 1,
+            timestamp: new Date().toISOString(),
+            name: sceneName,
+            root: this.serializeNode(root),
+            metadata,
+        };
     }
 
     private serializeEntity(entity: Entity): SerializedNode {
@@ -179,9 +191,12 @@ export class SceneSerializer {
         return { id, type: node.type || 'entity', properties, traits, children };
     }
     
-    // Helper to match existing signature if needed, or update tests
-    toJSON(root: HSPlusNode): string {
-         return JSON.stringify(this.serializeNode(root), null, 2);
+    /**
+     * Serialize a node tree to a JSON string.
+     */
+    toJSON(root: HSPlusNode, sceneName: string = 'untitled'): string {
+         const scene = this.serializeFromNode(root, sceneName);
+         return JSON.stringify(scene, null, 2);
     }
 
     private sanitizeProperties(props: any): Record<string, any> {

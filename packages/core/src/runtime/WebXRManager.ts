@@ -97,6 +97,16 @@ export class WebXRManager {
   }
 
   /**
+   * Instance method to check if a specific session mode is supported.
+   */
+  async isSessionSupported(mode: string = 'immersive-vr'): Promise<boolean> {
+    if (typeof navigator !== 'undefined' && 'xr' in navigator) {
+      return await (navigator as any).xr.isSessionSupported(mode);
+    }
+    return false;
+  }
+
+  /**
    * Trigger haptic pulse on a controller
    */
   public triggerHaptic(hand: 'left' | 'right', intensity: number, duration: number): void {
@@ -165,10 +175,30 @@ export class WebXRManager {
   }
 
   /**
+   * Set a callback to be invoked each XR frame.
+   */
+  setAnimationLoop(callback: ((time: number, frame: any) => void) | null): void {
+    this.animationLoopCallback = callback;
+    // In a real implementation, this would hook into the XR session's requestAnimationFrame
+    if (this.session && callback) {
+      const loop = (time: number, frame: any) => {
+        if (this.animationLoopCallback) {
+          this.animationLoopCallback(time, frame);
+          this.session?.requestAnimationFrame?.(loop);
+        }
+      };
+      this.session.requestAnimationFrame?.(loop);
+    }
+  }
+
+  private animationLoopCallback: ((time: number, frame: any) => void) | null = null;
+
+  /**
    * End the current session
    */
   async endSession(): Promise<void> {
     if (this.session) {
+      this.animationLoopCallback = null;
       await this.session.end();
     }
   }

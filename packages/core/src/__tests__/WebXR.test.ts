@@ -10,16 +10,23 @@ const mockSession = {
   requestReferenceSpace: vi.fn().mockResolvedValue({}),
   updateRenderState: vi.fn(),
   end: vi.fn().mockResolvedValue(undefined),
+  requestAnimationFrame: vi.fn(),
   inputSources: [
     {
       handedness: 'left',
-      hand: {}, // Mock hand object
+      hand: {},
       profiles: ['oculus-touch'],
+      gripSpace: {},
+      targetRayMode: 'tracked-pointer',
+      gamepad: { buttons: [{ value: 0 }, { value: 0 }], axes: [0, 0] },
     },
     {
       handedness: 'right',
       hand: {},
       profiles: ['oculus-touch'],
+      gripSpace: {},
+      targetRayMode: 'tracked-pointer',
+      gamepad: { buttons: [{ value: 0 }, { value: 0 }], axes: [0, 0] },
     }
   ],
 };
@@ -109,12 +116,26 @@ describe('WebXR Integration', () => {
   it('updates VR context from input sources', async () => {
     await runtime.enterVR();
     
-    // Simulate one update loop tick
-    // We need to trigger the updateVRInput logic. 
-    // Since it's private and tied to the loop, we can verify via side effects or exposed context.
-    
-    // Helper to trigger the update manually since we can't easily wait for RAF in test
-    (runtime as any).updateVRInput();
+    // Create mock frame with getPose to provide hand positions
+    const mockFrame = {
+      session: mockSession,
+      getViewerPose: vi.fn().mockReturnValue({
+        transform: {
+          position: { x: 0, y: 1.6, z: 0 },
+          orientation: { x: 0, y: 0, z: 0, w: 1 },
+        },
+        views: [],
+      }),
+      getPose: vi.fn().mockReturnValue({
+        transform: {
+          position: { x: -0.2, y: 1.0, z: -0.3 },
+          orientation: { x: 0, y: 0, z: 0, w: 1 },
+        },
+      }),
+    };
+
+    // Trigger the update with the mock frame
+    (runtime as any).updateVRInput(mockFrame);
 
     const context = runtime.getContext();
     expect(context.vr.hands.left).toBeDefined();
