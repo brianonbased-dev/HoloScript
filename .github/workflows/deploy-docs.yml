@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'packages/*/src/**/*.ts'
+      - 'typedoc.json'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
@@ -32,11 +34,36 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install root dependencies (for TypeDoc)
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: 'holoscript-v1'
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build core package (TypeDoc needs compiled types)
+        run: pnpm --filter @holoscript/core build
+
+      - name: Generate TypeDoc API reference
+        run: pnpm docs:api
+
+      - name: Install docs site dependencies
         run: npm install
         working-directory: docs
 
-      - name: Build docs
+      - name: Build docs site
         run: npm run build
         working-directory: docs
 

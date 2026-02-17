@@ -25,10 +25,15 @@
     "version:minor": "node scripts/sync-versions.js minor",
     "version:major": "node scripts/sync-versions.js major",
     "version:prerelease": "node scripts/sync-versions.js prerelease",
-    "publish": "pnpm -r publish --access public"
+    "publish": "pnpm -r publish --access public",
+    "docs:api": "typedoc",
+    "docs:api:watch": "typedoc --watch",
+    "docs:api:json": "typedoc --json docs/api/api.json"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.36.0",
+    "typedoc": "^0.26.0",
+    "typedoc-plugin-markdown": "^4.2.0",
     "@stryker-mutator/core": "^9.5.1",
     "@stryker-mutator/typescript-checker": "^9.5.1",
     "@stryker-mutator/vitest-runner": "^9.5.1",
