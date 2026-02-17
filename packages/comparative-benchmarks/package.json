@@ -1,0 +1,50 @@
+{
+  "name": "@holoscript/comparative-benchmarks",
+  "version": "1.0.0",
+  "description": "Performance benchmarks comparing HoloScript against Unity and glTF runtimes",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "holoscript-bench": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "results"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "bench": "node dist/cli.js",
+    "bench:unity": "node dist/cli.js --target=unity",
+    "bench:gltf": "node dist/cli.js --target=gltf",
+    "bench:all": "node dist/cli.js --target=all",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:^",
+    "tinybench": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18"
+  },
+  "keywords": [
+    "holoscript",
+    "benchmarks",
+    "performance",
+    "unity",
+    "gltf",
+    "comparison"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianonbased-dev/Holoscript.git",
+    "directory": "packages/comparative-benchmarks"
+  },
+  "author": "Brian X Base Team"
+}
