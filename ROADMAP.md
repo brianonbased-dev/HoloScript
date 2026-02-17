@@ -3851,13 +3851,13 @@ docs/academy/
 
 ---
 
-### Q3-Q4: Sprint 9-10 (May-Aug) - 8 weeks
+### ✅ Sprint 9-10 (May-Aug) - Complete — v3.8.0
 
-| Feature                | Agent   | Days |
-| ---------------------- | ------- | ---- |
-| Certified packages     | Docs    | 5    |
-| Partner SDK            | Tooling | 6    |
-| HoloScript 3.0 release | All     | 5    |
+| Feature                | Agent   | Days | Status                                                                     |
+| ---------------------- | ------- | ---- | -------------------------------------------------------------------------- |
+| Certified packages     | Docs    | 5    | ✅ Badge.ts (signed SVG/MD), 120 tests, certification/requirements.md      |
+| Partner SDK            | Tooling | 6    | ✅ 4881 lines — Runtime, Adapters, Analytics, Branding, Webhooks (67 tests) |
+| HoloScript 3.0 release | All     | 5    | ✅ Released (v3.0.0 tag)                                                   |
 
 <details>
 <summary><strong>📋 Sprint 9-10 Detailed Specifications</strong></summary>

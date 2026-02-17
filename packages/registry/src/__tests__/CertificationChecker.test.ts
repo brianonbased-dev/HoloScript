@@ -5,6 +5,18 @@ import {
   CERTIFICATION_LEVELS,
   CertificationResult,
 } from '../certification/Checker';
+import {
+  issueBadge,
+  verifyBadge,
+  generateBadgeSVG,
+  generateMarkdownBadge,
+  storeBadge,
+  getBadge,
+  listBadges,
+  revokeBadge,
+  isActivelyCertified,
+  type CertificationBadge,
+} from '../certification/Badge';
 import type { Package } from '../types';
 
 // Mock package for testing
@@ -370,6 +382,194 @@ describe('CertificationChecker', () => {
       for (const severity of severities) {
         expect(['error', 'warning', 'info']).toContain(severity);
       }
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Badge Tests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function makeBadgeResult(level: CertificationLevel, score: number): CertificationResult {
+  return {
+    certified: true,
+    level,
+    score,
+    maxScore: 100,
+    categories: [],
+    issues: [],
+    certifiedAt: new Date('2026-03-01T00:00:00Z'),
+    expiresAt: new Date('2027-03-01T00:00:00Z'),
+  };
+}
+
+describe('CertificationBadge', () => {
+  describe('issueBadge', () => {
+    it('returns null for uncertified result', () => {
+      const result: CertificationResult = {
+        certified: false,
+        score: 55,
+        maxScore: 100,
+        categories: [],
+        issues: [],
+      };
+      expect(issueBadge('@test/pkg', '1.0.0', result)).toBeNull();
+    });
+
+    it('issues a badge for certified result', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('gold', 87));
+      expect(badge).not.toBeNull();
+      expect(badge?.packageName).toBe('@test/pkg');
+      expect(badge?.version).toBe('1.0.0');
+      expect(badge?.level).toBe('gold');
+      expect(badge?.score).toBe(87);
+    });
+
+    it('badge has fingerprint and signature', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('silver', 78));
+      expect(badge?.fingerprint).toHaveLength(64); // SHA-256 hex
+      expect(badge?.signature).toHaveLength(64);
+    });
+
+    it('badge has issuedAt and expiresAt', () => {
+      const badge = issueBadge('@test/pkg', '2.0.0', makeBadgeResult('bronze', 65));
+      expect(badge?.issuedAt).toBeDefined();
+      expect(badge?.expiresAt).toBeDefined();
+      const issued = new Date(badge!.issuedAt);
+      const expires = new Date(badge!.expiresAt);
+      expect(expires.getTime()).toBeGreaterThan(issued.getTime());
+    });
+
+    it('expiry is ~1 year after issuedAt', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('gold', 90));
+      const issued = new Date(badge!.issuedAt).getTime();
+      const expires = new Date(badge!.expiresAt).getTime();
+      const diffDays = (expires - issued) / (1000 * 60 * 60 * 24);
+      expect(diffDays).toBeCloseTo(365, 0);
+    });
+  });
+
+  describe('verifyBadge', () => {
+    it('verifies a valid badge', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('gold', 90))!;
+      const result = verifyBadge(badge);
+      expect(result.valid).toBe(true);
+    });
+
+    it('rejects tampered fingerprint', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('gold', 90))!;
+      const tampered = { ...badge, fingerprint: badge.fingerprint.replace('a', 'b') };
+      const result = verifyBadge(tampered);
+      expect(result.valid).toBe(false);
+      expect(result.reason).toMatch(/fingerprint/i);
+    });
+
+    it('rejects tampered signature', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('gold', 90))!;
+      const tampered = { ...badge, signature: badge.signature.replace('a', 'b') };
+      const result = verifyBadge(tampered);
+      expect(result.valid).toBe(false);
+    });
+
+    it('rejects expired badge', () => {
+      const result = makeBadgeResult('gold', 90);
+      result.certifiedAt = new Date('2020-01-01');
+      const badge = issueBadge('@test/pkg', '1.0.0', result)!;
+      const verify = verifyBadge(badge);
+      expect(verify.valid).toBe(false);
+      expect(verify.reason).toMatch(/expired/i);
+    });
+
+    it('wrong signing secret fails verification', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('gold', 90), 'secret-A')!;
+      const result = verifyBadge(badge, 'secret-B');
+      expect(result.valid).toBe(false);
+    });
+  });
+
+  describe('generateBadgeSVG', () => {
+    it('returns SVG string', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('gold', 90))!;
+      const svg = generateBadgeSVG(badge);
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('</svg>');
+    });
+
+    it('includes package name in SVG', () => {
+      const badge = issueBadge('@studio/vr-buttons', '2.0.0', makeBadgeResult('gold', 90))!;
+      const svg = generateBadgeSVG(badge);
+      expect(svg).toContain('vr-buttons');
+    });
+
+    it('includes level name in SVG', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('platinum', 97))!;
+      const svg = generateBadgeSVG(badge);
+      expect(svg).toContain('Platinum');
+    });
+
+    it('includes score in SVG', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('silver', 76))!;
+      const svg = generateBadgeSVG(badge);
+      expect(svg).toContain('76');
+    });
+
+    it('truncates long package names', () => {
+      const badge = issueBadge('@very-long-org/extremely-long-package-name-here', '1.0.0', makeBadgeResult('bronze', 62))!;
+      const svg = generateBadgeSVG(badge);
+      // Should not throw and should produce valid SVG
+      expect(svg).toContain('<svg');
+    });
+  });
+
+  describe('generateMarkdownBadge', () => {
+    it('returns markdown image syntax', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('gold', 90))!;
+      const md = generateMarkdownBadge(badge);
+      expect(md).toMatch(/^!\[.*\]\(https?:\/\//);
+    });
+
+    it('includes level in URL', () => {
+      const badge = issueBadge('@test/pkg', '1.0.0', makeBadgeResult('platinum', 97))!;
+      const md = generateMarkdownBadge(badge);
+      expect(md.toLowerCase()).toContain('platinum');
+    });
+  });
+
+  describe('Badge Store', () => {
+    it('stores and retrieves a badge', () => {
+      const badge = issueBadge('@store/test', '1.0.0', makeBadgeResult('silver', 80))!;
+      storeBadge(badge);
+      const retrieved = getBadge('@store/test', '1.0.0');
+      expect(retrieved?.packageName).toBe('@store/test');
+    });
+
+    it('listBadges returns stored badges', () => {
+      const badge = issueBadge('@list/test', '1.0.0', makeBadgeResult('bronze', 62))!;
+      storeBadge(badge);
+      const all = listBadges();
+      expect(all.some(b => b.packageName === '@list/test')).toBe(true);
+    });
+
+    it('revokeBadge removes the badge', () => {
+      const badge = issueBadge('@revoke/test', '1.0.0', makeBadgeResult('gold', 88))!;
+      storeBadge(badge);
+      const removed = revokeBadge('@revoke/test', '1.0.0');
+      expect(removed).toBe(true);
+      expect(getBadge('@revoke/test', '1.0.0')).toBeUndefined();
+    });
+
+    it('isActivelyCertified returns true for valid badge', () => {
+      const badge = issueBadge('@active/test', '1.0.0', makeBadgeResult('gold', 88))!;
+      storeBadge(badge);
+      expect(isActivelyCertified('@active/test', '1.0.0')).toBe(true);
+    });
+
+    it('isActivelyCertified returns false for non-existent badge', () => {
+      expect(isActivelyCertified('@nonexistent/pkg', '9.9.9')).toBe(false);
+    });
+
+    it('returns undefined for non-existent badge', () => {
+      expect(getBadge('@nobody/nothing', '0.0.1')).toBeUndefined();
     });
   });
 });
