@@ -1,0 +1,80 @@
+{
+  "name": "@holoscript/llm-provider",
+  "version": "1.0.0",
+  "description": "Unified LLM provider SDK for HoloScript - OpenAI, Anthropic, and Gemini adapters",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./adapters/openai": {
+      "types": "./dist/adapters/openai.d.ts",
+      "import": "./dist/adapters/openai.js",
+      "require": "./dist/adapters/openai.cjs"
+    },
+    "./adapters/anthropic": {
+      "types": "./dist/adapters/anthropic.d.ts",
+      "import": "./dist/adapters/anthropic.js",
+      "require": "./dist/adapters/anthropic.cjs"
+    },
+    "./adapters/gemini": {
+      "types": "./dist/adapters/gemini.d.ts",
+      "import": "./dist/adapters/gemini.js",
+      "require": "./dist/adapters/gemini.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.0"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": ">=0.20.0",
+    "openai": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "openai": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "holoscript",
+    "llm",
+    "openai",
+    "anthropic",
+    "gemini",
+    "vr",
+    "ar",
+    "ai",
+    "spatial-computing"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/Holoscript.git",
+    "directory": "packages/llm-provider"
+  }
+}

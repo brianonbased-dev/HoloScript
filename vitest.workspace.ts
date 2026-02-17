@@ -12,6 +12,7 @@ export default [
   'packages/security-sandbox/vitest.config.ts',
   'packages/ai-validator/vitest.config.ts',
   'packages/comparative-benchmarks/vitest.config.ts',
+  'packages/llm-provider/vitest.config.ts',
 
   // ── Packages without a vitest.config.ts (inline) ──────────────────────
   {
