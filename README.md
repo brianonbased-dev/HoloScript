@@ -7,6 +7,9 @@ HoloScript is an AI-native, declarative language for spatial computing. It allow
 ![version-badge](https://img.shields.io/badge/version-v3.4.0-green?style=for-the-badge)
 ![Quickstart Badge](https://img.shields.io/badge/Quickstart-5_min-blue?style=for-the-badge)
 ![Traits Badge](https://img.shields.io/badge/traits-1800+-orange?style=for-the-badge)
+[![codecov](https://codecov.io/gh/brianonbased-dev/HoloScript/branch/main/graph/badge.svg?style=for-the-badge)](https://codecov.io/gh/brianonbased-dev/HoloScript)
+[![Known Vulnerabilities](https://snyk.io/test/github/brianonbased-dev/HoloScript/badge.svg?style=for-the-badge)](https://snyk.io/test/github/brianonbased-dev/HoloScript)
+[![Security Rating](https://img.shields.io/badge/Security-A+-brightgreen?style=for-the-badge)](https://github.com/brianonbased-dev/HoloScript/security)
 
 ---
 

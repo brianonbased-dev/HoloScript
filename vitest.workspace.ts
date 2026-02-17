@@ -9,6 +9,8 @@ export default [
   'packages/adapter-postgres/vitest.config.ts',
   'packages/mcp-server/vitest.config.ts',
   'packages/partner-sdk/vitest.config.ts',
+  'packages/security-sandbox/vitest.config.ts',
+  'packages/ai-validator/vitest.config.ts',
 
   // ── Packages without a vitest.config.ts (inline) ──────────────────────
   {
