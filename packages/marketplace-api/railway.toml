@@ -12,3 +12,5 @@ restartPolicyMaxRetries = 10
 
 [env]
 NODE_VERSION = "20"
+CORS_ORIGINS = "https://marketplace-web-production.up.railway.app"
+TRUST_PROXY = "true"

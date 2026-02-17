@@ -11,3 +11,4 @@ restartPolicyMaxRetries = 10
 
 [env]
 NODE_VERSION = "20"
+MARKETPLACE_API_URL = "https://marketplace-api-production-b046.up.railway.app"
