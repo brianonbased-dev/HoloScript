@@ -5,8 +5,50 @@ export default defineConfig({
   description:
     'Open-source programming language compiling to 18+ targets — Unity, Unreal, Godot, visionOS, robotics, IoT, and more',
 
-  // Exclude knowledge/ (legacy - content migrated to language/ section) and _archive/
-  srcExclude: ['knowledge/**', '_archive/**'],
+  // Exclude legacy dev notes and directories not part of user-facing docs
+  srcExclude: [
+    'knowledge/**',      // legacy - content migrated to language/ section
+    '_archive/**',       // dev notes archived from root
+    'planning/**',       // sprint planning notes
+    'research/**',       // research notes
+    'archive/**',        // old migration docs
+    'integration/**',    // old UPPERCASE integration files (replaced by integrations/)
+    'graphics/**',       // graphics dev notes
+    'getting-started/**', // old directory (replaced by guides/)
+    'ecosystem/**',      // ecosystem dev notes
+    // Root-level UPPERCASE dev note files
+    'PLUGIN_SYSTEM_V2_DESIGN.md',
+    'SPREAD_OPERATOR_IMPLEMENTATION.md',
+    'NETWORKED_TRAIT_INTEGRATION_GUIDE.md',
+    'NETWORKED_TRAIT_WEBSOCKET_PHASE_SUMMARY.md',
+    'AGENT_API_REFERENCE.md',
+    'QUICK_REFERENCE_CARD.md',
+    'NAVIGATION_GUIDE.md',
+    'DELIVERABLES_INDEX.md',
+    'EXECUTIVE_SUMMARY.md',
+    'TRAIT_EXTENSION_GUIDE.md',
+    'PLUGIN_STATUS.md',
+    'PARSER_FIX_PLAN.md',
+    'ECOSYSTEM_INTEGRATION_PLAN.md',
+    'GROK_X_INTEGRATION_ROADMAP.md',
+    // Legacy guides (session/phase notes, not user docs)
+    'guides/PHASE_1_2_IMPLEMENTATION_GUIDE.md',
+    'guides/PHASE_3_DSL_TRAITS.md',
+    'guides/PHASE_5_PERFORMANCE.md',
+    'guides/PHASE_6_UI_COMPONENTS_GUIDE.md',
+    'guides/PHASES_3_5_IMPLEMENTATION_GUIDE.md',
+    'guides/README_PHASES_3_5.md',
+    'guides/PLATFORM_COMPILERS.md',
+    'guides/FEATURE_MIGRATION.md',
+    // Legacy API docs (TypeDoc generates docs/api/ — these are hand-written stubs)
+    'api/CLI.md',
+    'api/CORE_API.md',
+    'api/OVERVIEW.md',
+    // Old academy readme
+    'academy/README.md',
+    // Docs root README (legacy dev notes, homepage is index.md)
+    'README.md',
+  ],
 
   head: [
     ['link', { rel: 'icon', href: '/logo.svg' }],

@@ -29,7 +29,7 @@
 
 **Compressed**: Declarative spatial primitives (`spatial`, `zone`, `layer`) enable intuitive 3D/VR interfaces better than imperative component composition (React/Vue). Spatial languages express positioning/depth natively without transform calculations.
 
-**Elaboration**: HoloScript syntax: `zone SafeArea(x: 0, y: 0, z: 5, width: 100)` declares 3D volume explicitly. Equivalent React: `<div style={{ transform: 'translate3d(0,0,5px)', width: '100px' }} />` requires manual transform math. HoloScript compiler validates spatial relationships (collision, boundaries, z-index) at compile-time. React validates at runtime (performance cost). Result: Spatial DSL reduces 3D UI bugs 60% vs component libraries.
+**Elaboration**: HoloScript syntax: `zone SafeArea(x: 0, y: 0, z: 5, width: 100)` declares 3D volume explicitly. Equivalent React: `<div style=&#123;&#123; transform: 'translate3d(0,0,5px)', width: '100px' &#125;&#125; />` requires manual transform math. HoloScript compiler validates spatial relationships (collision, boundaries, z-index) at compile-time. React validates at runtime (performance cost). Result: Spatial DSL reduces 3D UI bugs 60% vs component libraries.
 
 **Quantified**: 40% less code vs React 3D, compile-time spatial validation, 60% fewer runtime spatial bugs  
 **Confidence**: 97%
@@ -509,9 +509,9 @@ spatial Panel() {
 
 **References**:
 
-- [Language Specification](../language/HOLOSCRIPT_LANGUAGE_SPEC.md)
-- [Compiler Architecture](../architecture/COMPILER_DESIGN.md)
-- [Platform Guides](../guides/DEPLOYMENT_*.md)
+- [Language Guide](/guides/quick-start)
+- [Compilers Overview](/compilers/)
+- [Traits Reference](/traits/)
 
 ---
 

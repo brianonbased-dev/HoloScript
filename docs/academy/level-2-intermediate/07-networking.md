@@ -466,4 +466,4 @@ network.onReconnected(() => {
 
 **Estimated time:** 45 minutes  
 **Difficulty:** ⭐⭐ Intermediate  
-**Next:** [Lesson 2.8 - Performance Optimization](./08-performance.md)
+**Next:** [Lesson 2.8 - State Machines](./08-state-machines.md)

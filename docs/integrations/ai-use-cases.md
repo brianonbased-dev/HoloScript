@@ -51,4 +51,4 @@ HoloScript is designed for AI-human collaboration through spatial programming pa
 
 _For detailed examples and implementation patterns, see proprietary research documentation._
 
-_See also: [AI_ARCHITECTURE.md](AI_ARCHITECTURE.md) for core AI integration design_
+_See also: [AI Architecture](./ai-architecture) for core AI integration design_

@@ -495,4 +495,4 @@ class ChunkManager {
 
 **Estimated time:** 50 minutes  
 **Difficulty:** ⭐⭐⭐ Advanced  
-**Next:** [Lesson 3.5 - AI & NPC Behavior](./05-ai-behavior.md)
+**Next:** [Lesson 3.5 - Agent Choreography](./05-agent-choreography.md)

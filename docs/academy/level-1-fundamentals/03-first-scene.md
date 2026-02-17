@@ -297,7 +297,7 @@ In this lesson, you:
 
 ## Next Lesson
 
-In [Lesson 1.4: Understanding Orbs](./04-understanding-orbs.md), we'll take a deeper look at composition types, geometries, and properties.
+In [Lesson 1.4: Understanding Compositions](./04-understanding-compositions.md), we'll take a deeper look at composition types, geometries, and properties.
 
 ---
 

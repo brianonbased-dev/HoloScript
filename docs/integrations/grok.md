@@ -325,8 +325,8 @@ hs = HoloScript(api_url="https://api.holoscript.dev")
 
 - [HoloScript Documentation](https://holoscript.dev)
 - [MCP Server Guide](../MCP_SERVER_GUIDE.md)
-- [AI Generation Examples](../../examples/ai-generation)
-- [Browser Templates](../../examples/browser-templates)
+- [Examples Overview](/examples/)
+- [AI Generated World Cookbook](/cookbook/ai-generated-world)
 - [Python Package](https://pypi.org/project/holoscript)
 
 ## Support

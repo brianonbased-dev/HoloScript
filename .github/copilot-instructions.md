@@ -29,7 +29,7 @@ Both servers can be used by Brittney or any cloud AI agent (Copilot, Claude, Cur
 
 HoloScript is not another framework—it's a paradigm shift:
 
-- **One source → 9 platforms** (Web, VR, AR, iOS, Android, Desktop, Unity, VRChat, Unreal)
+- **One source → 18+ platforms** (Unity, Unreal, Godot, VRChat, WebGPU, visionOS, iOS, Android, OpenXR, URDF, SDF, DTDL, Babylon, PlayCanvas, WASM, and more)
 - **50,000 lines → 500 lines** through declarative composition
 - **Made for AI**: Agents generate `.holo` files, not JSX components
 
@@ -281,7 +281,9 @@ onTriggerEnter: {
 
 ---
 
-## 49 VR Traits (Always Consider These)
+## 1,525+ Traits — Key Categories
+
+Full reference: [docs/traits/index.md](../docs/traits/index.md) (13 categories)
 
 ### Interaction
 
@@ -289,31 +291,37 @@ onTriggerEnter: {
 
 ### Physics
 
-`@collidable` `@physics` `@rigid` `@kinematic` `@trigger` `@gravity`
+`@collidable` `@physics` `@rigid` `@kinematic` `@trigger` `@gravity` `@soft_body`
 
 ### Visual
 
-`@glowing` `@emissive` `@transparent` `@reflective` `@animated` `@billboard`
+`@glowing` `@emissive` `@transparent` `@reflective` `@animated` `@billboard` `@particle`
 
 ### Networking
 
-`@networked` `@synced` `@persistent` `@owned` `@host_only`
+`@networked` `@synced` `@persistent` `@owned` `@host_only` `@replicated`
 
-### Behavior
+### AI & Behavior
+
+`@npc` `@pathfinding` `@llm_agent` `@reactive` `@state_machine` `@crowd`
 
 `@stackable` `@attachable` `@equippable` `@consumable` `@destructible`
 
-### Spatial
+### Spatial / AR
 
-`@anchor` `@tracked` `@world_locked` `@hand_tracked` `@eye_tracked`
+`@anchor` `@tracked` `@world_locked` `@hand_tracked` `@eye_tracked` `@plane_detected`
 
 ### Audio
 
-`@spatial_audio` `@ambient` `@voice_activated`
+`@spatial_audio` `@ambient` `@voice_activated` `@reverb` `@doppler`
 
 ### State
 
 `@state` `@reactive` `@observable` `@computed`
+
+### IoT / Digital Twins
+
+`@iot_sensor` `@digital_twin` `@mqtt_bridge` `@telemetry`
 
 ---
 
@@ -396,12 +404,19 @@ object Portal @collidable {
 
 ## Package Structure
 
-| Package                  | Purpose                      |
-| ------------------------ | ---------------------------- |
-| `@holoscript/core`       | Parser, AST, tokenizer       |
-| `@holoscript/traits`     | 49 VR trait definitions      |
-| `@holoscript/compiler`   | Multi-target code generation |
-| `@holoscript/mcp-server` | MCP tools for AI agents      |
+| Package                      | Purpose                                      |
+| ---------------------------- | -------------------------------------------- |
+| `@holoscript/core`           | Parser, AST, 1,525+ traits, 18+ compilers    |
+| `@holoscript/mcp-server`     | 34 MCP tools for AI agents                   |
+| `@holoscript/cli`            | holo build · holo compile · holo validate    |
+| `@holoscript/runtime`        | Scene execution runtime                      |
+| `@holoscript/lsp`            | Language Server Protocol                     |
+| `@holoscript/llm-provider`   | OpenAI / Anthropic / Gemini SDK              |
+| `@holoscript/partner-sdk`    | Webhooks and analytics                       |
+| `holoscript` (PyPI)          | Python bindings + robotics module            |
+
+> **Note**: There is no separate `@holoscript/traits` or `@holoscript/compiler` package.
+> All traits and compiler targets live inside `@holoscript/core`.
 
 ---
 
@@ -413,4 +428,4 @@ MCP servers are configured in:
 - `.antigravity/mcp.json` - Antigravity IDE
 - `.claude/settings.json` - Claude Desktop/Code
 
-See `docs/MCP_CONFIGURATION.md` for full reference.
+See `docs/guides/mcp-server.md` for full setup reference.

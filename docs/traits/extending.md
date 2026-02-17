@@ -575,11 +575,11 @@ Submit your traits to the [HoloScript Trait Registry](https://holoscript.dev/reg
 
 ## API Reference
 
-Full TypeDoc-generated API reference:
-- [`TraitHandler<T>`](./api/interfaces/TraitHandler.html)
-- [`TraitContext`](./api/interfaces/TraitContext.html)
-- [`VRTraitSystem`](./api/classes/VRTraitSystem.html)
-- [`VRTraitRegistry`](./api/classes/VRTraitRegistry.html)
+Full TypeDoc-generated API reference: [API Reference](/api/)
+
+Key interfaces: `TraitHandler<T>`, `TraitContext`, `VRTraitSystem`, `VRTraitRegistry`
+
+> Run `pnpm docs:api` to generate full TypeDoc reference in `docs/api/`
 
 ---
 

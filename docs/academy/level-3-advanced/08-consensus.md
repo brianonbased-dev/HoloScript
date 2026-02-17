@@ -462,5 +462,4 @@ In this lesson you learned:
 
 ## Next Steps
 
-- [Lesson 3.9: Debugging & Observability](./09-debugging.md)
-- [Lesson 3.10: Agent Hierarchy](./10-hierarchy.md)
+- [Level 3 Index](./index.md)

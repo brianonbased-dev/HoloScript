@@ -44,4 +44,4 @@ This document outlines the integration plan for connecting HoloScript+ with the 
 
 _For detailed architecture analysis and code samples, see proprietary research documentation._
 
-_See also: [HOLOLAND_GRAPHICS_INTEGRATION.md](HOLOLAND_GRAPHICS_INTEGRATION.md) for implementation guide_
+_See also: [Hololand Integration Guide](./hololand) for full integration reference_

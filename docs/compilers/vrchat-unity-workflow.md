@@ -383,8 +383,8 @@ holoscript dev scene.hsplus
 
 ## See Also
 
-- [HoloScript Language Reference](./HOLOSCRIPT_REFERENCE.md)
-- [Three.js Adapter](../packages/three-adapter/README.md)
+- [HoloScript Language Spec](/language/holoscript-language-spec)
+- [Traits Reference](/traits/)
 - [VRChat Creator Companion](https://vcc.docs.vrchat.com/)
 - [Unity XR Interaction Toolkit](https://docs.unity3d.com/Packages/com.unity.xr.interaction.toolkit@2.5/manual/index.html)
 

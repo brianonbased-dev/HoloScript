@@ -676,6 +676,6 @@ bindingManager.addBinding(
 
 ## See Also
 
-- [Graphics Integration](./HOLOLAND_GRAPHICS_INTEGRATION.md) - Graphics pipeline integration
-- [Hololand Audit](./HOLOLAND_AUDIT.md) - Codebase audit and analysis
-- [VRChat/Unity Guide](./VRCHAT_UNITY_GUIDE.md) - Unity platform integration
+- [Hololand Audit](./hololand-audit) - Codebase audit and analysis
+- [VRChat + Unity Workflow](/compilers/vrchat-unity-workflow) - Unity platform integration
+- [Integrations Overview](./)

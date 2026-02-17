@@ -446,4 +446,3 @@ In this lesson you learned:
 ## Next Steps
 
 - [Lesson 3.8: Consensus Mechanisms](./08-consensus.md)
-- [Lesson 3.9: Debugging & Observability](./09-debugging.md)

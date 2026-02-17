@@ -129,7 +129,7 @@ holoscript dev
 # ✓ WebXR available
 ```
 
-Open http://localhost:3000 in a WebXR-compatible browser.
+Open `http://localhost:3000` in a WebXR-compatible browser.
 
 ## Connecting Your VR Headset
 

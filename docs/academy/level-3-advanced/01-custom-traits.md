@@ -400,7 +400,7 @@ In this lesson, you learned:
 
 ## Next Lesson
 
-In [Lesson 3.2: Plugin Architecture](./02-plugins.md), we'll explore the broader plugin system for extending HoloScript.
+In [Lesson 3.2: Plugin Architecture](./02-plugin-architecture.md), we'll explore the broader plugin system for extending HoloScript.
 
 ---
 

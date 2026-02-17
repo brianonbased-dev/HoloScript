@@ -1,6 +1,6 @@
 # Social & Multiplayer Traits
 
-> Part of the HoloScript Traits reference. Browse: [Networking](/traits/networking) · [Web3](/traits/web3) · [All Traits](/traits/)
+> Part of the HoloScript Traits reference. Browse: [Social/Multiplayer](/traits/social) · [Web3](/traits/web3) · [All Traits](/traits/)
 
 ## Social/Multiplayer Traits
 

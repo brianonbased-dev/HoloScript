@@ -83,4 +83,4 @@ holoscript compile hello-world.holo --target unity
 
 - Add [@grabbable](/api/traits#grabbable) to make it interactive
 - Add [@physics](/api/traits#physics) for realistic movement
-- Try [Interactive Cube](/examples/interactive-cube) for more interactivity
+- Browse [more examples](/examples/) for advanced patterns
