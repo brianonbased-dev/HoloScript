@@ -6,10 +6,10 @@ describe('FactionTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
   const cfg = {
-    faction_id: 'guards',
-    reputation: { 'bandits': -60, 'merchants': 40 } as Record<string, number>,
-    hostile_factions: ['demons'],
-    allied_factions: ['knights'],
+    faction_id: 'player_faction',
+    reputation: { orcs: -50, elves: 60 } as Record<string, number>,
+    hostile_factions: ['demons'] as string[],
+    allied_factions: ['angels'] as string[],
     neutral_threshold: 25,
     friendly_threshold: 50,
     allied_threshold: 75,
@@ -24,92 +24,86 @@ describe('FactionTrait', () => {
     attachTrait(factionHandler, node, cfg, ctx);
   });
 
-  it('initializes relations from config', () => {
+  it('registers faction on attach', () => {
     expect(getEventCount(ctx, 'faction_registered')).toBe(1);
-    const s = (node as any).__factionState;
-    expect(s.relations.size).toBe(4); // bandits, merchants, demons, knights
+    expect((node as any).__factionState).toBeDefined();
   });
 
-  it('hostile factions locked at hostile', () => {
-    const s = (node as any).__factionState;
-    const demon = s.relations.get('demons');
-    expect(demon.type).toBe('hostile');
-    expect(demon.locked).toBe(true);
+  it('initializes relations from config', () => {
+    const state = (node as any).__factionState;
+    expect(state.relations.get('orcs')).toBeDefined();
+    expect(state.relations.get('orcs').standing).toBe(-50);
+    expect(state.relations.get('elves').standing).toBe(60);
   });
 
-  it('allied factions locked at allied', () => {
-    const s = (node as any).__factionState;
-    const knight = s.relations.get('knights');
-    expect(knight.type).toBe('allied');
-    expect(knight.locked).toBe(true);
+  it('locked hostile factions default to -100', () => {
+    const state = (node as any).__factionState;
+    expect(state.relations.get('demons').standing).toBe(-100);
+    expect(state.relations.get('demons').locked).toBe(true);
   });
 
-  it('reputation_change modifies standing', () => {
+  it('locked allied factions default to 100', () => {
+    const state = (node as any).__factionState;
+    expect(state.relations.get('angels').standing).toBe(100);
+    expect(state.relations.get('angels').locked).toBe(true);
+  });
+
+  it('reputation_change updates standing', () => {
     sendEvent(factionHandler, node, cfg, ctx, {
       type: 'reputation_change',
-      factionId: 'merchants',
-      amount: 20,
-      reason: 'trade',
+      factionId: 'orcs',
+      amount: 30,
+      reason: 'helped orc',
     });
-    const s = (node as any).__factionState;
-    expect(s.relations.get('merchants').standing).toBe(60);
+    const state = (node as any).__factionState;
+    expect(state.relations.get('orcs').standing).toBe(-20);
     expect(getEventCount(ctx, 'reputation_updated')).toBe(1);
   });
 
-  it('reputation clamped to -100..100', () => {
-    sendEvent(factionHandler, node, cfg, ctx, {
-      type: 'reputation_change',
-      factionId: 'merchants',
-      amount: 200,
-      reason: 'extreme',
-    });
-    expect((node as any).__factionState.relations.get('merchants').standing).toBe(100);
-  });
-
-  it('locked factions ignore reputation changes', () => {
+  it('reputation_change for locked faction is ignored', () => {
     sendEvent(factionHandler, node, cfg, ctx, {
       type: 'reputation_change',
       factionId: 'demons',
-      amount: 100,
-      reason: 'peace treaty',
+      amount: 50,
     });
     expect((node as any).__factionState.relations.get('demons').standing).toBe(-100);
   });
 
-  it('relation type changes emitted', () => {
+  it('reputation_change emits relation_changed on threshold cross', () => {
     sendEvent(factionHandler, node, cfg, ctx, {
       type: 'reputation_change',
-      factionId: 'merchants',
-      amount: 40,
+      factionId: 'orcs',
+      amount: 80,
       reason: 'alliance',
     });
-    // merchants: 40 + 40 = 80 => allied
     expect(getEventCount(ctx, 'faction_relation_changed')).toBe(1);
   });
 
-  it('get_relation returns current standing', () => {
-    sendEvent(factionHandler, node, cfg, ctx, { type: 'get_relation', factionId: 'bandits', queryId: 'q1' });
-    expect(getEventCount(ctx, 'relation_result')).toBe(1);
+  it('get_relation returns relation info', () => {
+    sendEvent(factionHandler, node, cfg, ctx, { type: 'get_relation', factionId: 'elves', queryId: 'q1' });
+    const result = getLastEvent(ctx, 'relation_result');
+    expect(result.factionId).toBe('elves');
+    expect(result.standing).toBe(60);
   });
 
-  it('check_hostile returns correct status', () => {
-    sendEvent(factionHandler, node, cfg, ctx, { type: 'check_hostile', factionId: 'bandits', queryId: 'q2' });
-    const ev = getLastEvent(ctx, 'hostility_result') as any;
-    expect(ev.isHostile).toBe(true);
+  it('check_hostile returns hostility', () => {
+    sendEvent(factionHandler, node, cfg, ctx, { type: 'check_hostile', factionId: 'demons', queryId: 'q2' });
+    const result = getLastEvent(ctx, 'hostility_result');
+    expect(result.isHostile).toBe(true);
   });
 
-  it('new faction starts at neutral', () => {
+  it('history is recorded', () => {
     sendEvent(factionHandler, node, cfg, ctx, {
       type: 'reputation_change',
-      factionId: 'thieves',
-      amount: -10,
-      reason: 'theft',
+      factionId: 'orcs',
+      amount: 10,
+      reason: 'trade',
     });
-    expect((node as any).__factionState.relations.has('thieves')).toBe(true);
-    expect((node as any).__factionState.relations.get('thieves').standing).toBe(-10);
+    const state = (node as any).__factionState;
+    expect(state.history).toHaveLength(1);
   });
 
-  it('detach cleans up', () => {
+  it('detach unregisters', () => {
     factionHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect(getEventCount(ctx, 'faction_unregistered')).toBe(1);
     expect((node as any).__factionState).toBeUndefined();

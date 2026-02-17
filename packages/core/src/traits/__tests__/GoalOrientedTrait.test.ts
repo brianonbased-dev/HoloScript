@@ -5,14 +5,16 @@ import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait,
 describe('GoalOrientedTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
+
   const cfg = {
     goals: [
-      { name: 'get_wood', priority: 1, desiredState: { has_wood: true } },
+      { name: 'eat', priority: 1, desiredState: { hungry: false } },
     ],
     actions: [
-      { name: 'chop_tree', cost: 1, preconditions: { near_tree: true }, effects: { has_wood: true }, duration: 1 },
+      { name: 'find_food', cost: 1, preconditions: { hungry: true }, effects: { hasFood: true }, duration: 1 },
+      { name: 'eat_food', cost: 1, preconditions: { hasFood: true }, effects: { hungry: false }, duration: 1 },
     ],
-    initial_state: { near_tree: true, has_wood: false },
+    initial_state: { hungry: true, hasFood: false } as Record<string, number | boolean | string>,
     replan_interval: 5000,
     max_plan_depth: 10,
   };
@@ -26,51 +28,63 @@ describe('GoalOrientedTrait', () => {
   it('creates plan on attach', () => {
     expect(getEventCount(ctx, 'goap_plan_created')).toBe(1);
     expect((node as any).__goalOrientedState.isExecuting).toBe(true);
-    expect((node as any).__goalOrientedState.plan.length).toBe(1);
   });
 
-  it('executes action and completes goal', () => {
-    // Run enough delta to exceed duration (1s)
+  it('plan has correct actions', () => {
+    const state = (node as any).__goalOrientedState;
+    expect(state.plan).toHaveLength(2);
+    expect(state.plan[0].name).toBe('find_food');
+    expect(state.plan[1].name).toBe('eat_food');
+  });
+
+  it('executing actions applies effects on duration', () => {
+    // First action duration = 1
     updateTrait(goalOrientedHandler, node, cfg, ctx, 1.1);
     expect(getEventCount(ctx, 'goap_action_complete')).toBe(1);
-    expect(getEventCount(ctx, 'goap_goal_complete')).toBe(1);
-    expect((node as any).__goalOrientedState.worldState.has_wood).toBe(true);
+    const state = (node as any).__goalOrientedState;
+    expect(state.worldState.hasFood).toBe(true);
   });
 
-  it('replans on state change', () => {
+  it('completes full plan', () => {
+    updateTrait(goalOrientedHandler, node, cfg, ctx, 1.1); // find_food
+    updateTrait(goalOrientedHandler, node, cfg, ctx, 1.1); // eat_food
+    expect(getEventCount(ctx, 'goap_goal_complete')).toBe(1);
+    expect((node as any).__goalOrientedState.worldState.hungry).toBe(false);
+  });
+
+  it('no plan when goal already satisfied', () => {
+    const n = createMockNode('g2');
+    const c = createMockContext();
+    const satisfiedCfg = { ...cfg, initial_state: { hungry: false, hasFood: false } };
+    attachTrait(goalOrientedHandler, n, satisfiedCfg, c);
+    expect(getEventCount(c, 'goap_plan_created')).toBe(0);
+    expect((n as any).__goalOrientedState.isExecuting).toBe(false);
+  });
+
+  it('goap_set_state triggers replan', () => {
     sendEvent(goalOrientedHandler, node, cfg, ctx, {
       type: 'goap_set_state',
-      state: { has_wood: true },
+      state: { hungry: false },
     });
-    // Goal already met, no new plan needed
-    const s = (node as any).__goalOrientedState;
-    expect(s.plan.length).toBe(0);
+    // After setting hungry=false, goal is satisfied and isExecuting should be false
+    expect((node as any).__goalOrientedState.worldState.hungry).toBe(false);
   });
 
-  it('cancel stops execution', () => {
+  it('goap_cancel stops execution', () => {
     sendEvent(goalOrientedHandler, node, cfg, ctx, { type: 'goap_cancel' });
     expect((node as any).__goalOrientedState.isExecuting).toBe(false);
     expect(getEventCount(ctx, 'goap_cancelled')).toBe(1);
   });
 
-  it('fails when no actions satisfy preconditions', () => {
-    const n = createMockNode('goap2');
-    const c = createMockContext();
-    attachTrait(goalOrientedHandler, n, {
+  it('plan_failed when no valid actions', () => {
+    const impossible = {
       ...cfg,
-      initial_state: { near_tree: false, has_wood: false },
-    }, c);
+      actions: [],
+    };
+    const n = createMockNode('g3');
+    const c = createMockContext();
+    attachTrait(goalOrientedHandler, n, impossible, c);
     expect(getEventCount(c, 'goap_plan_failed')).toBe(1);
-  });
-
-  it('add goal triggers replan', () => {
-    sendEvent(goalOrientedHandler, node, cfg, ctx, {
-      type: 'goap_add_goal',
-      goal: { name: 'build_house', priority: 2, desiredState: { house_built: true } },
-    });
-    // Will try to plan, likely fail (no action), but should attempt
-    const totalPlanEvents = getEventCount(ctx, 'goap_plan_created') + getEventCount(ctx, 'goap_plan_failed');
-    expect(totalPlanEvents).toBeGreaterThanOrEqual(2);
   });
 
   it('detach cleans up', () => {

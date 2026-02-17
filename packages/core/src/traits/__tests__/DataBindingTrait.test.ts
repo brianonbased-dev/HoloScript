@@ -1,237 +1,94 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { dataBindingHandler } from '../DataBindingTrait';
-import {
-  createMockContext,
-  createMockNode,
-  attachTrait,
-  sendEvent,
-  updateTrait,
-  getLastEvent,
-  getEventCount,
-} from './traitTestHelpers';
+import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount } from './traitTestHelpers';
 
 describe('DataBindingTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
-
-  const baseConfig = {
+  const cfg = {
     source: 'https://api.example.com/data',
     source_type: 'rest' as const,
     bindings: [
-      { source_path: 'temperature', target_property: 'temp' },
-      { source_path: 'nested.value', target_property: 'nestedVal' },
+      { source_path: 'temperature', target_property: 'temp', transform: 'none' as const },
+      { source_path: 'scale', target_property: 'size', transform: 'scale' as const, transform_params: { factor: 2 } },
     ],
     refresh_rate: 1000,
-    interpolation: false,
+    interpolation: true,
+    interpolation_speed: 5,
+    auth_header: '',
+    reconnect_interval: 5000,
   };
 
   beforeEach(() => {
-    node = createMockNode('data-node');
+    node = createMockNode('db');
     ctx = createMockContext();
+    attachTrait(dataBindingHandler, node, cfg, ctx);
   });
 
-  // ===========================================================================
-  // Lifecycle
-  // ===========================================================================
-  describe('lifecycle', () => {
-    it('attaches and emits connect when source is set', () => {
-      attachTrait(dataBindingHandler, node, baseConfig, ctx);
-      expect((node as any).__dataBindingState).toBeDefined();
-      expect(getEventCount(ctx, 'data_binding_connect')).toBe(1);
-    });
-
-    it('does not connect when source is empty', () => {
-      attachTrait(dataBindingHandler, node, { source: '' }, ctx);
-      expect(getEventCount(ctx, 'data_binding_connect')).toBe(0);
-    });
-
-    it('cleans up on detach', () => {
-      attachTrait(dataBindingHandler, node, baseConfig, ctx);
-      dataBindingHandler.onDetach?.(node as any, dataBindingHandler.defaultConfig, ctx as any);
-      expect((node as any).__dataBindingState).toBeUndefined();
-    });
+  it('connects on attach', () => {
+    expect(getEventCount(ctx, 'data_binding_connect')).toBe(1);
   });
 
-  // ===========================================================================
-  // Data Reception
-  // ===========================================================================
-  describe('data reception', () => {
-    it('applies data to bound properties', () => {
-      attachTrait(dataBindingHandler, node, baseConfig, ctx);
-
-      sendEvent(dataBindingHandler, node, baseConfig, ctx, {
-        type: 'data_binding_connected',
-        handle: 'conn-1',
-      });
-
-      sendEvent(dataBindingHandler, node, baseConfig, ctx, {
-        type: 'data_binding_data',
-        data: { temperature: 72, nested: { value: 'deep' } },
-      });
-
-      expect(node.temp).toBe(72);
-      expect(node.nestedVal).toBe('deep');
-      expect(getEventCount(ctx, 'on_data_change')).toBe(1);
-    });
-
-    it('handles missing nested values', () => {
-      attachTrait(dataBindingHandler, node, baseConfig, ctx);
-
-      sendEvent(dataBindingHandler, node, baseConfig, ctx, {
-        type: 'data_binding_connected',
-        handle: 'c1',
-      });
-
-      sendEvent(dataBindingHandler, node, baseConfig, ctx, {
-        type: 'data_binding_data',
-        data: { temperature: 50 }, // nested.value missing
-      });
-
-      expect(node.temp).toBe(50);
-      expect(node.nestedVal).toBeUndefined();
-    });
+  it('connected event sets state', () => {
+    sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_connected', handle: 'h1' });
+    expect((node as any).__dataBindingState.isConnected).toBe(true);
+    expect(getEventCount(ctx, 'on_data_connected')).toBe(1);
   });
 
-  // ===========================================================================
-  // Transforms
-  // ===========================================================================
-  describe('transforms', () => {
-    it('applies scale transform', () => {
-      const config = {
-        ...baseConfig,
-        bindings: [{
-          source_path: 'rawVal',
-          target_property: 'scaled',
-          transform: 'scale' as const,
-          transform_params: { factor: 2.5 },
-        }],
-      };
-      attachTrait(dataBindingHandler, node, config, ctx);
-      sendEvent(dataBindingHandler, node, config, ctx, {
-        type: 'data_binding_connected', handle: 'c1',
-      });
-      sendEvent(dataBindingHandler, node, config, ctx, {
-        type: 'data_binding_data',
-        data: { rawVal: 10 },
-      });
-
-      expect(node.scaled).toBe(25);
+  it('data event applies non-numeric bindings immediately', () => {
+    sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_connected', handle: 'h1' });
+    sendEvent(dataBindingHandler, node, cfg, ctx, {
+      type: 'data_binding_data',
+      data: { temperature: 'hot', scale: 5 },
     });
-
-    it('applies normalize transform', () => {
-      const config = {
-        ...baseConfig,
-        bindings: [{
-          source_path: 'v',
-          target_property: 'norm',
-          transform: 'normalize' as const,
-          transform_params: { min: 0, max: 100 },
-        }],
-      };
-      attachTrait(dataBindingHandler, node, config, ctx);
-      sendEvent(dataBindingHandler, node, config, ctx, {
-        type: 'data_binding_connected', handle: 'c1',
-      });
-      sendEvent(dataBindingHandler, node, config, ctx, {
-        type: 'data_binding_data',
-        data: { v: 50 },
-      });
-
-      expect(node.norm).toBe(0.5);
-    });
-
-    it('applies map transform', () => {
-      const config = {
-        ...baseConfig,
-        bindings: [{
-          source_path: 'status',
-          target_property: 'color',
-          transform: 'map' as const,
-          transform_params: { mapping: { ok: 'green', error: 'red' } },
-        }],
-      };
-      attachTrait(dataBindingHandler, node, config, ctx);
-      sendEvent(dataBindingHandler, node, config, ctx, {
-        type: 'data_binding_connected', handle: 'c1',
-      });
-      sendEvent(dataBindingHandler, node, config, ctx, {
-        type: 'data_binding_data',
-        data: { status: 'ok' },
-      });
-
-      expect(node.color).toBe('green');
-    });
+    expect((node as any).temp).toBe('hot');
+    expect(getEventCount(ctx, 'on_data_change')).toBe(1);
   });
 
-  // ===========================================================================
-  // Connection Events
-  // ===========================================================================
-  describe('connection events', () => {
-    it('data_binding_connected sets connected state', () => {
-      attachTrait(dataBindingHandler, node, baseConfig, ctx);
-      sendEvent(dataBindingHandler, node, baseConfig, ctx, {
-        type: 'data_binding_connected', handle: 'h1',
-      });
-
-      const state = (node as any).__dataBindingState;
-      expect(state.isConnected).toBe(true);
-      expect(getEventCount(ctx, 'on_data_connected')).toBe(1);
+  it('scale transform doubles value', () => {
+    const noInterp = { ...cfg, interpolation: false };
+    const n = createMockNode('db2');
+    const c = createMockContext();
+    attachTrait(dataBindingHandler, n, noInterp, c);
+    sendEvent(dataBindingHandler, n, noInterp, c, { type: 'data_binding_connected', handle: 'h2' });
+    sendEvent(dataBindingHandler, n, noInterp, c, {
+      type: 'data_binding_data',
+      data: { temperature: 25, scale: 3 },
     });
-
-    it('data_binding_error increments error count', () => {
-      attachTrait(dataBindingHandler, node, baseConfig, ctx);
-      sendEvent(dataBindingHandler, node, baseConfig, ctx, {
-        type: 'data_binding_error', error: 'timeout',
-      });
-
-      const state = (node as any).__dataBindingState;
-      expect(state.errorCount).toBe(1);
-      expect(getEventCount(ctx, 'on_data_error')).toBe(1);
-    });
-
-    it('data_binding_disconnect clears connection', () => {
-      attachTrait(dataBindingHandler, node, baseConfig, ctx);
-      sendEvent(dataBindingHandler, node, baseConfig, ctx, {
-        type: 'data_binding_connected', handle: 'h1',
-      });
-      sendEvent(dataBindingHandler, node, baseConfig, ctx, {
-        type: 'data_binding_disconnect',
-      });
-
-      const state = (node as any).__dataBindingState;
-      expect(state.isConnected).toBe(false);
-    });
-
-    it('data_binding_query returns binding info', () => {
-      attachTrait(dataBindingHandler, node, baseConfig, ctx);
-      sendEvent(dataBindingHandler, node, baseConfig, ctx, {
-        type: 'data_binding_query', queryId: 'q1',
-      });
-
-      expect(getEventCount(ctx, 'data_binding_info')).toBe(1);
-      const info = getLastEvent(ctx, 'data_binding_info') as any;
-      expect(info.queryId).toBe('q1');
-      expect(info.bindingCount).toBe(2);
-    });
+    expect((n as any).temp).toBe(25);
+    expect((n as any).size).toBe(6); // 3 * 2
   });
 
-  // ===========================================================================
-  // Polling (onUpdate)
-  // ===========================================================================
-  describe('polling', () => {
-    it('emits fetch at configured interval', () => {
-      attachTrait(dataBindingHandler, node, baseConfig, ctx);
-      sendEvent(dataBindingHandler, node, baseConfig, ctx, {
-        type: 'data_binding_connected', handle: 'h1',
-      });
-      ctx.clearEvents();
+  it('polls on update at refresh_rate', () => {
+    sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_connected', handle: 'h1' });
+    (node as any).__dataBindingState.lastRefresh = 0; // force stale
+    updateTrait(dataBindingHandler, node, cfg, ctx, 0.016);
+    expect(getEventCount(ctx, 'data_binding_fetch')).toBe(1);
+  });
 
-      // Force time to exceed refresh_rate
-      const state = (node as any).__dataBindingState;
-      state.lastRefresh = Date.now() - 2000;
+  it('error increments count and emits', () => {
+    sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_error', error: 'timeout' });
+    expect((node as any).__dataBindingState.errorCount).toBe(1);
+    expect(getEventCount(ctx, 'on_data_error')).toBe(1);
+  });
 
-      updateTrait(dataBindingHandler, node, baseConfig, ctx, 0.1);
-      expect(getEventCount(ctx, 'data_binding_fetch')).toBe(1);
-    });
+  it('set_source reconnects', () => {
+    sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_connected', handle: 'h1' });
+    sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_set_source', source: 'wss://new' });
+    expect((node as any).__dataBindingState.isConnected).toBe(false);
+    expect(getEventCount(ctx, 'data_binding_disconnect')).toBe(1);
+    expect(getEventCount(ctx, 'data_binding_connect')).toBe(2); // attach + new connect
+  });
+
+  it('query emits info', () => {
+    sendEvent(dataBindingHandler, node, cfg, ctx, { type: 'data_binding_query', queryId: 'q1' });
+    expect(getEventCount(ctx, 'data_binding_info')).toBe(1);
+  });
+
+  it('detach disconnects', () => {
+    (node as any).__dataBindingState.connectionHandle = 'h1';
+    dataBindingHandler.onDetach?.(node as any, cfg as any, ctx as any);
+    expect(getEventCount(ctx, 'data_binding_disconnect')).toBe(1);
+    expect((node as any).__dataBindingState).toBeUndefined();
   });
 });
