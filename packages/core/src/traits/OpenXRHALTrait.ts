@@ -152,6 +152,7 @@ interface OpenXRHALState {
   performanceLevel: 'low' | 'medium' | 'high' | 'max';
   inputSourcesCache: unknown[]; // Cache of XRInputSource objects
   referenceSpace: unknown | null; // XRReferenceSpace for pose calculations
+  currentFrame: unknown | null; // Latest XRFrame from session.requestAnimationFrame
   // Phase 4: Session lifecycle tracking
   sessionVisible: boolean; // Track visibility state
   sessionInterrupted: boolean; // Track interruption state
@@ -354,6 +355,7 @@ export const openXRHALHandler: TraitHandler<OpenXRHALConfig> = {
       performanceLevel: 'medium',
       inputSourcesCache: [],
       referenceSpace: null,
+      currentFrame: null,
       // Phase 4: Session lifecycle initialization
       sessionVisible: true,
       sessionInterrupted: false,
@@ -544,6 +546,16 @@ async function requestXRSession(
 
     // Phase 4: Detect available features
     detectAvailableFeatures(session, state, config, context, node);
+
+    // Phase 4: Start frame loop to capture XRFrame for pose queries
+    if (typeof session.requestAnimationFrame === 'function') {
+      const frameLoop = (_time: number, frame: unknown) => {
+        if (!state.session) return; // Session ended
+        state.currentFrame = frame;
+        (state.session as any).requestAnimationFrame(frameLoop);
+      };
+      session.requestAnimationFrame(frameLoop);
+    }
 
     context.emit?.('openxr_session_start', {
       node,
@@ -1100,20 +1112,33 @@ function calculateGripStrength(joints: Map<HandJoint, JointPose>): number {
  * Poll hand tracking joints per frame (Phase 3)
  * Requires XRHand API support (Quest Pro, Vision Pro)
  */
-function pollHandTracking(source: any): HandTrackingState | null {
+function pollHandTracking(source: any, frame: any, referenceSpace: any): HandTrackingState | null {
   if (!source.hand) return null;
 
   const joints = new Map<HandJoint, JointPose>();
 
   // XRHand provides joint data as an iterable
-  for (const [jointName, _xrJoint] of source.hand.entries()) {
-    // Note: In real implementation, we'd need XRFrame to get joint poses
-    // For now, store joint reference (Phase 4 will add XRFrame integration)
-    joints.set(jointName as HandJoint, {
-      position: { x: 0, y: 0, z: 0 }, // TODO: Get from XRFrame.getJointPose()
-      rotation: { x: 0, y: 0, z: 0, w: 1 },
-      radius: 0.01,
-    });
+  for (const [jointName, xrJoint] of source.hand.entries()) {
+    let position = { x: 0, y: 0, z: 0 };
+    let rotation = { x: 0, y: 0, z: 0, w: 1 };
+    let radius = 0.01;
+
+    if (frame && referenceSpace) {
+      try {
+        const jointPose = frame.getJointPose(xrJoint, referenceSpace);
+        if (jointPose) {
+          const t = jointPose.transform.position;
+          const r = jointPose.transform.orientation;
+          position = { x: t.x, y: t.y, z: t.z };
+          rotation = { x: r.x, y: r.y, z: r.z, w: r.w };
+          radius = jointPose.radius ?? 0.01;
+        }
+      } catch {
+        // Joint pose unavailable for this joint
+      }
+    }
+
+    joints.set(jointName as HandJoint, { position, rotation, radius });
   }
 
   const pinchStrength = calculatePinchStrength(joints);
@@ -1148,21 +1173,42 @@ function _calculateForwardVector(quaternion: { x: number; y: number; z: number; 
  * Poll eye tracking gaze vector (Phase 3)
  * Requires eye tracking permission (Vision Pro, Quest Pro)
  */
-function pollEyeTracking(session: any, _state: OpenXRHALState): GazeRay | null {
+function pollEyeTracking(session: any, state: OpenXRHALState, frame: any): GazeRay | null {
   if (!session.inputSources) return null;
 
   // Find gaze input source
   const gazeSource = Array.from(session.inputSources).find(
     (source: any) => source.targetRayMode === 'gaze'
-  );
+  ) as any;
 
   if (!gazeSource) return null;
 
-  // Note: In real implementation, we'd need XRFrame to get gaze pose
-  // For now, return placeholder (Phase 4 will add XRFrame integration)
+  if (frame && state.referenceSpace && gazeSource.targetRaySpace) {
+    try {
+      const gazePose = frame.getPose(gazeSource.targetRaySpace, state.referenceSpace);
+      if (gazePose) {
+        const t = gazePose.transform.position;
+        const r = gazePose.transform.orientation;
+        // Compute forward from quaternion: rotate -Z by orientation
+        const { x, y, z, w } = r;
+        return {
+          origin: { x: t.x, y: t.y, z: t.z },
+          direction: {
+            x: 2 * (x * z + w * y),
+            y: 2 * (y * z - w * x),
+            z: 1 - 2 * (x * x + y * y),
+          },
+        };
+      }
+    } catch {
+      // Gaze pose unavailable
+    }
+  }
+
+  // Fallback: approximate eye height, forward direction
   return {
-    origin: { x: 0, y: 1.6, z: 0 }, // Approximate eye height
-    direction: { x: 0, y: 0, z: -1 }, // Forward
+    origin: { x: 0, y: 1.6, z: 0 },
+    direction: { x: 0, y: 0, z: -1 },
   };
 }
 
@@ -1180,16 +1226,24 @@ function pollInputSources(state: OpenXRHALState, context: any, node: any): void 
   // Update cache
   state.inputSourcesCache = Array.from(inputSources);
 
+  const frame = state.currentFrame as any;
+
   // Emit update for each input source
   for (const source of inputSources) {
     let pose = null;
 
-    // Get pose if we have a reference space
-    if (state.referenceSpace && source.gripSpace) {
+    // Get controller grip pose from the current XRFrame
+    if (frame && state.referenceSpace && source.gripSpace) {
       try {
-        // Note: In a real XR frame callback, we'd have access to XRFrame
-        // For now, we emit source data without pose (Phase 2 will add full frame integration)
-        pose = null; // TODO: Get from XRFrame in Phase 2
+        const xrPose = frame.getPose(source.gripSpace, state.referenceSpace);
+        if (xrPose) {
+          const t = xrPose.transform.position;
+          const r = xrPose.transform.orientation;
+          pose = {
+            position: { x: t.x, y: t.y, z: t.z },
+            rotation: { x: r.x, y: r.y, z: r.z, w: r.w },
+          };
+        }
       } catch {
         pose = null;
       }
@@ -1232,7 +1286,7 @@ function pollInputSources(state: OpenXRHALState, context: any, node: any): void 
     }
 
     // Phase 3: Poll hand tracking if available
-    const handState = pollHandTracking(source);
+    const handState = pollHandTracking(source, frame, state.referenceSpace);
     if (handState) {
       // Convert Map to plain object for event emission
       const jointsObj: Record<string, JointPose> = {};
@@ -1253,7 +1307,7 @@ function pollInputSources(state: OpenXRHALState, context: any, node: any): void 
 
   // Phase 3: Poll eye tracking (per-session, not per-source)
   if (state.eyeTrackingActive) {
-    const gazeRay = pollEyeTracking(session, state);
+    const gazeRay = pollEyeTracking(session, state, frame);
     if (gazeRay) {
       context.emit?.('eye_gaze_update', {
         node,

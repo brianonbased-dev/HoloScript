@@ -6,30 +6,66 @@
 
 ### @networked
 
-Network synchronization.
+Full multiplayer state synchronization with interpolation, ownership, and connection pooling. Built on the HoloScript `SyncProtocol` with WebSocket transport and delta compression.
 
 ```hsplus
-object SharedCube @networked {
-  sync_position: true
-  sync_rotation: true
-  sync_rate: 20
+object "SharedCube" @networked(
+  sync_position: true,
+  sync_rotation: true,
+  sync_rate: 20,
+  ownership_model: "any",
+  interpolation: true
+) {
+  position: [0, 1, -3]
 }
 ```
 
-| Config            | Type    | Default | Description             |
-| ----------------- | ------- | ------- | ----------------------- |
-| `sync_position`   | boolean | true    | Sync position           |
-| `sync_rotation`   | boolean | true    | Sync rotation           |
-| `sync_scale`      | boolean | false   | Sync scale              |
-| `sync_rate`       | number  | 20      | Updates per second      |
-| `interpolation`   | boolean | true    | Smooth updates          |
-| `ownership_model` | string  | 'host'  | 'host', 'any', 'sticky' |
+| Config              | Type    | Default    | Description                                             |
+| ------------------- | ------- | ---------- | ------------------------------------------------------- |
+| `sync_position`     | bool    | `true`     | Replicate world position.                               |
+| `sync_rotation`     | bool    | `true`     | Replicate world rotation.                               |
+| `sync_scale`        | bool    | `false`    | Replicate scale.                                        |
+| `sync_rate`         | number  | `20`       | Network updates per second (1–120).                     |
+| `interpolation`     | bool    | `true`     | Smooth position/rotation between updates.               |
+| `ownership_model`   | string  | `"host"`   | `"host"` (host owns), `"any"` (grabber owns), `"sticky"` (first grabber keeps). |
+| `reliable`          | bool    | `false`    | Use reliable delivery for this object's updates.        |
+| `compress_state`    | bool    | `true`     | Apply delta compression before sending.                 |
+| `latency_tolerance` | number  | `150`      | Max ms of lag before interpolation extrapolates.        |
 
-**Events:**
+**Events — Outgoing:**
 
-- `network_spawn` - Object spawned
-- `network_despawn` - Object despawned
-- `network_owner_changed` - Ownership transferred
+| Event                  | Payload                              | Description                    |
+| ---------------------- | ------------------------------------ | ------------------------------ |
+| `network_spawn`        | `{ object_id, owner_id }`            | Object created on remote peer. |
+| `network_despawn`      | `{ object_id }`                      | Object removed on remote peer. |
+| `network_owner_changed`| `{ object_id, old_owner, new_owner }`| Ownership transferred.         |
+| `network_state_update` | `{ object_id, position?, rotation? }`| State update received.         |
+
+**Ownership example:**
+
+```hsplus
+object "Ball" @networked(ownership_model: "any") @grabbable {
+  on_grab: {
+    emit "request_ownership" { object_id: this.id }
+  }
+  on_release: {
+    emit "release_ownership" { object_id: this.id }
+  }
+}
+```
+
+**`@host_only` modifier** — restricts event handling to the session host, useful for authoritative game logic:
+
+```hsplus
+object "ScoreManager" @networked @host_only {
+  state { scores: {} }
+
+  action add_score(player_id, points) {
+    state.scores[player_id] = (state.scores[player_id] || 0) + points
+    broadcast "score_updated"
+  }
+}
+```
 
 ---
 

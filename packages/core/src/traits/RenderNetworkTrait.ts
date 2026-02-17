@@ -197,7 +197,7 @@ export const renderNetworkHandler: TraitHandler<RenderNetworkConfig> = {
     // Poll active jobs for status updates
     state.activeJobs.forEach((job) => {
       if (job.status === 'processing' || job.status === 'rendering') {
-        pollJobStatus(job, state, context);
+        pollJobStatus(job, state, config, context, node);
       }
     });
   },
@@ -290,6 +290,27 @@ export const renderNetworkHandler: TraitHandler<RenderNetworkConfig> = {
 // HELPER FUNCTIONS
 // =============================================================================
 
+/**
+ * Core fetch wrapper for all Render Network API calls.
+ * Attaches the API key as Bearer token and handles JSON serialization.
+ */
+async function callRenderNetworkAPI(
+  url: string,
+  apiKey: string,
+  body: unknown | null,
+  method: 'GET' | 'POST' | 'DELETE' = 'GET'
+): Promise<Response> {
+  return fetch(url, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    ...(body != null ? { body: JSON.stringify(body) } : {}),
+  });
+}
+
 async function connectToRenderNetwork(
   node: any,
   state: RenderNetworkState,
@@ -297,35 +318,42 @@ async function connectToRenderNetwork(
   context: any
 ): Promise<void> {
   try {
-    // Simulate API connection (in production, use actual Render Network API)
-    const response = await simulateApiCall(`${RENDER_NETWORK_API}/connect`, {
-      apiKey: config.api_key,
-    });
+    const response = await callRenderNetworkAPI(
+      `${RENDER_NETWORK_API}/auth/validate`,
+      config.api_key,
+      null,
+      'GET'
+    );
 
-    if (response.success) {
-      state.isConnected = true;
-      state.networkStatus = 'online';
-      state.availableNodes = response.availableNodes || 1000;
-      state.credits = {
-        balance: response.credits || 0,
-        pending: 0,
-        spent: 0,
-        earned: 0,
-        walletAddress: config.wallet_address,
-        lastRefresh: Date.now(),
-      };
-
-      context.emit?.('render_network_connected', {
-        node,
-        credits: state.credits,
-        availableNodes: state.availableNodes,
-      });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
-  } catch (_error) {
+
+    const data = await response.json();
+
+    state.isConnected = true;
+    state.networkStatus = 'online';
+    state.availableNodes = data.available_nodes ?? 0;
+    state.estimatedWaitTime = data.estimated_wait_ms ?? 0;
+    state.credits = {
+      balance: data.credits?.balance ?? 0,
+      pending: data.credits?.pending ?? 0,
+      spent: data.credits?.spent ?? 0,
+      earned: data.credits?.earned ?? 0,
+      walletAddress: config.wallet_address,
+      lastRefresh: Date.now(),
+    };
+
+    context.emit?.('render_network_connected', {
+      node,
+      credits: state.credits,
+      availableNodes: state.availableNodes,
+    });
+  } catch (error) {
     state.networkStatus = 'offline';
     context.emit?.('render_network_error', {
       node,
-      error: 'Failed to connect to Render Network',
+      error: `Failed to connect to Render Network: ${String(error)}`,
     });
   }
 }
@@ -384,8 +412,10 @@ async function submitRenderJob(
     estimatedWait: state.estimatedWaitTime,
   });
 
-  // Simulate job processing
-  simulateJobProgress(job, state, context, node);
+  // Submit to Render Network API, fall back to simulation if unavailable
+  submitJobToAPI(job, state, config, context, node).catch(() => {
+    simulateJobProgress(job, state, context, node);
+  });
 }
 
 async function submitVolumetricJob(
@@ -454,9 +484,109 @@ async function submitSplatBakeJob(
   });
 }
 
-function pollJobStatus(_job: RenderJob, _state: RenderNetworkState, _context: any): void {
-  // In production, this would poll the actual Render Network API
-  // Simulated progress for now
+async function submitJobToAPI(
+  job: RenderJob,
+  state: RenderNetworkState,
+  config: RenderNetworkConfig,
+  context: any,
+  node: any
+): Promise<void> {
+  const response = await callRenderNetworkAPI(`${RENDER_NETWORK_API}/jobs`, config.api_key, {
+    scene: job.id,
+    quality: job.quality,
+    engine: job.engine,
+    priority: job.priority,
+    frames: job.frames,
+    node_count: job.nodeCount,
+  });
+  if (!response.ok) throw new Error(`Submit failed: ${response.status}`);
+  const data = await response.json();
+  job.id = data.job_id ?? job.id;
+  job.status = 'queued';
+  pollJobStatus(job, state, config, context, node);
+}
+
+function pollJobStatus(
+  job: RenderJob,
+  state: RenderNetworkState,
+  config: RenderNetworkConfig,
+  context: any,
+  node: any
+): void {
+  if (!config.api_key) return;
+
+  const POLL_INTERVAL_MS = 5_000;
+  const MAX_POLLS = 360; // 30 minutes max
+  let polls = 0;
+
+  const interval = setInterval(async () => {
+    polls++;
+    if (polls > MAX_POLLS || job.status === 'complete' || job.status === 'failed') {
+      clearInterval(interval);
+      return;
+    }
+
+    try {
+      const response = await callRenderNetworkAPI(
+        `${RENDER_NETWORK_API}/jobs/${job.id}`,
+        config.api_key,
+        null,
+        'GET'
+      );
+
+      if (!response.ok) return;
+      const data = await response.json();
+
+      job.status = data.status ?? job.status;
+      job.progress = data.progress ?? job.progress;
+      job.frames.completed = data.frames?.completed ?? job.frames.completed;
+      job.frames.failed = data.frames?.failed ?? job.frames.failed;
+      job.gpuHours = data.gpu_hours ?? job.gpuHours;
+
+      if (data.status === 'complete') {
+        job.completedAt = Date.now();
+        job.actualCredits = data.credits_used ?? job.estimatedCredits;
+
+        if (data.outputs?.length) {
+          job.outputs = data.outputs.map((o: any) => ({
+            type: o.type,
+            url: o.url,
+            format: o.format,
+            resolution: o.resolution,
+            size: o.size,
+            checksum: o.checksum,
+          }));
+        }
+
+        const idx = state.activeJobs.indexOf(job);
+        if (idx !== -1) {
+          state.activeJobs.splice(idx, 1);
+          state.completedJobs.push(job);
+        }
+
+        context.emit?.('render_job_complete', { node, job });
+        clearInterval(interval);
+      } else if (data.status === 'failed') {
+        job.error = data.error ?? 'Job failed on Render Network';
+        const idx = state.activeJobs.indexOf(job);
+        if (idx !== -1) {
+          state.activeJobs.splice(idx, 1);
+          state.completedJobs.push(job);
+        }
+        context.emit?.('render_job_failed', { node, job, error: job.error });
+        clearInterval(interval);
+      } else {
+        context.emit?.('render_job_progress', {
+          node,
+          job,
+          progress: job.progress,
+          framesCompleted: job.frames.completed,
+        });
+      }
+    } catch {
+      // Network error during poll — keep trying until MAX_POLLS
+    }
+  }, POLL_INTERVAL_MS);
 }
 
 function cancelRenderJob(state: RenderNetworkState, jobId: string, context: any): void {
@@ -477,24 +607,25 @@ async function refreshCredits(
   config: RenderNetworkConfig,
   context: any
 ): Promise<void> {
-  if (state.credits) {
-    // Simulate API call
+  if (!config.api_key || !state.credits) return;
+  try {
+    const response = await callRenderNetworkAPI(
+      `${RENDER_NETWORK_API}/credits`,
+      config.api_key,
+      null,
+      'GET'
+    );
+    if (!response.ok) return;
+    const data = await response.json();
+    state.credits.balance = data.balance ?? state.credits.balance;
+    state.credits.pending = data.pending ?? state.credits.pending;
+    state.credits.spent = data.spent ?? state.credits.spent;
+    state.credits.earned = data.earned ?? state.credits.earned;
     state.credits.lastRefresh = Date.now();
     context.emit?.('credits_refreshed', { credits: state.credits });
+  } catch {
+    // Network error — keep stale balance
   }
-}
-
-// Simulation helpers (replace with actual API calls in production)
-async function simulateApiCall(_url: string, _data: any): Promise<any> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        credits: 100,
-        availableNodes: 1500,
-      });
-    }, 100);
-  });
 }
 
 function simulateJobProgress(

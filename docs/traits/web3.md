@@ -120,7 +120,74 @@ object Shop @marketplace {
 ---
 
 
+---
+
+### @zora_coins
+
+Mint and distribute ERC-20 creator coins on **Base L2** via the Zora Coins protocol. Reward players, gate premium content, and run in-world economies — all on-chain.
+
+```hsplus
+object "RewardSystem" @zora_coins(
+  api_key: env.ZORA_API_KEY,
+  contract_address: "0x...",
+  chain_id: 8453
+) { }
+```
+
+| Config               | Type    | Default         | Description                                               |
+| -------------------- | ------- | --------------- | --------------------------------------------------------- |
+| `api_key`            | string  | `""`            | **Required.** Zora API key.                               |
+| `contract_address`   | string  | `""`            | Deployed coin contract. Auto-deployed if empty.           |
+| `chain_id`           | number  | `8453`          | Chain ID. `8453` = Base, `1` = Ethereum mainnet.         |
+| `coin_name`          | string  | `"HoloCoin"`    | Token name (used when auto-deploying).                    |
+| `coin_symbol`        | string  | `"HOLO"`        | Token ticker.                                             |
+| `initial_supply`     | number  | `1000000`       | Initial mint supply when auto-deploying.                  |
+| `creator_reward_bps` | number  | `1000`          | Creator royalty in basis points (1000 = 10%).             |
+
+**Events — Incoming:**
+
+| Event           | Payload                                          | Description               |
+| --------------- | ------------------------------------------------ | ------------------------- |
+| `mint_coins`    | `{ recipient, amount, memo? }`                   | Mint tokens to a wallet.  |
+| `burn_coins`    | `{ holder, amount }`                             | Burn tokens from a wallet.|
+| `transfer_coins`| `{ from, to, amount }`                           | Transfer between wallets. |
+
+**Events — Outgoing:**
+
+| Event             | Payload                                                  | Description               |
+| ----------------- | -------------------------------------------------------- | ------------------------- |
+| `coins_minted`    | `{ txHash, recipient, amount, blockNumber }`             | Mint confirmed on-chain.  |
+| `coins_burned`    | `{ txHash, holder, amount }`                             | Burn confirmed.           |
+| `coins_transferred`| `{ txHash, from, to, amount }`                          | Transfer confirmed.       |
+| `balance_updated` | `{ address, newBalance }`                                | Balance changed.          |
+| `zora_error`      | `{ error, operation }`                                   | On-chain error.           |
+
+**Example — reward players for collecting items:**
+
+```hsplus
+object "Collectible" @grabbable {
+  on_grab: {
+    emit "mint_coins" {
+      recipient: grabber.wallet_address,
+      amount: 10,
+      memo: "Collected item bonus"
+    }
+  }
+}
+
+logic {
+  on_event("coins_minted", event) {
+    show_toast(`+${event.amount} HOLO coins sent!`)
+  }
+}
+```
+
+See also: [Render Network Trait](/traits/render-network)
+
+---
+
 ## See Also
 - [Social Traits](/traits/social)
 - [IoT Traits](/traits/iot)
+- [Render Network Trait](/traits/render-network)
 - [API Reference](/api/)
