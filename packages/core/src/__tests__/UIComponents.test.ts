@@ -1,201 +1,163 @@
 import { describe, it, expect } from 'vitest';
-import { HoloCompositionParser } from '../parser/HoloCompositionParser';
+import { createUIButton, UIButtonConfig } from '../ui/UIButton';
+import { createUISlider, UISliderConfig } from '../ui/UISlider';
+import { createUITextInput, UITextInputConfig } from '../ui/UITextInput';
 
-describe('UI Components', () => {
-  const parser = new HoloCompositionParser();
+// =============================================================================
+// UI BUTTON
+// =============================================================================
 
-  describe('UI Panel', () => {
-    it('should parse ui_panel with basic properties', () => {
-      const code = `
-        composition "UITest" {
-          ui_panel "Settings" {
-            position: [0, 1.5, -2]
-            width: 400
-            height: 300
-          }
-        }
-      `;
-      const result = parser.parse(code);
-      expect(result.success).toBe(true);
-      expect(result.ast).toBeDefined();
-      expect(result.ast!.objects.length).toBeGreaterThan(0);
-    });
-
-    it('should parse ui_panel with nested ui_text', () => {
-      const code = `
-        composition "NestedUI" {
-          ui_panel "Header" {
-            position: [0, 2, -1]
-
-            ui_text "Title" {
-              content: "Welcome"
-              fontSize: 24
-            }
-          }
-        }
-      `;
-      const result = parser.parse(code);
-      expect(result.success).toBe(true);
-    });
+describe('createUIButton', () => {
+  it('creates a valid node hierarchy', () => {
+    const btn = createUIButton('test-btn', { text: 'Click Me' });
+    expect(btn.id).toBe('test-btn_base');
+    expect(btn.children).toBeDefined();
+    expect(btn.children!.length).toBeGreaterThanOrEqual(1);
   });
 
-  describe('UI Button', () => {
-    it('should parse ui_button with properties', () => {
-      const code = `
-        composition "ButtonTest" {
-          ui_button "Submit" {
-            text: "Click Me"
-            position: [0, 1, -1]
-          }
-        }
-      `;
-      const result = parser.parse(code);
-      expect(result.success).toBe(true);
-    });
-
-    it('should parse ui_button with trait', () => {
-      const code = `
-        composition "InteractiveButton" {
-          ui_button "Action" {
-            text: "Press"
-            @hoverable
-          }
-        }
-      `;
-      const result = parser.parse(code);
-      expect(result.success).toBe(true);
-    });
+  it('uses default dimensions when none specified', () => {
+    const btn = createUIButton('btn', {});
+    expect(btn.properties.scale.x).toBe(0.2); // Default width
+    expect(btn.properties.scale.y).toBe(0.1); // Default height
   });
 
-  describe('UI Slider', () => {
-    it('should parse ui_slider with min/max', () => {
-      const code = `
-        composition "SliderTest" {
-          ui_slider "Volume" {
-            min: 0
-            max: 100
-            value: 50
-            position: [0, 1, -1]
-          }
-        }
-      `;
-      const result = parser.parse(code);
-      expect(result.success).toBe(true);
-    });
+  it('applies custom config', () => {
+    const config: UIButtonConfig = {
+      text: 'Submit',
+      width: 0.3,
+      height: 0.15,
+      depth: 0.08,
+      color: '#FF0000',
+      textColor: '#000000',
+      position: { x: 1, y: 2, z: 3 },
+    };
+    const btn = createUIButton('custom', config);
+    expect(btn.properties.position).toEqual({ x: 1, y: 2, z: 3 });
+
+    const buttonChild = btn.children![0];
+    expect(buttonChild.properties.color).toBe('#FF0000');
+
+    const textChild = buttonChild.children![0];
+    expect(textChild.properties.text).toBe('Submit');
+    expect(textChild.properties.color).toBe('#000000');
   });
 
-  describe('UI Input', () => {
-    it('should parse ui_input field', () => {
-      const code = `
-        composition "InputTest" {
-          ui_input "Username" {
-            placeholder: "Enter name..."
-            position: [0, 1, -1]
-          }
-        }
-      `;
-      const result = parser.parse(code);
-      expect(result.success).toBe(true);
-    });
+  it('attaches pressable trait to button child', () => {
+    const btn = createUIButton('btn', {});
+    const buttonChild = btn.children![0];
+    expect(buttonChild.traits).toBeDefined();
+    expect(buttonChild.traits!.some((t: any) => t.name === 'pressable')).toBe(true);
   });
 
-  describe('UI Image', () => {
-    it('should parse ui_image with src', () => {
-      const code = `
-        composition "ImageTest" {
-          ui_image "Logo" {
-            src: "images/logo.png"
-            width: 200
-            height: 100
-            position: [0, 2, -1]
-          }
-        }
-      `;
-      const result = parser.parse(code);
-      expect(result.success).toBe(true);
-    });
+  it('sets physics type correctly (base=kinematic, button=dynamic)', () => {
+    const btn = createUIButton('btn', {});
+    expect(btn.properties.physics.type).toBe('kinematic');
+    expect(btn.children![0].properties.physics.type).toBe('dynamic');
+  });
+});
+
+// =============================================================================
+// UI SLIDER
+// =============================================================================
+
+describe('createUISlider', () => {
+  it('creates track and handle hierarchy', () => {
+    const slider = createUISlider('vol', {});
+    expect(slider.id).toBe('vol_track');
+    expect(slider.children).toBeDefined();
+    expect(slider.children!.length).toBe(1);
+    expect(slider.children![0].id).toBe('vol_handle');
   });
 
-  describe('Complex UI Layout', () => {
-    it('should parse nested UI hierarchy', () => {
-      const code = `
-        composition "Dashboard" {
-          ui_panel "MainPanel" {
-            position: [0, 1.5, -2]
-            width: 800
-            height: 600
-
-            ui_text "Title" {
-              content: "Dashboard"
-              fontSize: 32
-            }
-
-            ui_panel "Controls" {
-              position: [0, -1, 0]
-
-              ui_slider "Brightness" {
-                min: 0
-                max: 100
-                value: 75
-              }
-
-              ui_button "Apply" {
-                text: "Apply Settings"
-              }
-            }
-
-            ui_chart "Stats" {
-              type: "bar"
-              data: [10, 20, 30, 40]
-            }
-          }
-        }
-      `;
-      const result = parser.parse(code);
-      expect(result.success).toBe(true);
-    });
-
-    it('should parse ui_panel with traits', () => {
-      const code = `
-        composition "FloatingUI" {
-          ui_panel "HUD" {
-            position: [0, 1.5, -1.5]
-            @ui_floating(follow_delay: 0.3)
-            @ui_anchored(to: "head")
-
-            ui_text "Info" {
-              content: "Health: 100"
-            }
-          }
-        }
-      `;
-      const result = parser.parse(code);
-      expect(result.success).toBe(true);
-    });
+  it('applies correct axis to track scale', () => {
+    const slider = createUISlider('s', { axis: 'y', length: 0.5 });
+    expect(slider.properties.scale.y).toBe(0.5);
+    expect(slider.properties.scale.x).toBe(0.01); // Other axes stay thin
   });
 
-  describe('UI in Objects', () => {
-    it('should parse ui components inside regular objects', () => {
-      const code = `
-        composition "ObjectWithUI" {
-          object "Terminal" {
-            geometry: "cube"
-            scale: [0.5, 0.3, 0.1]
-            position: [0, 1, 0]
+  it('defaults to x axis and 0.3m length', () => {
+    const slider = createUISlider('s', {});
+    expect(slider.properties.scale.x).toBe(0.3);
+  });
 
-            ui_panel "Screen" {
-              position: [0, 0.15, 0.06]
+  it('attaches slidable + grabbable traits to handle', () => {
+    const slider = createUISlider('s', {});
+    const handle = slider.children![0];
+    const traitNames = handle.traits!.map((t: any) => t.name);
+    expect(traitNames).toContain('slidable');
+    expect(traitNames).toContain('grabbable');
+  });
 
-              ui_text "Output" {
-                content: "> Ready..."
-                fontSize: 14
-              }
-            }
-          }
-        }
-      `;
-      const result = parser.parse(code);
-      expect(result.success).toBe(true);
-    });
+  it('passes axis and length to slidable trait', () => {
+    const slider = createUISlider('s', { axis: 'z', length: 0.4 });
+    const handle = slider.children![0];
+    const slidableTrait = handle.traits!.find((t: any) => t.name === 'slidable');
+    expect(slidableTrait.properties.axis).toBe('z');
+    expect(slidableTrait.properties.length).toBe(0.4);
+  });
+
+  it('uses custom colors', () => {
+    const slider = createUISlider('s', { trackColor: '#111', handleColor: '#EEE' });
+    expect(slider.properties.color).toBe('#111');
+    expect(slider.children![0].properties.color).toBe('#EEE');
+  });
+});
+
+// =============================================================================
+// UI TEXT INPUT
+// =============================================================================
+
+describe('createUITextInput', () => {
+  it('creates a text input with cursor and text children', () => {
+    const input = createUITextInput('name-field');
+    expect(input.id).toBe('name-field');
+    expect(input.type).toBe('ui_text_input');
+    expect(input.children!.length).toBe(2); // text + cursor
+  });
+
+  it('uses placeholder when no text provided', () => {
+    const input = createUITextInput('field', { placeholder: 'Type here...' });
+    const textChild = input.children![0];
+    expect(textChild.properties.text).toBe('Type here...');
+    expect(textChild.properties.color).toBe('#888888'); // Dim color for placeholder
+  });
+
+  it('uses actual text when provided', () => {
+    const input = createUITextInput('field', { text: 'Hello' });
+    const textChild = input.children![0];
+    expect(textChild.properties.text).toBe('Hello');
+  });
+
+  it('sets up cursor data in properties', () => {
+    const input = createUITextInput('field', { text: 'abc' });
+    expect(input.properties.data.cursorIndex).toBe(3); // End of text
+    expect(input.properties.data.isFocused).toBe(false);
+  });
+
+  it('respects custom dimensions', () => {
+    const input = createUITextInput('field', { width: 0.6, height: 0.1 });
+    expect(input.properties.width).toBe(0.6);
+    expect(input.properties.height).toBe(0.1);
+  });
+
+  it('cursor is hidden by default', () => {
+    const input = createUITextInput('field');
+    const cursor = input.children!.find((c: any) => c.type === 'ui_cursor');
+    expect(cursor).toBeDefined();
+    expect(cursor!.properties.visible).toBe(false);
+  });
+
+  it('applies custom colors', () => {
+    const input = createUITextInput('field', { color: '#333', textColor: '#FFF', text: 'hi' });
+    expect(input.properties.color).toBe('#333');
+    const textChild = input.children![0];
+    expect(textChild.properties.color).toBe('#FFF');
+  });
+
+  it('has pressable trait for focus detection', () => {
+    const input = createUITextInput('field');
+    expect(input.traits).toBeDefined();
+    // traits is a Map
+    expect(input.traits.has('pressable')).toBe(true);
   });
 });
