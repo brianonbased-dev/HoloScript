@@ -18,7 +18,11 @@
     "packages/comparative-benchmarks/src/index.ts",
     "packages/cli/src/index.ts",
     "packages/mcp-server/src/index.ts",
-    "packages/partner-sdk/src/index.ts"
+    "packages/partner-sdk/src/index.ts",
+    "packages/runtime/src/index.ts",
+    "packages/formatter/src/index.ts",
+    "packages/linter/src/index.ts",
+    "packages/llm-provider/src/index.ts"
   ],
   "out": "docs/api",
   "exclude": [

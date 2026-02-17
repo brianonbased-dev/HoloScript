@@ -229,6 +229,38 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 HoloScript is fully open source. The commercial products **Hololand** (platform) and **Infinity Assistant** (AI) are built on top of HoloScript and are separately maintained. See the [NOTICE](./NOTICE) file for details.
 
+## AI Agent Documentation Standards
+
+When AI agents (Claude, Cursor, GitHub Copilot, etc.) generate documentation or session summaries, follow these rules to prevent doc sprawl:
+
+### What Goes Where
+
+| Content Type | Location | Naming |
+| --- | --- | --- |
+| User-facing guides | `docs/guides/` | `lowercase-kebab-case.md` |
+| Trait reference updates | `docs/traits/` | Per-category file (e.g., `interaction.md`) |
+| Compiler docs | `docs/compilers/` | Per-target file (e.g., `unity.md`) |
+| Session notes / implementation reports | `docs/_archive/session-notes/` | Any name |
+| Phase implementation guides | `docs/_archive/phase-guides/` | Any name |
+| Feature planning docs | `docs/_archive/planning/` | Any name |
+| Status updates | GitHub Issues or PRs — not in docs | N/A |
+
+### Naming Rules
+
+- **User-facing docs**: Always `lowercase-kebab-case.md`
+- **UPPERCASE filenames** (e.g., `PHASE_1_2_IMPLEMENTATION_GUIDE.md`) are NEVER valid for user-facing docs
+- **Internal/AI session notes**: Must be placed in `docs/_archive/` (excluded from VitePress nav)
+
+### VitePress Sidebar Requirement
+
+Every new user-facing doc file added to `docs/` **must** also be added to the sidebar in `docs/.vitepress/config.ts`. If it's not in the sidebar, it's not discoverable.
+
+### CI Enforcement
+
+The docs build (`pnpm docs:build`) will fail on dead links. Do not add placeholder links to the sidebar without the corresponding file.
+
+---
+
 ## Questions?
 
 - Open an [issue](https://github.com/brianonbased-dev/holoscript/issues)

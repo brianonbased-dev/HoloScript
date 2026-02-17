@@ -140,7 +140,7 @@ export class DecalSystem {
 
   getDecal(id: string): DecalDef | undefined { return this.decals.get(id); }
   getActiveCount(): number { return this.decals.size; }
-  getPoolSize(): number { return this.pool.size; }
+  getPoolSize(): number { return this.pool.length; }
 
   getVisible(frustumTest?: (pos: DecalDef['position']) => boolean): DecalDef[] {
     const result: DecalDef[] = [];
