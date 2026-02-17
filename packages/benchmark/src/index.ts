@@ -9,6 +9,7 @@ import { Bench } from 'tinybench';
 import { runParserBench } from './suites/parser.bench.js';
 import { runCompilerBench } from './suites/compiler.bench.js';
 import { runSyncBench } from './suites/sync.bench.js';
+import { runLspBench } from './suites/lsp.bench.js';
 
 // =============================================================================
 // TYPES
@@ -168,6 +169,11 @@ async function main(): Promise<void> {
   if (!isJson) console.log('Running sync benchmarks...');
   const syncBench = await runSyncBench();
   suites.push(extractResults(syncBench, 'HighFrequencySync'));
+
+  // Run LSP benchmarks (Sprint 2)
+  if (!isJson) console.log('Running LSP benchmarks...');
+  const lspBench = await runLspBench();
+  suites.push(extractResults(lspBench, 'LSP'));
 
   const allResults: AllResults = {
     version: '2.1.0',

@@ -18,9 +18,20 @@ export interface CachedNode {
  *
  * In-memory storage for AST nodes to enable incremental parsing re-use.
  */
+export interface ParseCacheStats {
+  size: number;
+  evictions: number;
+  maxEntries: number;
+}
+
 export class ParseCache {
   private cache: Map<string, CachedNode> = new Map();
-  private maxEntries: number = 500;
+  private maxEntries: number;
+  private evictionCount: number = 0;
+
+  constructor(maxEntries = 500) {
+    this.maxEntries = maxEntries;
+  }
 
   /**
    * Generates a hash for the chunk content
@@ -65,6 +76,17 @@ export class ParseCache {
     this.cache.clear();
   }
 
+  /**
+   * Returns cache statistics: current size, total evictions, and capacity.
+   */
+  getStats(): ParseCacheStats {
+    return {
+      size: this.cache.size,
+      evictions: this.evictionCount,
+      maxEntries: this.maxEntries,
+    };
+  }
+
   private evictOldest(): void {
     let oldestId: string | null = null;
     let oldestTime = Infinity;
@@ -78,6 +100,7 @@ export class ParseCache {
 
     if (oldestId) {
       this.cache.delete(oldestId);
+      this.evictionCount++;
     }
   }
 }

@@ -8,6 +8,7 @@
 import { HoloScriptPlusParser, parseHolo, parseHoloStrict } from '@holoscript/core';
 
 import { generateObject, generateScene, suggestTraits } from './generators';
+import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './training-generators';
 import { renderPreview, createShareLink } from './renderer';
 import { TRAIT_DOCS, SYNTAX_DOCS, EXAMPLES } from './documentation';
 import { handleGraphTool } from './graph-tools';
@@ -132,6 +133,11 @@ export async function handleTool(name: string, args: Record<string, unknown>): P
   // Text-to-3D pipeline
   if (name === 'generate_3d_object') {
     return handleGenerate3DObject(args);
+  }
+
+  // Hololand training data generation
+  if (name === 'generate_hololand_training') {
+    return handleGenerateHololandTraining(args);
   }
 
   // Handle plugins
@@ -922,4 +928,45 @@ async function handleGenerate3DObject(args: Record<string, unknown>) {
       error: error.message || 'Text-to-3D generation failed',
     };
   }
+}
+
+// === HOLOLAND TRAINING DATA HANDLER ===
+
+async function handleGenerateHololandTraining(args: Record<string, unknown>) {
+  const variationsPerExample = (args.variations_per_example as number) ?? 4;
+  const categoryFilter = (args.category as string) ?? 'all';
+  const outputFile = args.output_file as string | undefined;
+
+  let examples = generateHololandDataset(variationsPerExample);
+
+  if (categoryFilter !== 'all') {
+    examples = examples.filter(
+      (e) => e.metadata.category === (categoryFilter as TrainingCategory),
+    );
+  }
+
+  const jsonl = datasetToJsonl(examples);
+
+  if (outputFile) {
+    const { writeFileSync } = await import('fs');
+    const { resolve } = await import('path');
+    const filePath = resolve(process.cwd(), outputFile);
+    writeFileSync(filePath, jsonl, 'utf-8');
+    return {
+      success: true,
+      examples_count: examples.length,
+      categories: [...new Set(examples.map((e) => e.metadata.category))],
+      file_path: filePath,
+      file_size_bytes: Buffer.byteLength(jsonl, 'utf-8'),
+      message: `Generated ${examples.length} training examples → ${filePath}`,
+    };
+  }
+
+  return {
+    success: true,
+    examples_count: examples.length,
+    categories: [...new Set(examples.map((e) => e.metadata.category))],
+    jsonl,
+    message: `Generated ${examples.length} training examples`,
+  };
 }

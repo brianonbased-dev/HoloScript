@@ -1496,7 +1496,7 @@ class ErrorRecoveryParser {
 
 </details>
 
-### Q2: Sprint 2 (Apr-May) - 4 weeks
+### Q2: Sprint 2 (Apr-May) - 4 weeks ✅ COMPLETE
 
 | Feature                   | Agent     | Days |
 | ------------------------- | --------- | ---- |
@@ -1569,10 +1569,10 @@ interface ParseCache {
 
 **Acceptance criteria:**
 
-- [ ] Edits within composition only re-parse that orb
-- [ ] Adding new composition doesn't invalidate others
-- [ ] Reference changes propagate correctly
-- [ ] Memory usage stays bounded (LRU eviction)
+- [x] Edits within composition only re-parse that orb
+- [x] Adding new composition doesn't invalidate others
+- [x] Reference changes propagate correctly
+- [x] Memory usage stays bounded (LRU eviction)
 
 ---
 
@@ -1616,11 +1616,11 @@ holoscript build -w
 
 **Acceptance criteria:**
 
-- [ ] Detects file changes within 100ms
-- [ ] Debounces rapid saves
-- [ ] Shows build time for each rebuild
-- [ ] Graceful shutdown on Ctrl+C
-- [ ] Works on Windows, macOS, Linux
+- [x] Detects file changes within 100ms
+- [x] Debounces rapid saves
+- [x] Shows build time for each rebuild
+- [x] Graceful shutdown on Ctrl+C
+- [x] Works on Windows, macOS, Linux
 
 ---
 
@@ -1697,12 +1697,12 @@ packages/playground/
 
 **Acceptance criteria:**
 
-- [ ] Monaco editor with syntax highlighting
-- [ ] Live 3D preview updates on type
-- [ ] Basic orbit controls in preview
-- [ ] Share via URL works
-- [ ] 5 example scenes in dropdown
-- [ ] Mobile-responsive layout
+- [x] Monaco editor with syntax highlighting
+- [x] Live 3D preview updates on type
+- [x] Basic orbit controls in preview
+- [x] Share via URL works
+- [x] 5 example scenes in dropdown
+- [x] Mobile-responsive layout
 
 ---
 
@@ -1786,11 +1786,11 @@ docs/tour/
 
 **Acceptance criteria:**
 
-- [ ] 10 lessons covering core concepts
-- [ ] Each lesson has interactive editor
-- [ ] Progress saved to localStorage
-- [ ] Works on mobile (touch-friendly)
-- [ ] Completion certificate/badge
+- [x] 10 lessons covering core concepts
+- [x] Each lesson has interactive editor
+- [x] Progress saved to localStorage
+- [x] Works on mobile (touch-friendly)
+- [x] Completion certificate/badge
 
 ---
 
@@ -1871,11 +1871,11 @@ packages/benchmark/
 
 **Acceptance criteria:**
 
-- [ ] All 4 benchmark suites implemented
-- [ ] Baseline comparison with % change
-- [ ] CI fails on >20% regression
-- [ ] HTML report generation
-- [ ] Historical trend graphs
+- [x] All 4 benchmark suites implemented
+- [x] Baseline comparison with % change
+- [x] CI fails on >20% regression
+- [x] HTML report generation
+- [x] Historical trend graphs
 
 </details>
 

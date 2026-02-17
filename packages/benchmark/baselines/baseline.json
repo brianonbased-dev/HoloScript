@@ -1,0 +1,47 @@
+{
+  "version": "3.10.0",
+  "commit": "9beb896",
+  "timestamp": "2026-02-17T00:00:00.000Z",
+  "suites": [
+    {
+      "suite": "Parser",
+      "timestamp": "2026-02-17T00:00:00.000Z",
+      "results": [
+        { "name": "parse small fixture (30 lines)",  "opsPerSecond": 8500,  "meanMs": 0.118, "samples": 50, "marginOfError": 2.1 },
+        { "name": "parse medium fixture (700 lines)", "opsPerSecond": 950,   "meanMs": 1.053, "samples": 50, "marginOfError": 1.8 },
+        { "name": "parse large fixture (3500 lines)", "opsPerSecond": 85,    "meanMs": 11.76, "samples": 50, "marginOfError": 2.4 },
+        { "name": "incremental parse (single edit)",  "opsPerSecond": 28000, "meanMs": 0.036, "samples": 50, "marginOfError": 1.5 }
+      ]
+    },
+    {
+      "suite": "TypeChecker",
+      "timestamp": "2026-02-17T00:00:00.000Z",
+      "results": [
+        { "name": "type-check simple scene",         "opsPerSecond": 12000, "meanMs": 0.083, "samples": 50, "marginOfError": 1.9 },
+        { "name": "type-check complex scene (100)",  "opsPerSecond": 750,   "meanMs": 1.333, "samples": 50, "marginOfError": 2.5 },
+        { "name": "type-check with generics",        "opsPerSecond": 4500,  "meanMs": 0.222, "samples": 50, "marginOfError": 2.0 }
+      ]
+    },
+    {
+      "suite": "Formatter",
+      "timestamp": "2026-02-17T00:00:00.000Z",
+      "results": [
+        { "name": "format small file",   "opsPerSecond": 15000, "meanMs": 0.067, "samples": 50, "marginOfError": 1.7 },
+        { "name": "format large file",   "opsPerSecond": 1200,  "meanMs": 0.833, "samples": 50, "marginOfError": 2.2 },
+        { "name": "range format",        "opsPerSecond": 18000, "meanMs": 0.056, "samples": 50, "marginOfError": 1.6 }
+      ]
+    },
+    {
+      "suite": "LSP",
+      "timestamp": "2026-02-17T00:00:00.000Z",
+      "results": [
+        { "name": "completion - start of file",               "opsPerSecond": 2500000, "meanMs": 0.0004, "samples": 50, "marginOfError": 1.2 },
+        { "name": "completion - mid file (50 lines)",         "opsPerSecond": 2200000, "meanMs": 0.0005, "samples": 50, "marginOfError": 1.3 },
+        { "name": "hover - simple identifier",                "opsPerSecond": 3000000, "meanMs": 0.0003, "samples": 50, "marginOfError": 1.1 },
+        { "name": "hover - deep in large file (200 lines)",   "opsPerSecond": 2800000, "meanMs": 0.0004, "samples": 50, "marginOfError": 1.2 },
+        { "name": "go-to-definition - symbol lookup (500)",   "opsPerSecond": 1800000, "meanMs": 0.0006, "samples": 50, "marginOfError": 1.4 },
+        { "name": "go-to-definition - not found (worst case)","opsPerSecond": 1900000, "meanMs": 0.0005, "samples": 50, "marginOfError": 1.3 }
+      ]
+    }
+  ]
+}

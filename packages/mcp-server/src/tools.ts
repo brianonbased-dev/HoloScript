@@ -471,7 +471,51 @@ export const browserControlTools: Tool[] = [
 ];
 
 /**
- * All tools combined: core + graph + IDE + Brittney-Lite + text-to-3D + browser
+ * Hololand training data generation tools
+ */
+export const hololandTrainingTools: Tool[] = [
+  {
+    name: 'generate_hololand_training',
+    description:
+      'Generate Brittney v5.1 Hololand fine-tune training data as Alpaca-style JSONL. ' +
+      'Covers 9 categories × 4 difficulties including spatial objects, VR interactions, ' +
+      'multiplayer networking, Web3/Zora, AI generation, and more. ' +
+      'Returns JSONL string or saves to file.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        variations_per_example: {
+          type: 'number',
+          description: 'Number of variations to generate per canonical example (default: 4)',
+        },
+        category: {
+          type: 'string',
+          enum: [
+            'spatial_objects',
+            'vr_interactions',
+            'multiplayer_networking',
+            'web3_zora',
+            'ai_generation',
+            'scene_composition',
+            'system_components',
+            'error_correction',
+            'edge_cases',
+            'all',
+          ],
+          description: 'Filter to a specific category or "all" (default: all)',
+        },
+        output_file: {
+          type: 'string',
+          description: 'Optional file path to save JSONL output (e.g. "brittney-hololand-v1.jsonl")',
+        },
+      },
+      required: [],
+    },
+  },
+];
+
+/**
+ * All tools combined: core + graph + IDE + Brittney-Lite + text-to-3D + browser + hololand training
  */
 export const tools: Tool[] = [
   ...coreTools,
@@ -480,6 +524,7 @@ export const tools: Tool[] = [
   ...brittneyLiteTools,
   ...textTo3DTools,
   ...browserControlTools,
+  ...hololandTrainingTools,
   ...PluginManager.getTools(),
 ];
 
