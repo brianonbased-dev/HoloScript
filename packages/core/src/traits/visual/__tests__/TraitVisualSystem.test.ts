@@ -993,9 +993,11 @@ describe('AssetResolverPipeline', () => {
     pipeline = new AssetResolverPipeline(cache);
   });
 
-  it('returns null when no plugins are registered', async () => {
+  it('returns a primitive fallback when no plugins are registered', async () => {
     const result = await pipeline.resolve('wooden', dummyConfig);
-    expect(result).toBeNull();
+    expect(result).not.toBeNull();
+    expect(result).toHaveProperty('shape');
+    expect(result).toHaveProperty('color');
   });
 
   it('cache hit returns cached value without calling plugins', async () => {
@@ -1132,7 +1134,7 @@ describe('AssetResolverPipeline', () => {
     expect(callOrder).toEqual(['low', 'high']);
   });
 
-  it('returns null when all plugins fail', async () => {
+  it('returns a primitive fallback when all plugins fail', async () => {
     const plugin: AssetResolverPlugin = {
       name: 'always_fails',
       priority: 1,
@@ -1145,10 +1147,11 @@ describe('AssetResolverPipeline', () => {
     pipeline.register(plugin);
 
     const result = await pipeline.resolve('doomed', dummyConfig);
-    expect(result).toBeNull();
+    expect(result).toHaveProperty('shape');
+    expect(result).toHaveProperty('color');
   });
 
-  it('returns null when no plugin can resolve the trait', async () => {
+  it('returns a primitive fallback when no plugin can resolve the trait', async () => {
     const plugin: AssetResolverPlugin = {
       name: 'selective',
       priority: 1,
@@ -1159,7 +1162,8 @@ describe('AssetResolverPipeline', () => {
     pipeline.register(plugin);
 
     const result = await pipeline.resolve('something_else', dummyConfig);
-    expect(result).toBeNull();
+    expect(result).toHaveProperty('shape');
+    expect(result).toHaveProperty('color');
   });
 
   it('pluginCount reflects number of registered plugins', () => {

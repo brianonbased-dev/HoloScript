@@ -4180,11 +4180,11 @@ Define how traits **compose** to modify rendering. Traits act as stackable modif
 
 - [x] `TraitCompositor` class: 9-layer priority merge with suppression, requirements, additive, and multi-trait rules (Feb 2026)
 - [x] Composition rules: `@pristine` suppresses corrosion, `@rusted` requires metallic, `@enchanted` adds purple shimmer
-- [ ] R3FCompiler batch composition call (planned: replace per-trait with compositor)
-- [ ] BabylonCompiler integration
-- [ ] Visual test suite: golden-image snapshots for key combinations
+- [x] R3FCompiler batch composition call — compositor integrated at lines 2603-2608 (Feb 2026)
+- [x] BabylonCompiler integration — compositor integrated (Feb 2026)
+- [x] Visual test suite: 62 snapshot tests across 19 trait combinations (`TraitCombinationSnapshots.test.ts`)
 
-### Phase 3: AI-Assisted Asset Generation (Q4 2026 - Q1 2027) — ✅ Architecture Complete
+### Phase 3: AI-Assisted Asset Generation (Q4 2026 - Q1 2027) — ✅ COMPLETE
 
 **Target:** Semantic traits → generated 3D content | **Agent:** Architect + IDE
 **Location:** `packages/core/src/traits/visual/resolvers/`
@@ -4216,11 +4216,11 @@ Use AI/procedural generation to create geometry and textures from semantic trait
 - [x] `CacheManager` — LRU cache with configurable size limit (Feb 2026)
 - [x] `ProceduralResolver` — noise-based textures for 10 traits (wood, marble, granite, etc.) (Feb 2026)
 - [x] `TextureResolver` — AI service adapter with timeout and prompt builder (Feb 2026)
-- [ ] Text-to-3D adapter interface (pluggable providers)
-- [ ] Procedural geometry generators (trees, rocks, terrain, buildings)
-- [ ] Asset manifest format for pre-bundled trait→model mappings
-- [ ] Offline mode: graceful degradation to primitive geometry + material
-- [ ] Rate limiting and cost controls for API-based generation
+- [x] Text-to-3D adapter interface — `Text3DAdapter.ts` (Meshy/Tripo/Rodin/custom, 40 traits)
+- [x] Procedural geometry generators — `ProceduralGeometryResolver.ts` (tree, rock, terrain, building, arch, crystal; 14 traits)
+- [x] Asset manifest format — `AssetManifest.ts` (`ManifestResolver` + `AssetManifestBuilder` + `parseManifest`)
+- [x] Offline mode: graceful degradation — `AssetResolverPipeline` returns `PrimitiveFallback` (box/sphere/cylinder/plane + colour)
+- [x] Rate limiting and cost controls — `RateLimiter.ts` (token bucket, burst, hard cap, timeout)
 
 ### Trait Rendering Coverage Targets
 
