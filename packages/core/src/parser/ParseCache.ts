@@ -28,6 +28,8 @@ export class ParseCache {
   private cache: Map<string, CachedNode> = new Map();
   private maxEntries: number;
   private evictionCount: number = 0;
+  /** Monotonically increasing counter for reliable LRU ordering */
+  private clock: number = 0;
 
   constructor(maxEntries = 500) {
     this.maxEntries = maxEntries;
@@ -46,7 +48,7 @@ export class ParseCache {
   get(id: string, currentHash: string): HSPlusNode | null {
     const cached = this.cache.get(id);
     if (cached && cached.hash === currentHash) {
-      cached.lastUsed = Date.now();
+      cached.lastUsed = ++this.clock;
       return cached.node;
     }
     return null;
@@ -65,7 +67,7 @@ export class ParseCache {
       id,
       hash,
       node,
-      lastUsed: Date.now(),
+      lastUsed: ++this.clock,
     });
   }
 
