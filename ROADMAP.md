@@ -3514,13 +3514,13 @@ packages/intellij/
 
 </details>
 
-### Q2: Sprint 8 (Mar-Apr) - 4 weeks
+### ✅ Sprint 8 (Mar-Apr) - Complete — v3.7.0
 
-| Feature                    | Agent     | Days |
-| -------------------------- | --------- | ---- |
-| WASM compiler              | Architect | 8    |
-| Team workspaces            | Tooling   | 5    |
-| HoloScript Academy content | Docs      | 6    |
+| Feature                    | Agent     | Days | Status |
+| -------------------------- | --------- | ---- | ------ |
+| WASM compiler              | Architect | 8    | ✅ 34 Rust tests, parse/validate/version API |
+| Team workspaces            | Tooling   | 5    | ✅ DB schema, 97 tests, RBAC, secrets, activity |
+| HoloScript Academy content | Docs      | 6    | ✅ All 30 lessons written (L1-L3) |
 
 <details>
 <summary><strong>📋 Sprint 8 Detailed Specifications</strong></summary>
