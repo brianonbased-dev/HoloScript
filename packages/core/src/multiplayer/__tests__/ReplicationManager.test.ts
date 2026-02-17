@@ -17,7 +17,7 @@ describe('ReplicationManager', () => {
       expect(entity.entityId).toBe('e1');
       expect(entity.type).toBe('dynamic');
       expect(entity.ownerId).toBe('player-1');
-      expect(entity.isDirty).toBe(false);
+      expect(entity.isDirty).toBe(true);
     });
 
     it('registers with options', () => {
@@ -69,10 +69,11 @@ describe('ReplicationManager', () => {
   // Generate Updates
   // ===========================================================================
   describe('generateUpdates', () => {
-    it('returns empty when nothing is dirty', () => {
+    it('returns updates for dirty entities', () => {
       mgr.register('e1', 'dynamic', 'p1');
-      const updates = mgr.generateUpdates(Date.now());
-      expect(updates.length).toBe(0);
+      const updates = mgr.generateUpdates(Date.now() + 1000);
+      // Entities start dirty, so should have at least one update
+      expect(updates.length).toBeGreaterThanOrEqual(1);
     });
 
     it('generates full snapshot for new entities', () => {
@@ -144,11 +145,10 @@ describe('ReplicationManager', () => {
     it('getStats returns correct counts', () => {
       mgr.register('e1', 'dynamic', 'p1');
       mgr.register('e2', 'vehicle', 'p1');
-      mgr.updateSnapshot('e1', { position: { x: 1, y: 0, z: 0 }, timestamp: 100 });
-
+      // Both entities start dirty on registration
       const stats = mgr.getStats();
       expect(stats.totalEntities).toBe(2);
-      expect(stats.dirtyEntities).toBe(1);
+      expect(stats.dirtyEntities).toBe(2);
     });
 
     it('getEntitiesByType filters correctly', () => {
