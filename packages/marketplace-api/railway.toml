@@ -5,7 +5,7 @@ watchPatterns = ["packages/marketplace-api/**", "packages/registry/**", "package
 
 [deploy]
 startCommand = "pnpm --filter @holoscript/marketplace-api start"
-healthcheckPath = "/health"
+healthcheckPath = "/api/v1/health"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
