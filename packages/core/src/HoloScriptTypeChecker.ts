@@ -26,7 +26,10 @@ import type {
   MatchExpression,
 } from './types';
 import { BUILTIN_CONSTRAINTS } from './traits/traitConstraints';
+import { loadConstraintsFromConfig } from './traits/constraintConfig';
 import { ExhaustivenessChecker, UnionType } from './types/AdvancedTypeSystem';
+import { TypeAliasRegistry } from './types/TypeAliasRegistry';
+import type { TypeAliasDeclaration } from './types';
 
 // Type system types
 export type HoloScriptType =
@@ -212,6 +215,12 @@ export class HoloScriptTypeChecker {
   private unionTypes: Map<string, UnionType> = new Map();
   /** Exhaustiveness checker for match expressions */
   private exhaustivenessChecker: ExhaustivenessChecker;
+  /** Type alias registry (type Color = string | number[], type List<T> = T[]) */
+  public typeAliasRegistry: TypeAliasRegistry = new TypeAliasRegistry();
+  /** Custom constraints merged from holoscript.config.json */
+  private customConstraints: import('./types').TraitConstraint[] = [];
+  /** Diagnostics accumulated before check() so they survive the diagnostics reset */
+  private preCheckDiagnostics: TypeDiagnostic[] = [];
 
   constructor() {
     // Initialize with built-in functions
@@ -224,10 +233,36 @@ export class HoloScriptTypeChecker {
   }
 
   /**
+   * Merge custom constraints from a parsed config object.
+   * Call before check() when you have a holoscript.config.json.
+   */
+  loadConfig(config: unknown): void {
+    this.customConstraints = loadConstraintsFromConfig(config);
+  }
+
+  /**
+   * Register a type alias (e.g. from a `type Foo = ...` declaration in source).
+   */
+  registerTypeAlias(decl: TypeAliasDeclaration): void {
+    // Register first so isRecursive can inspect the definition
+    this.typeAliasRegistry.register(decl);
+    if (this.typeAliasRegistry.isRecursive(decl.name)) {
+      this.preCheckDiagnostics.push({
+        severity: 'error',
+        message: `Type alias '${decl.name}' is recursive and cannot be expanded.`,
+        line: decl.line ?? 0,
+        column: 0,
+        code: 'HSP020',
+        suggestions: [`Remove the self-reference in '${decl.name}' definition.`],
+      });
+    }
+  }
+
+  /**
    * Type check an AST
    */
   check(ast: ASTNode[]): TypeCheckResult {
-    this.diagnostics = [];
+    this.diagnostics = [...this.preCheckDiagnostics];
 
     // First pass: collect declarations
     for (const node of ast) {
@@ -841,11 +876,41 @@ export class HoloScriptTypeChecker {
       return { type: 'any', nullable: true };
     }
 
+    if (typeof value === 'function') {
+      // Infer function type: () => void by default
+      // Arrow functions and named functions all resolve to function type
+      const fn = value as (...args: unknown[]) => unknown;
+      return {
+        type: 'function',
+        parameters: Array.from({ length: fn.length }, (_, i) => ({
+          name: `arg${i}`,
+          type: 'any' as const,
+        })),
+        returnType: 'void',
+      };
+    }
+
     if (typeof value === 'number') {
       return { type: 'number' };
     }
 
     if (typeof value === 'string') {
+      // Arrow function expression strings: () => ... or (x) => ...
+      if (/^\(.*\)\s*=>/.test(value) || /^\w+\s*=>/.test(value)) {
+        // Infer return type from body where possible
+        const arrowMatch = value.match(/=>\s*(.+)$/s);
+        let returnType: HoloScriptType = 'void';
+        if (arrowMatch) {
+          const body = arrowMatch[1].trim();
+          if (/^["']/.test(body)) returnType = 'string';
+          else if (/^-?\d/.test(body)) returnType = 'number';
+          else if (body === 'true' || body === 'false') returnType = 'boolean';
+          else if (/^\[/.test(body)) returnType = 'array';
+          else if (/^\{/.test(body) && !body.startsWith('{\n')) returnType = 'object';
+          else if (body !== '' && !body.startsWith('{')) returnType = 'any';
+        }
+        return { type: 'function', parameters: [], returnType };
+      }
       // Hex color?
       if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(value)) return { type: 'color' };
       // rgb/rgba?
@@ -977,16 +1042,21 @@ export class HoloScriptTypeChecker {
     }
 
     const traitNames = Array.from(traitsMap.keys());
+    const allConstraints = [...BUILTIN_CONSTRAINTS, ...this.customConstraints];
 
-    for (const constraint of BUILTIN_CONSTRAINTS) {
+    for (const constraint of allConstraints) {
       if (constraint.type === 'requires') {
         if (traitNames.includes(constraint.source as any)) {
           for (const target of constraint.targets) {
             if (!traitNames.includes(target as any)) {
+              const suggestions = constraint.suggestion
+                ? [constraint.suggestion]
+                : [`Add @${target} to the same orb as @${constraint.source}.`];
               this.addDiagnostic(
                 'error',
                 constraint.message || `Trait @${constraint.source} requires @${target}.`,
-                'HSP014'
+                'HSP014',
+                suggestions
               );
             }
           }
@@ -995,10 +1065,14 @@ export class HoloScriptTypeChecker {
         if (traitNames.includes(constraint.source as any)) {
           for (const target of constraint.targets) {
             if (traitNames.includes(target as any)) {
+              const suggestions = constraint.suggestion
+                ? [constraint.suggestion]
+                : [`Remove either @${constraint.source} or @${target} from the orb.`];
               this.addDiagnostic(
                 'error',
                 constraint.message || `Trait @${constraint.source} conflicts with @${target}.`,
-                'HSP014'
+                'HSP014',
+                suggestions
               );
             }
           }
@@ -1006,11 +1080,17 @@ export class HoloScriptTypeChecker {
       } else if (constraint.type === 'oneof') {
         const matches = traitNames.filter((t) => constraint.targets.includes(t));
         if (matches.length > 1) {
+          const suggestions = constraint.suggestion
+            ? [constraint.suggestion]
+            : [
+                `Keep only one of: ${matches.map((t) => '@' + t).join(', ')}. Remove the others.`,
+              ];
           this.addDiagnostic(
             'error',
             constraint.message ||
               `Only one of the following traits can be used at a time: ${constraint.targets.map((t) => '@' + t).join(', ')}.`,
-            'HSP014'
+            'HSP014',
+            suggestions
           );
         }
       }

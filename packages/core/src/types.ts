@@ -304,6 +304,23 @@ export interface TraitConstraint {
   source: string; // Trait being constrained
   targets: string[]; // Related traits
   message?: string; // Custom error message
+  suggestion?: string; // Fix suggestion shown in IDE
+}
+
+// ---------------------------------------------------------------------------
+// Type Alias
+// ---------------------------------------------------------------------------
+
+export type TypeAliasKind = 'simple' | 'union' | 'generic';
+
+export interface TypeAliasDeclaration {
+  name: string;
+  kind: TypeAliasKind;
+  /** Expanded type string (e.g. "string | number") */
+  definition: string;
+  /** Generic type parameters, e.g. ["T"] for List<T> */
+  typeParams?: string[];
+  line?: number;
 }
 
 export type LifecycleHook = 'on_mount' | 'on_unmount' | 'on_update' | 'on_data_update';
