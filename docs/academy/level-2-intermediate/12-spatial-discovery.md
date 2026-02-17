@@ -122,3 +122,12 @@ In this lesson, you learned:
 You have completed the entire **Intermediate Academy** track. You are now a certified **HoloScript Architect**, capable of building decentralized, interconnected spatial ecosystems.
 
 Next, sharpen your skills in **Level 3: Protocol Evolution**, where we explore **ZK-Privacy** and **Custom Compiler Targets**.
+
+## Next Lesson
+
+In [Lesson 2.13: The Universal Coordination Layer](./13-coordination-layer.md), the final Level 2 lesson, we zoom out to see HoloScript as a universal connective layer for AI, IoT, and humans.
+
+---
+
+**Estimated time:** 25 minutes
+**Difficulty:** ⭐⭐ Intermediate

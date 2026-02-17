@@ -98,3 +98,12 @@ In this lesson, you learned:
 You have finished the Intermediate track! You are now prepared to build, optimize, and publish complex spatial environments.
 
 Stay tuned for **Level 3 (Advanced)**, where we dive into **Custom Shaders** and **Proximity Federation**.
+
+## Next Lesson
+
+In [Lesson 2.12: Spatial Discovery & Sub-Orbs](./12-spatial-discovery.md), you'll learn portals, hologram previews, and nested composition loading.
+
+---
+
+**Estimated time:** 30 minutes
+**Difficulty:** ⭐⭐ Intermediate

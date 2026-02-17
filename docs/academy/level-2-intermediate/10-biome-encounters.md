@@ -151,3 +151,12 @@ In **Level 3 (Advanced)**, we will dive into:
 - Decentralized World Management with ZK-Privacy.
 
 Keep building!
+
+## Next Lesson
+
+In [Lesson 2.11: Publishing to HoloHub](./11-publishing-holohub.md), you'll package your compositions for the HoloHub registry — metadata traits, versioning, and portfolio scenes.
+
+---
+
+**Estimated time:** 60 minutes
+**Difficulty:** ⭐⭐⭐ Intermediate+

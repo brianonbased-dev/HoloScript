@@ -290,3 +290,22 @@ orb game_over_screen {
   }
 }
 ```
+
+## Summary
+
+In this lesson, you learned:
+
+- Defining shared data with the `state {}` block
+- Reactive UI that re-renders automatically when state changes
+- Using `@persistent` to save state across sessions
+- Separating local vs. global state with `@networked`
+- Building a multi-screen game loop driven purely by state transitions
+
+## Next Lesson
+
+In [Lesson 2.7: Networking](./07-networking.md), you'll connect multiple players in real time — shared objects, host authority, and room-based multiplayer.
+
+---
+
+**Estimated time:** 45 minutes
+**Difficulty:** ⭐⭐ Intermediate

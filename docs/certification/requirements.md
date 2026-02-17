@@ -220,4 +220,4 @@ if (result.certified) {
 }
 ```
 
-See the [API reference](../api/certification.md) for full documentation.
+See the [API reference](/api/) for full documentation.

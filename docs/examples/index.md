@@ -8,13 +8,13 @@ Learn HoloScript through practical examples. All code is copy-paste ready.
 
 Your first HoloScript program - a glowing greeting orb.
 
-### Interactive Cube
+### [Interactive Cube](/examples/interactive-cube)
 
 A grabbable, throwable cube with physics.
 
-### VR Controller Demo
+### [VR Controller Demo](/examples/controller-demo)
 
-Respond to VR controller input.
+Respond to VR controller input — triggers, thumbsticks, haptics.
 
 ## Intermediate Examples
 
@@ -22,13 +22,13 @@ Respond to VR controller input.
 
 Draggable items, slots, and equipment.
 
-### Physics Playground
+### [Physics Playground](/examples/physics-playground)
 
-Balls, ramps, and chain reactions.
+Balls, ramps, Newton's Cradle, and dominos.
 
-### Multiplayer Sync
+### [Multiplayer Sync](/examples/multiplayer)
 
-Networked objects and state synchronization.
+Networked objects and state synchronization across players.
 
 ## Advanced Examples
 
@@ -36,11 +36,11 @@ Networked objects and state synchronization.
 
 A full VR battle arena in ~100 lines.
 
-### AI Integration
+### [AI Integration](/examples/ai-agent)
 
 Use MCP server (34+ tools) for AI-generated content.
 
-### Multi-Platform Export
+### [Multi-Platform Export](/examples/export)
 
 Compile to 18+ targets: Unity, Unreal, Godot, VRChat, Babylon, WebGPU, visionOS, Android XR, and more.
 

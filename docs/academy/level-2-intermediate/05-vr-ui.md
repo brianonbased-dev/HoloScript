@@ -281,3 +281,22 @@ orb inventory {
   }
 }
 ```
+
+## Summary
+
+In this lesson, you learned:
+
+- Creating `@billboard` and `@panel` UI elements in 3D space
+- Building buttons, toggles, sliders, and dropdown menus
+- Anchoring menus to the player's hands with `@hand_tracked`
+- Reactive `text` bindings that update automatically from state
+- Layout containers for organizing multi-element UIs
+
+## Next Lesson
+
+In [Lesson 2.6: State Management](./06-state-management.md), you'll master the `state {}` block — sharing data between objects, persisting across sessions, and syncing over the network.
+
+---
+
+**Estimated time:** 45 minutes
+**Difficulty:** ⭐⭐ Intermediate

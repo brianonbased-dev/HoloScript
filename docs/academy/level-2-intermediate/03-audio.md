@@ -167,3 +167,22 @@ composition "Haunted Room" {
   }
 }
 ```
+
+## Summary
+
+In this lesson, you learned:
+
+- Using `@audio` for spatial and non-spatial sound playback
+- Triggering sounds on object events (`on_click`, `on_enter`, `on_exit`)
+- Creating audio zones for location-based ambience
+- Applying real-time DSP effects (`reverb`, `echo`, and more)
+- Controlling volume curves based on distance
+
+## Next Lesson
+
+In [Lesson 2.4: Animation](./04-animation.md), you'll bring objects to life with keyframe timelines, blend shapes, and event-driven animation sequences.
+
+---
+
+**Estimated time:** 35 minutes
+**Difficulty:** ⭐⭐ Intermediate

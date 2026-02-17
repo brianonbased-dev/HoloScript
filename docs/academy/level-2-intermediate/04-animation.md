@@ -217,3 +217,22 @@ orb coin {
   }
 }
 ```
+
+## Summary
+
+In this lesson, you learned:
+
+- Using `animate` for procedural property transitions
+- Building `timeline` blocks with percentage-based keyframes
+- Chaining animations with `then` and `delay`
+- Triggering animations from events and conditions
+- Using `events` inside timelines for coordinated side effects
+
+## Next Lesson
+
+In [Lesson 2.5: VR UI](./05-vr-ui.md), you'll build immersive 2D and 3D user interfaces — panels, buttons, sliders, and hand-anchored menus.
+
+---
+
+**Estimated time:** 40 minutes
+**Difficulty:** ⭐⭐ Intermediate
