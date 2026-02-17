@@ -12,6 +12,6 @@ restartPolicyMaxRetries = 10
 
 [env]
 NODE_VERSION = "20"
-CORS_ORIGINS = "https://marketplace-web-production.up.railway.app"
+CORS_ORIGINS = "https://marketplace-web-production-424e.up.railway.app"
 TRUST_PROXY = "true"
 # DATABASE_URL is set in Railway dashboard via the Postgres service reference variable
