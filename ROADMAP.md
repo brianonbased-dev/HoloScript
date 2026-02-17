@@ -1134,7 +1134,7 @@ integration SmartCampusIntegration {
 | **Phase 5: Asset Pipeline**            | Architect | ✅ Done |
 | **Phase 6: Spatial Features**          | Architect | ✅ Done |
 
-### Q1-Q2: Sprint 1 (Feb-Mar) - 4 weeks
+### Q1-Q2: Sprint 1 (Feb-Mar) - 4 weeks ✅ COMPLETE
 
 All agents work in parallel:
 
@@ -1187,11 +1187,11 @@ All agents work in parallel:
 
 **Acceptance criteria:**
 
-- [ ] Local file extends works
-- [ ] npm package extends works
-- [ ] Multiple extends (array) works
-- [ ] Circular dependency detection with helpful error
-- [ ] 100% test coverage for resolver
+- [x] Local file extends works
+- [x] npm package extends works
+- [x] Multiple extends (array) works
+- [x] Circular dependency detection with helpful error
+- [x] 100% test coverage for resolver
 
 ---
 
@@ -1221,11 +1221,11 @@ VS Code extension auto-formats `.hsplus`/`.holo` files on save.
 
 **Acceptance criteria:**
 
-- [ ] Files format on save when enabled
-- [ ] Respects `.holoscriptrc` formatting options
-- [ ] Shows progress for large files (>1000 lines)
-- [ ] Timeout prevents hanging on malformed files
-- [ ] Setting to disable per-workspace
+- [x] Files format on save when enabled
+- [x] Respects `.holoscriptrc` formatting options
+- [x] Shows progress for large files (>1000 lines)
+- [x] Timeout prevents hanging on malformed files
+- [x] Setting to disable per-workspace
 
 ---
 
@@ -1261,10 +1261,10 @@ function formatRange(source: string, range: Range): string {
 
 **Acceptance criteria:**
 
-- [ ] Formats selection without affecting other code
-- [ ] Expands to complete blocks automatically
-- [ ] Preserves surrounding whitespace
-- [ ] Works with nested structures
+- [x] Formats selection without affecting other code
+- [x] Expands to complete blocks automatically
+- [x] Preserves surrounding whitespace
+- [x] Works with nested structures
 
 ---
 
@@ -1306,11 +1306,11 @@ dist/
 
 **Acceptance criteria:**
 
-- [ ] Automatic splitting by zones
-- [ ] Manual `@chunk("name")` annotation support
-- [ ] Manifest tracks dependencies
-- [ ] Chunks load on demand at runtime
-- [ ] Preload hints for likely-needed chunks
+- [x] Automatic splitting by zones
+- [x] Manual `@chunk("name")` annotation support
+- [x] Manifest tracks dependencies
+- [x] Chunks load on demand at runtime
+- [x] Preload hints for likely-needed chunks
 
 ---
 
@@ -1349,11 +1349,11 @@ describe('Gallery Scene', () => {
 
 **Acceptance criteria:**
 
-- [ ] Captures screenshots at defined viewpoints
-- [ ] Compares against baseline images
-- [ ] Configurable diff threshold
-- [ ] Generates visual diff report
-- [ ] CI integration with artifact upload
+- [x] Captures screenshots at defined viewpoints
+- [x] Compares against baseline images
+- [x] Configurable diff threshold
+- [x] Generates visual diff report
+- [x] CI integration with artifact upload
 
 ---
 
@@ -1401,11 +1401,11 @@ if (this.match('...')) {
 
 **Acceptance criteria:**
 
-- [ ] Object spread in composition definitions
-- [ ] Array spread in children/collections
-- [ ] Template property spreading
-- [ ] Type checking for spread targets
-- [ ] Error on spreading non-spreadable types
+- [x] Object spread in composition definitions
+- [x] Array spread in children/collections
+- [x] Template property spreading
+- [x] Type checking for spread targets
+- [x] Error on spreading non-spreadable types
 
 ---
 
@@ -1440,11 +1440,11 @@ composition item {
 
 **Acceptance criteria:**
 
-- [ ] `??=` parses correctly
-- [ ] Only assigns when left side is null/undefined
-- [ ] Works in property definitions
-- [ ] Works in logic blocks
-- [ ] Type inference handles both branches
+- [x] `??=` parses correctly
+- [x] Only assigns when left side is null/undefined
+- [x] Works in property definitions
+- [x] Works in logic blocks
+- [x] Type inference handles both branches
 
 ---
 
@@ -1489,10 +1489,10 @@ class ErrorRecoveryParser {
 
 **Acceptance criteria:**
 
-- [ ] Multiple errors reported per parse
-- [ ] Partial AST returned for valid portions
-- [ ] Recovery doesn't cause cascading false errors
-- [ ] LSP shows all errors, not just first
+- [x] Multiple errors reported per parse
+- [x] Partial AST returned for valid portions
+- [x] Recovery doesn't cause cascading false errors
+- [x] LSP shows all errors, not just first
 
 </details>
 
