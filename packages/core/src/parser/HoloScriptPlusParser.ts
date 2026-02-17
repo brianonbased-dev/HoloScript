@@ -78,6 +78,15 @@ type TokenType =
   | 'SLASH'
   | 'PERCENT'
   | 'EXCLAMATION'
+  | 'AND'
+  | 'OR'
+  | 'DOUBLE_EQUALS'
+  | 'NOT_EQUALS'
+  | 'LESS_THAN'
+  | 'GREATER_THAN'
+  | 'LESS_EQUAL'
+  | 'GREATER_EQUAL'
+  | 'OPTIONAL_DOT'
   | 'EOF';
 
 interface Token {
@@ -282,6 +291,16 @@ class Lexer {
         continue;
       }
       if (char === '!') {
+        if (this.peek(1) === '=') {
+          const startCol = this.column;
+          const startOff = this.pos;
+          this.advance(); // !
+          this.advance(); // =
+          this.tokens.push(this.createToken('NOT_EQUALS', '!='));
+          this.tokens[this.tokens.length - 1].column = startCol;
+          this.tokens[this.tokens.length - 1].offset = startOff;
+          continue;
+        }
         this.advance();
         this.tokens.push(this.createToken('EXCLAMATION', '!'));
         continue;
@@ -297,8 +316,48 @@ class Lexer {
           this.tokens[this.tokens.length - 1].offset = startOff;
           continue;
         }
+        if (this.peek(1) === '=') {
+          const startCol = this.column;
+          const startOff = this.pos;
+          this.advance(); // =
+          this.advance(); // =
+          this.tokens.push(this.createToken('DOUBLE_EQUALS', '=='));
+          this.tokens[this.tokens.length - 1].column = startCol;
+          this.tokens[this.tokens.length - 1].offset = startOff;
+          continue;
+        }
         this.advance();
         this.tokens.push(this.createToken('EQUALS', '='));
+        continue;
+      }
+      if (char === '<') {
+        if (this.peek(1) === '=') {
+          const startCol = this.column;
+          const startOff = this.pos;
+          this.advance(); // <
+          this.advance(); // =
+          this.tokens.push(this.createToken('LESS_EQUAL', '<='));
+          this.tokens[this.tokens.length - 1].column = startCol;
+          this.tokens[this.tokens.length - 1].offset = startOff;
+          continue;
+        }
+        this.advance();
+        this.tokens.push(this.createToken('LESS_THAN', '<'));
+        continue;
+      }
+      if (char === '>') {
+        if (this.peek(1) === '=') {
+          const startCol = this.column;
+          const startOff = this.pos;
+          this.advance(); // >
+          this.advance(); // =
+          this.tokens.push(this.createToken('GREATER_EQUAL', '>='));
+          this.tokens[this.tokens.length - 1].column = startCol;
+          this.tokens[this.tokens.length - 1].offset = startOff;
+          continue;
+        }
+        this.advance();
+        this.tokens.push(this.createToken('GREATER_THAN', '>'));
         continue;
       }
       if (char === '-') {
@@ -311,7 +370,31 @@ class Lexer {
           continue;
         }
       }
+      if (char === '&') {
+        if (this.peek(1) === '&') {
+          const startCol = this.column;
+          const startOff = this.pos;
+          this.advance(); // &
+          this.advance(); // &
+          this.tokens.push(this.createToken('AND', '&&'));
+          this.tokens[this.tokens.length - 1].column = startCol;
+          this.tokens[this.tokens.length - 1].offset = startOff;
+          continue;
+        }
+        this.advance(); // unknown single & — skip
+        continue;
+      }
       if (char === '|') {
+        if (this.peek(1) === '|') {
+          const startCol = this.column;
+          const startOff = this.pos;
+          this.advance(); // |
+          this.advance(); // |
+          this.tokens.push(this.createToken('OR', '||'));
+          this.tokens[this.tokens.length - 1].column = startCol;
+          this.tokens[this.tokens.length - 1].offset = startOff;
+          continue;
+        }
         this.advance();
         this.tokens.push(this.createToken('PIPE', '|'));
         continue;
@@ -329,7 +412,7 @@ class Lexer {
         continue;
       }
 
-      // Question marks (??, ??=, ?)
+      // Question marks (??, ??=, ?., ?)
       if (char === '?') {
         if (this.peek(1) === '?') {
           if (this.peek(2) === '=') {
@@ -352,8 +435,25 @@ class Lexer {
           this.tokens[this.tokens.length - 1].offset = startOff;
           continue;
         }
+        // Optional chaining ?.
+        if (this.peek(1) === '.') {
+          const startCol = this.column;
+          const startOff = this.pos;
+          this.advance(); // ?
+          this.advance(); // .
+          this.tokens.push(this.createToken('OPTIONAL_DOT', '?.'));
+          this.tokens[this.tokens.length - 1].column = startCol;
+          this.tokens[this.tokens.length - 1].offset = startOff;
+          continue;
+        }
         this.advance();
         this.tokens.push(this.createToken('QUESTION', '?'));
+        continue;
+      }
+
+      // Template strings (backtick)
+      if (char === '`') {
+        this.tokens.push(this.readTemplateString());
         continue;
       }
 
@@ -501,6 +601,58 @@ class Lexer {
       offset: this.pos - (value.length + 2), // approximation for start of string
     };
     return token;
+  }
+
+  private readTemplateString(): Token {
+    const startLine = this.line;
+    const startColumn = this.column;
+    const startOff = this.pos;
+    this.advance(); // consume opening backtick
+
+    let value = '';
+    let braceDepth = 0;
+
+    while (this.pos < this.source.length) {
+      const c = this.source[this.pos];
+
+      if (c === '`' && braceDepth === 0) {
+        this.advance(); // consume closing backtick
+        break;
+      }
+      if (c === '$' && this.peek(1) === '{') {
+        braceDepth++;
+        value += '${';
+        this.advance(); // $
+        this.advance(); // {
+        continue;
+      }
+      if (c === '{' && braceDepth > 0) {
+        braceDepth++;
+        value += c;
+        this.advance();
+        continue;
+      }
+      if (c === '}' && braceDepth > 0) {
+        braceDepth--;
+        value += c;
+        this.advance();
+        continue;
+      }
+      if (c === '\n') {
+        this.line++;
+        this.column = 0;
+      }
+      value += c;
+      this.advance();
+    }
+
+    return {
+      type: 'TEMPLATE_STRING' as TokenType,
+      value,
+      line: startLine,
+      column: startColumn,
+      offset: startOff,
+    };
   }
 
   private readNumber(): Token {
@@ -2919,28 +3071,86 @@ export class HoloScriptPlusParser {
   }
 
   /**
-   * Parse binary expressions (currently only ?? supported)
+   * Parse binary expressions: ?? (null coalesce) — lower precedence than logical OR
    */
   private parseNullCoalesce(): unknown {
-    let left = this.parseUnary();
+    let left = this.parseLogicalOr();
 
     while (this.check('NULL_COALESCE')) {
       this.advance();
-      const right = this.parseUnary();
+      const right = this.parseLogicalOr();
       left = { type: 'binary', operator: '??', left, right };
     }
 
     return left;
   }
 
+  /** Parse logical OR: a || b */
+  private parseLogicalOr(): unknown {
+    let left = this.parseLogicalAnd();
+    while (this.check('OR')) {
+      this.advance();
+      const right = this.parseLogicalAnd();
+      left = { type: 'binary', operator: '||', left, right };
+    }
+    return left;
+  }
+
+  /** Parse logical AND: a && b */
+  private parseLogicalAnd(): unknown {
+    let left = this.parseEquality();
+    while (this.check('AND')) {
+      this.advance();
+      const right = this.parseEquality();
+      left = { type: 'binary', operator: '&&', left, right };
+    }
+    return left;
+  }
+
+  /** Parse equality: a == b, a != b */
+  private parseEquality(): unknown {
+    let left = this.parseComparison();
+    while (this.check('DOUBLE_EQUALS') || this.check('NOT_EQUALS')) {
+      const operator = this.current().value;
+      this.advance();
+      const right = this.parseComparison();
+      left = { type: 'binary', operator, left, right };
+    }
+    return left;
+  }
+
+  /** Parse comparison: a < b, a > b, a <= b, a >= b */
+  private parseComparison(): unknown {
+    let left = this.parseUnary();
+    while (
+      this.check('LESS_THAN') ||
+      this.check('GREATER_THAN') ||
+      this.check('LESS_EQUAL') ||
+      this.check('GREATER_EQUAL')
+    ) {
+      const operator = this.current().value;
+      this.advance();
+      const right = this.parseUnary();
+      left = { type: 'binary', operator, left, right };
+    }
+    return left;
+  }
+
   /**
-   * Parse unary prefix expressions (spread, unary minus, unary plus)
+   * Parse unary prefix expressions (!, spread, unary minus, unary plus)
    */
   private parseUnary(): unknown {
     if (this.check('SPREAD')) {
       this.advance();
       const arg = this.parseUnary();
       return { type: 'spread', argument: arg };
+    }
+
+    // Logical NOT
+    if (this.check('EXCLAMATION')) {
+      this.advance();
+      const arg = this.parseUnary();
+      return { type: 'unary', operator: '!', argument: arg };
     }
 
     // Handle unary minus and plus
@@ -3000,6 +3210,11 @@ export class HoloScriptPlusParser {
       const exprId = `expr_${this.compiledExpressions.size}`;
       this.compiledExpressions.set(exprId, token.value);
       return { __expr: exprId, __raw: token.value };
+    }
+
+    if (token.type === 'TEMPLATE_STRING') {
+      this.advance();
+      return { type: 'templateLiteral', value: token.value };
     }
 
     if (token.type === 'LBRACKET') {
@@ -3107,23 +3322,49 @@ export class HoloScriptPlusParser {
       this.advance();
       let ref = token.value;
 
-      // Support dotted access: obj.prop.sub
-      while (this.check('DOT')) {
-        this.advance();
-        // Allow keywords as property names too
-        const nextToken = this.current();
-        const isPropertyName =
-          nextToken.type === 'IDENTIFIER' ||
-          nextToken.type === 'STATE' ||
-          nextToken.type === 'INITIAL' ||
-          nextToken.type === 'STATE_MACHINE' ||
-          nextToken.type === 'TRANSITION' ||
-          nextToken.type === 'ON_ENTRY' ||
-          nextToken.type === 'ON_EXIT';
-        if (isPropertyName) {
-          ref += '.' + this.advance().value;
+      // Support dotted access: obj.prop.sub, optional chaining: obj?.prop, computed: obj[key]
+      while (this.check('DOT') || this.check('OPTIONAL_DOT') || this.check('LBRACKET')) {
+        if (this.check('OPTIONAL_DOT')) {
+          this.advance(); // ?.
+          // Allow keywords as property names after ?.
+          const nextToken = this.current();
+          const isPropertyName =
+            nextToken.type === 'IDENTIFIER' ||
+            nextToken.type === 'STATE' ||
+            nextToken.type === 'INITIAL' ||
+            nextToken.type === 'STATE_MACHINE' ||
+            nextToken.type === 'TRANSITION' ||
+            nextToken.type === 'ON_ENTRY' ||
+            nextToken.type === 'ON_EXIT';
+          if (isPropertyName) {
+            ref += '?.' + this.advance().value;
+          } else {
+            this.error('Expected property name after optional chaining (?.)', 'HSP002');
+          }
+        } else if (this.check('LBRACKET')) {
+          this.advance(); // [
+          const indexExpr = this.parseValue();
+          this.expect('RBRACKET', 'Expected ]');
+          const base = ref;
+          // Return computed member as a structured node; further chaining is not supported inline
+          return { type: 'computedMember', object: { __ref: base }, property: indexExpr };
         } else {
-          this.error('Expected property name after dot (.)', 'HSP002');
+          this.advance(); // .
+          // Allow keywords as property names too
+          const nextToken = this.current();
+          const isPropertyName =
+            nextToken.type === 'IDENTIFIER' ||
+            nextToken.type === 'STATE' ||
+            nextToken.type === 'INITIAL' ||
+            nextToken.type === 'STATE_MACHINE' ||
+            nextToken.type === 'TRANSITION' ||
+            nextToken.type === 'ON_ENTRY' ||
+            nextToken.type === 'ON_EXIT';
+          if (isPropertyName) {
+            ref += '.' + this.advance().value;
+          } else {
+            this.error('Expected property name after dot (.)', 'HSP002');
+          }
         }
       }
 
