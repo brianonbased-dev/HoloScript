@@ -135,7 +135,13 @@ export class PostgresTraitDatabase implements ITraitDatabase {
   private initialized = false;
 
   constructor(connectionString: string) {
-    this.pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+    // Railway private domain (.railway.internal) uses plain TCP — no SSL
+    // External/public connections use SSL with self-signed cert tolerance
+    const isPrivate = connectionString.includes('.railway.internal');
+    this.pool = new Pool({
+      connectionString,
+      ssl: isPrivate ? false : { rejectUnauthorized: false },
+    });
   }
 
   private async getClient(): Promise<PoolClient> {
