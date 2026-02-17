@@ -928,6 +928,20 @@ export class HoloCompositionParser {
     }
   }
 
+  /**
+   * Skip parenthesised argument list ( ... ) including nested parens
+   */
+  private skipParens(): void {
+    if (!this.check('LPAREN')) return;
+    this.advance(); // (
+    let depth = 1;
+    while (depth > 0 && !this.isAtEnd()) {
+      if (this.check('LPAREN')) depth++;
+      if (this.check('RPAREN')) depth--;
+      this.advance();
+    }
+  }
+
   // ===========================================================================
   // COMPOSITION
   // ===========================================================================
@@ -1040,7 +1054,10 @@ export class HoloCompositionParser {
           } else if (decoratorName === 'world' || decoratorName === 'environment') {
             composition.environment = this.parseEnvironmentBody();
           } else {
-            // Skip unknown decorators
+            // Skip unknown decorator arguments and optional block body
+            if (this.check('LPAREN')) {
+              this.skipParens();
+            }
             if (this.check('LBRACE')) {
               this.skipBlock();
             }
@@ -1826,6 +1843,24 @@ export class HoloCompositionParser {
           parameters,
           body,
         });
+      } else if (
+        this.check('IDENTIFIER') &&
+        this.peek(1).type === 'LPAREN'
+      ) {
+        // method_name() { ... } — event handler / lifecycle method in template body
+        const methodName = this.expectIdentifier();
+        this.skipParens(); // skip parameter list
+        if (this.check('LBRACE')) {
+          this.expect('LBRACE');
+          const body = this.parseStatementBlock();
+          this.expect('RBRACE');
+          (template as any).directives!.push({
+            type: 'method',
+            name: methodName,
+            parameters: [],
+            body,
+          });
+        }
       } else {
         const key = this.expectIdentifier();
         this.expect('COLON');
@@ -2765,11 +2800,29 @@ export class HoloCompositionParser {
     const obj: Record<string, HoloValue> = {};
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       this.skipNewlines();
-      const key = this.expectIdentifier();
-      this.expect('COLON');
-      obj[key] = this.parseValue();
-      this.skipNewlines();
-      if (!this.match('COMMA')) break;
+      if (this.check('RBRACE')) break;
+      this.match('COMMA'); // consume optional comma separator
+
+      // Only parse key: value if it looks like a property (identifier followed by colon)
+      if (this.isPropertyName() && this.peek(1).type === 'COLON') {
+        const key = this.expectIdentifier();
+        this.expect('COLON');
+        obj[key] = this.parseValue();
+      } else if (this.check('RBRACE')) {
+        break;
+      } else {
+        // Code block content or unknown token — skip with depth tracking
+        let depth = 1;
+        while (depth > 0 && !this.isAtEnd()) {
+          if (this.check('LBRACE')) depth++;
+          if (this.check('RBRACE')) {
+            depth--;
+            if (depth === 0) break;
+          }
+          this.advance();
+        }
+        break;
+      }
       this.skipNewlines();
     }
     this.skipNewlines();

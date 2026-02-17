@@ -1402,6 +1402,11 @@ export class HoloScriptPlusParser {
       id = this.advance().value;
     }
 
+    // Skip parameter list for function-like nodes: action name(params) { }
+    if (this.check('LPAREN')) {
+      this.skipParens();
+    }
+
     // Parse `using "TemplateName"`
     if (this.check('IDENTIFIER') && this.current().value === 'using') {
       this.advance();
@@ -1689,6 +1694,13 @@ export class HoloScriptPlusParser {
           if (this.check('COMMA')) this.advance();
         }
         this.expect('RPAREN', 'Expected )');
+      }
+
+      // Handle @event: (params) => { body } form (colon-prefixed arrow function handler)
+      if (this.check('COLON')) {
+        this.advance(); // consume :
+        if (this.check('LPAREN')) this.skipParens(); // skip (params)
+        if (this.check('ARROW')) this.advance(); // skip =>
       }
 
       let body = '';
@@ -2063,11 +2075,21 @@ export class HoloScriptPlusParser {
     }
 
     // Parse config if present to avoid syntax errors
-    let config = {};
+    let config: Record<string, unknown> = {};
     if (this.check('LPAREN')) {
       config = this.parseTraitConfig();
     } else if (this.check('LBRACE')) {
       config = this.parseBlockContent();
+    }
+
+    // Handle @event("args"): (params) => { body } — colon-prefixed arrow function handler
+    if (this.check('COLON')) {
+      this.advance(); // consume :
+      if (this.check('LPAREN')) this.skipParens(); // skip (params)
+      if (this.check('ARROW')) this.advance(); // skip =>
+      if (this.check('LBRACE')) {
+        config.body = this.parseCodeBlock();
+      }
     }
 
     // Return as a generic trait so it appears in AST
@@ -2128,8 +2150,8 @@ export class HoloScriptPlusParser {
           const key = this.advance().value;
           this.advance(); // consume : or =
           content[key] = this.parseValue();
-        } else if (next.type === 'STRING' || next.type === 'LBRACE') {
-          // Nested node (e.g. object "Name" { ... })
+        } else if (next.type === 'STRING' || next.type === 'LBRACE' || next.type === 'IDENTIFIER') {
+          // Nested node (e.g. object "Name" { ... }, or action name(params) { ... })
           const node = this.parseNode();
           const type = node.type;
           const name = (node as any).name || `unnamed_${type}_${Object.keys(content).length}`;
@@ -2151,6 +2173,17 @@ export class HoloScriptPlusParser {
           const dirKey = (directive as any).name || directive.type;
           content[`@${dirKey}`] = directive;
         }
+      } else if (this.check('LBRACE')) {
+        // Skip a balanced brace block (e.g., unexpected bare block)
+        let depth = 1;
+        this.advance(); // {
+        while (depth > 0 && !this.check('EOF')) {
+          if (this.check('LBRACE')) depth++;
+          if (this.check('RBRACE')) depth--;
+          this.advance();
+        }
+      } else if (this.check('LPAREN')) {
+        this.skipParens();
       } else {
         this.advance(); // Skip unexpected token
       }
@@ -2310,6 +2343,9 @@ export class HoloScriptPlusParser {
       'orb',
       'on_error',
       'assert',
+      'topic',
+      'channel',
+      'config',
     ];
 
     while (!this.check('RBRACE') && !this.check('EOF')) {
@@ -3819,6 +3855,18 @@ export class HoloScriptPlusParser {
 
   private skipNewlines(): void {
     while (this.check('NEWLINE') || this.check('INDENT') || this.check('DEDENT')) {
+      this.advance();
+    }
+  }
+
+  /** Skip a balanced parenthesised list ( ... ) including nested parens */
+  private skipParens(): void {
+    if (!this.check('LPAREN')) return;
+    this.advance(); // (
+    let depth = 1;
+    while (depth > 0 && !this.check('EOF')) {
+      if (this.check('LPAREN')) depth++;
+      if (this.check('RPAREN')) depth--;
       this.advance();
     }
   }

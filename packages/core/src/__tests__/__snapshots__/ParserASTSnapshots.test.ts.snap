@@ -5814,21 +5814,6 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
   "compiledExpressions": Map {},
   "errors": [
     {
-      "code": "HSP101",
-      "column": 16,
-      "context": "  1 | logic AssignmentTest {
-> 2 |   function test() {
-                    ^
-  3 |     count ??= 0
-  4 |     name ??= "default"",
-      "endColumn": undefined,
-      "endLine": undefined,
-      "line": 2,
-      "message": "HSP101: Unexpected token in properties: LPAREN. Expected property name, @directive, or spread (...)",
-      "severity": "error",
-      "suggestion": undefined,
-    },
-    {
       "code": "HSP001",
       "column": 11,
       "context": "  1 | logic AssignmentTest {

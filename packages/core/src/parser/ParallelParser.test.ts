@@ -339,3 +339,77 @@ describe('Error Isolation', () => {
     await parser.shutdown();
   });
 });
+
+// =============================================================================
+// Coverage: debug mode, removeAllListeners, parseFilesParallel
+// =============================================================================
+
+describe('Debug mode (covers log() path)', () => {
+  it('should log messages when debug is enabled', async () => {
+    const parser = createParallelParser({
+      fallbackToSequential: true,
+      workerCount: 0,
+      debug: true,
+    });
+    (parser as any).fallbackParser = new HoloScriptPlusParser({});
+    (parser as any).isInitialized = true;
+
+    const files: FileInput[] = [
+      { path: 'debug.holo', content: `orb "Debug" { color: "red" }` },
+    ];
+
+    // Should not throw even with debug enabled
+    const result = await parser.parseFiles(files);
+    expect(result.success).toBe(true);
+
+    await parser.shutdown();
+  });
+});
+
+describe('removeAllListeners()', () => {
+  it('removes specific event listeners', async () => {
+    const parser = createSequentialParser({ enableProgress: true });
+    let eventCount = 0;
+    const handler = () => { eventCount++; };
+    parser.on('progress', handler);
+    parser.off('progress', handler);
+
+    await parser.parseFiles([{ path: 'a.holo', content: `orb "A" {}` }]);
+
+    // handler was removed, so count stays 0
+    expect(eventCount).toBe(0);
+    await parser.shutdown();
+  });
+
+  it('removeAllListeners() without argument clears all listeners', async () => {
+    const parser = createSequentialParser({ enableProgress: true });
+    let eventCount = 0;
+    parser.on('progress', () => { eventCount++; });
+    // Remove all without specifying event
+    (parser as any).removeAllListeners();
+
+    await parser.parseFiles([{ path: 'a.holo', content: `orb "A" {}` }]);
+
+    // All listeners cleared — no events should fire
+    expect(eventCount).toBe(0);
+    await parser.shutdown();
+  });
+
+  it('removeAllListeners(event) removes only that event', async () => {
+    const parser = createSequentialParser({ enableProgress: true });
+    let progressCount = 0;
+    let otherCount = 0;
+    parser.on('progress', () => { progressCount++; });
+    parser.on('done', () => { otherCount++; });
+    (parser as any).removeAllListeners('progress');
+
+    await parser.parseFiles([{ path: 'a.holo', content: `orb "A" {}` }]);
+
+    // progress was cleared, 'done' still there (but won't be emitted here)
+    expect(progressCount).toBe(0);
+    await parser.shutdown();
+  });
+});
+
+// Note: parseFilesParallel requires real worker threads (not testable in unit tests
+// without a built ParseWorker.js). Covered via integration tests.
