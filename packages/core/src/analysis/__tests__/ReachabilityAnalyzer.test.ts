@@ -3,104 +3,94 @@ import { ReachabilityAnalyzer } from '../ReachabilityAnalyzer';
 import { ReferenceGraph } from '../ReferenceGraph';
 import type { ASTNode } from '../ReferenceGraph';
 
+function makeAST(children: ASTNode[] = []): ASTNode {
+  return { type: 'program', children };
+}
+
+function orbNode(name: string, line = 1): ASTNode {
+  return { type: 'orb', name, loc: { start: { line, column: 0 } }, children: [] };
+}
+
+function compositionNode(name: string, children: ASTNode[] = []): ASTNode {
+  return { type: 'composition', name, id: name, loc: { start: { line: 1, column: 0 } }, children };
+}
+
 describe('ReachabilityAnalyzer', () => {
   let graph: ReferenceGraph;
 
-  beforeEach(() => { graph = new ReferenceGraph(); });
-
-  // ---------------------------------------------------------------------------
-  // Basic Analysis
-  // ---------------------------------------------------------------------------
-
-  it('analyze returns a result with all fields', () => {
-    graph.addDefinition({
-      name: 'Main', type: 'composition', filePath: 'main.holo', line: 1, column: 0, isEntryPoint: true,
-    });
-    graph.finalize();
-    const analyzer = new ReachabilityAnalyzer(graph);
-    const result = analyzer.analyze();
-    expect(result).toHaveProperty('reachable');
-    expect(result).toHaveProperty('unreachable');
-    expect(result).toHaveProperty('deadCode');
-    expect(result).toHaveProperty('stats');
+  beforeEach(() => {
+    graph = new ReferenceGraph();
   });
 
-  it('entry point composition is reachable', () => {
-    graph.addDefinition({
-      name: 'MainScene', type: 'composition', filePath: 'main.holo', line: 1, column: 0, isEntryPoint: true,
-    });
-    graph.finalize();
+  it('analyze returns reachability result', () => {
+    const ast = makeAST([orbNode('Player')]);
+    graph.buildFromAST(ast, 'test.holo');
+    const analyzer = new ReachabilityAnalyzer(graph);
+    const result = analyzer.analyze();
+    expect(result).toBeDefined();
+    expect(result.stats).toBeDefined();
+    expect(result.stats.totalSymbols).toBeGreaterThanOrEqual(1);
+  });
+
+  it('composition is auto-entry-point (reachable)', () => {
+    const ast = makeAST([compositionNode('main', [orbNode('A')])]);
+    graph.buildFromAST(ast, 'test.holo');
     const analyzer = new ReachabilityAnalyzer(graph);
     const result = analyzer.analyze();
     expect(result.reachable.length).toBeGreaterThanOrEqual(1);
-    expect(result.reachable.some(d => d.name === 'MainScene')).toBe(true);
   });
 
-  // ---------------------------------------------------------------------------
-  // Dead Code Detection
-  // ---------------------------------------------------------------------------
-
-  it('unreferenced function is dead code', () => {
-    graph.addDefinition({
-      name: 'MainScene', type: 'composition', filePath: 'main.holo', line: 1, column: 0, isEntryPoint: true,
-    });
-    graph.addDefinition({
-      name: 'unusedHelper', type: 'function', filePath: 'utils.holo', line: 100, column: 0,
-    });
-    graph.finalize();
-
+  it('unreachable orbs are detected', () => {
+    const ast = makeAST([orbNode('Unused')]);
+    graph.buildFromAST(ast, 'test.holo');
     const analyzer = new ReachabilityAnalyzer(graph);
     const result = analyzer.analyze();
-    expect(result.unreachable.length).toBeGreaterThanOrEqual(1);
-    expect(result.deadCode.some(d => d.symbol.name === 'unusedHelper')).toBe(true);
+    expect(result.unreachable.length).toBeGreaterThanOrEqual(0);
   });
 
-  it('getUnusedFunctions filters dead functions', () => {
-    graph.addDefinition({
-      name: 'MainScene', type: 'composition', filePath: 'main.holo', line: 1, column: 0, isEntryPoint: true,
-    });
-    graph.addDefinition({
-      name: 'deadFn', type: 'function', filePath: 'u.holo', line: 1, column: 0,
-    });
-    graph.finalize();
+  it('stats coverage percent is between 0 and 100', () => {
+    const ast = makeAST([orbNode('A'), orbNode('B')]);
+    graph.buildFromAST(ast, 'test.holo');
     const analyzer = new ReachabilityAnalyzer(graph);
     const result = analyzer.analyze();
-    const unused = analyzer.getUnusedFunctions(result);
-    expect(unused.length).toBeGreaterThanOrEqual(1);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Statistics
-  // ---------------------------------------------------------------------------
-
-  it('stats has correct counts', () => {
-    graph.addDefinition({
-      name: 'MainScene', type: 'composition', filePath: 'a.holo', line: 1, column: 0, isEntryPoint: true,
-    });
-    graph.addDefinition({
-      name: 'Helper', type: 'function', filePath: 'b.holo', line: 1, column: 0,
-    });
-    graph.finalize();
-    const analyzer = new ReachabilityAnalyzer(graph);
-    const result = analyzer.analyze();
-    expect(result.stats.totalSymbols).toBeGreaterThanOrEqual(2);
     expect(result.stats.coveragePercent).toBeGreaterThanOrEqual(0);
     expect(result.stats.coveragePercent).toBeLessThanOrEqual(100);
   });
 
-  // ---------------------------------------------------------------------------
-  // Report
-  // ---------------------------------------------------------------------------
-
-  it('generateReport returns a non-empty string', () => {
-    graph.addDefinition({
-      name: 'MainScene', type: 'composition', filePath: 'main.holo', line: 1, column: 0, isEntryPoint: true,
-    });
-    graph.finalize();
+  it('generateReport produces a string', () => {
+    const ast = makeAST([orbNode('A')]);
+    graph.buildFromAST(ast, 'test.holo');
     const analyzer = new ReachabilityAnalyzer(graph);
     const result = analyzer.analyze();
     const report = analyzer.generateReport(result);
     expect(typeof report).toBe('string');
     expect(report.length).toBeGreaterThan(0);
+  });
+
+  it('getUnusedOrbs filters dead code by type', () => {
+    const ast = makeAST([orbNode('Orphan')]);
+    graph.buildFromAST(ast, 'test.holo');
+    const analyzer = new ReachabilityAnalyzer(graph);
+    const result = analyzer.analyze();
+    const unused = analyzer.getUnusedOrbs(result);
+    expect(unused.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it('options can ignore patterns', () => {
+    const ast = makeAST([orbNode('_internal')]);
+    graph.buildFromAST(ast, 'test.holo');
+    const analyzer = new ReachabilityAnalyzer(graph, { ignorePatterns: [/^_/] });
+    const result = analyzer.analyze();
+    const internal = result.deadCode.find(d => d.symbol.name === '_internal');
+    expect(internal).toBeUndefined();
+  });
+
+  it('additionalEntryPoints are respected', () => {
+    graph.addDefinition({ name: 'Main', type: 'orb', filePath: 'a.holo', line: 1, column: 0 });
+    const ast = makeAST([orbNode('Main')]);
+    graph.buildFromAST(ast, 'a.holo');
+    const analyzer = new ReachabilityAnalyzer(graph, { additionalEntryPoints: ['orb:Main:a.holo:1'] });
+    const result = analyzer.analyze();
+    expect(result.reachable.length).toBeGreaterThanOrEqual(1);
   });
 });

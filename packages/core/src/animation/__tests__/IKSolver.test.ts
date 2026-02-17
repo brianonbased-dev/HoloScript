@@ -1,28 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { IKSolver } from '../IKSolver';
-import type { IKChain, IKBone } from '../IKSolver';
+import { IKSolver, type IKChain, type IKBone } from '../IKSolver';
 
-function makeBone(id: string, x = 0, y = 0, z = 0, length = 1): IKBone {
-  return {
-    id,
-    position: { x, y, z },
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
-    length,
-  };
+function bone(id: string, x: number, y: number, z: number, length: number): IKBone {
+  return { id, position: { x, y, z }, rotation: { x: 0, y: 0, z: 0, w: 1 }, length };
 }
 
-function makeChain(id: string, boneCount = 2): IKChain {
-  const bones: IKBone[] = [];
-  for (let i = 0; i < boneCount; i++) {
-    bones.push(makeBone(`${id}_bone${i}`, 0, i, 0, 1));
-  }
-  return {
-    id,
-    bones,
-    target: { x: 0, y: boneCount, z: 0 },
-    weight: 1,
-    iterations: 10,
-  };
+function chain(id: string, bones: IKBone[], tx: number, ty: number, tz: number): IKChain {
+  return { id, bones, target: { x: tx, y: ty, z: tz }, weight: 1, iterations: 10 };
 }
 
 describe('IKSolver', () => {
@@ -35,104 +19,103 @@ describe('IKSolver', () => {
   // ---------------------------------------------------------------------------
 
   it('addChain registers a chain', () => {
-    solver.addChain(makeChain('arm'));
+    solver.addChain(chain('arm', [bone('upper', 0, 0, 0, 3), bone('lower', 0, 3, 0, 3)], 0, 6, 0));
     expect(solver.getChainCount()).toBe(1);
   });
 
-  it('getChain retrieves chain by id', () => {
-    solver.addChain(makeChain('arm'));
-    expect(solver.getChain('arm')).toBeDefined();
-    expect(solver.getChain('nope')).toBeUndefined();
-  });
-
-  it('removeChain removes chain', () => {
-    solver.addChain(makeChain('arm'));
+  it('removeChain unregisters a chain', () => {
+    solver.addChain(chain('arm', [bone('a', 0, 0, 0, 1)], 0, 1, 0));
     expect(solver.removeChain('arm')).toBe(true);
     expect(solver.getChainCount()).toBe(0);
   });
 
-  it('removeChain returns false for unknown', () => {
-    expect(solver.removeChain('nope')).toBe(false);
+  it('getChain retrieves by id', () => {
+    solver.addChain(chain('leg', [bone('a', 0, 0, 0, 2)], 0, 2, 0));
+    expect(solver.getChain('leg')).toBeDefined();
+    expect(solver.getChain('nonexistent')).toBeUndefined();
   });
 
   // ---------------------------------------------------------------------------
-  // Target Setting
+  // Target & Weight
   // ---------------------------------------------------------------------------
 
-  it('setTarget updates chain target position', () => {
-    solver.addChain(makeChain('arm'));
-    solver.setTarget('arm', 1, 2, 3);
-    const chain = solver.getChain('arm')!;
-    expect(chain.target).toEqual({ x: 1, y: 2, z: 3 });
-  });
-
-  it('setPoleTarget updates pole target', () => {
-    solver.addChain(makeChain('arm'));
-    solver.setPoleTarget('arm', 0, 1, -1);
-    const chain = solver.getChain('arm')!;
-    expect(chain.poleTarget).toEqual({ x: 0, y: 1, z: -1 });
+  it('setTarget updates chain target', () => {
+    solver.addChain(chain('arm', [bone('a', 0, 0, 0, 3), bone('b', 0, 3, 0, 3)], 0, 6, 0));
+    solver.setTarget('arm', 5, 5, 0);
+    expect(solver.getChain('arm')!.target).toEqual({ x: 5, y: 5, z: 0 });
   });
 
   it('setWeight updates chain weight', () => {
-    solver.addChain(makeChain('arm'));
+    solver.addChain(chain('arm', [bone('a', 0, 0, 0, 3)], 0, 3, 0));
     solver.setWeight('arm', 0.5);
-    const chain = solver.getChain('arm')!;
-    expect(chain.weight).toBe(0.5);
+    expect(solver.getChain('arm')!.weight).toBe(0.5);
+  });
+
+  it('setPoleTarget updates pole target', () => {
+    solver.addChain(chain('arm', [bone('a', 0, 0, 0, 3), bone('b', 0, 3, 0, 3)], 0, 6, 0));
+    solver.setPoleTarget('arm', 1, 3, 0);
+    expect(solver.getChain('arm')!.poleTarget).toEqual({ x: 1, y: 3, z: 0 });
   });
 
   // ---------------------------------------------------------------------------
-  // Solving
+  // Two-bone IK
   // ---------------------------------------------------------------------------
 
-  it('solveTwoBone returns true for valid chain', () => {
-    solver.addChain(makeChain('arm', 2));
-    solver.setTarget('arm', 1, 1, 0);
+  it('solveTwoBone returns true for reachable target', () => {
+    solver.addChain(chain('arm', [bone('upper', 0, 0, 0, 3), bone('lower', 0, 3, 0, 3)], 0, 5, 0));
     expect(solver.solveTwoBone('arm')).toBe(true);
   });
 
-  it('solveTwoBone returns false for unknown chain', () => {
-    expect(solver.solveTwoBone('nope')).toBe(false);
+  it('solveTwoBone returns false for nonexistent chain', () => {
+    expect(solver.solveTwoBone('ghost')).toBe(false);
   });
 
-  it('solveCCD returns true for valid chain', () => {
-    solver.addChain(makeChain('arm', 3));
-    solver.setTarget('arm', 1, 1, 0);
-    expect(solver.solveCCD('arm')).toBe(true);
+  // ---------------------------------------------------------------------------
+  // CCD
+  // ---------------------------------------------------------------------------
+
+  it('solveCCD works with multi-bone chain', () => {
+    const bones = [
+      bone('b0', 0, 0, 0, 2),
+      bone('b1', 0, 2, 0, 2),
+      bone('b2', 0, 4, 0, 2),
+    ];
+    solver.addChain(chain('tentacle', bones, 0, 5, 0));
+    expect(solver.solveCCD('tentacle')).toBe(true);
   });
 
-  it('solveCCD returns false for unknown chain', () => {
-    expect(solver.solveCCD('nope')).toBe(false);
-  });
-
-  it('solveAll processes all chains', () => {
-    solver.addChain(makeChain('left', 2));
-    solver.addChain(makeChain('right', 2));
-    // Should not throw
-    solver.solveAll();
+  it('solveCCD returns false for nonexistent chain', () => {
+    expect(solver.solveCCD('ghost')).toBe(false);
   });
 
   // ---------------------------------------------------------------------------
   // Foot Placement
   // ---------------------------------------------------------------------------
 
-  it('setFootPlacement updates config', () => {
+  it('setFootPlacement / getFootPlacement', () => {
     solver.setFootPlacement({ enabled: true, footOffset: 0.1 });
-    const config = solver.getFootPlacement();
-    expect(config.enabled).toBe(true);
-    expect(config.footOffset).toBe(0.1);
-  });
-
-  it('getFootPlacement returns default config', () => {
-    const config = solver.getFootPlacement();
-    expect(config.enabled).toBe(false);
-    expect(config.rayHeight).toBeGreaterThan(0);
+    const fp = solver.getFootPlacement();
+    expect(fp.enabled).toBe(true);
+    expect(fp.footOffset).toBe(0.1);
   });
 
   it('updateFootPlacement returns position', () => {
+    solver.addChain(chain('foot', [bone('ankle', 0, 1, 0, 1)], 0, 0, 0));
     solver.setFootPlacement({ enabled: true });
-    const pos = solver.updateFootPlacement('leftFoot', 0, 0.016);
-    expect(pos).toHaveProperty('x');
-    expect(pos).toHaveProperty('y');
-    expect(pos).toHaveProperty('z');
+    const pos = solver.updateFootPlacement('foot', 0, 0.016);
+    expect(pos).toBeDefined();
+    expect(typeof pos.y).toBe('number');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Solve All
+  // ---------------------------------------------------------------------------
+
+  it('solveAll processes all chains', () => {
+    solver.addChain(chain('a', [bone('a1', 0, 0, 0, 2), bone('a2', 0, 2, 0, 2)], 0, 3, 0));
+    solver.addChain(chain('b', [bone('b1', 5, 0, 0, 2), bone('b2', 5, 2, 0, 2)], 5, 3, 0));
+    // Should not throw
+    solver.solveAll();
+    expect(solver.getChainCount()).toBe(2);
   });
 });

@@ -102,6 +102,20 @@ Sprint covering production persistence, new SDKs, and npm publishing:
 | **npm publish expanded** — publish.yml updated to include mcp-server, llm-provider, security-sandbox, ai-validator, comparative-benchmarks | ✅ Complete |
 | **Brittney v5 fine-tune** — training data pipeline ready, awaiting model training run | 🔲 Not started |
 
+### "Commence All IV" — v3.5.0 Release: Marketplace Live + Publisher (February 16, 2026)
+
+Version bump, npm publish pipeline, and marketplace full-stack wiring:
+
+| Task | Status |
+| --- | --- |
+| **v3.5.0 version bump** — core@3.5.0, cli@3.5.0, mcp-server@3.5.0; llm-provider@1.1.0, security-sandbox@1.1.0, ai-validator@1.1.0, comparative-benchmarks@1.1.0, marketplace-api@1.1.0 | ✅ Complete |
+| **Publisher marketplace wiring** — `holoscript publish` now targets `marketplace-api-production-b323.up.railway.app/api/v1/traits`, JSON body with `.holo` source + metadata, replaces npm-registry multipart PUT | ✅ Complete |
+| **Marketplace-web pagination** — fixed empty `onClick` on pagination buttons, wired to `useFilterStore.setPage()` + `performSearch()` | ✅ Complete |
+| **V43 Tier 2 traits** — `AiUpscalingTrait` (ESRGAN/Real-ESRGAN/SwinIR/LDM), `RoomMeshTrait` (whole-room mesh reconstruction + semantic classification) | ✅ Complete |
+| **Test coverage expansion** — 60+ new test files (700+ tests): AI behavior trees, animation, audio, network, social, ECS, combat, dialogue | ✅ Complete |
+| **Bug fixes** — `GenerationCache.evictLRU` same-ms no-eviction, `EditorPersistence` JSON serialization, `LODManager.update()` camera-pos overload | ✅ Complete |
+| **git tag v3.5.0** — triggers npm publish pipeline for all packages | ✅ Complete |
+
 ### "Commence All" — Ecosystem Expansion (February 15, 2026)
 
 Massive single-session sprint covering plugins, training data, and infrastructure:

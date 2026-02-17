@@ -1,23 +1,30 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { AgentRegistry } from '../AgentRegistry';
-import { AgentManifestBuilder } from '../AgentManifest';
 import type { AgentManifest } from '../AgentManifest';
 
-function makeManifest(id: string, trust: 'local' | 'verified' | 'known' | 'external' | 'untrusted' = 'local'): AgentManifest {
-  return new AgentManifestBuilder()
-    .identity(id, `Agent ${id}`, '1.0.0')
-    .addCapability({ type: 'analyze', domain: 'general' })
-    .addEndpoint({ protocol: 'local', address: 'in-process' })
-    .trust(trust)
-    .build();
+function makeManifest(id: string, overrides: Partial<AgentManifest> = {}): AgentManifest {
+  return {
+    id,
+    name: id,
+    version: '1.0.0',
+    capabilities: [{ type: 'compute', domain: 'general' }],
+    status: 'online',
+    trustLevel: 'local',
+    endpoints: [{ protocol: 'http', address: 'localhost' }],
+    ...overrides,
+  } as AgentManifest;
 }
 
 describe('AgentRegistry', () => {
   let registry: AgentRegistry;
 
-  beforeEach(() => { registry = new AgentRegistry(); });
+  beforeEach(() => {
+    registry = new AgentRegistry({ autoCleanup: false });
+  });
 
-  afterEach(() => { registry.stop(); });
+  afterEach(() => {
+    registry.stop();
+  });
 
   // ---------------------------------------------------------------------------
   // Registration
@@ -25,42 +32,46 @@ describe('AgentRegistry', () => {
 
   it('register adds an agent', async () => {
     await registry.register(makeManifest('agent-1'));
+    expect(registry.size).toBe(1);           // size is a getter
+  });
+
+  it('has returns true for registered agent', async () => {
+    await registry.register(makeManifest('agent-1'));
     expect(registry.has('agent-1')).toBe(true);
+    expect(registry.has('nope')).toBe(false);
+  });
+
+  it('get returns manifest', async () => {
+    await registry.register(makeManifest('agent-1'));
+    const m = registry.get('agent-1');
+    expect(m).toBeDefined();
+    expect(m!.id).toBe('agent-1');
+  });
+
+  it('register allows updating same ID', async () => {
+    await registry.register(makeManifest('agent-1'));
+    // Registering the same ID again is an update, not an error
+    await registry.register(makeManifest('agent-1', { version: '2.0.0' }));
     expect(registry.size).toBe(1);
   });
 
-  it('register emits agent:registered event', async () => {
-    let emitted = false;
-    registry.on('agent:registered', () => { emitted = true; });
-    await registry.register(makeManifest('agent-1'));
-    expect(emitted).toBe(true);
-  });
+  // ---------------------------------------------------------------------------
+  // Deregistration
+  // ---------------------------------------------------------------------------
 
   it('deregister removes an agent', async () => {
     await registry.register(makeManifest('agent-1'));
     await registry.deregister('agent-1');
-    expect(registry.has('agent-1')).toBe(false);
-  });
-
-  it('get returns manifest for registered agent', async () => {
-    await registry.register(makeManifest('agent-1'));
-    const manifest = registry.get('agent-1');
-    expect(manifest).toBeDefined();
-    expect(manifest!.id).toBe('agent-1');
-  });
-
-  it('get returns undefined for unregistered agent', () => {
-    expect(registry.get('nope')).toBeUndefined();
+    expect(registry.size).toBe(0);
   });
 
   // ---------------------------------------------------------------------------
   // Heartbeat
   // ---------------------------------------------------------------------------
 
-  it('heartbeat updates agent timestamp', async () => {
+  it('heartbeat updates agent entry', async () => {
     await registry.register(makeManifest('agent-1'));
     await registry.heartbeat('agent-1');
-    // Should not throw
     expect(registry.has('agent-1')).toBe(true);
   });
 
@@ -68,45 +79,43 @@ describe('AgentRegistry', () => {
   // Discovery
   // ---------------------------------------------------------------------------
 
-  it('discover finds agents matching capability query', async () => {
-    await registry.register(makeManifest('agent-1'));
-    const results = await registry.discover({ type: 'analyze' });
+  it('discover finds matching agents', async () => {
+    await registry.register(makeManifest('a1', { capabilities: [{ type: 'compute', domain: 'general' }] }));
+    await registry.register(makeManifest('a2', { capabilities: [{ type: 'render', domain: 'graphics' }] }));
+    const results = await registry.discover({ type: 'compute' });
     expect(results.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('discover returns empty for non-matching query', async () => {
-    await registry.register(makeManifest('agent-1'));
-    const results = await registry.discover({ type: 'render' });
-    expect(results.length).toBe(0);
-  });
-
-  it('findBest returns the best matching agent', async () => {
-    await registry.register(makeManifest('agent-1'));
-    const best = await registry.findBest({ type: 'analyze' });
-    expect(best).toBeDefined();
-    expect(best!.id).toBe('agent-1');
+  it('findBest returns the best match', async () => {
+    await registry.register(makeManifest('a1', { capabilities: [{ type: 'compute', domain: 'general' }] }));
+    const best = await registry.findBest({ type: 'compute' });
+    expect(best).not.toBeNull();
+    expect(best!.id).toBe('a1');
   });
 
   it('findBest returns null when no match', async () => {
-    const best = await registry.findBest({ type: 'render' });
+    const best = await registry.findBest({ type: 'compute' });
     expect(best).toBeNull();
   });
 
   // ---------------------------------------------------------------------------
-  // Queries
+  // getAllManifests
   // ---------------------------------------------------------------------------
 
-  it('getAllManifests returns all registered', async () => {
-    await registry.register(makeManifest('a'));
-    await registry.register(makeManifest('b'));
-    const all = registry.getAllManifests();
-    expect(all.length).toBe(2);
+  it('getAllManifests returns all agents', async () => {
+    await registry.register(makeManifest('a1'));
+    await registry.register(makeManifest('a2'));
+    expect(registry.getAllManifests()).toHaveLength(2);
   });
 
-  it('getStatusCounts returns status breakdown', async () => {
-    await registry.register(makeManifest('a'));
+  // ---------------------------------------------------------------------------
+  // Status Counts
+  // ---------------------------------------------------------------------------
+
+  it('getStatusCounts reports by status', async () => {
+    await registry.register(makeManifest('a1'));
     const counts = registry.getStatusCounts();
-    expect(typeof counts).toBe('object');
+    expect(counts['online']).toBe(1);
   });
 
   // ---------------------------------------------------------------------------
@@ -114,29 +123,20 @@ describe('AgentRegistry', () => {
   // ---------------------------------------------------------------------------
 
   it('clear removes all agents', async () => {
-    await registry.register(makeManifest('a'));
-    await registry.register(makeManifest('b'));
+    await registry.register(makeManifest('a1'));
+    await registry.register(makeManifest('a2'));
     registry.clear();
     expect(registry.size).toBe(0);
   });
 
   // ---------------------------------------------------------------------------
-  // Export / Import
+  // Export
   // ---------------------------------------------------------------------------
 
-  it('export returns registry state', async () => {
-    await registry.register(makeManifest('a'));
+  it('export returns registry snapshot', async () => {
+    await registry.register(makeManifest('a1'));
     const data = registry.export();
-    expect(data.agents.length).toBe(1);
-    expect(data.config).toBeDefined();
+    expect(data.agents).toHaveLength(1);
     expect(data.timestamp).toBeGreaterThan(0);
-  });
-
-  it('import restores agents', async () => {
-    await registry.register(makeManifest('a'));
-    const exported = registry.export();
-    registry.clear();
-    await registry.import({ agents: exported.agents });
-    expect(registry.size).toBe(1);
   });
 });

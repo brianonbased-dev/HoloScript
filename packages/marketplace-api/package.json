@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/marketplace-api",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "HoloScript Trait Marketplace API - publishing, discovery, and dependency resolution",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

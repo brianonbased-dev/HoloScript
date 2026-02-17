@@ -107,11 +107,15 @@ export class ReachabilityAnalyzer {
     const entryPoints = this.graph.getEntryPoints();
     const nodes = this.graph.getNodes();
 
-    // Add additional entry points
-    for (const name of this.options.additionalEntryPoints) {
-      for (const [id, node] of nodes) {
-        if (node.definition.name === name) {
-          entryPoints.add(id);
+    // Add additional entry points (supports both node IDs and symbol names)
+    for (const entry of this.options.additionalEntryPoints) {
+      if (nodes.has(entry)) {
+        entryPoints.add(entry);
+      } else {
+        for (const [id, node] of nodes) {
+          if (node.definition.name === entry) {
+            entryPoints.add(id);
+          }
         }
       }
     }

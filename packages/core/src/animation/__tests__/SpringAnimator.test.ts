@@ -1,142 +1,126 @@
-/**
- * SpringAnimator Unit Tests
- *
- * Tests spring physics: setTarget, setValue, impulse,
- * update convergence, rest detection, presets, Vec3Spring.
- */
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SpringAnimator, SpringPresets, Vec3SpringAnimator } from '../SpringAnimator';
+import { SpringAnimator, Vec3SpringAnimator, SpringPresets } from '../SpringAnimator';
 
 describe('SpringAnimator', () => {
-  describe('initial state', () => {
-    it('should start at initial value', () => {
-      const spring = new SpringAnimator(5);
-      expect(spring.getValue()).toBe(5);
-    });
+  let spring: SpringAnimator;
 
-    it('should start at rest', () => {
-      const spring = new SpringAnimator(0);
-      expect(spring.isAtRest()).toBe(true);
-    });
+  beforeEach(() => { spring = new SpringAnimator(0); });
+
+  // ---------------------------------------------------------------------------
+  // Initial State
+  // ---------------------------------------------------------------------------
+
+  it('starts at initial value', () => {
+    expect(spring.getValue()).toBe(0);
+    expect(spring.isAtRest()).toBe(true);
   });
 
-  describe('setTarget', () => {
-    it('should mark as not at rest', () => {
-      const spring = new SpringAnimator(0);
-      spring.setTarget(10);
-      expect(spring.isAtRest()).toBe(false);
-    });
+  // ---------------------------------------------------------------------------
+  // setTarget
+  // ---------------------------------------------------------------------------
 
-    it('should converge towards target over updates', () => {
-      const spring = new SpringAnimator(0, SpringPresets.stiff);
-      spring.setTarget(100);
-
-      for (let i = 0; i < 200; i++) spring.update(1 / 60);
-
-      expect(spring.getValue()).toBeCloseTo(100, 0);
-      expect(spring.isAtRest()).toBe(true);
-    });
+  it('setTarget wakes the spring', () => {
+    spring.setTarget(100);
+    expect(spring.isAtRest()).toBe(false);
   });
 
-  describe('setValue', () => {
-    it('should instantly jump to value', () => {
-      const spring = new SpringAnimator(0);
-      spring.setValue(50);
-      expect(spring.getValue()).toBe(50);
-      expect(spring.isAtRest()).toBe(true);
-    });
-
-    it('should call onUpdate', () => {
-      const onUpdate = vi.fn();
-      const spring = new SpringAnimator(0, {}, onUpdate);
-      spring.setValue(25);
-      expect(onUpdate).toHaveBeenCalledWith(25);
-    });
+  it('update moves toward target', () => {
+    spring.setTarget(100);
+    spring.update(0.016);
+    expect(spring.getValue()).toBeGreaterThan(0);
+    expect(spring.getValue()).toBeLessThan(100);
   });
 
-  describe('impulse', () => {
-    it('should add velocity and mark not at rest', () => {
-      const spring = new SpringAnimator(0);
-      spring.impulse(100);
-      expect(spring.isAtRest()).toBe(false);
+  // ---------------------------------------------------------------------------
+  // setValue
+  // ---------------------------------------------------------------------------
 
-      spring.update(1 / 60);
-      expect(spring.getValue()).not.toBe(0);
-    });
+  it('setValue jumps instantly and marks at rest', () => {
+    spring.setValue(42);
+    expect(spring.getValue()).toBe(42);
+    expect(spring.isAtRest()).toBe(true);
   });
 
-  describe('update', () => {
-    it('should call onUpdate callback', () => {
-      const onUpdate = vi.fn();
-      const spring = new SpringAnimator(0, {}, onUpdate);
-      spring.setTarget(10);
-      spring.update(1 / 60);
-      expect(onUpdate).toHaveBeenCalled();
-    });
+  // ---------------------------------------------------------------------------
+  // impulse
+  // ---------------------------------------------------------------------------
 
-    it('should call onRest when settled', () => {
-      const onRest = vi.fn();
-      const spring = new SpringAnimator(0, SpringPresets.stiff, undefined, onRest);
-      spring.setTarget(1);
-
-      for (let i = 0; i < 300; i++) spring.update(1 / 60);
-
-      expect(onRest).toHaveBeenCalled();
-    });
-
-    it('should return current value when at rest', () => {
-      const spring = new SpringAnimator(42);
-      expect(spring.update(1 / 60)).toBe(42);
-    });
+  it('impulse adds velocity', () => {
+    spring.impulse(50);
+    expect(spring.isAtRest()).toBe(false);
+    spring.update(0.016);
+    expect(spring.getValue()).not.toBe(0);
   });
 
-  describe('setConfig', () => {
-    it('should update spring config', () => {
-      const spring = new SpringAnimator(0);
-      spring.setConfig({ stiffness: 500 });
-      spring.setTarget(10);
-      spring.update(1 / 60);
-      // Higher stiffness should cause faster initial movement
-      const val = spring.getValue();
-      expect(val).not.toBe(0);
-    });
+  // ---------------------------------------------------------------------------
+  // Rest Detection
+  // ---------------------------------------------------------------------------
+
+  it('settles to target after many updates', () => {
+    spring.setTarget(10);
+    for (let i = 0; i < 500; i++) spring.update(0.016);
+    expect(spring.getValue()).toBeCloseTo(10, 1);
+    expect(spring.isAtRest()).toBe(true);
   });
 
-  describe('SpringPresets', () => {
-    it('should have all standard presets', () => {
-      expect(SpringPresets.stiff).toBeDefined();
-      expect(SpringPresets.default).toBeDefined();
-      expect(SpringPresets.gentle).toBeDefined();
-      expect(SpringPresets.wobbly).toBeDefined();
-      expect(SpringPresets.slow).toBeDefined();
-      expect(SpringPresets.molasses).toBeDefined();
-    });
+  // ---------------------------------------------------------------------------
+  // Callbacks
+  // ---------------------------------------------------------------------------
+
+  it('calls onUpdate callback', () => {
+    const onUpdate = vi.fn();
+    const s = new SpringAnimator(0, {}, onUpdate);
+    s.setTarget(10);
+    s.update(0.016);
+    expect(onUpdate).toHaveBeenCalled();
+  });
+
+  it('calls onRest callback when settled', () => {
+    const onRest = vi.fn();
+    const s = new SpringAnimator(0, {}, undefined, onRest);
+    s.setTarget(0.001);
+    for (let i = 0; i < 500; i++) s.update(0.016);
+    expect(onRest).toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------------------
+  // setConfig
+  // ---------------------------------------------------------------------------
+
+  it('setConfig changes behavior', () => {
+    const stiff = new SpringAnimator(0, SpringPresets.stiff);
+    stiff.setTarget(100);
+
+    const gentle = new SpringAnimator(0, SpringPresets.gentle);
+    gentle.setTarget(100);
+
+    stiff.update(0.016);
+    gentle.update(0.016);
+
+    // Stiff spring should move faster initially
+    expect(stiff.getValue()).toBeGreaterThan(gentle.getValue());
   });
 });
 
 describe('Vec3SpringAnimator', () => {
-  it('should initialize with xyz values', () => {
-    const spring = new Vec3SpringAnimator({ x: 1, y: 2, z: 3 });
-    expect(spring.getValue()).toEqual({ x: 1, y: 2, z: 3 });
+  it('animates all three axes', () => {
+    const v3 = new Vec3SpringAnimator({ x: 0, y: 0, z: 0 });
+    v3.setTarget({ x: 10, y: 20, z: 30 });
+    v3.update(0.016);
+    const val = v3.getValue();
+    expect(val.x).toBeGreaterThan(0);
+    expect(val.y).toBeGreaterThan(0);
+    expect(val.z).toBeGreaterThan(0);
   });
 
-  it('should animate towards target', () => {
-    const spring = new Vec3SpringAnimator({ x: 0, y: 0, z: 0 }, SpringPresets.stiff);
-    spring.setTarget({ x: 10, y: 20, z: 30 });
-
-    for (let i = 0; i < 200; i++) spring.update(1 / 60);
-
-    const val = spring.getValue();
-    expect(val.x).toBeCloseTo(10, 0);
-    expect(val.y).toBeCloseTo(20, 0);
-    expect(val.z).toBeCloseTo(30, 0);
-    expect(spring.isAtRest()).toBe(true);
-  });
-
-  it('should report isAtRest only when all axes settle', () => {
-    const spring = new Vec3SpringAnimator({ x: 0, y: 0, z: 0 });
-    spring.setTarget({ x: 1, y: 0, z: 0 });
-    expect(spring.isAtRest()).toBe(false);
+  it('isAtRest returns true when all axes settle', () => {
+    const v3 = new Vec3SpringAnimator({ x: 0, y: 0, z: 0 });
+    v3.setTarget({ x: 1, y: 1, z: 1 });
+    for (let i = 0; i < 500; i++) v3.update(0.016);
+    expect(v3.isAtRest()).toBe(true);
+    const val = v3.getValue();
+    expect(val.x).toBeCloseTo(1, 1);
+    expect(val.y).toBeCloseTo(1, 1);
+    expect(val.z).toBeCloseTo(1, 1);
   });
 });

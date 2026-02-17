@@ -1,148 +1,148 @@
-/**
- * LobbyManager Unit Tests
- *
- * Tests room creation, joining, leaving, host migration,
- * ready state, game start, listing, and password protection.
- */
-
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LobbyManager } from '../LobbyManager';
 
 describe('LobbyManager', () => {
-  let lobby: LobbyManager;
+  let lm: LobbyManager;
 
-  beforeEach(() => {
-    lobby = new LobbyManager();
+  beforeEach(() => { lm = new LobbyManager(); });
+
+  // ---------------------------------------------------------------------------
+  // Room Creation
+  // ---------------------------------------------------------------------------
+
+  it('createRoom returns a room with the host', () => {
+    const room = lm.createRoom('host1', 'Alice', { name: 'Fun Room', maxPlayers: 4 });
+    expect(room.id).toBeDefined();
+    expect(room.name).toBe('Fun Room');
+    expect(room.hostId).toBe('host1');
+    expect(room.players.size).toBe(1);
+    expect(room.state).toBe('waiting');
   });
 
-  describe('room creation', () => {
-    it('should create a room with host as first player', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'Room1', maxPlayers: 4 });
-      expect(room.id).toBeDefined();
-      expect(room.hostId).toBe('h1');
-      expect(room.players.size).toBe(1);
-      expect(room.state).toBe('waiting');
-    });
-
-    it('should assign unique room IDs', () => {
-      const r1 = lobby.createRoom('h1', 'A', { name: 'R1', maxPlayers: 4 });
-      const r2 = lobby.createRoom('h2', 'B', { name: 'R2', maxPlayers: 4 });
-      expect(r1.id).not.toBe(r2.id);
-    });
+  it('getRoomCount increases', () => {
+    lm.createRoom('h1', 'A', { name: 'R1', maxPlayers: 4 });
+    lm.createRoom('h2', 'B', { name: 'R2', maxPlayers: 4 });
+    expect(lm.getRoomCount()).toBe(2);
   });
 
-  describe('joining', () => {
-    it('should allow joining a room', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4 });
-      expect(lobby.joinRoom(room.id, 'p1', 'Player1')).toBe(true);
-      expect(lobby.getRoom(room.id)!.players.size).toBe(2);
-    });
+  // ---------------------------------------------------------------------------
+  // Joining
+  // ---------------------------------------------------------------------------
 
-    it('should reject join when room is full', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 2 });
-      lobby.joinRoom(room.id, 'p1', 'P1');
-      expect(lobby.joinRoom(room.id, 'p2', 'P2')).toBe(false);
-    });
-
-    it('should reject join with wrong password', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4, password: 'secret' });
-      expect(lobby.joinRoom(room.id, 'p1', 'P1', 'wrong')).toBe(false);
-      expect(lobby.joinRoom(room.id, 'p1', 'P1', 'secret')).toBe(true);
-    });
-
-    it('should reject duplicate join', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4 });
-      expect(lobby.joinRoom(room.id, 'h1', 'Host')).toBe(false);
-    });
-
-    it('should reject join when game in progress', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4 });
-      lobby.startGame(room.id, 'h1');
-      expect(lobby.joinRoom(room.id, 'p1', 'P1')).toBe(false);
-    });
+  it('joinRoom adds a player', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    expect(lm.joinRoom(room.id, 'p2', 'Bob')).toBe(true);
+    expect(room.players.size).toBe(2);
+    expect(lm.getPlayerCount()).toBe(2);
   });
 
-  describe('leaving and host migration', () => {
-    it('should remove player from room', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4 });
-      lobby.joinRoom(room.id, 'p1', 'P1');
-      lobby.leaveRoom('p1');
-      expect(lobby.getRoom(room.id)!.players.size).toBe(1);
-    });
-
-    it('should destroy empty room', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4 });
-      lobby.leaveRoom('h1');
-      expect(lobby.getRoom(room.id)).toBeUndefined();
-    });
-
-    it('should migrate host when host leaves', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4 });
-      lobby.joinRoom(room.id, 'p1', 'P1');
-      const result = lobby.leaveRoom('h1');
-      expect(result.migrated).toBe(true);
-      expect(result.newHostId).toBe('p1');
-      expect(lobby.getRoom(room.id)!.hostId).toBe('p1');
-    });
+  it('joinRoom fails when room is full', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 2 });
+    lm.joinRoom(room.id, 'p2', 'Bob');
+    expect(lm.joinRoom(room.id, 'p3', 'Carol')).toBe(false);
   });
 
-  describe('ready state', () => {
-    it('should set player ready', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4 });
-      lobby.joinRoom(room.id, 'p1', 'P1');
-      lobby.setReady('p1', true);
-      expect(lobby.getRoom(room.id)!.players.get('p1')!.ready).toBe(true);
-    });
-
-    it('should report allReady correctly', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4 });
-      lobby.joinRoom(room.id, 'p1', 'P1');
-      expect(lobby.allReady(room.id)).toBe(false);
-      lobby.setReady('h1', true);
-      lobby.setReady('p1', true);
-      expect(lobby.allReady(room.id)).toBe(true);
-    });
+  it('joinRoom fails with wrong password', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4, password: 'secret' });
+    expect(lm.joinRoom(room.id, 'p2', 'Bob', 'wrong')).toBe(false);
+    expect(lm.joinRoom(room.id, 'p2', 'Bob', 'secret')).toBe(true);
   });
 
-  describe('game start', () => {
-    it('should allow host to start game', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4 });
-      expect(lobby.startGame(room.id, 'h1')).toBe(true);
-      expect(lobby.getRoom(room.id)!.state).toBe('in_progress');
-    });
-
-    it('should reject non-host start', () => {
-      const room = lobby.createRoom('h1', 'Host', { name: 'R', maxPlayers: 4 });
-      lobby.joinRoom(room.id, 'p1', 'P1');
-      expect(lobby.startGame(room.id, 'p1')).toBe(false);
-    });
+  it('joinRoom fails for nonexistent room', () => {
+    expect(lm.joinRoom('nope', 'p1', 'X')).toBe(false);
   });
 
-  describe('listing and queries', () => {
-    it('should list available public rooms', () => {
-      lobby.createRoom('h1', 'A', { name: 'R1', maxPlayers: 4 });
-      lobby.createRoom('h2', 'B', { name: 'R2', maxPlayers: 4, password: 'secret' });
-      const available = lobby.listRooms();
-      expect(available.length).toBe(1); // password room excluded
-    });
+  it('joinRoom fails if player already in room', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    expect(lm.joinRoom(room.id, 'host', 'Alice')).toBe(false);
+  });
 
-    it('should filter by tags', () => {
-      lobby.createRoom('h1', 'A', { name: 'R1', maxPlayers: 4, tags: ['deathmatch'] });
-      lobby.createRoom('h2', 'B', { name: 'R2', maxPlayers: 4, tags: ['coop'] });
-      const results = lobby.listRooms(['coop']);
-      expect(results.length).toBe(1);
-    });
+  // ---------------------------------------------------------------------------
+  // Leaving + Host Migration
+  // ---------------------------------------------------------------------------
 
-    it('should find room by player', () => {
-      const room = lobby.createRoom('h1', 'A', { name: 'R1', maxPlayers: 4 });
-      expect(lobby.getRoomForPlayer('h1')?.id).toBe(room.id);
-    });
+  it('leaveRoom removes player', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    lm.joinRoom(room.id, 'p2', 'Bob');
+    lm.leaveRoom('p2');
+    expect(room.players.size).toBe(1);
+  });
 
-    it('should count rooms and players', () => {
-      lobby.createRoom('h1', 'A', { name: 'R1', maxPlayers: 4 });
-      lobby.createRoom('h2', 'B', { name: 'R2', maxPlayers: 4 });
-      expect(lobby.getRoomCount()).toBe(2);
-      expect(lobby.getPlayerCount()).toBe(2);
-    });
+  it('leaveRoom destroys empty room', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    lm.leaveRoom('host');
+    expect(lm.getRoom(room.id)).toBeUndefined();
+    expect(lm.getRoomCount()).toBe(0);
+  });
+
+  it('leaveRoom triggers host migration', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    lm.joinRoom(room.id, 'p2', 'Bob');
+    const result = lm.leaveRoom('host');
+    expect(result.migrated).toBe(true);
+    expect(result.newHostId).toBe('p2');
+    expect(room.hostId).toBe('p2');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Ready / Start
+  // ---------------------------------------------------------------------------
+
+  it('setReady marks player as ready', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    lm.setReady('host', true);
+    expect(room.players.get('host')!.ready).toBe(true);
+  });
+
+  it('allReady returns true only when all ready', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    lm.joinRoom(room.id, 'p2', 'Bob');
+    expect(lm.allReady(room.id)).toBe(false);
+    lm.setReady('host', true);
+    lm.setReady('p2', true);
+    expect(lm.allReady(room.id)).toBe(true);
+  });
+
+  it('startGame only works for host', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    expect(lm.startGame(room.id, 'nothost')).toBe(false);
+    expect(lm.startGame(room.id, 'host')).toBe(true);
+    expect(room.state).toBe('in_progress');
+  });
+
+  it('startGame fails if already started', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    lm.startGame(room.id, 'host');
+    expect(lm.startGame(room.id, 'host')).toBe(false);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Queries
+  // ---------------------------------------------------------------------------
+
+  it('getRoomForPlayer returns correct room', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    lm.joinRoom(room.id, 'p2', 'Bob');
+    expect(lm.getRoomForPlayer('p2')!.id).toBe(room.id);
+  });
+
+  it('listRooms filters by availability and tags', () => {
+    const r1 = lm.createRoom('h1', 'A', { name: 'R1', maxPlayers: 4, tags: ['ranked'] });
+    lm.createRoom('h2', 'B', { name: 'R2', maxPlayers: 4, tags: ['casual'] });
+
+    const ranked = lm.listRooms(['ranked']);
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0].id).toBe(r1.id);
+  });
+
+  it('listRooms hides password-protected rooms', () => {
+    lm.createRoom('h1', 'A', { name: 'R1', maxPlayers: 4, password: 'secret' });
+    expect(lm.listRooms()).toHaveLength(0);
+  });
+
+  it('joinRoom fails if game in_progress', () => {
+    const room = lm.createRoom('host', 'Alice', { name: 'R', maxPlayers: 4 });
+    lm.startGame(room.id, 'host');
+    expect(lm.joinRoom(room.id, 'p2', 'Bob')).toBe(false);
   });
 });

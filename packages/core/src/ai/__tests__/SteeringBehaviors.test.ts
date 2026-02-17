@@ -1,94 +1,143 @@
-/**
- * SteeringBehaviors Unit Tests — static API
- */
 import { describe, it, expect } from 'vitest';
-import { SteeringBehaviors } from '../SteeringBehaviors';
-import type { SteeringAgent, FlockConfig, ObstacleCircle } from '../SteeringBehaviors';
+import { SteeringBehaviors, type SteeringAgent, type FlockConfig } from '../SteeringBehaviors';
 
-const S = SteeringBehaviors;
+type Vec3 = { x: number; y: number; z: number };
 
-function makeAgent(x = 0, y = 0, z = 0, vx = 0, vy = 0, vz = 0): SteeringAgent {
-  return { position: { x, y, z }, velocity: { x: vx, y: vy, z: vz }, maxSpeed: 10, maxForce: 5, mass: 1 };
+function agent(pos: Vec3, vel: Vec3 = { x: 0, y: 0, z: 0 }): SteeringAgent {
+  return { position: pos, velocity: vel, maxSpeed: 10, maxForce: 5, mass: 1 };
 }
 
+function vecLen(v: Vec3): number { return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
+
 describe('SteeringBehaviors', () => {
-  describe('vector utilities', () => {
-    it('sub', () => { expect(S.sub({ x: 3, y: 2, z: 1 }, { x: 1, y: 1, z: 1 })).toEqual({ x: 2, y: 1, z: 0 }); });
-    it('add', () => { expect(S.add({ x: 1, y: 2, z: 3 }, { x: 4, y: 5, z: 6 })).toEqual({ x: 5, y: 7, z: 9 }); });
-    it('scale', () => { expect(S.scale({ x: 2, y: 3, z: 4 }, 2)).toEqual({ x: 4, y: 6, z: 8 }); });
-    it('length', () => { expect(S.length({ x: 3, y: 4, z: 0 })).toBeCloseTo(5); });
-    it('distance', () => { expect(S.distance({ x: 0, y: 0, z: 0 }, { x: 3, y: 4, z: 0 })).toBeCloseTo(5); });
-    it('normalize', () => { const n = S.normalize({ x: 3, y: 0, z: 0 }); expect(n.x).toBeCloseTo(1); });
-    it('normalize zero', () => { expect(S.length(S.normalize({ x: 0, y: 0, z: 0 }))).toBeCloseTo(0); });
-    it('truncate long', () => { expect(S.length(S.truncate({ x: 10, y: 0, z: 0 }, 3))).toBeCloseTo(3); });
-    it('truncate short', () => { expect(S.length(S.truncate({ x: 1, y: 0, z: 0 }, 5))).toBeCloseTo(1); });
+  // ---------------------------------------------------------------------------
+  // Seek
+  // ---------------------------------------------------------------------------
+
+  it('seek produces force toward target', () => {
+    const a = agent({ x: 0, y: 0, z: 0 });
+    const force = SteeringBehaviors.seek(a, { x: 10, y: 0, z: 0 });
+    expect(force.x).toBeGreaterThan(0);
+    expect(Math.abs(force.y)).toBeLessThan(0.001);
   });
 
-  describe('seek', () => {
-    it('should produce force toward target', () => {
-      expect(S.seek(makeAgent(), { x: 10, y: 0, z: 0 }).x).toBeGreaterThan(0);
-    });
+  it('seek returns zero-ish force when at target', () => {
+    const a = agent({ x: 5, y: 5, z: 0 });
+    const force = SteeringBehaviors.seek(a, { x: 5, y: 5, z: 0 });
+    expect(vecLen(force)).toBeLessThan(0.01);
   });
 
-  describe('flee', () => {
-    it('should produce force away from threat', () => {
-      expect(S.flee(makeAgent(), { x: 10, y: 0, z: 0 }).x).toBeLessThan(0);
-    });
+  // ---------------------------------------------------------------------------
+  // Flee
+  // ---------------------------------------------------------------------------
+
+  it('flee produces force away from threat', () => {
+    const a = agent({ x: 0, y: 0, z: 0 });
+    const force = SteeringBehaviors.flee(a, { x: 10, y: 0, z: 0 });
+    expect(force.x).toBeLessThan(0);
   });
 
-  describe('arrive', () => {
-    it('should slow down near target', () => {
-      const target = { x: 5, y: 0, z: 0 };
-      const farF = S.arrive(makeAgent(0, 0, 0), target, 3);
-      const closeF = S.arrive(makeAgent(4, 0, 0), target, 3);
-      expect(S.length(closeF)).toBeLessThan(S.length(farF));
-    });
+  // ---------------------------------------------------------------------------
+  // Arrive
+  // ---------------------------------------------------------------------------
+
+  it('arrive slows down within slowRadius', () => {
+    const a = agent({ x: 0, y: 0, z: 0 });
+    const forceFar = SteeringBehaviors.arrive(a, { x: 100, y: 0, z: 0 }, 20);
+    const aClose = agent({ x: 95, y: 0, z: 0 });
+    const forceClose = SteeringBehaviors.arrive(aClose, { x: 100, y: 0, z: 0 }, 20);
+    expect(vecLen(forceClose)).toBeLessThanOrEqual(vecLen(forceFar) + 0.01);
   });
 
-  describe('wander', () => {
-    it('should produce non-zero force', () => {
-      const { force, newAngle } = S.wander(makeAgent(0, 0, 0, 1, 0, 0), 2, 1, 0.5, 0);
-      expect(S.length(force)).toBeGreaterThan(0);
-      expect(typeof newAngle).toBe('number');
-    });
+  it('arrive returns zero when at target', () => {
+    const a = agent({ x: 5, y: 0, z: 0 });
+    const force = SteeringBehaviors.arrive(a, { x: 5, y: 0, z: 0 }, 10);
+    expect(vecLen(force)).toBeLessThan(0.01);
   });
 
-  describe('flock', () => {
-    it('should combine separation/alignment/cohesion', () => {
-      const cfg: FlockConfig = { separationWeight: 1, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 10 };
-      const f = S.flock(makeAgent(), [makeAgent(1, 0, 0, 0, 0, 1)], cfg);
-      expect(typeof f.x).toBe('number');
-    });
+  // ---------------------------------------------------------------------------
+  // Wander
+  // ---------------------------------------------------------------------------
 
-    it('should return zero with no neighbors', () => {
-      const cfg: FlockConfig = { separationWeight: 1, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 10 };
-      expect(S.length(S.flock(makeAgent(), [], cfg))).toBe(0);
-    });
+  it('wander returns a force and new angle', () => {
+    const a = agent({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    const result = SteeringBehaviors.wander(a, 2, 1, 0.3, 0);
+    expect(result.force).toBeDefined();
+    expect(typeof result.newAngle).toBe('number');
+    expect(Number.isFinite(result.force.x)).toBe(true);
   });
 
-  describe('obstacleAvoidance', () => {
-    it('should produce avoidance force', () => {
-      const f = S.obstacleAvoidance(makeAgent(0, 0, 0, 5, 0, 0), [{ center: { x: 5, y: 0, z: 0 }, radius: 2 }], 10);
-      expect(typeof f.x).toBe('number');
-    });
+  // ---------------------------------------------------------------------------
+  // Flock
+  // ---------------------------------------------------------------------------
 
-    it('should return zero with no obstacles', () => {
-      expect(S.length(S.obstacleAvoidance(makeAgent(0, 0, 0, 5, 0, 0), [], 10))).toBe(0);
-    });
+  it('flock returns a combined steering force', () => {
+    const a = agent({ x: 0, y: 0, z: 0 });
+    const neighbors = [
+      agent({ x: 2, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
+      agent({ x: -2, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }),
+    ];
+    const config: FlockConfig = {
+      separationWeight: 1, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 10,
+    };
+    const force = SteeringBehaviors.flock(a, neighbors, config);
+    expect(Number.isFinite(force.x)).toBe(true);
+    expect(Number.isFinite(force.y)).toBe(true);
   });
 
-  describe('applyForce', () => {
-    it('should update velocity and position', () => {
-      const agent = makeAgent();
-      S.applyForce(agent, { x: 5, y: 0, z: 0 }, 1);
-      expect(agent.velocity.x).toBeGreaterThan(0);
-      expect(agent.position.x).toBeGreaterThan(0);
-    });
+  it('flock returns zero with no neighbors in range', () => {
+    const a = agent({ x: 0, y: 0, z: 0 });
+    const neighbors = [agent({ x: 500, y: 500, z: 0 })]; // far away
+    const config: FlockConfig = {
+      separationWeight: 1, alignmentWeight: 1, cohesionWeight: 1, neighborRadius: 5,
+    };
+    const force = SteeringBehaviors.flock(a, neighbors, config);
+    expect(force).toEqual({ x: 0, y: 0, z: 0 });
+  });
 
-    it('should clamp to maxSpeed', () => {
-      const agent = makeAgent();
-      S.applyForce(agent, { x: 100, y: 0, z: 0 }, 1);
-      expect(S.length(agent.velocity)).toBeLessThanOrEqual(agent.maxSpeed + 0.001);
-    });
+  // ---------------------------------------------------------------------------
+  // Obstacle Avoidance
+  // ---------------------------------------------------------------------------
+
+  it('obstacleAvoidance returns force when obstacle ahead', () => {
+    const a = agent({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    const obstacles = [{ center: { x: 3, y: 0, z: 0 }, radius: 1 }];
+    const force = SteeringBehaviors.obstacleAvoidance(a, obstacles, 5);
+    expect(Number.isFinite(force.x)).toBe(true);
+  });
+
+  it('obstacleAvoidance returns zero with no obstacles', () => {
+    const a = agent({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    const force = SteeringBehaviors.obstacleAvoidance(a, [], 5);
+    expect(force).toEqual({ x: 0, y: 0, z: 0 });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Apply Force
+  // ---------------------------------------------------------------------------
+
+  it('applyForce updates agent position and velocity', () => {
+    const a = agent({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
+    SteeringBehaviors.applyForce(a, { x: 5, y: 0, z: 0 }, 1);
+    expect(a.velocity.x).toBeGreaterThan(0);
+    expect(a.position.x).toBeGreaterThan(0);
+  });
+
+  it('applyForce clamps velocity to maxSpeed', () => {
+    const a = agent({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
+    a.maxSpeed = 5;
+    SteeringBehaviors.applyForce(a, { x: 100, y: 0, z: 0 }, 1);
+    const speed = vecLen(a.velocity);
+    expect(speed).toBeLessThanOrEqual(5.01);
+  });
+
+  it('applyForce accounts for mass', () => {
+    const heavy = agent({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
+    heavy.mass = 10;
+    const light = agent({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
+    light.mass = 1;
+    SteeringBehaviors.applyForce(heavy, { x: 5, y: 0, z: 0 }, 1);
+    SteeringBehaviors.applyForce(light, { x: 5, y: 0, z: 0 }, 1);
+    expect(light.velocity.x).toBeGreaterThan(heavy.velocity.x);
   });
 });

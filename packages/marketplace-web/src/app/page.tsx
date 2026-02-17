@@ -6,13 +6,14 @@ import { SearchBar } from '@/components/SearchBar';
 import { CategoryFilter } from '@/components/CategoryFilter';
 import { TraitGrid } from '@/components/TraitGrid';
 import { PopularTraits } from '@/components/PopularTraits';
-import { useMarketplaceSearch } from '@/lib/store';
+import { useMarketplaceSearch, useSearchStore } from '@/lib/store';
 import { marketplaceApi } from '@/lib/api';
 import { Sparkles, TrendingUp, Clock, Layers } from 'lucide-react';
 
 export default function MarketplacePage() {
   const { query, results, isSearching, error, filters, setQuery, performSearch } =
     useMarketplaceSearch();
+  const { setPage } = useSearchStore();
 
   // Initial search on mount
   useEffect(() => {
@@ -146,7 +147,8 @@ export default function MarketplacePage() {
                           : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                       }`}
                       onClick={() => {
-                        // Handle pagination
+                        setPage(i + 1);
+                        performSearch();
                       }}
                     >
                       {i + 1}

@@ -1,22 +1,21 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ReferenceGraph } from '../ReferenceGraph';
-import type { ASTNode } from '../ReferenceGraph';
+import { ReferenceGraph, type ASTNode } from '../ReferenceGraph';
 
-function makeOrbAST(name: string): ASTNode {
-  return {
-    type: 'Program',
-    children: [
-      {
-        type: 'orb',
-        name,
-        id: name,
-        properties: [
-          { key: 'health', value: '100' },
-        ],
-        loc: { start: { line: 1, column: 0 } },
-      },
-    ],
-  };
+// collectDefinitions expects node.type === 'orb' (not 'orb_definition')
+function makeAST(children: ASTNode[] = []): ASTNode {
+  return { type: 'program', children };
+}
+
+function orbNode(name: string, line = 1): ASTNode {
+  return { type: 'orb', name, loc: { start: { line, column: 0 } }, children: [] };
+}
+
+function templateNode(name: string, line = 1): ASTNode {
+  return { type: 'template', name, loc: { start: { line, column: 0 } }, children: [] };
+}
+
+function funcNode(name: string, line = 1): ASTNode {
+  return { type: 'function', name, loc: { start: { line, column: 0 } }, children: [] };
 }
 
 describe('ReferenceGraph', () => {
@@ -25,103 +24,84 @@ describe('ReferenceGraph', () => {
   beforeEach(() => { graph = new ReferenceGraph(); });
 
   // ---------------------------------------------------------------------------
-  // Build from AST
+  // Definitions (via addDefinition + getDefinitions which returns Map)
   // ---------------------------------------------------------------------------
 
-  it('buildFromAST populates definitions', () => {
-    graph.buildFromAST(makeOrbAST('Player'));
+  it('addDefinition registers a symbol in definitions map', () => {
+    graph.addDefinition({ name: 'Player', type: 'orb', filePath: 'a.holo', line: 1, column: 0 });
     const defs = graph.getDefinitions();
-    expect(defs.size).toBeGreaterThan(0);
+    expect(defs.size).toBe(1);
   });
 
-  it('buildFromAST creates nodes after edge building', () => {
-    graph.buildFromAST(makeOrbAST('Player'));
-    const nodes = graph.getNodes();
-    expect(nodes.size).toBeGreaterThan(0);
-  });
-
-  it('buildFromAST sets filePath', () => {
-    graph.buildFromAST(makeOrbAST('Player'), 'game.holo');
+  it('getDefinitions returns all definitions', () => {
+    graph.addDefinition({ name: 'A', type: 'orb', filePath: 'a.holo', line: 1, column: 0 });
+    graph.addDefinition({ name: 'B', type: 'template', filePath: 'b.holo', line: 1, column: 0 });
     const defs = graph.getDefinitions();
-    const hasDef = [...defs.values()].some(d => d.filePath === 'game.holo');
-    expect(hasDef).toBe(true);
+    expect(defs.size).toBe(2);
   });
 
   // ---------------------------------------------------------------------------
-  // Multi-file
+  // References
   // ---------------------------------------------------------------------------
 
-  it('addFile handles multiple files and finalize builds graph', () => {
-    graph.addFile(makeOrbAST('Player'), 'player.holo');
-    graph.addFile(makeOrbAST('Enemy'), 'enemy.holo');
+  it('addReference stores a reference', () => {
+    graph.addReference({ name: 'Player', type: 'orb', filePath: 'b.holo', line: 5, column: 10, context: 'usage' });
+    expect(graph.getReferences()).toHaveLength(1);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Build from AST — node.type must be 'orb', 'template', 'function'
+  // ---------------------------------------------------------------------------
+
+  it('buildFromAST discovers orb definitions', () => {
+    const ast = makeAST([orbNode('Enemy', 3)]);
+    graph.buildFromAST(ast, 'test.holo');
+    const stats = graph.getStats();
+    expect(stats.totalNodes).toBeGreaterThanOrEqual(1);
+  });
+
+  it('buildFromAST discovers template definitions', () => {
+    const ast = makeAST([templateNode('BaseEnemy', 1)]);
+    graph.buildFromAST(ast, 'test.holo');
+    expect(graph.getStats().totalNodes).toBeGreaterThanOrEqual(1);
+  });
+
+  it('buildFromAST discovers function definitions', () => {
+    const ast = makeAST([funcNode('main', 1)]);
+    graph.buildFromAST(ast, 'test.holo');
+    expect(graph.getStats().totalNodes).toBeGreaterThanOrEqual(1);
+  });
+
+  it('addFile for multiple files then finalize', () => {
+    graph.addFile(makeAST([orbNode('A')]), 'a.holo');
+    graph.addFile(makeAST([orbNode('B')]), 'b.holo');
     graph.finalize();
-    const nodes = graph.getNodes();
-    expect(nodes.size).toBeGreaterThanOrEqual(2);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Definitions & References
-  // ---------------------------------------------------------------------------
-
-  it('addDefinition manually adds a definition', () => {
-    graph.addDefinition({
-      name: 'CustomFn',
-      type: 'function',
-      filePath: 'test.holo',
-      line: 1,
-      column: 0,
-    });
-    expect(graph.getDefinitions().size).toBe(1);
-  });
-
-  it('addReference manually adds a reference', () => {
-    graph.addReference({
-      name: 'CustomFn',
-      type: 'function',
-      filePath: 'test.holo',
-      line: 10,
-      column: 5,
-      context: 'function-call',
-    });
-    expect(graph.getReferences().length).toBe(1);
+    expect(graph.getStats().totalNodes).toBeGreaterThanOrEqual(2);
   });
 
   // ---------------------------------------------------------------------------
   // Entry Points
   // ---------------------------------------------------------------------------
 
-  it('addEntryPoint marks custom entry point', () => {
-    graph.addEntryPoint('Main');
-    expect(graph.getEntryPoints().has('Main')).toBe(true);
-  });
-
-  it('buildFromAST identifies composition nodes as entry points', () => {
-    const ast: ASTNode = {
-      type: 'Program',
-      children: [
-        {
-          type: 'composition',
-          name: 'MainScene',
-          id: 'MainScene',
-          loc: { start: { line: 1, column: 0 } },
-        },
-      ],
-    };
-    graph.buildFromAST(ast);
-    expect(graph.getEntryPoints().size).toBeGreaterThan(0);
+  it('addEntryPoint registers a custom entry point', () => {
+    graph.addEntryPoint('function:main');
+    expect(graph.getEntryPoints().has('function:main')).toBe(true);
   });
 
   // ---------------------------------------------------------------------------
-  // Stats
+  // Stats (requires nodes built via buildFromAST)
   // ---------------------------------------------------------------------------
 
-  it('getStats returns correct counts from AST', () => {
-    graph.buildFromAST(makeOrbAST('A'));
+  it('getStats returns comprehensive data after buildFromAST', () => {
+    const ast = makeAST([orbNode('A'), orbNode('B', 5)]);
+    graph.buildFromAST(ast, 'test.holo');
     const stats = graph.getStats();
-    expect(stats.totalNodes).toBeGreaterThan(0);
+    expect(stats.totalNodes).toBeGreaterThanOrEqual(2);
+    expect(stats.byType).toBeDefined();
+    expect(stats.byType.orb).toBeGreaterThanOrEqual(2);
   });
 
-  it('getStats returns zero for empty graph', () => {
+  it('getStats returns zero when empty', () => {
     const stats = graph.getStats();
     expect(stats.totalNodes).toBe(0);
     expect(stats.totalEdges).toBe(0);
@@ -132,10 +112,9 @@ describe('ReferenceGraph', () => {
   // ---------------------------------------------------------------------------
 
   it('clear resets the graph', () => {
-    graph.buildFromAST(makeOrbAST('Player'));
+    graph.addDefinition({ name: 'X', type: 'orb', filePath: 'a.holo', line: 1, column: 0 });
     graph.clear();
-    expect(graph.getNodes().size).toBe(0);
     expect(graph.getDefinitions().size).toBe(0);
-    expect(graph.getReferences().length).toBe(0);
+    expect(graph.getStats().totalNodes).toBe(0);
   });
 });

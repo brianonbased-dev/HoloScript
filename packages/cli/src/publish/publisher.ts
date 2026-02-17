@@ -6,8 +6,8 @@
  * Handles uploading packages to the HoloScript registry.
  */
 
-import { readFileSync, existsSync, unlinkSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync, unlinkSync, readdirSync } from 'fs';
+import { join, extname } from 'path';
 import { validateForPublish } from './validator';
 import { packPackage } from './packager';
 
@@ -61,7 +61,7 @@ interface RegistryResponse {
 // Constants
 // ============================================================================
 
-const DEFAULT_REGISTRY = 'https://registry.holoscript.dev';
+const DEFAULT_REGISTRY = 'https://marketplace-api-production-b323.up.railway.app';
 const TOKEN_FILE = '.holoscript-token';
 
 // ============================================================================
@@ -174,8 +174,8 @@ export class PackagePublisher {
     console.log(`\x1b[32m✓ Created ${packResult.tarballPath}\x1b[0m`);
     console.log(`\x1b[2m  Size: ${this.formatSize(packResult.size || 0)}\x1b[0m\n`);
 
-    // 3. Upload to registry
-    console.log('\x1b[36m🚀 Publishing to registry...\x1b[0m');
+    // 3. Upload to marketplace
+    console.log(`\x1b[36m🚀 Publishing to ${this.options.registry}...\x1b[0m`);
 
     const token = this.getAuthToken();
     if (!token) {
@@ -247,110 +247,103 @@ export class PackagePublisher {
     version: string,
     token: string
   ): Promise<RegistryResponse> {
-    const tarball = readFileSync(tarballPath);
-    const encodedName = encodeURIComponent(name);
+    // Read package.json for full metadata
+    const pkgJson = JSON.parse(readFileSync(join(this.cwd, 'package.json'), 'utf-8'));
 
-    // Build publish URL
-    const url = `${this.options.registry}/-/package/${encodedName}/publish`;
+    // Find the primary .holo source file
+    const source = this.readHoloSource(pkgJson);
 
-    // Build request body
-    const boundary = '----HoloScriptPublish' + Date.now();
-    const body = this.buildMultipartBody(boundary, {
-      package: {
-        filename: `${name}-${version}.tgz`,
-        contentType: 'application/gzip',
-        content: tarball,
-      },
-      metadata: {
-        contentType: 'application/json',
-        content: Buffer.from(
-          JSON.stringify({
-            name,
-            version,
-            tag: this.options.tag,
-            access: this.options.access,
-            otp: this.options.otp,
-          })
-        ),
-      },
-    });
+    // Read optional readme
+    let readme: string | undefined;
+    const readmeCandidates = ['README.md', 'readme.md', 'README.txt'];
+    for (const f of readmeCandidates) {
+      const p = join(this.cwd, f);
+      if (existsSync(p)) { readme = readFileSync(p, 'utf-8'); break; }
+    }
+
+    // Build JSON payload for marketplace-api POST /api/v1/traits
+    const payload = {
+      name: pkgJson.holoscript?.traitName || name.replace(/^@[^/]+\//, ''),
+      version,
+      description: pkgJson.description || '',
+      license: pkgJson.license || 'MIT',
+      keywords: pkgJson.keywords || [],
+      platforms: pkgJson.holoscript?.platforms || ['all'],
+      category: pkgJson.holoscript?.category || 'utility',
+      source,
+      readme,
+      dependencies: pkgJson.holoscriptDependencies,
+      peerDependencies: pkgJson.peerDependencies,
+      repository: typeof pkgJson.repository === 'string'
+        ? pkgJson.repository
+        : pkgJson.repository?.url,
+      homepage: pkgJson.homepage,
+    };
+
+    const url = `${this.options.registry}/api/v1/traits`;
 
     try {
       const response = await fetch(url, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
-          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
           'User-Agent': 'holoscript-cli/1.0.0',
         },
-        body,
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage: string;
-
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.error || errorJson.message || errorText;
         } catch {
           errorMessage = errorText || `HTTP ${response.status}`;
         }
-
-        return {
-          success: false,
-          error: errorMessage,
-        };
+        return { success: false, error: errorMessage };
       }
 
-      const result = await response.json();
+      const result = await response.json() as { id?: string; message?: string };
       return {
         success: true,
         message: result.message,
-        url: result.url,
+        url: `${this.options.registry}/api/v1/traits/${result.id}`,
       };
     } catch (err: any) {
-      // Handle network errors gracefully
       if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-        return {
-          success: false,
-          error: `Unable to connect to registry: ${this.options.registry}`,
-        };
+        return { success: false, error: `Unable to connect to registry: ${this.options.registry}` };
       }
-      return {
-        success: false,
-        error: err.message,
-      };
+      return { success: false, error: err.message };
     }
   }
 
-  private buildMultipartBody(
-    boundary: string,
-    parts: Record<string, { filename?: string; contentType: string; content: Buffer }>
-  ): Buffer {
-    const chunks: Buffer[] = [];
-
-    for (const [name, part] of Object.entries(parts)) {
-      chunks.push(Buffer.from(`--${boundary}\r\n`));
-
-      if (part.filename) {
-        chunks.push(
-          Buffer.from(
-            `Content-Disposition: form-data; name="${name}"; filename="${part.filename}"\r\n`
-          )
-        );
-      } else {
-        chunks.push(Buffer.from(`Content-Disposition: form-data; name="${name}"\r\n`));
-      }
-
-      chunks.push(Buffer.from(`Content-Type: ${part.contentType}\r\n\r\n`));
-      chunks.push(part.content);
-      chunks.push(Buffer.from('\r\n'));
+  /** Find and read the primary .holo source file from the package */
+  private readHoloSource(pkgJson: any): string {
+    // 1. Check package.json "main" field
+    if (pkgJson.main) {
+      const mainPath = join(this.cwd, pkgJson.main);
+      if (existsSync(mainPath)) return readFileSync(mainPath, 'utf-8');
     }
 
-    chunks.push(Buffer.from(`--${boundary}--\r\n`));
+    // 2. Look for .holo files in common locations
+    const candidates = ['index.holo', 'src/index.holo', 'trait.holo'];
+    for (const c of candidates) {
+      const p = join(this.cwd, c);
+      if (existsSync(p)) return readFileSync(p, 'utf-8');
+    }
 
-    return Buffer.concat(chunks);
+    // 3. Scan for any .holo file in src/ or root
+    for (const dir of [join(this.cwd, 'src'), this.cwd]) {
+      try {
+        const files = readdirSync(dir).filter(f => extname(f) === '.holo');
+        if (files.length > 0) return readFileSync(join(dir, files[0]), 'utf-8');
+      } catch { /* skip */ }
+    }
+
+    // 4. Fallback: return empty
+    return '';
   }
 
   // ============================================================================
