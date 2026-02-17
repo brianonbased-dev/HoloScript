@@ -9,6 +9,7 @@ export * from './types.js';
 // Core services
 export { TraitRegistry, InMemoryTraitDatabase } from './TraitRegistry.js';
 export type { ITraitDatabase } from './TraitRegistry.js';
+export { PostgresTraitDatabase } from './PostgresTraitDatabase.js';
 
 export { MarketplaceService, DownloadStatsTracker, RatingService } from './MarketplaceService.js';
 

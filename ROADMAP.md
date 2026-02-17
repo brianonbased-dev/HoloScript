@@ -10,7 +10,7 @@ A declarative language with tooling that compiles to multiple platforms. This ro
 
 ## 🚀 v3.5.0 - Hololand Bootstrap: Build in VR with Brittney (March–May 2026)
 
-**Status:** 📋 **PLANNING** | **Vision Doc:** [VISION_HOLOLAND_BOOTSTRAP.md](VISION_HOLOLAND_BOOTSTRAP.md)
+**Status:** 🟡 **IN PROGRESS** | **Vision Doc:** [VISION_HOLOLAND_BOOTSTRAP.md](VISION_HOLOLAND_BOOTSTRAP.md)
 
 The endgame: put on a headset, talk to Brittney, build Hololand in VR. HoloScript becomes the application layer for Hololand, and Brittney generates it from inside the world.
 
@@ -86,6 +86,21 @@ Second sprint covering CRDT collaboration, self-improvement, component library, 
 | **Component Library** — 25 .holo templates across 5 categories (NPCs, Weapons, UI, Environment, Game Systems) | ✅ Complete |
 | **Playground IDE** — Monaco editor with syntax highlighting, Three.js preview, file I/O | ✅ Complete |
 | **Track 3: Enhanced WorldBuilder** — HoloScript I/O, Visual Scripting, Brittney Integration, Multi-Object Editing (1118 lines, 50 tests), Performance Tools (1119 lines, 34 tests), Playground IDE integration | ✅ Complete |
+
+### "Commence All III" — Railway Production + SDK Expansion (February 16, 2026)
+
+Sprint covering production persistence, new SDKs, and npm publishing:
+
+| Task | Status |
+| --- | --- |
+| **PostgresTraitDatabase** — `ITraitDatabase` implementation for Railway Postgres, auto-migrates schema on startup, replaces in-memory storage in production | ✅ Complete |
+| **Railway deployment** — healthcheck path fixes (marketplace-api, llm-service), production URL wiring, CORS + trust proxy config | ✅ Complete |
+| **E2E export tests** — 72 tests covering all 15 compilers (`ExportTargets.e2e.test.ts`) | ✅ Complete |
+| **LLM Provider SDK** — `@holoscript/llm-provider` v1.0.0 — unified OpenAI/Anthropic/Gemini/Mock adapters, 46 tests | ✅ Complete |
+| **Python robotics bindings** — `holoscript.robotics` module: `export_urdf()`, `export_sdf()`, `generate_ros2_launch()`, 48 tests | ✅ Complete |
+| **Codecov + security CI** — codecov.yml (80% threshold), CodeQL + Snyk workflows | ✅ Complete |
+| **npm publish expanded** — publish.yml updated to include mcp-server, llm-provider, security-sandbox, ai-validator, comparative-benchmarks | ✅ Complete |
+| **Brittney v5 fine-tune** — training data pipeline ready, awaiting model training run | 🔲 Not started |
 
 ### "Commence All" — Ecosystem Expansion (February 15, 2026)
 

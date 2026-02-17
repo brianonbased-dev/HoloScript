@@ -9,6 +9,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { createMarketplaceRoutes } from './routes.js';
 import { MarketplaceService } from './MarketplaceService.js';
+import { TraitRegistry } from './TraitRegistry.js';
+import { PostgresTraitDatabase } from './PostgresTraitDatabase.js';
 
 // =============================================================================
 // SERVER CONFIGURATION
@@ -152,7 +154,21 @@ export async function startServer(
   config?: Partial<ServerConfig>
 ): Promise<{ app: Express; port: number }> {
   const cfg = { ...DEFAULT_CONFIG, ...config };
-  const marketplace = new MarketplaceService();
+
+  // Use PostgreSQL when DATABASE_URL is set (Railway production), else in-memory (dev)
+  let registry: TraitRegistry;
+  if (process.env.DATABASE_URL) {
+    console.log('[db] Connecting to PostgreSQL...');
+    const pgDb = new PostgresTraitDatabase(process.env.DATABASE_URL);
+    await pgDb.initSchema();
+    console.log('[db] PostgreSQL ready');
+    registry = new TraitRegistry(pgDb);
+  } else {
+    console.log('[db] Using in-memory database (set DATABASE_URL for persistence)');
+    registry = new TraitRegistry();
+  }
+
+  const marketplace = new MarketplaceService({ registry });
   const app = createApp(marketplace, cfg);
 
   return new Promise((resolve, reject) => {

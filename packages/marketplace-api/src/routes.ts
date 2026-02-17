@@ -202,7 +202,7 @@ function validate<T>(schema: z.ZodSchema<T>) {
 /**
  * Validate query params with zod schema
  */
-function validateQuery<T>(schema: z.ZodSchema<T>) {
+function validateQuery<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.query);
     if (!result.success) {

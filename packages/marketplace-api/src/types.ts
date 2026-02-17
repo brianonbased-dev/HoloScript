@@ -383,7 +383,7 @@ export interface VerificationStatus {
   verifiedAt?: Date;
   verifiedBy?: string;
   badge?: string;
-  level?: 'basic' | 'verified' | 'trusted' | 'official';
+  level?: 'none' | 'basic' | 'verified' | 'trusted' | 'official';
 }
 
 // =============================================================================
