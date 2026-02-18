@@ -15,8 +15,18 @@ export default [
   'packages/llm-provider/vitest.config.ts',
   'packages/registry/vitest.config.ts',
   'packages/holoscript-cdn/vitest.config.ts',
+  'packages/runtime/vitest.config.ts',
 
   // ── Packages without a vitest.config.ts (inline) ──────────────────────
+  {
+    test: {
+      name: 'std',
+      root: './packages/std',
+      include: ['src/**/*.test.ts'],
+      exclude: ['**/dist/**', '**/node_modules/**'],
+      environment: 'node',
+    },
+  },
   {
     test: {
       name: 'marketplace-api',
