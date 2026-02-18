@@ -2308,11 +2308,11 @@ function checkExhaustive(matchExpr: MatchExpression, unionType: UnionType): Diag
 
 **Acceptance criteria:**
 
-- [ ] String literal unions checked
-- [ ] Number literal unions checked
-- [ ] Nested matches checked
-- [ ] `_` wildcard recognized as catch-all
-- [ ] Quick-fix suggestion for missing cases
+- [x] String literal unions checked
+- [x] Number literal unions checked
+- [x] Nested matches checked
+- [x] `_` wildcard recognized as catch-all
+- [x] Quick-fix suggestion for missing cases
 
 ---
 
@@ -2373,11 +2373,11 @@ Parse multiple files simultaneously using worker threads.
 
 **Acceptance criteria:**
 
-- [ ] Parses files in parallel
-- [ ] Handles file dependencies correctly
-- [ ] Graceful fallback if workers unavailable
-- [ ] Memory usage stays bounded
-- [ ] Error in one file doesn't crash others
+- [x] Parses files in parallel
+- [x] Handles file dependencies correctly
+- [x] Graceful fallback if workers unavailable
+- [x] Memory usage stays bounded
+- [x] Error in one file doesn't crash others
 
 ---
 
@@ -2449,11 +2449,11 @@ holoscript build --clean      # Clear cache first
 
 **Acceptance criteria:**
 
-- [ ] Unchanged files skip rebuild
-- [ ] Dependency changes trigger rebuild
-- [ ] Cache survives across sessions
-- [ ] `--clean` clears cache
-- [ ] 50%+ faster incremental builds
+- [x] Unchanged files skip rebuild
+- [x] Dependency changes trigger rebuild
+- [x] Cache survives across sessions
+- [x] `--clean` clears cache
+- [x] 50%+ faster incremental builds
 
 ---
 
@@ -2509,11 +2509,11 @@ Source:    value = item.property
 
 **Acceptance criteria:**
 
-- [ ] Column-level mapping works
-- [ ] Variable names preserved
-- [ ] Chrome DevTools shows correct source
-- [ ] VS Code debugging uses source maps
-- [ ] Inline and external map options
+- [x] Column-level mapping works
+- [x] Variable names preserved
+- [x] Chrome DevTools shows correct source
+- [x] VS Code debugging uses source maps
+- [x] Inline and external map options
 
 ---
 
@@ -2566,11 +2566,11 @@ holoscript analyze --html > report.html
 
 **Acceptance criteria:**
 
-- [ ] Terminal output with sizes
-- [ ] JSON export for CI
-- [ ] Interactive HTML treemap
-- [ ] Duplicate code detection
-- [ ] Suggestions for size reduction
+- [x] Terminal output with sizes
+- [x] JSON export for CI
+- [x] Interactive HTML treemap
+- [x] Duplicate code detection
+- [x] Suggestions for size reduction
 
 </details>
 

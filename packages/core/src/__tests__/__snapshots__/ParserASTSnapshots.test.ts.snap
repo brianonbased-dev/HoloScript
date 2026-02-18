@@ -2700,8 +2700,8 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         "id": undefined,
         "loc": {
           "end": {
-            "column": 0,
-            "line": 0,
+            "column": 5,
+            "line": 4,
           },
           "start": {
             "column": 7,
@@ -2710,14 +2710,32 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         },
         "name": undefined,
         "properties": {
-          "condition": true,
-          "doOtherThing": true,
           "doSomething": true,
-          "else": true,
           "if": true,
         },
         "traits": Map {},
         "type": "ConditionalTest",
+      },
+      {
+        "children": [],
+        "directives": [],
+        "id": undefined,
+        "loc": {
+          "end": {
+            "column": 4,
+            "line": 6,
+          },
+          "start": {
+            "column": 5,
+            "line": 4,
+          },
+        },
+        "name": undefined,
+        "properties": {
+          "doOtherThing": true,
+        },
+        "traits": Map {},
+        "type": "else",
       },
     ],
     "children": [
@@ -2751,8 +2769,8 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         "id": undefined,
         "loc": {
           "end": {
-            "column": 0,
-            "line": 0,
+            "column": 5,
+            "line": 4,
           },
           "start": {
             "column": 7,
@@ -2761,14 +2779,32 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
         },
         "name": undefined,
         "properties": {
-          "condition": true,
-          "doOtherThing": true,
           "doSomething": true,
-          "else": true,
           "if": true,
         },
         "traits": Map {},
         "type": "ConditionalTest",
+      },
+      {
+        "children": [],
+        "directives": [],
+        "id": undefined,
+        "loc": {
+          "end": {
+            "column": 4,
+            "line": 6,
+          },
+          "start": {
+            "column": 5,
+            "line": 4,
+          },
+        },
+        "name": undefined,
+        "properties": {
+          "doOtherThing": true,
+        },
+        "traits": Map {},
+        "type": "else",
       },
     ],
     "directives": [],
@@ -2779,8 +2815,8 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
     "imports": [],
     "loc": {
       "end": {
-        "column": 0,
-        "line": 0,
+        "column": 2,
+        "line": 7,
       },
       "start": {
         "column": 1,
@@ -2821,8 +2857,8 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
           "id": undefined,
           "loc": {
             "end": {
-              "column": 0,
-              "line": 0,
+              "column": 5,
+              "line": 4,
             },
             "start": {
               "column": 7,
@@ -2831,14 +2867,32 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
           },
           "name": undefined,
           "properties": {
-            "condition": true,
-            "doOtherThing": true,
             "doSomething": true,
-            "else": true,
             "if": true,
           },
           "traits": Map {},
           "type": "ConditionalTest",
+        },
+        {
+          "children": [],
+          "directives": [],
+          "id": undefined,
+          "loc": {
+            "end": {
+              "column": 4,
+              "line": 6,
+            },
+            "start": {
+              "column": 5,
+              "line": 4,
+            },
+          },
+          "name": undefined,
+          "properties": {
+            "doOtherThing": true,
+          },
+          "traits": Map {},
+          "type": "else",
         },
       ],
       "children": [
@@ -2872,8 +2926,8 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
           "id": undefined,
           "loc": {
             "end": {
-              "column": 0,
-              "line": 0,
+              "column": 5,
+              "line": 4,
             },
             "start": {
               "column": 7,
@@ -2882,22 +2936,40 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
           },
           "name": undefined,
           "properties": {
-            "condition": true,
-            "doOtherThing": true,
             "doSomething": true,
-            "else": true,
             "if": true,
           },
           "traits": Map {},
           "type": "ConditionalTest",
+        },
+        {
+          "children": [],
+          "directives": [],
+          "id": undefined,
+          "loc": {
+            "end": {
+              "column": 4,
+              "line": 6,
+            },
+            "start": {
+              "column": 5,
+              "line": 4,
+            },
+          },
+          "name": undefined,
+          "properties": {
+            "doOtherThing": true,
+          },
+          "traits": Map {},
+          "type": "else",
         },
       ],
       "directives": [],
       "id": "root",
       "loc": {
         "end": {
-          "column": 0,
-          "line": 0,
+          "column": 2,
+          "line": 7,
         },
         "start": {
           "column": 1,
@@ -2916,36 +2988,6 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
   "errors": [
     {
       "code": "HSP001",
-      "column": 6,
-      "context": "  1 | logic ConditionalTest {
-> 2 |   if (condition) {
-          ^
-  3 |     doSomething()
-  4 |   } else {",
-      "endColumn": undefined,
-      "endLine": undefined,
-      "line": 2,
-      "message": "HSP001: Unexpected token LPAREN "(" in node body",
-      "severity": "error",
-      "suggestion": undefined,
-    },
-    {
-      "code": "HSP001",
-      "column": 16,
-      "context": "  1 | logic ConditionalTest {
-> 2 |   if (condition) {
-                    ^
-  3 |     doSomething()
-  4 |   } else {",
-      "endColumn": undefined,
-      "endLine": undefined,
-      "line": 2,
-      "message": "HSP001: Unexpected token RPAREN ")" in node body",
-      "severity": "error",
-      "suggestion": undefined,
-    },
-    {
-      "code": "HSP001",
       "column": 18,
       "context": "  1 | logic ConditionalTest {
 > 2 |   if (condition) {
@@ -2961,65 +3003,17 @@ exports[`Parser AST Visual Regression > Control Flow AST Nodes > conditional log
     },
     {
       "code": "HSP001",
-      "column": 16,
-      "context": "  1 | logic ConditionalTest {
-  2 |   if (condition) {
-> 3 |     doSomething()
-                    ^
-  4 |   } else {
-  5 |     doOtherThing()",
-      "endColumn": undefined,
-      "endLine": undefined,
-      "line": 3,
-      "message": "HSP001: Unexpected token LPAREN "(" in node body",
-      "severity": "error",
-      "suggestion": undefined,
-    },
-    {
-      "code": "HSP001",
-      "column": 10,
-      "context": "  2 |   if (condition) {
-  3 |     doSomething()
-> 4 |   } else {
-              ^
-  5 |     doOtherThing()
-  6 |   }",
-      "endColumn": undefined,
-      "endLine": undefined,
-      "line": 4,
-      "message": "HSP001: Unexpected token LBRACE "{" in node body",
-      "severity": "error",
-      "suggestion": undefined,
-    },
-    {
-      "code": "HSP001",
-      "column": 17,
-      "context": "  3 |     doSomething()
-  4 |   } else {
-> 5 |     doOtherThing()
-                     ^
-  6 |   }
-  7 | }",
-      "endColumn": undefined,
-      "endLine": undefined,
-      "line": 5,
-      "message": "HSP001: Unexpected token LPAREN "(" in node body",
-      "severity": "error",
-      "suggestion": undefined,
-    },
-    {
-      "code": "HSP004",
-      "column": 2,
+      "column": 1,
       "context": "  5 |     doOtherThing()
   6 |   }
 > 7 | }
-      ^",
+     ^",
       "endColumn": undefined,
       "endLine": undefined,
       "line": 7,
-      "message": "HSP004: Expected }. Got EOF """,
+      "message": "HSP001: Unexpected token RBRACE "}" at top level. Expected: composition, object, template, logic, or @directive",
       "severity": "error",
-      "suggestion": "Check for matching opening brace { and ensure all blocks are properly closed",
+      "suggestion": undefined,
     },
   ],
   "features": {

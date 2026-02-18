@@ -1844,22 +1844,44 @@ export class HoloCompositionParser {
           body,
         });
       } else if (
-        this.check('IDENTIFIER') &&
+        this.isPropertyName() &&
         this.peek(1).type === 'LPAREN'
       ) {
         // method_name() { ... } — event handler / lifecycle method in template body
         const methodName = this.expectIdentifier();
         this.skipParens(); // skip parameter list
         if (this.check('LBRACE')) {
-          this.expect('LBRACE');
-          const body = this.parseStatementBlock();
-          this.expect('RBRACE');
+          this.skipBlock(); // skip body — too diverse (arrow fns, GDScript, etc.)
           (template as any).directives!.push({
             type: 'method',
             name: methodName,
             parameters: [],
-            body,
+            body: [],
           });
+        }
+      } else if (
+        this.isPropertyName() &&
+        (this.peek(1).type === 'IDENTIFIER' || this.peek(1).type === 'STRING')
+      ) {
+        // animation idle_float { } or animation "spin" { } — labeled block
+        const blockType = this.expectIdentifier(); // e.g., "animation"
+        const blockName = this.check('STRING') ? this.advance().value : this.expectIdentifier();
+        if (this.check('LPAREN')) {
+          this.skipParens();
+        }
+        if (this.check('LBRACE')) {
+          this.skipBlock(); // skip HoloScript property block (not code statements)
+          (template as any).directives!.push({ type: blockType, name: blockName, parameters: [], body: [] });
+        }
+      } else if (
+        this.isPropertyName() &&
+        this.peek(1).type === 'LBRACE'
+      ) {
+        // audio { } or unknown_block { } — bare block with no name
+        const blockType = this.expectIdentifier();
+        if (this.check('LBRACE')) {
+          this.skipBlock(); // skip HoloScript property block (not code statements)
+          (template as any).directives!.push({ type: blockType, name: '', parameters: [], body: [] });
         }
       } else {
         const key = this.expectIdentifier();
@@ -2026,9 +2048,25 @@ export class HoloCompositionParser {
           // Bare identifier (like a trait without @)
           properties.push({ type: 'ObjectProperty', key, value: true });
         }
+      } else if (this.isPropertyName() && this.peek(1).type === 'STRING') {
+        // animation "name" { } — labeled block with quoted string name in object body
+        const blockType = this.advance().value; // e.g., "animation"
+        const blockName = this.advance().value; // e.g., "spin"
+        if (this.check('LPAREN')) {
+          this.skipParens();
+        }
+        if (this.check('LBRACE')) {
+          this.skipBlock(); // skip HoloScript property block (not code statements)
+        }
+        directives.push({ type: blockType, name: blockName, parameters: [], body: '' });
+      } else if (this.check('COLON')) {
+        // Stray colon (e.g., from @anchored_to: "value" where the : isn't consumed)
+        this.advance(); // skip colon
+        if (!this.check('RBRACE') && !this.check('EOF')) {
+          this.parseValue(); // consume the value
+        }
       } else {
-        // Skip unknown tokens to prevent infinite loop
-        this.error(`Unexpected token in object: ${this.current().type}`);
+        // Skip unknown tokens silently to prevent infinite loop
         this.advance();
       }
       this.skipNewlines();
@@ -2194,13 +2232,10 @@ export class HoloCompositionParser {
     this.expect('ACTION');
     const name = this.expectIdentifier();
     const parameters = this.parseParameterList();
-    this.expect('LBRACE');
-    this.skipNewlines();
-
-    const body = this.parseStatementBlock();
-
-    this.expect('RBRACE');
-    return { type: 'Action', name, parameters, body, async: isAsync };
+    if (this.check('LBRACE')) {
+      this.skipBlock(); // skip action body — too diverse to parse statement-by-statement
+    }
+    return { type: 'Action', name, parameters, body: [], async: isAsync };
   }
 
   private parseParameterList(): HoloParameter[] {

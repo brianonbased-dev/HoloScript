@@ -1615,6 +1615,15 @@ export class HoloScriptPlusParser {
                 children.push(this.parseNode());
               } else {
                 properties[name] = true;
+                // Skip function call or member access chain following the name:
+                // e.g., channel("dev-team").broadcast({...}) or this.state.foo = bar
+                while (this.check('LPAREN') || this.check('DOT')) {
+                  if (this.check('LPAREN')) this.skipParens();
+                  else {
+                    this.advance(); // consume .
+                    if (this.check('IDENTIFIER')) this.advance(); // consume property name
+                  }
+                }
               }
             } else if (this.check('COMMA')) {
               // OPTIONAL COMMA SUPPORT
