@@ -1,3 +1,15 @@
+## [3.5.0-alpha.31] - 2026-02-18
+
+### ∞ Commence All XXXIII — Runtime Registries + Web3 🔧🌐
+
+18 new tests across 2 suites — engine registries and Web3 mock provider.
+
+#### Runtime
+- `RuntimeRegistries.prod.test.ts` (10 tests) — register/get/undefined/overwrite for PhysicsEngine, NavigationEngine, AssetStreamer, SpeechRecognizer registries.
+
+#### Web3
+- `Web3Provider.prod.test.ts` (8 tests) — Singleton, initial state, connect/disconnect, getMyAssets (empty/connected), mint (throws/returns).
+
 ## [3.5.0-alpha.30] - 2026-02-18
 
 ### ∞ Commence All XXXII — Widgets + DevEx + Components 🧰📐

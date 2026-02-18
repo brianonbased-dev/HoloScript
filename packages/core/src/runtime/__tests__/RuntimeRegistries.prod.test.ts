@@ -1,97 +1,103 @@
 /**
- * Runtime Registry Modules Production Tests
+ * Runtime Registries Production Tests
  *
- * Tests for PhysicsEngine, NavigationEngine, AssetStreamer, and
- * SpeechRecognizer — all share the same interface+registry pattern:
- * registry Map + register() + get() functions.
+ * Tests register/get for PhysicsEngine, NavigationEngine, AssetStreamer, SpeechRecognizer registries.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  physicsEngineRegistry, registerPhysicsEngine, getPhysicsEngine,
+  physicsEngineRegistry,
+  registerPhysicsEngine,
+  getPhysicsEngine,
 } from '../PhysicsEngine';
 import {
-  navigationEngineRegistry, registerNavigationEngine, getNavigationEngine,
+  navigationEngineRegistry,
+  registerNavigationEngine,
+  getNavigationEngine,
 } from '../NavigationEngine';
 import {
-  assetStreamerRegistry, registerAssetStreamer, getAssetStreamer,
+  assetStreamerRegistry,
+  registerAssetStreamer,
+  getAssetStreamer,
 } from '../AssetStreamer';
 import {
-  speechRecognizerRegistry, registerSpeechRecognizer, getSpeechRecognizer,
+  speechRecognizerRegistry,
+  registerSpeechRecognizer,
+  getSpeechRecognizer,
 } from '../SpeechRecognizer';
 
-const mockImpl = (name: string) => ({ _name: name } as any);
+const mockEngine = () => ({
+  initialize: async () => {},
+  addBody: () => {},
+  removeBody: () => {},
+  updateBody: () => {},
+  applyForce: () => {},
+  step: () => {},
+  getStates: () => ({}),
+  dispose: () => {},
+} as any);
 
 describe('Runtime Registries — Production', () => {
-
-  // ======== PHYSICS ENGINE ========
+  beforeEach(() => {
+    physicsEngineRegistry.clear();
+    navigationEngineRegistry.clear();
+    assetStreamerRegistry.clear();
+    speechRecognizerRegistry.clear();
+  });
 
   describe('PhysicsEngine registry', () => {
-    beforeEach(() => physicsEngineRegistry.clear());
-
-    it('registers and retrieves an engine', () => {
-      const engine = mockImpl('webgpu');
-      registerPhysicsEngine('webgpu', engine);
-      expect(getPhysicsEngine('webgpu')).toBe(engine);
+    it('register + get', () => {
+      const eng = mockEngine();
+      registerPhysicsEngine('webgpu', eng);
+      expect(getPhysicsEngine('webgpu')).toBe(eng);
     });
 
-    it('returns undefined for unknown engine', () => {
-      expect(getPhysicsEngine('nonexistent')).toBeUndefined();
+    it('returns undefined for unknown', () => {
+      expect(getPhysicsEngine('nope')).toBeUndefined();
     });
 
-    it('overwrites existing registration', () => {
-      registerPhysicsEngine('physx', mockImpl('v1'));
-      const v2 = mockImpl('v2');
-      registerPhysicsEngine('physx', v2);
-      expect(getPhysicsEngine('physx')).toBe(v2);
+    it('overwrites same name', () => {
+      const a = mockEngine();
+      const b = mockEngine();
+      registerPhysicsEngine('gpu', a);
+      registerPhysicsEngine('gpu', b);
+      expect(getPhysicsEngine('gpu')).toBe(b);
     });
   });
-
-  // ======== NAVIGATION ENGINE ========
 
   describe('NavigationEngine registry', () => {
-    beforeEach(() => navigationEngineRegistry.clear());
-
-    it('registers and retrieves an engine', () => {
-      const engine = mockImpl('recast');
-      registerNavigationEngine('recast', engine);
-      expect(getNavigationEngine('recast')).toBe(engine);
+    it('register + get', () => {
+      const eng = mockEngine();
+      registerNavigationEngine('recast', eng);
+      expect(getNavigationEngine('recast')).toBe(eng);
     });
 
-    it('returns undefined for unknown engine', () => {
-      expect(getNavigationEngine('missing')).toBeUndefined();
+    it('returns undefined for unknown', () => {
+      expect(getNavigationEngine('nope')).toBeUndefined();
     });
   });
 
-  // ======== ASSET STREAMER ========
-
   describe('AssetStreamer registry', () => {
-    beforeEach(() => assetStreamerRegistry.clear());
-
-    it('registers and retrieves a streamer', () => {
-      const streamer = mockImpl('draco');
-      registerAssetStreamer('draco', streamer);
-      expect(getAssetStreamer('draco')).toBe(streamer);
+    it('register + get', () => {
+      const eng = mockEngine();
+      registerAssetStreamer('threejs', eng);
+      expect(getAssetStreamer('threejs')).toBe(eng);
     });
 
-    it('returns undefined for unknown streamer', () => {
+    it('returns undefined for unknown', () => {
       expect(getAssetStreamer('nope')).toBeUndefined();
     });
   });
 
-  // ======== SPEECH RECOGNIZER ========
-
   describe('SpeechRecognizer registry', () => {
-    beforeEach(() => speechRecognizerRegistry.clear());
-
-    it('registers and retrieves a recognizer', () => {
-      const rec = mockImpl('whisper');
-      registerSpeechRecognizer('whisper', rec);
-      expect(getSpeechRecognizer('whisper')).toBe(rec);
+    it('register + get', () => {
+      const eng = mockEngine();
+      registerSpeechRecognizer('whisper', eng);
+      expect(getSpeechRecognizer('whisper')).toBe(eng);
     });
 
-    it('returns undefined for unknown recognizer', () => {
-      expect(getSpeechRecognizer('missing')).toBeUndefined();
+    it('returns undefined for unknown', () => {
+      expect(getSpeechRecognizer('nope')).toBeUndefined();
     });
   });
 });
