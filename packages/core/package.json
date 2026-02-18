@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/core",
-  "version": "3.31.0",
+  "version": "3.32.0",
   "description": "HoloScript+: VR language with declarative syntax, state management, reactive traits, and VR interactions. Full backward compatible with original HoloScript.",
   "type": "module",
   "main": "./dist/index.cjs",
