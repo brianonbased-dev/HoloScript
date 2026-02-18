@@ -1,91 +1,152 @@
 /**
- * UISlider + UITextInput Factory Production Tests
+ * UIWidgetFactory Production Tests
  *
- * createUISlider: node hierarchy, track/handle, axis, traits.
- * createUITextInput: node hierarchy, text/cursor children, data properties.
+ * Create + interact: button, slider, toggle, textInput, dropdown, progress.
  */
 
-import { describe, it, expect } from 'vitest';
-import { createUISlider } from '../UISlider';
-import { createUITextInput } from '../UITextInput';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { UIWidgetFactory, type SliderWidget, type ToggleWidget, type TextInputWidget, type DropdownWidget, type ProgressBarWidget } from '../UIWidgets';
 
-describe('createUISlider — Production', () => {
-  it('creates slider with track and handle', () => {
-    const slider = createUISlider('vol', {});
-    expect(slider.id).toContain('vol');
-    expect(slider.type).toBe('object');
-    expect(slider.children).toHaveLength(1);
+describe('UIWidgetFactory — Production', () => {
+  let factory: UIWidgetFactory;
+
+  beforeEach(() => {
+    factory = new UIWidgetFactory();
   });
 
-  it('handle has slidable + grabbable traits', () => {
-    const slider = createUISlider('vol', {});
-    const handle = slider.children![0];
-    expect(handle.traits).toBeDefined();
-    const traitNames = (handle.traits as any[]).map((t: any) => t.name);
-    expect(traitNames).toContain('slidable');
-    expect(traitNames).toContain('grabbable');
+  describe('createButton', () => {
+    it('creates with defaults', () => {
+      const btn = factory.createButton('Click');
+      expect(btn.type).toBe('button');
+      expect(btn.label).toBe('Click');
+      expect(btn.enabled).toBe(true);
+      expect(btn.visible).toBe(true);
+    });
+
+    it('pressButton fires callback', () => {
+      const fn = vi.fn();
+      const btn = factory.createButton('X', fn);
+      expect(factory.pressButton(btn.id)).toBe(true);
+      expect(fn).toHaveBeenCalledOnce();
+    });
+
+    it('pressButton fails on disabled', () => {
+      const btn = factory.createButton('X');
+      btn.enabled = false;
+      expect(factory.pressButton(btn.id)).toBe(false);
+    });
   });
 
-  it('respects axis config', () => {
-    const slider = createUISlider('vol', { axis: 'y', length: 0.5 });
-    // The track scale should reflect the axis
-    expect(slider.properties?.scale?.y).toBe(0.5);
+  describe('createSlider', () => {
+    it('creates with min/max/value/step', () => {
+      const sl = factory.createSlider('Volume', 0, 100, 50, 5);
+      expect(sl.type).toBe('slider');
+      expect(sl.min).toBe(0);
+      expect(sl.max).toBe(100);
+      expect(sl.value).toBe(50);
+    });
+
+    it('setSliderValue clamps and steps', () => {
+      const sl = factory.createSlider('Vol', 0, 100, 50, 10);
+      factory.setSliderValue(sl.id, 73);
+      const w = factory.getWidget<SliderWidget>(sl.id)!;
+      expect(w.value).toBe(70); // rounded to nearest step
+    });
+
+    it('setSliderValue fires onChange', () => {
+      const fn = vi.fn();
+      const sl = factory.createSlider('Vol');
+      sl.onChange = fn;
+      factory.setSliderValue(sl.id, 25);
+      expect(fn).toHaveBeenCalled();
+    });
   });
 
-  it('default axis is x', () => {
-    const slider = createUISlider('vol', {});
-    expect(slider.properties?.scale?.x).toBe(0.3); // default length
+  describe('createToggle', () => {
+    it('creates unchecked by default', () => {
+      const tg = factory.createToggle('Dark Mode');
+      expect(tg.type).toBe('toggle');
+      expect(tg.checked).toBe(false);
+    });
+
+    it('toggleWidget flips', () => {
+      const tg = factory.createToggle('DM');
+      factory.toggleWidget(tg.id);
+      expect(factory.getWidget<ToggleWidget>(tg.id)!.checked).toBe(true);
+      factory.toggleWidget(tg.id);
+      expect(factory.getWidget<ToggleWidget>(tg.id)!.checked).toBe(false);
+    });
   });
 
-  it('custom colors', () => {
-    const slider = createUISlider('vol', { trackColor: '#ff0000', handleColor: '#00ff00' });
-    expect(slider.properties?.color).toBe('#ff0000');
-    expect(slider.children![0].properties?.color).toBe('#00ff00');
-  });
-});
+  describe('createTextInput', () => {
+    it('creates with placeholder', () => {
+      const ti = factory.createTextInput('Name', 'Enter name');
+      expect(ti.type).toBe('textInput');
+      expect(ti.placeholder).toBe('Enter name');
+      expect(ti.maxLength).toBe(256);
+    });
 
-describe('createUITextInput — Production', () => {
-  it('creates input with text and cursor children', () => {
-    const input = createUITextInput('name', {});
-    expect(input.id).toBe('name');
-    expect(input.type).toBe('ui_text_input');
-    expect(input.children).toHaveLength(2);
-  });
-
-  it('has text child and cursor child', () => {
-    const input = createUITextInput('name', {});
-    expect(input.children![0].id).toBe('name_text');
-    expect(input.children![1].id).toBe('name_cursor');
+    it('setTextValue truncates to maxLength', () => {
+      const ti = factory.createTextInput('N');
+      (ti as any).maxLength = 5;
+      factory.setTextValue(ti.id, 'HelloWorld');
+      expect(factory.getWidget<TextInputWidget>(ti.id)!.value).toBe('Hello');
+    });
   });
 
-  it('sets data with placeholder', () => {
-    const input = createUITextInput('name', { placeholder: 'Type here...' });
-    expect(input.properties?.data?.placeholder).toBe('Type here...');
+  describe('createDropdown', () => {
+    it('creates with options', () => {
+      const opts = [{ label: 'A', value: 'a' }, { label: 'B', value: 'b' }];
+      const dd = factory.createDropdown('Pick', opts);
+      expect(dd.type).toBe('dropdown');
+      expect(dd.options).toHaveLength(2);
+      expect(dd.selectedIndex).toBe(0);
+    });
+
+    it('selectDropdownOption updates', () => {
+      const opts = [{ label: 'A', value: 'a' }, { label: 'B', value: 'b' }];
+      const dd = factory.createDropdown('Pick', opts);
+      expect(factory.selectDropdownOption(dd.id, 1)).toBe(true);
+      expect(factory.getWidget<DropdownWidget>(dd.id)!.selectedIndex).toBe(1);
+    });
+
+    it('selectDropdownOption rejects out of range', () => {
+      const dd = factory.createDropdown('Pick', [{ label: 'A', value: 'a' }]);
+      expect(factory.selectDropdownOption(dd.id, 5)).toBe(false);
+    });
   });
 
-  it('sets initial text', () => {
-    const input = createUITextInput('name', { text: 'Hello' });
-    expect(input.properties?.data?.text).toBe('Hello');
-    expect(input.properties?.data?.cursorIndex).toBe(5);
+  describe('createProgressBar', () => {
+    it('creates clamped', () => {
+      const pb = factory.createProgressBar('Loading', 1.5);
+      expect(pb.type).toBe('progress');
+      expect(pb.value).toBe(1); // clamped to 1
+    });
+
+    it('setProgressValue clamps', () => {
+      const pb = factory.createProgressBar('Load', 0.5);
+      factory.setProgressValue(pb.id, -0.5);
+      expect(factory.getWidget<ProgressBarWidget>(pb.id)!.value).toBe(0);
+    });
   });
 
-  it('default dimensions', () => {
-    const input = createUITextInput('name', {});
-    expect(input.properties?.width).toBe(0.4);
-    expect(input.properties?.height).toBe(0.06);
-  });
+  describe('query', () => {
+    it('getWidgetCount', () => {
+      factory.createButton('A');
+      factory.createSlider('B');
+      expect(factory.getWidgetCount()).toBe(2);
+    });
 
-  it('custom colors', () => {
-    const input = createUITextInput('name', { color: '#111', textColor: '#aaa', text: 'hi' });
-    expect(input.properties?.color).toBe('#111');
-    expect(input.children![0].properties?.color).toBe('#aaa');
-  });
+    it('getAllWidgets', () => {
+      factory.createButton('A');
+      factory.createToggle('B');
+      expect(factory.getAllWidgets()).toHaveLength(2);
+    });
 
-  it('has pressable trait', () => {
-    const input = createUITextInput('name', {});
-    expect(input.traits).toBeDefined();
-    // traits is a Map
-    expect(input.traits instanceof Map).toBe(true);
-    expect((input.traits as Map<string, any>).has('pressable')).toBe(true);
+    it('removeWidget', () => {
+      const btn = factory.createButton('X');
+      expect(factory.removeWidget(btn.id)).toBe(true);
+      expect(factory.getWidget(btn.id)).toBeUndefined();
+    });
   });
 });

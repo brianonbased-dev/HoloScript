@@ -1,3 +1,16 @@
+## [3.5.0-alpha.30] - 2026-02-18
+
+### ∞ Commence All XXXII — Widgets + DevEx + Components 🧰📐
+
+42 new tests across 3 suites — widget factory, developer tools, UI components.
+
+#### UI
+- `UIWidgets.prod.test.ts` (18 tests) — UIWidgetFactory: create 6 widget types (button/slider/toggle/textInput/dropdown/progress), interaction (pressButton/setSliderValue/toggleWidget/setTextValue/selectDropdownOption/setProgressValue), query/remove.
+- `UIComponents.prod.test.ts` (12 tests) — Factories: createButton (pressable+text), createSlider (slidable+grabbable), createPanel (render+collider), createTextInput (text+cursor+pressable), createScrollView (scrollable+viewport).
+
+#### Tools
+- `DeveloperExperience.prod.test.ts` (12 tests) — ErrorFormatter (static): formatError (message/location/source/suggestion), formatErrors (multi/empty), formatSuccess (plain/details), formatHelp. SourceMapGenerator: addMapping+generate, empty, multiple mappings.
+
 ## [3.5.0-alpha.29] - 2026-02-18
 
 ### ∞ Commence All XXXI — UI + Tenancy Sweep 🎨🏢
