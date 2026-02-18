@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/ai-validator",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AI hallucination validation layer for HoloScript - prevents invalid AI-generated code from breaking user workflows",
   "license": "MIT",
   "main": "./dist/index.js",

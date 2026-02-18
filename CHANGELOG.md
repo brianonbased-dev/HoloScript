@@ -1,3 +1,19 @@
+## [3.5.0-alpha.33] - 2026-02-18
+
+### ∞ Sprint XXXV — WASM + WoT + Semantics Mega Sweep 🔧🌐📝
+
+65 new tests across 4 mega suites — WASM cache/bridge, WoT TD generation, semantic annotations.
+
+#### WASM
+- `WasmModuleCache.prod.test.ts` (6 tests) — constructor defaults, custom config, init without IndexedDB, get returns null, clear, idempotent init.
+- `WasmParserBridge.prod.test.ts` (6 tests) — isAvailable, getStats, config merge, fallback parse, empty string, validate fallback.
+
+#### WoT
+- `ThingDescriptionGenerator.prod.test.ts` (29 tests) — generate (null/TD/description/base/version/id), security defs (nosec/basic/bearer/apikey/oauth2), properties (inline state/directive body/array/object), actions (lifecycle hooks), events (observables), generateAll (recursive), convenience functions, validation.
+
+#### Semantics
+- `PropertyAnnotations.prod.test.ts` (24 tests) — All 18+ factory functions (position/rotation/scale/color/opacity/toggle/enum/range/text/reference/mass/velocity/friction/restitution/aiState/aiGoal/emotion/dialog/syncPriority/ownership).
+
 ## [3.5.0-alpha.32] - 2026-02-18
 
 ### ∞ Commence All XXXIV — visionOS + AR + AI Traits Mega Sweep 🥽🎯🧠

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/partner-sdk",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Partner SDK for integrating with the HoloScript ecosystem",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/security-sandbox",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "VM-based sandbox for secure HoloScript execution - protects against AI-generated code injection",
   "license": "MIT",
   "main": "./dist/index.js",
