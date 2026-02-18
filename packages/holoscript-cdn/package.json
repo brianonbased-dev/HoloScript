@@ -1,0 +1,36 @@
+{
+  "name": "@holoscript/cdn",
+  "version": "1.0.0",
+  "description": "Browser CDN distribution for HoloScript — embed spatial scenes with <holo-scene>",
+  "main": "dist/holoscript.cdn.js",
+  "module": "dist/holoscript.cdn.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/holoscript.cdn.mjs",
+      "require": "./dist/holoscript.cdn.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "dev": "tsup --watch"
+  },
+  "keywords": [
+    "holoscript",
+    "cdn",
+    "web-component",
+    "spatial",
+    "xr",
+    "3d"
+  ],
+  "author": "HoloScript Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/HoloScript.git",
+    "directory": "packages/holoscript-cdn"
+  },
+  "sideEffects": false
+}
