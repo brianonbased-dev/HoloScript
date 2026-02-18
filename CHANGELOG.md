@@ -1,3 +1,19 @@
+## [3.5.0-alpha.22] - 2026-02-18
+
+### ∞ Commence All XXIV — Plugins + Logging + Build Optimizer
+
+51 new tests across 4 suites — 4 previously zero-coverage domains.
+
+#### Plugins
+- `PluginAPI.prod.test.ts` (15 tests) — Permissions (grant/deny), events (on/emit/off), assets (register/unregister with permission gate), commands (register/execute), state store, scene access (permission gated), cleanup.
+- `ModRegistry.prod.test.ts` (10 tests) — Register/unregister, enable/disable, load order (priority sort, disabled exclusion), validate (missing dep, conflicts), discoverFromManifests.
+
+#### Logging
+- `HoloLogger.prod.test.ts` (14 tests) — Construction, level filtering (debug hidden at info level), setLevel, build/request/performance specialised methods, child logger, getEntriesByLevel, clear.
+
+#### Build
+- `BuildOptimizer.prod.test.ts` (12 tests) — addTarget, applyPass (JS minify, inapplicable pass, texture_compress), optimize (multi-target savings), enablePass/disablePass.
+
 ## [3.5.0-alpha.21] - 2026-02-18
 
 ### ∞ Commence All XXIII — State Domain Complete
