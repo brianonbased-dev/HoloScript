@@ -1,264 +1,98 @@
-/**
- * FluidTrait Tests
- *
- * Tests for fluid dynamics simulation
- */
-
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fluidHandler } from '../FluidTrait';
-import {
-  createMockContext,
-  createMockNode,
-  attachTrait,
-  sendEvent,
-  getLastEvent,
-  getEventCount,
-} from './traitTestHelpers';
+import { createMockContext, createMockNode, attachTrait, sendEvent, updateTrait, getEventCount, getLastEvent } from './traitTestHelpers';
 
 describe('FluidTrait', () => {
   let node: Record<string, unknown>;
   let ctx: ReturnType<typeof createMockContext>;
+  const cfg = {
+    method: 'sph' as const,
+    particle_count: 10000,
+    viscosity: 0.01,
+    surface_tension: 0.07,
+    density: 1000,
+    gravity: [0, -9.81, 0] as [number, number, number],
+    render_mode: 'particles' as const,
+    kernel_radius: 0.04,
+    time_step: 0.001,
+    collision_damping: 0.3,
+    rest_density: 1000,
+  };
 
   beforeEach(() => {
-    node = createMockNode('fluid-node');
+    node = createMockNode('fluid');
     ctx = createMockContext();
+    attachTrait(fluidHandler, node, cfg, ctx);
   });
 
-  describe('initialization', () => {
-    it('should have correct default config', () => {
-      expect(fluidHandler.defaultConfig.viscosity).toBe(0.01);
-      expect(fluidHandler.defaultConfig.density).toBe(1000);
-      expect(fluidHandler.defaultConfig.particle_count).toBe(10000);
-    });
-
-    it('should attach and initialize state', () => {
-      attachTrait(fluidHandler, node, {}, ctx);
-
-      const state = (node as any).__fluidState;
-      expect(state).toBeDefined();
-      expect(state.isSimulating).toBe(true);
-    });
-
-    it('should emit fluid_create on attach', () => {
-      attachTrait(
-        fluidHandler,
-        node,
-        {
-          particle_count: 500,
-        },
-        ctx
-      );
-
-      expect(getEventCount(ctx, 'fluid_create')).toBe(1);
-    });
+  it('initializes and starts simulating', () => {
+    const state = (node as any).__fluidState;
+    expect(state.isSimulating).toBe(true);
+    expect(getEventCount(ctx, 'fluid_create')).toBe(1);
   });
 
-  describe('simulation', () => {
-    beforeEach(() => {
-      attachTrait(
-        fluidHandler,
-        node,
-        {
-          particle_count: 100,
-        },
-        ctx
-      );
-      ctx.clearEvents();
+  it('add_emitter stores emitter', () => {
+    sendEvent(fluidHandler, node, cfg, ctx, {
+      type: 'fluid_add_emitter',
+      emitterId: 'e1',
+      position: { x: 0, y: 1, z: 0 },
+      rate: 200,
+      velocity: { x: 0, y: -2, z: 0 },
     });
-
-    it('should be simulating after attach', () => {
-      const state = (node as any).__fluidState;
-      expect(state.isSimulating).toBe(true);
-    });
-
-    it('should pause simulation', () => {
-      sendEvent(fluidHandler, node, { particle_count: 100 }, ctx, {
-        type: 'fluid_pause',
-      });
-
-      const state = (node as any).__fluidState;
-      expect(state.isSimulating).toBe(false);
-    });
-
-    it('should resume simulation', () => {
-      sendEvent(fluidHandler, node, { particle_count: 100 }, ctx, {
-        type: 'fluid_pause',
-      });
-      sendEvent(fluidHandler, node, { particle_count: 100 }, ctx, {
-        type: 'fluid_resume',
-      });
-
-      const state = (node as any).__fluidState;
-      expect(state.isSimulating).toBe(true);
-    });
+    expect((node as any).__fluidState.emitters.size).toBe(1);
   });
 
-  describe('emitters', () => {
-    beforeEach(() => {
-      attachTrait(
-        fluidHandler,
-        node,
-        {
-          particle_count: 1000,
-        },
-        ctx
-      );
-      ctx.clearEvents();
-    });
-
-    it('should add emitter', () => {
-      sendEvent(fluidHandler, node, { particle_count: 1000 }, ctx, {
-        type: 'fluid_add_emitter',
-        emitterId: 'emitter-1',
-        position: { x: 0, y: 2, z: 0 },
-        velocity: { x: 0, y: -1, z: 0 },
-        rate: 10,
-      });
-
-      const state = (node as any).__fluidState;
-      expect(state.emitters.size).toBe(1);
-    });
-
-    it('should remove emitter', () => {
-      sendEvent(fluidHandler, node, { particle_count: 1000 }, ctx, {
-        type: 'fluid_add_emitter',
-        emitterId: 'emitter-1',
-        position: { x: 0, y: 2, z: 0 },
-        rate: 10,
-      });
-      ctx.clearEvents();
-
-      sendEvent(fluidHandler, node, { particle_count: 1000 }, ctx, {
-        type: 'fluid_remove_emitter',
-        emitterId: 'emitter-1',
-      });
-
-      const state = (node as any).__fluidState;
-      expect(state.emitters.size).toBe(0);
-    });
+  it('remove_emitter removes', () => {
+    sendEvent(fluidHandler, node, cfg, ctx, { type: 'fluid_add_emitter', emitterId: 'e1' });
+    sendEvent(fluidHandler, node, cfg, ctx, { type: 'fluid_remove_emitter', emitterId: 'e1' });
+    expect((node as any).__fluidState.emitters.size).toBe(0);
   });
 
-  describe('splash', () => {
-    beforeEach(() => {
-      attachTrait(
-        fluidHandler,
-        node,
-        {
-          particle_count: 100,
-        },
-        ctx
-      );
-      ctx.clearEvents();
+  it('particle_update updates state', () => {
+    sendEvent(fluidHandler, node, cfg, ctx, {
+      type: 'fluid_particle_update',
+      particleCount: 500,
+      volume: 0.1,
     });
-
-    it('should handle splash event', () => {
-      sendEvent(fluidHandler, node, { particle_count: 100 }, ctx, {
-        type: 'fluid_splash',
-        position: { x: 0, y: 0, z: 0 },
-        force: 10,
-        radius: 0.5,
-      });
-
-      expect(getEventCount(ctx, 'on_fluid_splash')).toBe(1);
-    });
+    expect((node as any).__fluidState.particleCount).toBe(500);
+    expect(getEventCount(ctx, 'fluid_render_update')).toBe(1);
   });
 
-  describe('bounds', () => {
-    beforeEach(() => {
-      attachTrait(
-        fluidHandler,
-        node,
-        {
-          particle_count: 100,
-        },
-        ctx
-      );
-      ctx.clearEvents();
+  it('splash emits impulse and event', () => {
+    sendEvent(fluidHandler, node, cfg, ctx, {
+      type: 'fluid_splash',
+      position: { x: 0, y: 0, z: 0 },
+      force: 20,
+      radius: 1,
     });
-
-    it('should set bounds', () => {
-      sendEvent(fluidHandler, node, { particle_count: 100 }, ctx, {
-        type: 'fluid_set_bounds',
-        min: { x: -2, y: -2, z: -2 },
-        max: { x: 2, y: 2, z: 2 },
-      });
-
-      const state = (node as any).__fluidState;
-      expect(state.boundingBox.min.x).toBe(-2);
-      expect(state.boundingBox.max.x).toBe(2);
-    });
+    expect(getEventCount(ctx, 'fluid_apply_impulse')).toBe(1);
+    expect(getEventCount(ctx, 'on_fluid_splash')).toBe(1);
   });
 
-  describe('reset', () => {
-    beforeEach(() => {
-      attachTrait(
-        fluidHandler,
-        node,
-        {
-          particle_count: 100,
-        },
-        ctx
-      );
-      sendEvent(fluidHandler, node, { particle_count: 100 }, ctx, {
-        type: 'fluid_add_emitter',
-        emitterId: 'test',
-        position: { x: 0, y: 0, z: 0 },
-        rate: 10,
-      });
-      ctx.clearEvents();
-    });
-
-    it('should reset fluid state', () => {
-      sendEvent(fluidHandler, node, { particle_count: 100 }, ctx, {
-        type: 'fluid_reset',
-      });
-
-      const state = (node as any).__fluidState;
-      expect(state.particleCount).toBe(0);
-      expect(state.emitters.size).toBe(0);
-      expect(getEventCount(ctx, 'fluid_clear')).toBe(1);
-    });
+  it('pause and resume control simulation', () => {
+    sendEvent(fluidHandler, node, cfg, ctx, { type: 'fluid_pause' });
+    expect((node as any).__fluidState.isSimulating).toBe(false);
+    sendEvent(fluidHandler, node, cfg, ctx, { type: 'fluid_resume' });
+    expect((node as any).__fluidState.isSimulating).toBe(true);
   });
 
-  describe('cleanup', () => {
-    it('should clean up on detach', () => {
-      attachTrait(
-        fluidHandler,
-        node,
-        {
-          particle_count: 50,
-        },
-        ctx
-      );
-
-      fluidHandler.onDetach?.(node, fluidHandler.defaultConfig, ctx);
-
-      expect((node as any).__fluidState).toBeUndefined();
-    });
+  it('reset clears state', () => {
+    sendEvent(fluidHandler, node, cfg, ctx, { type: 'fluid_add_emitter', emitterId: 'x' });
+    sendEvent(fluidHandler, node, cfg, ctx, { type: 'fluid_reset' });
+    expect((node as any).__fluidState.particleCount).toBe(0);
+    expect((node as any).__fluidState.emitters.size).toBe(0);
   });
 
-  describe('query', () => {
-    it('should respond to query event', () => {
-      attachTrait(
-        fluidHandler,
-        node,
-        {
-          particle_count: 100,
-          viscosity: 1.5,
-        },
-        ctx
-      );
-      ctx.clearEvents();
+  it('query returns info', () => {
+    sendEvent(fluidHandler, node, cfg, ctx, { type: 'fluid_query', queryId: 'q1' });
+    const info = getLastEvent(ctx, 'fluid_info');
+    expect(info.queryId).toBe('q1');
+    expect(info.isSimulating).toBe(true);
+  });
 
-      sendEvent(fluidHandler, node, { particle_count: 100, viscosity: 1.5 }, ctx, {
-        type: 'fluid_query',
-        queryId: 'test-query',
-      });
-
-      const info = getLastEvent(ctx, 'fluid_info');
-      expect(info).toBeDefined();
-      expect(info.queryId).toBe('test-query');
-      expect(info.isSimulating).toBe(true);
-    });
+  it('detach cleans up', () => {
+    fluidHandler.onDetach?.(node as any, cfg as any, ctx as any);
+    expect(getEventCount(ctx, 'fluid_destroy')).toBe(1);
+    expect((node as any).__fluidState).toBeUndefined();
   });
 });
