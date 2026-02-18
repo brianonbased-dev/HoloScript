@@ -400,24 +400,66 @@ export const hitlHandler: TraitHandler<HITLConfig> = {
       }
     }
 
-    // Handle rollback request
+    // Handle rollback request (v3.1: Full rollback execution)
     if (event.type === 'rollback_request' && config.enable_rollback) {
       const { checkpointId } = event.payload as { checkpointId: string };
       const checkpoint = state.rollbackCheckpoints.find((cp) => cp.id === checkpointId);
 
-      if (checkpoint && checkpoint.canRollback) {
-        context.emit?.('hitl_rollback_execute', {
+      if (checkpoint && checkpoint.canRollback && checkpoint.expiresAt > Date.now()) {
+        // v3.1: Actually apply the state rollback to the node
+        if (checkpoint.stateBefore) {
+          checkpoint.stateAfter = { ...(node as any) };
+          for (const [key, value] of Object.entries(checkpoint.stateBefore)) {
+            (node as any)[key] = value;
+          }
+        }
+        checkpoint.canRollback = false; // Mark as used
+
+        context.emit?.('hitl_rollback_executed', {
           node,
           checkpoint,
           stateBefore: checkpoint.stateBefore,
+          stateAfter: checkpoint.stateAfter,
         });
 
         if (config.enable_audit_log) {
+          logAction(state, {
+            action: checkpoint.action,
+            agentId: checkpoint.agentId,
+            decision: 'rejected',
+            confidence: 0,
+            riskScore: 1,
+            reason: 'rollback_executed',
+          });
           const auditEntry = state.auditLog.find((a) => a.rollbackId === checkpointId);
           if (auditEntry) {
             auditEntry.outcome = 'rollback';
           }
         }
+      } else if (checkpoint && !checkpoint.canRollback) {
+        context.emit?.('hitl_rollback_failed', {
+          node,
+          checkpointId,
+          reason: 'already_rolled_back',
+        });
+      } else if (checkpoint && checkpoint.expiresAt <= Date.now()) {
+        context.emit?.('hitl_rollback_failed', {
+          node,
+          checkpointId,
+          reason: 'expired',
+        });
+      }
+    }
+
+    // v3.1: Handle audit log flush request
+    if (event.type === 'flush_audit_log') {
+      const { endpoint, batchSize } = (event.payload || {}) as {
+        endpoint?: string;
+        batchSize?: number;
+      };
+      const target = endpoint || config.notification_webhook;
+      if (target) {
+        flushAuditLog(state, target, batchSize || 50, context, node);
       }
     }
 
@@ -642,15 +684,15 @@ async function notifyApprovers(
 ): Promise<void> {
   if (config.notification_webhook) {
     try {
-      context.emit?.('hitl_notify', {
+      context.emit?.('hitl_notification_sent', {
         webhook: config.notification_webhook,
         approval,
         operators: config.approved_operators,
       });
 
-      // Real backend request
+      // Real backend request with auto-approve from response
       if (typeof fetch !== 'undefined') {
-        await fetch(config.notification_webhook, {
+        const response = await fetch(config.notification_webhook, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -659,10 +701,74 @@ async function notifyApprovers(
             timestamp: Date.now(),
           }),
         });
+
+        // v3.1: Parse webhook response for auto-approve/reject
+        if (response.ok) {
+          try {
+            const body = await response.json();
+            if (body.decision === 'approve' || body.decision === 'reject') {
+              context.emit?.('hitl_webhook_auto_decision', {
+                approvalId: approval.id,
+                decision: body.decision,
+                reason: body.reason || 'webhook_auto',
+                operator: body.operator || 'webhook',
+              });
+            }
+          } catch {
+            // Response not JSON — that's fine, just a notification
+          }
+        }
       }
     } catch (error) {
+      context.emit?.('hitl_notification_failed', {
+        webhook: config.notification_webhook,
+        approvalId: approval.id,
+        error: String(error),
+      });
       logger.error(`[HITLTrait] Failed to notify approvers: ${error}`);
     }
+  }
+}
+
+/**
+ * v3.1: Batch flush audit log entries to an external endpoint
+ */
+async function flushAuditLog(
+  state: HITLState,
+  endpoint: string,
+  batchSize: number,
+  context: any,
+  node: any
+): Promise<void> {
+  const entries = state.auditLog.splice(0, batchSize);
+  if (entries.length === 0) return;
+
+  try {
+    if (typeof fetch !== 'undefined') {
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'hitl_audit_batch',
+          entries,
+          count: entries.length,
+          timestamp: Date.now(),
+        }),
+      });
+    }
+    context.emit?.('hitl_audit_flushed', {
+      node,
+      count: entries.length,
+      endpoint,
+    });
+  } catch (error) {
+    // Put entries back on failure
+    state.auditLog.unshift(...entries);
+    context.emit?.('hitl_audit_flush_failed', {
+      node,
+      count: entries.length,
+      error: String(error),
+    });
   }
 }
 
@@ -677,7 +783,12 @@ export {
   AuditLogEntry,
   RollbackCheckpoint,
   EscalationRule,
+  EscalationCondition,
   ActionCategory,
   ApprovalStatus,
   EscalationLevel,
+  ActionEvaluation,
+  EvaluationResult,
 };
+
+export { evaluateAction, matchesCondition, createApprovalRequest, createRollbackCheckpoint };

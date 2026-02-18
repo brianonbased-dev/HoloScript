@@ -268,11 +268,64 @@ export class NetworkedTrait {
 
   /**
    * Connect to the network (using SyncProtocol)
+   * Supports transport types: 'local', 'websocket', 'webrtc', 'auto'
+   * 'auto' mode tries WebRTC → WebSocket → local in priority order
    */
-  public async connect(transport: TransportType = 'local', serverUrl?: string): Promise<void> {
+  public async connect(transport: TransportType | 'auto' = 'local', serverUrl?: string): Promise<void> {
     const roomId = this.config.room || 'default-room';
 
-    // Try WebSocket first if serverUrl is provided
+    // Auto-detection mode: try WebRTC → WebSocket → local
+    if (transport === 'auto' && serverUrl) {
+      // Try WebRTC first (lowest latency for P2P)
+      try {
+        this.rtcTransport = new WebRTCTransport({
+          signalingServerUrl: serverUrl,
+          roomId,
+          iceServers: [{ urls: ['stun:stun.l.google.com:19302'] }],
+        });
+        await this.rtcTransport.initialize();
+        this.rtcTransport.onMessage((msg: unknown) => {
+          const networkMsg = msg as NetworkMessage & { fromPeer?: string };
+          this.handleNetworkMessage(networkMsg);
+        });
+        this.activeTransport = 'webrtc';
+        this.connected = true;
+        this.peerId = this.entityId;
+        logger.info(`[NetworkedTrait] Auto-connected via WebRTC to: ${serverUrl}`);
+        return;
+      } catch (rtcError) {
+        logger.warn(`[NetworkedTrait] Auto: WebRTC failed, trying WebSocket: ${rtcError}`);
+        this.rtcTransport = null;
+      }
+
+      // Try WebSocket next
+      try {
+        this.wsTransport = new WebSocketTransport({
+          serverUrl,
+          roomId,
+          maxReconnectAttempts: 10,
+          initialBackoffMs: 1000,
+          maxBackoffMs: 30000,
+          heartbeatIntervalMs: 30000,
+        });
+        await this.wsTransport.connect();
+        this.wsTransport.onMessage('state-sync', (msg: NetworkMessage) => {
+          this.handleNetworkMessage(msg);
+        });
+        this.activeTransport = 'websocket';
+        this.connected = true;
+        this.peerId = this.entityId;
+        logger.info(`[NetworkedTrait] Auto-connected via WebSocket to: ${serverUrl}`);
+        return;
+      } catch (wsError) {
+        logger.warn(`[NetworkedTrait] Auto: WebSocket failed, falling back to local: ${wsError}`);
+        this.wsTransport = null;
+      }
+
+      // Fall through to local
+    }
+
+    // Try WebSocket if explicitly requested
     if (serverUrl && transport === 'websocket') {
       try {
         this.wsTransport = new WebSocketTransport({
@@ -301,7 +354,7 @@ export class NetworkedTrait {
       }
     }
 
-    // Try WebRTC fallback if enabled
+    // Try WebRTC if explicitly requested
     if (serverUrl && transport === 'webrtc') {
       try {
         this.rtcTransport = new WebRTCTransport({
@@ -860,6 +913,13 @@ export class NetworkedTrait {
    */
   public async connectWebRTC(signalingUrl: string): Promise<void> {
     await this.connect('webrtc', signalingUrl);
+  }
+
+  /**
+   * Connect with auto-detection (WebRTC → WebSocket → local)
+   */
+  public async connectAuto(serverUrl: string): Promise<void> {
+    await this.connect('auto' as any, serverUrl);
   }
 
   /**

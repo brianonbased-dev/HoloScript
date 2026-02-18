@@ -678,6 +678,12 @@ export {
   type NetworkedConfig,
 } from './traits/NetworkedTrait';
 
+// HoloScript+ Multi-Agent Coordination (NEW - v3.1 Foundation & Safety)
+export {
+  multiAgentHandler,
+  type MultiAgentConfig,
+} from './traits/MultiAgentTrait';
+
 // HoloScript+ Joint Trait (NEW - Phase 3: Physics)
 export {
   JointTrait,

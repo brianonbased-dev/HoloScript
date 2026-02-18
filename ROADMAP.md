@@ -116,6 +116,19 @@ Version bump, npm publish pipeline, and marketplace full-stack wiring:
 | **Bug fixes** — `GenerationCache.evictLRU` same-ms no-eviction, `EditorPersistence` JSON serialization, `LODManager.update()` camera-pos overload | ✅ Complete |
 | **git tag v3.5.0** — triggers npm publish pipeline for all packages | ✅ Complete |
 
+### "Commence All V" — Trait Hardening + Security + New Features (February 18, 2026)
+
+Production hardening sprint: trait test coverage, network layer tests, crypto security audit, and two new feature traits.
+
+| Task | Status |
+| --- | --- |
+| **Track 1: Trait Production Hardening** — 229 tests across 5 traits (NetworkedTrait, OpenXRHALTrait, HITLTrait, RenderNetworkTrait, ZoraCoinsTrait) | ✅ Complete |
+| **Track 2: Network Test Coverage** — 70 tests (WebSocketTransport, DeltaEncoder, InterestManager, SyncProtocol) | ✅ Complete |
+| **Track 3: Security Hardening** — 68 tests for crypto.ts (SHA-256/512, HMAC, AES-GCM, wallet validation, XSS/SQL sanitization, rate limiting). Audit confirmed: no placeholder hash functions, all crypto uses `crypto.subtle` | ✅ Complete |
+| **Track 4: PartnerSDKTrait** — New trait: secure partner integration with request signing, rate limiting, session TTL, webhook verification (21 tests) | ✅ Complete |
+| **Track 4: MarketplaceIntegrationTrait** — New trait: in-scene trait publishing, semver validation, install/uninstall, reviews/ratings, revenue tracking (25 tests) | ✅ Complete |
+| **Total: 413 tests across 10 production test suites** | ✅ Complete |
+
 ### "Commence All" — Ecosystem Expansion (February 15, 2026)
 
 Massive single-session sprint covering plugins, training data, and infrastructure:

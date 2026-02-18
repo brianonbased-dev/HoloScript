@@ -1,3 +1,117 @@
+## [3.5.0-alpha.6] - 2026-02-18
+
+### 🧪 Commence All VIII — Web3 Coverage Push + Integration Tests
+
+Deep coverage expansion for Web3 trait stack and cross-agent integration testing. 89 new tests across 3 suites.
+
+#### Track 1: NFTTrait Production Tests (30 tests)
+- `NFTTrait.prod.test.ts` — Comprehensive coverage of ownership verification, metadata loading (URI vs contract-fetch), transfer lifecycle (enable/disable gate), owner check (case-insensitive), periodic re-verification, display badge, query, and edge cases.
+
+#### Track 2: MarketplaceIntegrationTrait Deep Expansion (25 tests)
+- `MarketplaceIntegrationTrait.v2.test.ts` — Version management (semver validation, upgrade enforcement, downgrade rejection), review system (rating clamp 1-5, average calculation, anonymous reviewer), revenue tracking (per-package + total), publish lifecycle (require_review gating, approve/reject, unpublish, oversized/unauthenticated rejection), install/uninstall (duplicate check, download tracking), and query.
+
+#### Track 3: MultiAgentTrait Integration Tests (34 tests)
+- `MultiAgentTrait.integration.test.ts` — Cross-agent collaboration: registry + discovery (discover, re-discover, depart, capability filter), messaging (unicast, broadcast, TTL expiry, inbox overflow, self-message rejection), task delegation (auto-assign by capability, task limit, accept/complete/retry/fail/deadline expiry), shared state (set/get, version increment, LWW sync, entry limit), heartbeat liveness (offline detection, exclusion from discovery), and status management.
+
+## [3.5.0-alpha.5] - 2026-02-19
+
+### 🏗️ Commence All VII — v3.2 Creator Economy & Coverage
+
+Package integration and production test push for creator-economy traits and LLM agent intelligence. 105 new tests across 3 suites.
+
+### Added
+
+#### Track 1: Package Integration
+- **MultiAgentTrait exports** — `multiAgentHandler` and `MultiAgentConfig` now exported from `@holoscript/core`
+
+#### Track 2: ZoraCoinsTrait v3.2 Production Tests (32 tests)
+- Wallet connection with async Zora API mocking
+- Minting lifecycle: `zora_mint_started`, symbol generation (single-word first-4 + multi-word acronym), custom symbol override
+- Auto-mint on `scene_published` with gating via `auto_mint` flag
+- Bonding curve pricing: `zora_price_quoted` with exponential curve and configurable factor
+- Collection creation, royalty tracking (5% default), referral percentage, secondary sales counter
+- Rewards claiming: balance reset, edge case isolation
+
+#### Track 3: RenderNetworkTrait v3.3 Production Tests (37 tests)
+- API connection via Bearer token auth with `render_network_connected` / `render_network_error` events
+- Render job submission with credit estimation across all quality tiers (preview/draft/production/film)
+- Resolution scale multiplier and `max_credits_per_job` rejection gate
+- Volumetric video job submission (5 RNDR credits, mp4/webm output)
+- Gaussian Splat baking with quality-tiered credit estimation (low: 0.5, medium: 1.5, high: 3.0)
+- Job cancellation (status → failed, error: "Cancelled by user"), download readiness
+- Credit refresh via API, edge cases, and simulation fallback
+
+#### Track 4: LLMAgentTrait Production Tests (36 tests)
+- Prompt → request flow with model/temperature/tools passthrough
+- Tool calling: queue from response, process on update, tool result → re-request cycle
+- Bounded autonomy: `llm_turn_limit_reached` after `max_actions_per_turn`, disabled when `bounded_autonomy: false`
+- Rate limiting: `llm_rate_limited` for back-to-back prompts within `rate_limit_ms`
+- Escalation guardrails: keyword match, uncertainty detection, action count threshold, pause action
+- Message history trimming by token budget with system message preservation
+- History clear (`llm_clear_history`) with system prompt restoration
+
+---
+
+## [3.5.0-alpha.4] - 2026-02-19
+
+### 🚀 Commence All VI — v3.1 Foundation & Safety
+
+v3.1 sprint: real WebXR device integration, HITL backend hooks, multi-agent coordination, and WebRTC auto-detection. 164 new tests across 4 suites.
+
+### Added
+
+#### Track 1: OpenXR HAL — WebXR Integration (48 tests)
+- **Reference space fallback chain** — `unbounded` → `bounded-floor` → `local-floor` → `local` → `viewer` with `requestReferenceSpaceWithFallback()` helper
+- **Comprehensive test suite** — Session lifecycle, device profile detection (Quest 3, Pro, Vision Pro, Valve Index, Vive XR Elite), haptic feedback, performance monitoring, controller defaults, error handling
+
+#### Track 2: HITL Backend Integration (34 tests)
+- **Rollback execution** — Full state reversal via `stateBefore`, double-rollback prevention, expiry checking
+- **Audit log batch flush** — `flush_audit_log` event handler sends batched audit entries to external endpoint
+- **Webhook auto-approve/reject** — `notifyApprovers` parses webhook response for automatic decisions, emits `hitl_webhook_auto_decision`
+- **Notification events** — `hitl_notification_sent` and `hitl_notification_failed` events
+
+#### Track 3: Multi-Agent Coordination — NEW (46 tests)
+- **MultiAgentTrait** — New trait for multi-agent collaboration within HoloScript scenes
+  - Agent registry with discovery, departure, heartbeat-based liveness monitoring
+  - Unicast and broadcast messaging with TTL and priority levels
+  - Task delegation with auto-assign by capability, retry logic, deadline expiry
+  - Shared state management with last-write-wins conflict resolution
+  - Status reporting and capability-based agent discovery
+
+#### Track 4: WebRTC Transport (36 tests)
+- **Auto-detection transport mode** — `'auto'` tries WebRTC → WebSocket → local in priority order
+- **`connectAuto()` convenience method** — Alongside existing `connectWebSocket()` and `connectWebRTC()`
+- **Config-based transport selection** — Full test coverage for transport lifecycle, property sync, ownership, interpolation, events
+
+---
+
+## [3.5.0-alpha.3] - 2026-02-18
+
+### 🔒 Commence All V — Trait Hardening + Security + New Features
+
+Production hardening sprint: 413 tests across 10 test suites, security crypto audit, and 2 new feature traits.
+
+### Added
+
+#### New Feature Traits
+- **PartnerSDKTrait** — Secure partner integration with HMAC request signing, per-partner rate limiting, session TTL management, webhook signature verification, and concurrent request caps
+- **MarketplaceIntegrationTrait** — In-scene trait publishing with semver validation, publish/unpublish lifecycle, install/uninstall, reviews/ratings with average calculation, and revenue tracking
+
+#### Production Test Suites (413 tests)
+- **Track 1: Trait Hardening** (229 tests) — NetworkedTrait, OpenXRHALTrait, HITLTrait, RenderNetworkTrait, ZoraCoinsTrait
+- **Track 2: Network Coverage** (70 tests) — WebSocketTransport, DeltaEncoder, InterestManager, SyncProtocol
+- **Track 3: Security Crypto** (68 tests) — SHA-256/512, HMAC sign/verify, AES-GCM encrypt/decrypt, key export/import, wallet validation (ETH/SOL), API key validation, XSS/SQL sanitization, URL protocol validation, rate limiting
+- **Track 4: New Traits** (46 tests) — PartnerSDKTrait (21), MarketplaceIntegrationTrait (25)
+
+### Security
+
+- **Crypto audit passed**: All cryptographic functions use `crypto.subtle` (Web Crypto API) — no placeholder implementations found
+- **Input sanitization verified**: XSS tag stripping, event handler removal, `javascript:` protocol blocking, SQL injection pattern removal
+- **Wallet validation verified**: Ethereum (`0x` + 40 hex chars) and Solana (base58, 32-44 chars) address formats
+- **Timing-safe comparison**: HMAC verification uses constant-time string comparison
+
+---
+
 ## [3.5.0-alpha.2] - 2026-02-17
 
 ### 🤖 V43: AI Generation & visionOS Traits — Complete Integration

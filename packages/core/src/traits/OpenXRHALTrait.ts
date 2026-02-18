@@ -699,23 +699,9 @@ function detectAvailableFeatures(
     });
   }
 
-  // Check for bounded reference space (room-scale)
-  try {
-    session.requestReferenceSpace('bounded-floor').then(
-      (refSpace: any) => {
-        features.add('bounded-floor');
-        if (!state.referenceSpace) {
-          state.referenceSpace = refSpace;
-        }
-      },
-      () => {
-        // Bounded floor not available, try local-floor
-        features.add('local-floor-fallback');
-      }
-    );
-  } catch {
-    // Reference space API not available
-  }
+  // Establish reference space with fallback chain
+  requestReferenceSpaceWithFallback(session, state, context, node);
+
 
   // Check for layers API (composition layers)
   if (session.renderState?.layers !== undefined) {
@@ -1419,6 +1405,62 @@ function getCapabilities(state: OpenXRHALState): Record<string, boolean> {
 }
 
 // =============================================================================
+// REFERENCE SPACE FALLBACK CHAIN (v3.1)
+// =============================================================================
+
+/**
+ * Reference space preference order for immersive sessions.
+ * unbounded → bounded-floor → local-floor → local → viewer
+ */
+const REFERENCE_SPACE_CHAIN = [
+  'unbounded',
+  'bounded-floor',
+  'local-floor',
+  'local',
+  'viewer',
+] as const;
+
+/**
+ * Request a reference space with automatic fallback chain.
+ * Tries each space in order until one succeeds.
+ */
+async function requestReferenceSpaceWithFallback(
+  session: any,
+  state: OpenXRHALState,
+  context: any,
+  node: any
+): Promise<void> {
+  if (typeof session.requestReferenceSpace !== 'function') return;
+
+  for (const spaceType of REFERENCE_SPACE_CHAIN) {
+    try {
+      const refSpace = await session.requestReferenceSpace(spaceType);
+      state.referenceSpace = refSpace;
+      state.featuresAvailable.add(spaceType);
+      context.emit?.('openxr_reference_space_acquired', {
+        node,
+        spaceType,
+        fallbackChain: REFERENCE_SPACE_CHAIN,
+      });
+      return;
+    } catch {
+      // This space type not available, try next
+      context.emit?.('openxr_reference_space_fallback', {
+        node,
+        attempted: spaceType,
+        reason: 'not_supported',
+      });
+    }
+  }
+
+  // All reference spaces failed
+  context.emit?.('openxr_reference_space_failed', {
+    node,
+    attempted: [...REFERENCE_SPACE_CHAIN],
+  });
+}
+
+// =============================================================================
 // EXPORTS
 // =============================================================================
 
@@ -1431,6 +1473,15 @@ export {
   RenderCapability,
   ControllerProfile,
   XRDeviceType,
+  HandJoint,
+  JointPose,
+  HandTrackingState,
+  GazeRay,
+  GamepadState,
+  ControllerButton,
+  ButtonState,
+  ControllerProfileDatabase,
+  REFERENCE_SPACE_CHAIN,
 };
 
 // Export device profiles for external use
