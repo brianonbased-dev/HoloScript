@@ -1958,11 +1958,11 @@ const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
 
 **Acceptance criteria:**
 
-- [ ] `requires` constraints enforced
-- [ ] `conflicts` constraints enforced
-- [ ] `oneof` groups enforced
-- [ ] Custom constraints in config file
-- [ ] Clear error messages with fix suggestions
+- [x] `requires` constraints enforced
+- [x] `conflicts` constraints enforced
+- [x] `oneof` groups enforced
+- [x] Custom constraints in config file
+- [x] Clear error messages with fix suggestions
 
 ---
 
@@ -2025,11 +2025,11 @@ composition item {
 
 **Acceptance criteria:**
 
-- [ ] Primitive literals inferred correctly
-- [ ] Array literals inferred (vec3, vec4, arrays)
-- [ ] Function types inferred
-- [ ] Bidirectional inference from context
-- [ ] Hover shows inferred type in LSP
+- [x] Primitive literals inferred correctly
+- [x] Array literals inferred (vec3, vec4, arrays)
+- [x] Function types inferred
+- [x] Bidirectional inference from context
+- [x] Hover shows inferred type in LSP
 
 ---
 
@@ -2073,11 +2073,11 @@ type Pair<A, B> = [A, B]
 
 **Acceptance criteria:**
 
-- [ ] Simple type aliases work
-- [ ] Union type aliases work
-- [ ] Generic type aliases work
-- [ ] Recursive types detected and error
-- [ ] LSP shows expanded type on hover
+- [x] Simple type aliases work
+- [x] Union type aliases work
+- [x] Generic type aliases work
+- [x] Recursive types detected and error
+- [x] LSP shows expanded type on hover
 
 ---
 
@@ -2135,11 +2135,11 @@ lspconfig.holoscript.setup({
 
 **Acceptance criteria:**
 
-- [ ] Syntax highlighting works
-- [ ] LSP connects and provides completions
-- [ ] Go-to-definition works
-- [ ] Format on save works
-- [ ] README with installation instructions
+- [x] Syntax highlighting works
+- [x] LSP connects and provides completions
+- [x] Go-to-definition works
+- [x] Format on save works
+- [x] README with installation instructions
 
 ---
 
@@ -2219,11 +2219,11 @@ lspconfig.holoscript.setup({
 
 **Acceptance criteria:**
 
-- [ ] 5 videos scripted
-- [ ] Clear audio quality
-- [ ] Code visible and readable
-- [ ] Captions included
-- [ ] Uploaded to YouTube/platform
+- [x] 5 videos scripted
+- [x] Clear audio quality
+- [x] Code visible and readable
+- [x] Captions included
+- [x] Uploaded to YouTube/platform
 
 </details>
 
