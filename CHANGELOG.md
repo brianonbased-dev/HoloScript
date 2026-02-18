@@ -1,3 +1,25 @@
+## [3.5.0-alpha.24] - 2026-02-18
+
+### ∞ Commence All XXVI — Navigation + Procedural + LOD + Scene + Tilemap
+
+53 new tests across 6 suites — 6 domains.
+
+#### Navigation
+- `NavMesh.prod.test.ts` (12 tests) — addPolygon (center), removePolygon, connectPolygons, findPolygonAtPoint, findNearestPolygon, getWalkableNeighbors, export bounds.
+- `SteeringBehaviors.prod.test.ts` (8 tests) — seek/flee/arrive/wander/separation/flock/avoidObstacles/applyForce/config.
+
+#### Procedural
+- `BuildingGenerator.prod.test.ts` (8 tests) — Floor plans, rooms, walls, mesh, bounding box, deterministic seeding, style variants.
+
+#### LOD
+- `LODStreamer.prod.test.ts` (7 tests) — registerAsset, evaluateDistance (LOD0/1/2/unloaded), update+processQueue, memory budget.
+
+#### Scene
+- `SceneSerializer.prod.test.ts` (9 tests) — serializeNode, serialize (version/timestamp/metadata), toJSON, sanitizeValue (Map/Set/null/primitives).
+
+#### Tilemap
+- `TilePhysics.prod.test.ts` (9 tests) — checkCollision (solid/one-way/empty), isTileSolid, getTilesInRange.
+
 ## [3.5.0-alpha.23] - 2026-02-18
 
 ### ∞ Commence All XXV — Behavior + Persistence + Events + Tenancy + Audit 🎯 1,000+ Tests!
