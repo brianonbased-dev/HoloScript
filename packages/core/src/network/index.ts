@@ -134,6 +134,21 @@ export {
 // Signaling (Sprint 2)
 export * from './signaling';
 
+// Higher-order math utilities (Catmull-Rom, Hermite, Bezier, vec3 ops)
+export {
+  vec3Add,
+  vec3Sub,
+  vec3Scale,
+  vec3Length,
+  vec3Lerp,
+  catmullRom,
+  hermiteInterpolate,
+  cubicBezier,
+} from './MathUtils';
+
+// Jitter buffer for out-of-sequence packet reordering
+export { JitterBuffer, type JitterBufferConfig } from './JitterBuffer';
+
 // Latency Compensation System
 export {
   LatencyCompensator,

@@ -166,4 +166,104 @@ export class NetEntitySync {
   getEntityCount(): number { return this.entities.size; }
   getSyncRate(): number { return this.syncRate; }
   getSnapshotCount(): number { return this.snapshots.length; }
+
+  // ---------------------------------------------------------------------------
+  // Interpolation
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Return the interpolated component data for an entity at `renderTime`.
+   *
+   * Strategy (based on available snapshot count):
+   *   4+ snapshots → Catmull-Rom spline (smooth, handles varying speeds)
+   *   2–3 snapshots → linear lerp (sufficient for short histories)
+   *   0–1 snapshots → latest known state (no interpolation possible)
+   *
+   * Only numeric scalar and IVector3-shaped ({x,y,z}) fields are interpolated;
+   * all other fields are taken from the earlier snapshot.
+   *
+   * @param entityId   Entity to interpolate
+   * @param renderTime Render timestamp in ms (typically Date.now() - bufferMs)
+   */
+  getInterpolatedSnapshot(
+    entityId: string,
+    renderTime: number,
+  ): Record<string, unknown> | null {
+    // Collect snapshots for this entity, oldest-first
+    const entitySnaps = this.snapshots
+      .filter((s) => s.entityId === entityId)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    if (entitySnaps.length === 0) return null;
+    if (entitySnaps.length === 1) return { ...entitySnaps[0].components };
+
+    // Find the two snapshots bracketing renderTime
+    let lo = entitySnaps[0];
+    let hi = entitySnaps[entitySnaps.length - 1];
+
+    for (let i = 0; i < entitySnaps.length - 1; i++) {
+      if (entitySnaps[i].timestamp <= renderTime && entitySnaps[i + 1].timestamp >= renderTime) {
+        lo = entitySnaps[i];
+        hi = entitySnaps[i + 1];
+        break;
+      }
+    }
+
+    // t in [0,1] within the [lo, hi] time window
+    const span = hi.timestamp - lo.timestamp;
+    const t    = span > 0 ? Math.max(0, Math.min(1, (renderTime - lo.timestamp) / span)) : 1;
+
+    // Merge component data from lo, then interpolate numeric fields
+    const result: Record<string, unknown> = { ...lo.components };
+
+    for (const [key, loVal] of Object.entries(lo.components)) {
+      const hiVal = hi.components[key];
+      if (hiVal === undefined) continue;
+
+      if (typeof loVal === 'number' && typeof hiVal === 'number') {
+        result[key] = loVal + (hiVal - loVal) * t;
+        continue;
+      }
+
+      // IVector3-shaped object {x, y, z}
+      if (
+        loVal !== null && typeof loVal === 'object' &&
+        'x' in (loVal as object) && 'y' in (loVal as object) && 'z' in (loVal as object) &&
+        hiVal !== null && typeof hiVal === 'object' &&
+        'x' in (hiVal as object) && 'y' in (hiVal as object) && 'z' in (hiVal as object)
+      ) {
+        const lv = loVal as { x: number; y: number; z: number };
+        const hv = hiVal as { x: number; y: number; z: number };
+
+        if (entitySnaps.length >= 4) {
+          // Catmull-Rom: pick the surrounding 4-point window
+          const loIdx = entitySnaps.indexOf(lo);
+          const p0 = entitySnaps[Math.max(0, loIdx - 1)].components[key] as typeof lv ?? lv;
+          const p3 = entitySnaps[Math.min(entitySnaps.length - 1, loIdx + 2)].components[key] as typeof hv ?? hv;
+
+          const t2 = t * t;
+          const t3 = t2 * t;
+          const c0 = -0.5 * t3 + t2 - 0.5 * t;
+          const c1 =  1.5 * t3 - 2.5 * t2 + 1.0;
+          const c2 = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
+          const c3 =  0.5 * t3 - 0.5 * t2;
+
+          result[key] = {
+            x: c0 * p0.x + c1 * lv.x + c2 * hv.x + c3 * p3.x,
+            y: c0 * p0.y + c1 * lv.y + c2 * hv.y + c3 * p3.y,
+            z: c0 * p0.z + c1 * lv.z + c2 * hv.z + c3 * p3.z,
+          };
+        } else {
+          // Linear lerp fallback
+          result[key] = {
+            x: lv.x + (hv.x - lv.x) * t,
+            y: lv.y + (hv.y - lv.y) * t,
+            z: lv.z + (hv.z - lv.z) * t,
+          };
+        }
+      }
+    }
+
+    return result;
+  }
 }
