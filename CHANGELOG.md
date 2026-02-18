@@ -1,3 +1,25 @@
+## [3.5.0-alpha.27] - 2026-02-18
+
+### ∞ Commence All XXIX — Deep Remaining Gaps Sweep 🔍🧹
+
+164 new tests across 6 suites — social, analysis, types, persistence, traits.
+
+#### Social
+- `AvatarPersistence.prod.test.ts` (10 tests) — Save/load (deep copy, userId required), delete, list, clone, size.
+
+#### Analysis
+- `DeprecationRegistry.prod.test.ts` (13 tests) — Register/has/get/clear, scanForUsages, parseAnnotations (since/until), formatWarning, NoDeprecatedRule (builtins, check multi-file, formatReport).
+
+#### Types
+- `TypeAliasRegistry.prod.test.ts` (15 tests) — Register/has/get/all/clear, parse (simple/union/generic), resolve (simple/generic substitution/unknown/recursive/nested expansion), isRecursive.
+
+#### Persistence
+- `AutoSaveSystem.prod.test.ts` (12 tests) — Save/load (callback), quota enforcement, max slots/eviction, checkAutoSave (interval/disabled), deleteSlot, getSlots (sorted), getQuota.
+- `SaveSerializer.prod.test.ts` (7 tests) — Encode (header/fields/type validation), decode (round trip/tampered checksum), getVersion.
+
+#### Traits
+- `traitConstraints.prod.test.ts` (108 tests) — Schema validation (22 constraints: type/source/targets/message), physics chain, conflict rules, oneof rules.
+
 ## [3.5.0-alpha.26] - 2026-02-18
 
 ### ∞ Commence All XXVIII — Remaining Gaps Sweep 🔍🎯
