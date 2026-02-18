@@ -5518,6 +5518,8 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
       {
         "children": [
           {
+            "body": "count ??= 0
+    name ??= "default"",
             "children": [],
             "directives": [],
             "id": "test",
@@ -5532,11 +5534,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
               },
             },
             "name": "test",
-            "properties": {
-              "count": true,
-              "default": true,
-              "name": true,
-            },
+            "properties": {},
             "traits": Map {},
             "type": "function",
           },
@@ -5587,6 +5585,8 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
       {
         "children": [
           {
+            "body": "count ??= 0
+    name ??= "default"",
             "children": [],
             "directives": [],
             "id": "test",
@@ -5601,11 +5601,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
               },
             },
             "name": "test",
-            "properties": {
-              "count": true,
-              "default": true,
-              "name": true,
-            },
+            "properties": {},
             "traits": Map {},
             "type": "function",
           },
@@ -5675,6 +5671,8 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
         {
           "children": [
             {
+              "body": "count ??= 0
+    name ??= "default"",
               "children": [],
               "directives": [],
               "id": "test",
@@ -5689,11 +5687,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
                 },
               },
               "name": "test",
-              "properties": {
-                "count": true,
-                "default": true,
-                "name": true,
-              },
+              "properties": {},
               "traits": Map {},
               "type": "function",
             },
@@ -5744,6 +5738,8 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
         {
           "children": [
             {
+              "body": "count ??= 0
+    name ??= "default"",
               "children": [],
               "directives": [],
               "id": "test",
@@ -5758,11 +5754,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
                 },
               },
               "name": "test",
-              "properties": {
-                "count": true,
-                "default": true,
-                "name": true,
-              },
+              "properties": {},
               "traits": Map {},
               "type": "function",
             },
@@ -5806,40 +5798,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
     "version": "1.0",
   },
   "compiledExpressions": Map {},
-  "errors": [
-    {
-      "code": "HSP001",
-      "column": 11,
-      "context": "  1 | logic AssignmentTest {
-  2 |   function test() {
-> 3 |     count ??= 0
-               ^
-  4 |     name ??= "default"
-  5 |   }",
-      "endColumn": undefined,
-      "endLine": undefined,
-      "line": 3,
-      "message": "HSP001: Unexpected token NULL_COALESCE_ASSIGN "??=" in node body",
-      "severity": "error",
-      "suggestion": undefined,
-    },
-    {
-      "code": "HSP001",
-      "column": 10,
-      "context": "  2 |   function test() {
-  3 |     count ??= 0
-> 4 |     name ??= "default"
-              ^
-  5 |   }
-  6 | }",
-      "endColumn": undefined,
-      "endLine": undefined,
-      "line": 4,
-      "message": "HSP001: Unexpected token NULL_COALESCE_ASSIGN "??=" in node body",
-      "severity": "error",
-      "suggestion": undefined,
-    },
-  ],
+  "errors": [],
   "features": {
     "conditionals": false,
     "lifecycleHooks": false,
@@ -5848,7 +5807,7 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > null coalescing a
     "vrTraits": false,
   },
   "requiredCompanions": [],
-  "success": false,
+  "success": true,
   "warnings": [],
 }
 `;

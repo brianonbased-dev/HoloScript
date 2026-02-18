@@ -1278,15 +1278,26 @@ export class HoloScriptPlusParser {
     }
 
     // =========================================================================
-    // Special handling for code blocks (module, script, struct, enum)
+    // Special handling for code blocks (module, script, struct, enum, action, function, on)
     // =========================================================================
-    if (['module', 'script', 'struct', 'enum', 'class', 'interface'].includes(type)) {
+    if (['module', 'script', 'struct', 'enum', 'class', 'interface', 'action', 'function', 'async', 'on'].includes(type)) {
       let name = 'anonymous';
       // Parse name locally since 'id' variable is not yet initialized/parsed
       if (this.check('IDENTIFIER')) {
         name = this.advance().value;
       } else if (this.check('STRING')) {
         name = this.advance().value;
+      }
+
+      // Handle dotted event names: on topic.message, on message.request_vote
+      while (this.check('DOT')) {
+        this.advance(); // consume .
+        if (this.check('IDENTIFIER')) this.advance(); // consume member name
+      }
+
+      // Skip parameter list for function-like types: action name(params) { }
+      if (this.check('LPAREN')) {
+        this.skipParens();
       }
 
       // Use Raw Block parsing
@@ -2355,6 +2366,12 @@ export class HoloScriptPlusParser {
       'topic',
       'channel',
       'config',
+      'zone',
+      'audio',
+      'light',
+      'npc',
+      'camera',
+      'timeline',
     ];
 
     while (!this.check('RBRACE') && !this.check('EOF')) {
@@ -2449,6 +2466,24 @@ export class HoloScriptPlusParser {
         result.children.push(fragment);
       } else if (this.check('COMMA')) {
         this.advance();
+      } else if (this.check('LBRACKET')) {
+        // Skip balanced array literal at composition level (e.g., waypoints "name" [...])
+        let depth = 1;
+        this.advance(); // consume [
+        while (depth > 0 && !this.check('EOF')) {
+          if (this.check('LBRACKET')) depth++;
+          else if (this.check('RBRACKET')) depth--;
+          this.advance();
+        }
+      } else if (this.check('LBRACE')) {
+        // Skip balanced block at composition level (e.g., spawn_group "name" { ... })
+        let depth = 1;
+        this.advance(); // consume {
+        while (depth > 0 && !this.check('EOF')) {
+          if (this.check('LBRACE')) depth++;
+          else if (this.check('RBRACE')) depth--;
+          this.advance();
+        }
       } else {
         // Unexpected token in composition block - report error and skip
         if (!this.check('RBRACE') && !this.check('EOF')) {
