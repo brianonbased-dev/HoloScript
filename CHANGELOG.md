@@ -1,3 +1,25 @@
+## [3.5.0-alpha.23] - 2026-02-18
+
+### ∞ Commence All XXV — Behavior + Persistence + Events + Tenancy + Audit 🎯 1,000+ Tests!
+
+66 new tests across 6 suites — 6 domains. Session total crosses **1,000 tests**.
+
+#### Behavior
+- `BehaviorTree.prod.test.ts` (16 tests) — ActionNode, ConditionNode, WaitNode, SequenceNode, SelectorNode, InverterNode, RepeaterNode, BehaviorTree wrapper.
+- `StateMachine.prod.test.ts` (11 tests) — Initial state, event transitions, guards (block/allow), forceTransition, onEnter/onExit/onUpdate, history, evaluate.
+
+#### Persistence
+- `SaveManager.prod.test.ts` (13 tests) — Save/load (deep copy, checksums), slot management (sorted, eviction), autosave, export/import, listeners, playtime.
+
+#### Events
+- `EventChannel.prod.test.ts` (12 tests) — Subscribe/emit, filter, unsubscribe, replay buffer, ChannelManager bridge.
+
+#### Tenancy
+- `TenantContext.prod.test.ts` (10 tests) — createContext, validateAccess (cross-tenant deny, admin override), withTenantContext, requireContext.
+
+#### Audit
+- `AuditQueryBuilder.prod.test.ts` (4 tests) — Fluent builder (all 11 filters), partial, immutable.
+
 ## [3.5.0-alpha.22] - 2026-02-18
 
 ### ∞ Commence All XXIV — Plugins + Logging + Build Optimizer
