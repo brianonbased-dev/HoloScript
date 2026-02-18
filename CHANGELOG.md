@@ -1,3 +1,18 @@
+## [3.5.0-alpha.16] - 2026-02-18
+
+### ∞ Commence All XVIII — Render + UI Coverage Push
+
+41 new tests across 3 suites — first-ever render domain tests + UI factory tests.
+
+#### Render
+- `PostProcessPipeline.prod.test.ts` (15 tests) — Construction, config, initialized getter, effects queries, static presets, stats, dispose, factory functions.
+- `PostProcessEffect.prod.test.ts` (16 tests) — BloomEffect + ToneMapEffect: type/name, enabled getter/setter, intensity, params, initialized, dispose.
+
+#### UI
+- `UIComponents.prod.test.ts` (10 tests) — createUIButton factory: node hierarchy, properties, dimensions, colors, text, traits.
+
+**Full Smoke Test: 20,630+ tests pass across entire @holoscript/core.**
+
 ## [3.5.0-alpha.15] - 2026-02-18
 
 ### 🏆 Commence All XVII — HoloScriptPlusRuntime Conquered
