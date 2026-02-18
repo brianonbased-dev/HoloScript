@@ -52,7 +52,7 @@ export class HITLAuditLogger {
     let logs: AuditEntry[] = [];
 
     if (typeof window !== 'undefined' && window.localStorage) {
-      const data = localStorage.getItem(this.STORAGE_KEY);
+      const data = window.localStorage.getItem(this.STORAGE_KEY);
       if (data) {
         logs = JSON.parse(data);
       }
@@ -70,7 +70,7 @@ export class HITLAuditLogger {
   }
 
   private static saveToLocalStorage(entry: AuditEntry): void {
-    const data = localStorage.getItem(this.STORAGE_KEY);
+    const data = window.localStorage.getItem(this.STORAGE_KEY);
     let logs: AuditEntry[] = data ? JSON.parse(data) : [];
 
     logs.push(entry);
@@ -80,7 +80,7 @@ export class HITLAuditLogger {
       logs = logs.slice(-this.MAX_ENTRIES);
     }
 
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(logs));
+    window.localStorage.setItem(this.STORAGE_KEY, JSON.stringify(logs));
   }
 }
 

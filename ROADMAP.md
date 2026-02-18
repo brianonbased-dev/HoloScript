@@ -3641,11 +3641,11 @@ packages/compiler-wasm/
 
 **Acceptance criteria:**
 
-- [ ] Parser compiles to WASM
-- [ ] Type checker compiles to WASM
-- [ ] npm package published
-- [ ] Works in browser
-- [ ] 10x performance improvement
+- [x] Parser compiles to WASM
+- [x] Type checker compiles to WASM
+- [x] npm package published
+- [x] Works in browser
+- [x] 10x performance improvement
 
 ---
 
@@ -3725,11 +3725,11 @@ POST   /workspaces/:id/secrets        # Set secret
 
 **Acceptance criteria:**
 
-- [ ] Create/delete workspaces
-- [ ] Invite/remove members
-- [ ] Role-based permissions
-- [ ] Shared configuration sync
-- [ ] Activity feed
+- [x] Create/delete workspaces
+- [x] Invite/remove members
+- [x] Role-based permissions
+- [x] Shared configuration sync
+- [x] Activity feed
 
 ---
 
@@ -3841,11 +3841,11 @@ docs/academy/
 
 **Acceptance criteria:**
 
-- [ ] 30 lessons created
-- [ ] Code playgrounds work
-- [ ] Quizzes functional
-- [ ] Progress saved
-- [ ] Certificates issued
+- [x] 30 lessons created
+- [x] Code playgrounds work
+- [x] Quizzes functional
+- [x] Progress saved
+- [x] Certificates issued
 
 </details>
 

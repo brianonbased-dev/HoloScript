@@ -2073,8 +2073,9 @@ export class HoloCompositionParser {
           this.advance();
           if (this.check('LBRACE')) {
             // Check if it's a statement block or object value
-            // For now, if it starts with 'on_', treat as statement block
-            if (key.startsWith('on_')) {
+            // Treat on_xxx and onXxx (camelCase event handlers) as statement blocks
+            const isCodeBlock = key.startsWith('on_') || /^on[A-Z]/.test(key) || key === 'lifecycle';
+            if (isCodeBlock) {
               this.advance();
               const body = this.parseStatementBlock();
               this.expect('RBRACE');
