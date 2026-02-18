@@ -1,3 +1,19 @@
+## [3.5.0-alpha.25] - 2026-02-18
+
+### ∞ Commence All XXVII — Debug + Particles 🧠🎆
+
+61 new tests across 6 suites — debug + particles.
+
+#### Debug
+- `MemoryTracker.prod.test.ts` (12 tests) — allocate/free, budget (usage/exceeded/peak), leak detection, snapshots, queries.
+- `GarbageCollector.prod.test.ts` (12 tests) — mark-sweep (unreachable/chains), generational (young/promotion/permanent), finalization, defragment.
+- `Profiler.prod.test.ts` (12 tests) — frame lifecycle, scope profiling (nested), profile helper, summaries, memory snapshots, control.
+- `DebugConsole.prod.test.ts` (12 tests) — builtins, custom commands, autocomplete, history navigation, variable watch, toggle.
+
+#### Particles
+- `ParticleForces.prod.test.ts` (10 tests) — Force system: gravity/wind/attractor/drag, enable/disable, dead particle skip.
+- `ParticleAffectors.prod.test.ts` (9 tests) — Affector factories: gravity/wind/drag/attractor/vortex/floorBounce/sizeOscillate.
+
 ## [3.5.0-alpha.24] - 2026-02-18
 
 ### ∞ Commence All XXVI — Navigation + Procedural + LOD + Scene + Tilemap
