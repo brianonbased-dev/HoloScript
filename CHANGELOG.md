@@ -1,3 +1,12 @@
+## [3.5.0-alpha.39] - 2026-02-18
+
+### ∞ Sprint XLI — Migration System + Parser Utilities Sweep 🔄🔍
+
+33 new tests across 2 suites — full migration system coverage + core parser utilities.
+
+- `MigrationSystem.test.ts` (14 tests) — MigrationRunner (7: path finding/chain apply/dry run/report formatting), v2.1→v2.5 transforms (4: clickable→interactive/gravity scalar→vector/orb→object/no-match), v2.5→v3.0 transforms (3: interactive→interactable/scene→composition/multiple).
+- `ParserUtils.prod.test.ts` (19 tests) — TypoDetector (10: Levenshtein identical/substitution/insertion/deletion/empty/closestMatch/null/allMatches/isLikelyTypo/case), ChunkDetector (9: orb/template/environment/logic/multi-chunk/directive/comments/lineNumbers/unclosed).
+
 ## [3.5.0-alpha.38] - 2026-02-18
 
 ### ∞ Sprint XL — Build System + Package Manager Sweep 🏗️📦
