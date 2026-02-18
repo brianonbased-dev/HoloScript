@@ -1,3 +1,19 @@
+## [3.5.0-alpha.28] - 2026-02-18
+
+### ∞ Commence All XXX — Tools & Audit Coverage 🔍🛡️
+
+50 new tests across 4 suites — audit, traits, plugins.
+
+#### Audit
+- `AuditQueryBuilder.prod.test.ts` (9 tests) — Fluent builder: empty/chain/actorType/resource/outcome/since+until/limit+offset/full chain/immutability.
+- `ComplianceReporter.prod.test.ts` (12 tests) — SOC2 (3 sections, access/config/security categorization, summary), GDPR (3 sections, data access/consent/deletion, unique actors/resources).
+
+#### Traits
+- `constraintConfig.prod.test.ts` (10 tests) — loadConstraintsFromConfig: null/non-object/missing/non-array/valid requires+conflicts+oneof/suggestion/invalid skip/optional message.
+
+#### Plugins
+- `ModRegistry.prod.test.ts` (19 tests, 1 skipped) — Register/unregister/enable/disable/setPriority/getLoadOrder (priority sort, exclude disabled), validate (missing/disabled deps, conflict rules, wildcard), discoverFromManifests, counts. _Note: `getDependents` skipped due to source bug (undefined `depId` reference)._
+
 ## [3.5.0-alpha.27] - 2026-02-18
 
 ### ∞ Commence All XXIX — Deep Remaining Gaps Sweep 🔍🧹
