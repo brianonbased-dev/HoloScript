@@ -34,7 +34,7 @@ export function detectOptimalTarget(): string {
 }
 
 export async function checkXRSupport(mode: "immersive-vr" | "immersive-ar"): Promise<boolean> {
-  if (typeof navigator === "undefined" || \!("xr" in navigator)) return false;
+  if (typeof navigator === "undefined" || !("xr" in navigator)) return false;
   try {
     const nav = navigator as any;
     return await nav.xr.isSessionSupported(mode);
