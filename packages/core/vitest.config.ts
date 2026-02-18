@@ -1,6 +1,13 @@
 import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // Allow sibling packages that import @holoscript/core to resolve it locally
+      '@holoscript/core': resolve(__dirname, 'src/index.ts'),
+    },
+  },
   test: {
     // Exclude problematic test file that causes OOM during collection
     exclude: [
