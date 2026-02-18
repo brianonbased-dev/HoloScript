@@ -960,6 +960,305 @@ export const PORTAL_TRAIT_MAP: Record<string, TraitMapping> = {
 };
 
 // =============================================================================
+// V43 AI/XR TRAIT MAP
+// =============================================================================
+
+export const V43_TRAIT_MAP: Record<string, TraitMapping> = {
+  spatial_persona: {
+    trait: 'spatial_persona',
+    components: [],
+    level: 'partial',
+    minVersion: '2.0',
+    imports: ['GroupActivities'],
+    generate: (varName, config) => {
+      const style = String(config.style || 'realistic');
+      return [
+        `// @spatial_persona — visionOS 2.0 Spatial Persona (GroupActivities)`,
+        `// Requires SharePlay session; persona renders at ${varName} position`,
+        `// PersonaStyle: ${style}`,
+        `// TODO: configure SystemCoordinator and spatial template`,
+      ];
+    },
+  },
+
+  shareplay: {
+    trait: 'shareplay',
+    components: [],
+    level: 'partial',
+    minVersion: '1.0',
+    imports: ['GroupActivities'],
+    generate: (varName, config) => {
+      const activity = String(config.activity_type || 'custom');
+      return [
+        `// @shareplay — SharePlay GroupActivity`,
+        `// Activity type: ${activity}`,
+        `// TODO: conform to GroupActivity protocol and activate session`,
+        `// struct HoloActivity: GroupActivity { var metadata = GroupActivityMetadata() }`,
+      ];
+    },
+  },
+
+  object_tracking: {
+    trait: 'object_tracking',
+    components: ['AnchoringComponent'],
+    level: 'partial',
+    minVersion: '2.0',
+    imports: ['ARKit'],
+    generate: (varName, config) => {
+      const referenceObject = String(config.reference_object || 'MyObject');
+      return [
+        `// @object_tracking — ARKit ObjectTrackingProvider (visionOS 2.0)`,
+        `// Info.plist: NSWorldSensingUsageDescription`,
+        `let ${varName}ObjProvider = ObjectTrackingProvider(referenceObjects: [])`,
+        `// TODO: load ReferenceObject from .referenceobject bundle for ${referenceObject}`,
+        `try await arkitSession.run([${varName}ObjProvider])`,
+      ];
+    },
+  },
+
+  scene_reconstruction: {
+    trait: 'scene_reconstruction',
+    components: [],
+    level: 'partial',
+    minVersion: '1.0',
+    imports: ['ARKit'],
+    generate: (varName, config) => {
+      const mode = String(config.mode || 'mesh');
+      return [
+        `// @scene_reconstruction — SceneReconstructionProvider (mode: ${mode})`,
+        `// Info.plist: NSWorldSensingUsageDescription`,
+        `let ${varName}SceneProvider = SceneReconstructionProvider(modes: [.${mode}])`,
+        `try await arkitSession.run([${varName}SceneProvider])`,
+        `Task {`,
+        `    for await update in ${varName}SceneProvider.anchorUpdates {`,
+        `        // handle MeshAnchor updates`,
+        `    }`,
+        `}`,
+      ];
+    },
+  },
+
+  volumetric_window: {
+    trait: 'volumetric_window',
+    components: ['ModelComponent'],
+    level: 'full',
+    minVersion: '1.0',
+    generate: (varName, config) => {
+      const width = Number(config.width || 0.5);
+      const height = Number(config.height || 0.5);
+      const depth = Number(config.depth || 0.5);
+      return [
+        `// @volumetric_window — WindowGroup with volumetric style`,
+        `// In App.swift: WindowGroup { ContentView() }.windowStyle(.volumetric)`,
+        `// .defaultSize(width: ${width}, height: ${height}, depth: ${depth}, in: .meters)`,
+        `${varName}.components.set(ModelComponent(mesh: .generateBox(size: [${width}, ${height}, ${depth}]), materials: []))`,
+      ];
+    },
+  },
+
+  spatial_navigation: {
+    trait: 'spatial_navigation',
+    components: [],
+    level: 'comment',
+    minVersion: '1.0',
+    generate: (varName, _config) => [
+      `// @spatial_navigation — spatial navigation for ${varName}`,
+      `// TODO: implement NavigationSplitView or custom spatial nav`,
+    ],
+  },
+
+  eye_tracked: {
+    trait: 'eye_tracked',
+    components: ['InputTargetComponent', 'HoverEffectComponent'],
+    level: 'full',
+    minVersion: '1.0',
+    generate: (varName, _config) => [
+      `${varName}.components.set(InputTargetComponent())`,
+      `${varName}.components.set(HoverEffectComponent())`,
+      `// Eye tracking: entity responds to gaze via SwiftUI .onHover or RealityView gesture`,
+    ],
+  },
+
+  realitykit_mesh: {
+    trait: 'realitykit_mesh',
+    components: ['ModelComponent'],
+    level: 'full',
+    minVersion: '1.0',
+    generate: (varName, config) => {
+      const shape = String(config.shape || 'box');
+      const shapeMap: Record<string, string> = {
+        box: '.generateBox(size: [0.1, 0.1, 0.1])',
+        sphere: '.generateSphere(radius: 0.05)',
+        cylinder: '.generateCylinder(height: 0.1, radius: 0.05)',
+        plane: '.generatePlane(width: 0.5, height: 0.5)',
+      };
+      return [
+        `${varName}.components.set(ModelComponent(mesh: .${shapeMap[shape] || shapeMap['box']}, materials: [SimpleMaterial()]))`,
+      ];
+    },
+  },
+
+  eye_hand_fusion: {
+    trait: 'eye_hand_fusion',
+    components: ['InputTargetComponent'],
+    level: 'partial',
+    minVersion: '2.0',
+    imports: ['ARKit'],
+    generate: (varName, _config) => [
+      `// @eye_hand_fusion — combined eye + hand tracking (visionOS 2.0)`,
+      `let ${varName}HandProvider = HandTrackingProvider()`,
+      `try await arkitSession.run([${varName}HandProvider])`,
+      `// TODO: correlate HandAnchor joint positions with gaze raycast hit`,
+    ],
+  },
+
+  // AI Generation traits — comment-level stubs (GPU compute not native to RealityKit)
+  controlnet: {
+    trait: 'controlnet',
+    components: [],
+    level: 'comment',
+    generate: (_varName, config) => [
+      `// @controlnet — ControlNet image generation (model: ${String(config.model || 'canny')})`,
+      `// TODO: route to CoreML / remote inference endpoint`,
+    ],
+  },
+
+  ai_texture_gen: {
+    trait: 'ai_texture_gen',
+    components: ['ModelComponent'],
+    level: 'comment',
+    generate: (varName, config) => [
+      `// @ai_texture_gen — AI texture generation (style: ${String(config.style || 'photorealistic')})`,
+      `// TODO: generate texture via CoreML or API, then assign to ${varName} ModelComponent`,
+    ],
+  },
+
+  diffusion_realtime: {
+    trait: 'diffusion_realtime',
+    components: [],
+    level: 'comment',
+    generate: (_varName, config) => [
+      `// @diffusion_realtime — real-time diffusion rendering (backend: ${String(config.backend || 'metal')})`,
+      `// TODO: integrate Metal Performance Shaders or CoreML pipeline`,
+    ],
+  },
+
+  ai_upscaling: {
+    trait: 'ai_upscaling',
+    components: [],
+    level: 'comment',
+    generate: (_varName, config) => [
+      `// @ai_upscaling — AI upscaling (factor: ${String(config.factor || 2)}x)`,
+      `// TODO: apply CoreML super-resolution model to texture`,
+    ],
+  },
+
+  ai_inpainting: {
+    trait: 'ai_inpainting',
+    components: [],
+    level: 'comment',
+    generate: (_varName, _config) => [
+      `// @ai_inpainting — AI inpainting`,
+      `// TODO: apply mask-based inpainting via CoreML`,
+    ],
+  },
+
+  neural_link: {
+    trait: 'neural_link',
+    components: [],
+    level: 'comment',
+    generate: (_varName, config) => [
+      `// @neural_link — neural interface link (interface: ${String(config.interface_type || 'bci')})`,
+      `// TODO: implement BCI signal processing pipeline`,
+    ],
+  },
+
+  neural_forge: {
+    trait: 'neural_forge',
+    components: [],
+    level: 'comment',
+    generate: (_varName, _config) => [
+      `// @neural_forge — neural network model forge`,
+      `// TODO: integrate on-device CoreML model training`,
+    ],
+  },
+
+  embedding_search: {
+    trait: 'embedding_search',
+    components: [],
+    level: 'comment',
+    generate: (_varName, config) => [
+      `// @embedding_search — vector embedding search (dimensions: ${String(config.dimensions || 1536)})`,
+      `// TODO: implement CoreData or CloudKit vector index`,
+    ],
+  },
+
+  ai_npc_brain: {
+    trait: 'ai_npc_brain',
+    components: [],
+    level: 'comment',
+    generate: (_varName, config) => [
+      `// @ai_npc_brain — AI NPC brain (model: ${String(config.model || 'llm')})`,
+      `// TODO: integrate local LLM or API-based NPC reasoning`,
+    ],
+  },
+
+  vector_db: {
+    trait: 'vector_db',
+    components: [],
+    level: 'comment',
+    generate: (_varName, _config) => [
+      `// @vector_db — vector database`,
+      `// TODO: integrate local or remote vector store (e.g. FAISS, Pinecone)`,
+    ],
+  },
+
+  vision: {
+    trait: 'vision',
+    components: [],
+    level: 'comment',
+    imports: ['Vision'],
+    generate: (_varName, config) => [
+      `// @vision — Vision framework (task: ${String(config.task || 'classification')})`,
+      `// TODO: configure VNRequest pipeline for ${String(config.task || 'classification')}`,
+    ],
+  },
+
+  spatial_awareness: {
+    trait: 'spatial_awareness',
+    components: [],
+    level: 'comment',
+    minVersion: '1.0',
+    imports: ['ARKit'],
+    generate: (_varName, _config) => [
+      `// @spatial_awareness — spatial scene understanding`,
+      `// TODO: combine PlaneDetectionProvider + SceneReconstructionProvider`,
+    ],
+  },
+
+  neural_animation: {
+    trait: 'neural_animation',
+    components: [],
+    level: 'comment',
+    generate: (_varName, config) => [
+      `// @neural_animation — neural network-driven animation (style: ${String(config.style || 'motion_matching')})`,
+      `// TODO: integrate CoreML pose prediction with AnimationPlaybackController`,
+    ],
+  },
+
+  ai_vision: {
+    trait: 'ai_vision',
+    components: [],
+    level: 'comment',
+    imports: ['Vision'],
+    generate: (_varName, config) => [
+      `// @ai_vision — AI vision processing (task: ${String(config.task || 'detection')})`,
+      `// TODO: configure VNDetectRectanglesRequest or custom CoreML model`,
+    ],
+  },
+};
+
+// =============================================================================
 // COMBINED TRAIT MAP
 // =============================================================================
 
@@ -972,6 +1271,7 @@ export const VISIONOS_TRAIT_MAP: Record<string, TraitMapping> = {
   ...ACCESSIBILITY_TRAIT_MAP,
   ...UI_TRAIT_MAP,
   ...PORTAL_TRAIT_MAP,
+  ...V43_TRAIT_MAP,
 };
 
 // =============================================================================
