@@ -1,3 +1,14 @@
+## [3.5.0-alpha.21] - 2026-02-18
+
+### ∞ Commence All XXIII — State Domain Complete
+
+30 new tests across 3 suites — entire state domain now at 100%.
+
+#### State
+- `CRDTStateManager.prod.test.ts` (10 tests) — createOperation (clock increment), reconcile (accept/reject by clock, HLC clientId tie-break), getSnapshot, getStateVector.
+- `UndoManager.prod.test.ts` (10 tests) — push, undo/redo (last step, null on empty), multiple undo/redo, clear, 5-second temporal pruning.
+- `ReactiveState.prod.test.ts` (10 tests) — get/set, has, batch update, subscribe/unsubscribe, computed derivation, undo/redo, getSnapshot, reset, destroy.
+
 ## [3.5.0-alpha.20] - 2026-02-18
 
 ### ∞ Commence All XXII — Widget Tree + UI Factories
