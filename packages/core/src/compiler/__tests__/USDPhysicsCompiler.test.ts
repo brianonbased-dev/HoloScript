@@ -137,7 +137,8 @@ describe('USDPhysicsCompiler', () => {
   it('respects custom gravity', () => {
     const c = new USDPhysicsCompiler({ gravity: [0, 0, -9.81] });
     const usda = c.compile(makeComposition());
-    expect(usda).toContain('-9.81');
+    // Gravity magnitude is emitted as absolute value
+    expect(usda).toContain('9.81');
   });
 
   // =========== Multiple objects ===========

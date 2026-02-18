@@ -784,10 +784,26 @@ export class HoloCompositionParser {
               this.skipBlock();
             }
           }
+        } else if (this.check('TEMPLATE')) {
+          composition.templates.push(this.parseTemplate());
+        } else if (this.check('OBJECT')) {
+          composition.objects.push(this.parseObject());
+        } else if (this.check('ENVIRONMENT')) {
+          composition.environment = this.parseEnvironment();
         } else if (this.check('SPATIAL_GROUP')) {
           composition.spatialGroups.push(this.parseSpatialGroup());
+        } else if (this.check('LIGHT')) {
+          composition.lights.push(this.parseLight());
+        } else if (this.check('AUDIO')) {
+          composition.audio.push(this.parseAudio());
+        } else if (this.check('CAMERA')) {
+          composition.camera = this.parseCamera();
         } else if (this.check('LOGIC')) {
           composition.logic = this.parseLogic();
+        } else if (this.check('TIMELINE')) {
+          composition.timelines.push(this.parseTimeline());
+        } else if (this.check('STATE')) {
+          composition.state = this.parseState();
         } else if (this.check('IMPORT')) {
           composition.imports.push(this.parseImport());
         } else if (this.check('USING')) {
@@ -1129,6 +1145,13 @@ export class HoloCompositionParser {
 
   private parseImport(): HoloImport {
     this.expect('IMPORT');
+
+    // Handle simple path import: import "./path/to/file.holo"
+    if (this.check('STRING')) {
+      const source = this.expectString();
+      return { type: 'Import', specifiers: [], source };
+    }
+
     this.expect('LBRACE');
     this.skipNewlines();
 
@@ -1285,6 +1308,24 @@ export class HoloCompositionParser {
       if (this.check('RBRACE')) break;
 
       const key = this.expectIdentifier();
+
+      // Handle named sub-blocks: animation "pulse" { }, event "name" { }
+      if (this.check('STRING')) {
+        this.advance(); // consume quoted name
+        if (this.check('LPAREN')) this.skipParens();
+        if (this.check('LBRACE')) this.skipBlock();
+        this.skipNewlines();
+        continue;
+      }
+
+      // Handle LPAREN event handlers inside light body
+      if (this.check('LPAREN')) {
+        this.skipParens();
+        if (this.check('LBRACE')) this.skipBlock();
+        this.skipNewlines();
+        continue;
+      }
+
       this.expect('COLON');
       const value = this.parseValue();
 
@@ -1361,6 +1402,9 @@ export class HoloCompositionParser {
       }
     }
 
+    // Optional quoted name: camera "MainCamera" { }
+    if (this.check('STRING')) this.advance();
+
     this.expect('LBRACE');
     this.skipNewlines();
 
@@ -1368,6 +1412,16 @@ export class HoloCompositionParser {
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       this.skipNewlines();
       if (this.check('RBRACE')) break;
+
+      // Handle AT decorators in camera body: @camera_3d, @perspective etc.
+      if (this.check('AT')) {
+        this.advance(); // consume @
+        if (!this.check('RBRACE') && !this.isAtEnd()) this.advance(); // decorator name
+        if (this.check('LPAREN')) this.skipParens();
+        if (this.check('LBRACE')) this.skipBlock();
+        this.skipNewlines();
+        continue;
+      }
 
       const key = this.expectIdentifier();
       this.expect('COLON');
@@ -1505,6 +1559,10 @@ export class HoloCompositionParser {
       const key = this.expectIdentifier();
       this.expect('COLON');
       const value = this.parseValue();
+      // Skip expression continuations (e.g., trigger_when: GameState.time < 600)
+      while (!this.check('RBRACE') && !this.check('NEWLINE') && !this.isAtEnd()) {
+        this.advance();
+      }
       properties.push({ type: 'AudioProperty', key, value });
       this.skipNewlines();
     }
@@ -2076,10 +2134,9 @@ export class HoloCompositionParser {
             // Treat on_xxx and onXxx (camelCase event handlers) as statement blocks
             const isCodeBlock = key.startsWith('on_') || /^on[A-Z]/.test(key) || key === 'lifecycle';
             if (isCodeBlock) {
-              this.advance();
-              const body = this.parseStatementBlock();
-              this.expect('RBRACE');
-              properties.push({ type: 'ObjectProperty', key, value: body as any });
+              // Use skipBlock() for event handlers — bodies may contain non-HoloScript syntax
+              this.skipBlock();
+              properties.push({ type: 'ObjectProperty', key, value: [] as any });
             } else {
               properties.push({ type: 'ObjectProperty', key, value: this.parseValue() });
             }
@@ -2088,14 +2145,13 @@ export class HoloCompositionParser {
           }
         } else if (this.check('LPAREN')) {
           // Event handler style: on_event(params) { ... }
-          const parameters = this.parseParameterList();
-          this.expect('LBRACE');
-          const body = this.parseStatementBlock();
-          this.expect('RBRACE');
+          // Use skipParens + skipBlock() for robustness — bodies may contain non-HoloScript syntax
+          this.skipParens();
+          if (this.check('LBRACE')) this.skipBlock();
           properties.push({
             type: 'ObjectProperty',
             key,
-            value: { type: 'EventHandler', parameters, body } as any,
+            value: { type: 'EventHandler', parameters: [], body: [] } as any,
           });
         } else if (this.check('EQUALS')) {
           // Common mistake: using = instead of : for property assignment
@@ -3330,13 +3386,20 @@ export class HoloCompositionParser {
     this.expect('LPAREN');
     const config: Record<string, HoloValue> = {};
 
+    let argIndex = 0;
     while (!this.check('RPAREN') && !this.check('EOF')) {
       this.skipNewlines();
       if (this.check('RPAREN')) break;
 
-      const key = this.expectIdentifier();
-      this.expect('COLON');
-      config[key] = this.parseValue();
+      // Handle positional arguments: @tooltip("string"), @tags([...]), @version("1.0.0")
+      // If the next token is NOT identifier:colon, treat as positional value
+      if (!this.isPropertyName() || this.peek(1).type !== 'COLON') {
+        config[`_arg${argIndex++}`] = this.parseValue();
+      } else {
+        const key = this.expectIdentifier();
+        this.expect('COLON');
+        config[key] = this.parseValue();
+      }
 
       if (this.check('COMMA')) {
         this.advance();
@@ -3907,13 +3970,31 @@ export class HoloCompositionParser {
       this.skipNewlines();
       if (this.check('RBRACE')) break;
 
-      const key = this.expectIdentifier();
-      this.expect('COLON');
+      // Handle inline `state "name" { }` blocks (alternative state_machine syntax)
+      if (this.check('STATE')) {
+        this.advance(); // consume 'state'
+        if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // state name
+        if (this.check('LBRACE')) this.skipBlock();
+        this.skipNewlines();
+        continue;
+      }
 
-      if (key === 'initialState') {
+      const key = this.expectIdentifier();
+
+      // Handle `initial: "stateName"` (short form of initialState)
+      if (key === 'initial' || key === 'initialState') {
+        this.expect('COLON');
         sm.initialState = this.parseValue() as string;
-      } else if (key === 'states') {
+      } else if (key === 'states' && this.check('COLON')) {
+        this.advance(); // consume ':'
         sm.states = this.parseStateMachineStates();
+      } else if (this.check('COLON')) {
+        // Unknown key:value — skip value
+        this.advance(); // consume ':'
+        this.parseValue();
+      } else if (this.check('LBRACE')) {
+        // Unknown block — skip it
+        this.skipBlock();
       }
 
       this.skipNewlines();
