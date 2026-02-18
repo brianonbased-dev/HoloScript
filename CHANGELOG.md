@@ -1,3 +1,16 @@
+## [3.5.0-alpha.18] - 2026-02-18
+
+### ∞ Commence All XX — WebGPU Mock + Physics Gaps
+
+44 new tests across 3 suites — mock GPU testing for WebGPU renderer + physics rigid body coverage.
+
+#### Physics
+- `PhysicsBody.prod.test.ts` (25 tests) — RigidBody: construction (dynamic/static), getters/setters, force/impulse/torque, integration (gravity/damping/sleeping), velocity update, sleep/wake, state/transform, collision filter.
+
+#### Render (Mock GPU)
+- `WebGPURenderer.prod.test.ts` (10 tests) — Construction, isSupported (static), getStats (nested IRendererStats), getContext/getDevice null guards, sortDrawCalls (opaque-before-transparent, back-to-front, pipeline sort).
+- `PhysicsDebugDrawer.prod.test.ts` (9 tests) — Mock renderer+world: enable/disable, mesh creation (box/sphere/capsule), sleeping/active color coding, clear, removed body cleanup.
+
 ## [3.5.0-alpha.17] - 2026-02-18
 
 ### ∞ Commence All XIX — UI System Deep Push
