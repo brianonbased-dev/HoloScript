@@ -1,3 +1,16 @@
+## [3.5.0-alpha.34] - 2026-02-18
+
+### ∞ Sprint XXXVI — Compiler glTF + Collaboration Transport Mega Sweep 🔧🤝
+
+59 new tests across 3 mega suites — glTF extensions/materials and collaboration transport.
+
+#### Compiler glTF
+- `extensions.prod.test.ts` (26 tests) — All KHR extension factories (unlit/emissive/clearcoat/transmission/IOR/sheen/anisotropy/volume/iridescence), light helpers (directional/point/spot), GPU instancing, IOR constants, collectUsedExtensions, isExtensionRequired, declareExtensions.
+- `materials.prod.test.ts` (22 tests) — Color parsing (hex/RGB/HSL/named/array), HSL-to-RGB, sRGB/linear roundtrip, createMaterial (OPAQUE/BLEND/unlit), MATERIAL_PRESETS, applyPreset.
+
+#### Collaboration
+- `CollaborationTransport.prod.test.ts` (11 tests) — Binary encode/decode roundtrip (with/without optional fields/metadata), constructor defaults/custom config, getState, getStats, handler registration (message/error/stateChange).
+
 ## [3.5.0-alpha.33] - 2026-02-18
 
 ### ∞ Sprint XXXV — WASM + WoT + Semantics Mega Sweep 🔧🌐📝
