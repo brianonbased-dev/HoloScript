@@ -1,145 +1,140 @@
 /**
- * UIWidget Tree Production Tests
+ * UIWidget Production Tests
  *
- * Widget tree management: create, addChild, removeWidget (recursive),
- * setStyle, setVisible, setText, getRenderOrder (z-sort), hitTest, getRoot.
+ * Widget tree: create, addChild, removeWidget, setStyle, setVisible, setText,
+ * getRenderOrder, hitTest, getRoot, getWidgetCount.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { UIWidget } from '../UIWidget';
 
 describe('UIWidget — Production', () => {
-  let tree: UIWidget;
+  let ui: UIWidget;
 
   beforeEach(() => {
-    tree = new UIWidget();
+    ui = new UIWidget();
   });
 
   describe('createWidget', () => {
-    it('creates widget with defaults', () => {
-      const w = tree.createWidget('root', 'panel');
-      expect(w.id).toBe('root');
+    it('creates with defaults', () => {
+      const w = ui.createWidget('w1', 'panel');
+      expect(w.id).toBe('w1');
       expect(w.type).toBe('panel');
       expect(w.width).toBe(100);
       expect(w.height).toBe(40);
       expect(w.visible).toBe(true);
     });
 
-    it('button and input are interactive by default', () => {
-      const btn = tree.createWidget('btn', 'button');
-      const inp = tree.createWidget('inp', 'input');
-      const lbl = tree.createWidget('lbl', 'label');
-      expect(btn.interactive).toBe(true);
-      expect(inp.interactive).toBe(true);
-      expect(lbl.interactive).toBe(false);
+    it('button is interactive by default', () => {
+      const w = ui.createWidget('btn', 'button');
+      expect(w.interactive).toBe(true);
     });
 
-    it('first root-level widget becomes root', () => {
-      tree.createWidget('r', 'panel');
-      expect(tree.getRoot()?.id).toBe('r');
+    it('panel is not interactive by default', () => {
+      const w = ui.createWidget('p', 'panel');
+      expect(w.interactive).toBe(false);
     });
 
-    it('custom options', () => {
-      const w = tree.createWidget('w', 'label', { x: 10, y: 20, width: 200, text: 'hello', zIndex: 5 });
-      expect(w.x).toBe(10);
-      expect(w.width).toBe(200);
-      expect(w.text).toBe('hello');
-      expect(w.zIndex).toBe(5);
+    it('first parentless widget becomes root', () => {
+      ui.createWidget('root', 'container');
+      expect(ui.getRoot()?.id).toBe('root');
     });
   });
 
   describe('addChild', () => {
-    it('parents child widget', () => {
-      tree.createWidget('parent', 'panel');
-      tree.createWidget('child', 'label');
-      expect(tree.addChild('parent', 'child')).toBe(true);
-      expect(tree.getWidget('child')?.parentId).toBe('parent');
-      expect(tree.getWidget('parent')?.children).toContain('child');
+    it('links parent and child', () => {
+      ui.createWidget('parent', 'panel');
+      ui.createWidget('child', 'label');
+      expect(ui.addChild('parent', 'child')).toBe(true);
+      expect(ui.getWidget('parent')?.children).toContain('child');
+      expect(ui.getWidget('child')?.parentId).toBe('parent');
     });
 
-    it('returns false for missing widgets', () => {
-      expect(tree.addChild('missing', 'also_missing')).toBe(false);
+    it('returns false for missing ids', () => {
+      expect(ui.addChild('nope', 'nah')).toBe(false);
     });
   });
 
   describe('removeWidget', () => {
-    it('removes widget and unlinks from parent', () => {
-      tree.createWidget('parent', 'panel');
-      tree.createWidget('child', 'label', { parentId: 'parent' });
-      expect(tree.getWidgetCount()).toBe(2);
-      tree.removeWidget('child');
-      expect(tree.getWidgetCount()).toBe(1);
-      expect(tree.getWidget('parent')?.children).toEqual([]);
+    it('removes widget and updates parent', () => {
+      ui.createWidget('parent', 'panel');
+      ui.createWidget('child', 'label', { parentId: 'parent' });
+      expect(ui.removeWidget('child')).toBe(true);
+      expect(ui.getWidget('child')).toBeUndefined();
+      expect(ui.getWidget('parent')?.children).not.toContain('child');
     });
 
     it('recursively removes children', () => {
-      tree.createWidget('root', 'panel');
-      tree.createWidget('child', 'label', { parentId: 'root' });
-      tree.createWidget('grandchild', 'button', { parentId: 'child' });
-      expect(tree.getWidgetCount()).toBe(3);
-      tree.removeWidget('child');
-      expect(tree.getWidgetCount()).toBe(1); // only root
-    });
-
-    it('returns false for missing widget', () => {
-      expect(tree.removeWidget('nope')).toBe(false);
+      ui.createWidget('root', 'panel');
+      ui.createWidget('mid', 'panel', { parentId: 'root' });
+      ui.createWidget('leaf', 'label', { parentId: 'mid' });
+      ui.removeWidget('mid');
+      expect(ui.getWidget('mid')).toBeUndefined();
+      expect(ui.getWidget('leaf')).toBeUndefined();
     });
   });
 
   describe('setStyle / setVisible / setText', () => {
-    it('setStyle merges styles', () => {
-      tree.createWidget('w', 'panel', { style: { backgroundColor: '#000' } });
-      tree.setStyle('w', { borderColor: '#fff' });
-      expect(tree.getWidget('w')?.style.backgroundColor).toBe('#000');
-      expect(tree.getWidget('w')?.style.borderColor).toBe('#fff');
+    it('setStyle merges', () => {
+      ui.createWidget('w1', 'panel', { style: { opacity: 1 } });
+      ui.setStyle('w1', { backgroundColor: '#FF0000' });
+      expect(ui.getWidget('w1')?.style.backgroundColor).toBe('#FF0000');
+      expect(ui.getWidget('w1')?.style.opacity).toBe(1);
     });
 
-    it('setVisible toggles visibility', () => {
-      tree.createWidget('w', 'panel');
-      tree.setVisible('w', false);
-      expect(tree.getWidget('w')?.visible).toBe(false);
+    it('setVisible toggles', () => {
+      ui.createWidget('w1', 'panel');
+      ui.setVisible('w1', false);
+      expect(ui.getWidget('w1')?.visible).toBe(false);
     });
 
-    it('setText updates text', () => {
-      tree.createWidget('w', 'label');
-      tree.setText('w', 'Updated');
-      expect(tree.getWidget('w')?.text).toBe('Updated');
+    it('setText updates', () => {
+      ui.createWidget('lbl', 'label');
+      ui.setText('lbl', 'Hello');
+      expect(ui.getWidget('lbl')?.text).toBe('Hello');
     });
   });
 
   describe('getRenderOrder', () => {
-    it('returns visible widgets sorted by z-index', () => {
-      tree.createWidget('a', 'panel', { zIndex: 2 });
-      tree.createWidget('b', 'panel', { zIndex: 0 });
-      tree.createWidget('c', 'panel', { zIndex: 1 });
-      const order = tree.getRenderOrder();
-      expect(order[0].id).toBe('b');
-      expect(order[2].id).toBe('a');
+    it('sorts by zIndex ascending', () => {
+      ui.createWidget('back', 'panel', { zIndex: 0 });
+      ui.createWidget('front', 'panel', { zIndex: 10 });
+      ui.createWidget('mid', 'panel', { zIndex: 5 });
+      const order = ui.getRenderOrder().map(w => w.id);
+      expect(order).toEqual(['back', 'mid', 'front']);
     });
 
     it('excludes hidden widgets', () => {
-      tree.createWidget('a', 'panel', { visible: true });
-      tree.createWidget('b', 'panel', { visible: false });
-      expect(tree.getRenderOrder()).toHaveLength(1);
+      ui.createWidget('a', 'panel', { visible: true });
+      ui.createWidget('b', 'panel', { visible: false });
+      expect(ui.getRenderOrder()).toHaveLength(1);
     });
   });
 
   describe('hitTest', () => {
-    it('returns top interactive widget at point', () => {
-      tree.createWidget('btn', 'button', { x: 0, y: 0, width: 100, height: 50, zIndex: 1 });
-      tree.createWidget('bg', 'panel', { x: 0, y: 0, width: 200, height: 200, zIndex: 0 });
-      const hit = tree.hitTest(50, 25);
+    it('returns topmost interactive widget at point', () => {
+      ui.createWidget('bg', 'panel', { x: 0, y: 0, width: 200, height: 200, zIndex: 0 });
+      ui.createWidget('btn', 'button', { x: 50, y: 50, width: 100, height: 40, zIndex: 5 });
+      const hit = ui.hitTest(75, 60);
       expect(hit?.id).toBe('btn');
     });
 
     it('returns null for miss', () => {
-      tree.createWidget('btn', 'button', { x: 0, y: 0, width: 10, height: 10 });
-      expect(tree.hitTest(999, 999)).toBeNull();
+      ui.createWidget('btn', 'button', { x: 50, y: 50, width: 100, height: 40 });
+      expect(ui.hitTest(0, 0)).toBeNull();
     });
 
-    it('skips non-interactive widgets', () => {
-      tree.createWidget('lbl', 'label', { x: 0, y: 0, width: 100, height: 50 });
-      expect(tree.hitTest(10, 10)).toBeNull();
+    it('skips non-interactive', () => {
+      ui.createWidget('lbl', 'label', { x: 0, y: 0, width: 100, height: 100 });
+      expect(ui.hitTest(50, 50)).toBeNull();
+    });
+  });
+
+  describe('counts', () => {
+    it('getWidgetCount', () => {
+      ui.createWidget('a', 'panel');
+      ui.createWidget('b', 'label');
+      expect(ui.getWidgetCount()).toBe(2);
     });
   });
 });

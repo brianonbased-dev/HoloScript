@@ -1,3 +1,18 @@
+## [3.5.0-alpha.29] - 2026-02-18
+
+### ∞ Commence All XXXI — UI + Tenancy Sweep 🎨🏢
+
+59 new tests across 5 suites — UI factories, widget tree, tenant context.
+
+#### UI
+- `UIButton.prod.test.ts` (10 tests) — Factory: base id, defaults, custom dims/color/textColor, position/rotation, pressable trait.
+- `UISlider.prod.test.ts` (9 tests) — Factory: track/handle, x/y/z axis scaling, slidable+grabbable traits, initialValue, colors.
+- `UITextInput.prod.test.ts` (11 tests) — Factory: id/type, dims, placeholder, text data, children (text+cursor), pressable trait.
+- `UIWidget.prod.test.ts` (16 tests) — Widget tree: create defaults, interactive inference, addChild, removeWidget (recursive), setStyle/setVisible/setText, getRenderOrder (zIndex sort), hitTest (topmost interactive), counts.
+
+#### Tenancy
+- `TenantContext.prod.test.ts` (13 tests) — createContext (trim/empty/permissions/uniqueSessionId), validateAccess (same/cross-tenant, admin override), withTenantContext+getCurrentContext+requireContext scoping.
+
 ## [3.5.0-alpha.28] - 2026-02-18
 
 ### ∞ Commence All XXX — Tools & Audit Coverage 🔍🛡️
