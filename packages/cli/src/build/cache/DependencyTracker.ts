@@ -1,14 +1,5 @@
-/**
- * DependencyTracker
- *
- * Tracks which files depend on which other files so that a change to one
- * file can efficiently invalidate all downstream build artifacts.
- */
-
 export interface DependencyInfo {
-  /** Files that this file directly imports / references */
   dependencies: string[];
-  /** Files that import this file */
   dependents: string[];
 }
 
@@ -22,7 +13,6 @@ export class DependencyTracker {
     return this.graph.get(file)!;
   }
 
-  /** Record that `file` depends on `dependsOn`. */
   addDependency(file: string, dependsOn: string): void {
     const info = this.ensure(file);
     if (!info.dependencies.includes(dependsOn)) {
@@ -34,7 +24,6 @@ export class DependencyTracker {
     }
   }
 
-  /** Remove all dependency edges originating from `file`. */
   removeDependencies(file: string): void {
     const info = this.graph.get(file);
     if (!info) return;
@@ -55,7 +44,6 @@ export class DependencyTracker {
     return this.graph.get(file)?.dependents ?? [];
   }
 
-  /** All files that `file` transitively depends on. */
   getTransitiveDependencies(file: string, visited = new Set<string>()): string[] {
     if (visited.has(file)) return [];
     visited.add(file);
@@ -67,7 +55,6 @@ export class DependencyTracker {
     return [...new Set(result)];
   }
 
-  /** All files that transitively depend on `changedFile`. */
   getAffectedFiles(changedFile: string, visited = new Set<string>()): string[] {
     if (visited.has(changedFile)) return [];
     visited.add(changedFile);

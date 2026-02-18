@@ -1,41 +1,19 @@
-/**
- * BundleAnalyzer
- *
- * Top-level bundle analysis entry point.
- * Accepts a map of filePath → content and produces a structured BundleAnalysis
- * that can be rendered as text, JSON, or HTML treemap.
- */
-
-import { createHash } from 'crypto';
 import { DuplicateFinder, type DuplicateGroup } from './DuplicateFinder';
 import { TreemapGenerator, type TreemapNode } from './TreemapGenerator';
 
-export interface BundleEntry {
+export interface BundleFile {
   path: string;
   size: number;
-  gzipped: number;
-  category: string;
-  hash: string;
+  category?: string;
 }
 
-export interface CategoryStats {
-  count: number;
-  size: number;
-}
-
-export interface BundleAnalysis {
-  /** Total raw size in bytes */
+export interface BundleReport {
   totalSize: number;
-  /** Estimated total gzipped size */
-  totalGzipped: number;
-  /** Per-file breakdown sorted by size descending */
-  entries: BundleEntry[];
-  /** Duplicate content groups */
+  fileCount: number;
+  files: BundleFile[];
   duplicates: DuplicateGroup[];
-  /** Breakdown by category: category → {count, size} */
-  byCategory: Record<string, CategoryStats>;
-  /** Unix timestamp when analysis ran */
-  analyzedAt: number;
+  wastedBytes: number;
+  categories: Record<string, number>;
 }
 
 function inferCategory(filePath: string): string {
@@ -44,21 +22,8 @@ function inferCategory(filePath: string): string {
   if (lower.includes('trait')) return 'traits';
   if (lower.includes('runtime') || lower.includes('engine')) return 'runtime';
   if (lower.includes('util') || lower.includes('helper')) return 'utils';
-  if (lower.includes('vendor') || lower.includes('node_modules')) return 'vendor';
   if (lower.includes('core') || lower.includes('lib')) return 'core';
   return 'default';
-}
-
-/**
- * Rough gzip estimate using character entropy as a proxy.
- * Repetitive content (few distinct chars) compresses very well.
- */
-function estimateGzip(content: string, rawSize: number): number {
-  if (rawSize === 0) return 0;
-  const chars = new Set(content).size;
-  // ratio: 1 distinct char → ~10% of raw; 256 distinct → ~90% of raw
-  const ratio = Math.max(0.1, Math.min(0.9, chars / 256));
-  return Math.ceil(rawSize * ratio);
 }
 
 function formatBytes(bytes: number): string {
@@ -71,90 +36,63 @@ export class BundleAnalyzer {
   private duplicateFinder = new DuplicateFinder();
   private treemapGenerator = new TreemapGenerator();
 
-  /**
-   * Analyse a bundle represented as filePath → content.
-   */
-  analyze(files: Map<string, string>): BundleAnalysis {
-    const entries: BundleEntry[] = [];
-    const byCategory: Record<string, CategoryStats> = {};
+  analyze(files: Map<string, string>): BundleReport {
+    const fileList: BundleFile[] = [];
+    const categories: Record<string, number> = {};
 
     for (const [path, content] of files) {
       const size = Buffer.byteLength(content, 'utf8');
-      const gzipped = estimateGzip(content, size);
       const category = inferCategory(path);
-      const hash = createHash('sha256').update(content, 'utf8').digest('hex').slice(0, 16);
-
-      entries.push({ path, size, gzipped, category, hash });
-
-      if (!byCategory[category]) {
-        byCategory[category] = { count: 0, size: 0 };
-      }
-      byCategory[category].count++;
-      byCategory[category].size += size;
+      fileList.push({ path, size, category });
+      categories[category] = (categories[category] ?? 0) + size;
     }
 
-    entries.sort((a, b) => b.size - a.size);
+    fileList.sort((a, b) => b.size - a.size);
+    const totalSize = fileList.reduce((s, f) => s + f.size, 0);
+    const duplicates = this.duplicateFinder.analyze(files);
+    const wastedBytes = this.duplicateFinder.wastedBytes(duplicates);
 
-    const totalSize = entries.reduce((s, e) => s + e.size, 0);
-    const totalGzipped = entries.reduce((s, e) => s + e.gzipped, 0);
-    const duplicates = this.duplicateFinder.findExactDuplicates(files);
-
-    return {
-      totalSize,
-      totalGzipped,
-      entries,
-      duplicates,
-      byCategory,
-      analyzedAt: Date.now(),
-    };
+    return { totalSize, fileCount: fileList.length, files: fileList, duplicates, wastedBytes, categories };
   }
 
-  /**
-   * Format the analysis as a human-readable terminal string.
-   */
-  formatTerminal(analysis: BundleAnalysis): string {
+  formatConsole(report: BundleReport): string {
     const lines: string[] = [];
-    lines.push('Bundle Analysis');
-    lines.push(`  Total:   ${formatBytes(analysis.totalSize)} raw  /  ${formatBytes(analysis.totalGzipped)} gzip`);
-    lines.push(`  Files:   ${analysis.entries.length}`);
-
-    if (analysis.duplicates.length > 0) {
-      const wasted = analysis.duplicates.reduce((s, d) => s + d.wastedBytes, 0);
-      lines.push(`  Waste:   ${formatBytes(wasted)} from ${analysis.duplicates.length} duplicate group(s)`);
+    lines.push(`Bundle Analysis`);
+    lines.push(`  Total:  ${formatBytes(report.totalSize)}  (${report.fileCount} files)`);
+    if (report.wastedBytes > 0) {
+      lines.push(`  Waste:  ${formatBytes(report.wastedBytes)} from ${report.duplicates.length} duplicate group(s)`);
     }
-
     lines.push('');
     lines.push('By category:');
-    for (const [cat, stats] of Object.entries(analysis.byCategory).sort((a, b) => b[1].size - a[1].size)) {
-      const pct = analysis.totalSize > 0 ? ((stats.size / analysis.totalSize) * 100).toFixed(1) : '0.0';
-      lines.push(`  ${cat.padEnd(10)}  ${formatBytes(stats.size).padStart(10)}  (${pct}%)  ${stats.count} file(s)`);
+    for (const [cat, size] of Object.entries(report.categories).sort((a, b) => b[1] - a[1])) {
+      const pct = report.totalSize > 0 ? ((size / report.totalSize) * 100).toFixed(1) : '0.0';
+      lines.push(`  ${cat.padEnd(10)}  ${formatBytes(size).padStart(10)}  (${pct}%)`);
     }
-
     lines.push('');
     lines.push('Top 10 files:');
-    for (const e of analysis.entries.slice(0, 10)) {
-      const pct = analysis.totalSize > 0 ? ((e.size / analysis.totalSize) * 100).toFixed(1) : '0.0';
-      lines.push(`  ${e.path.padEnd(50)}  ${formatBytes(e.size).padStart(10)}  (${pct}%)`);
+    for (const f of report.files.slice(0, 10)) {
+      const pct = report.totalSize > 0 ? ((f.size / report.totalSize) * 100).toFixed(1) : '0.0';
+      lines.push(`  ${f.path.padEnd(50)}  ${formatBytes(f.size).padStart(10)}  (${pct}%)`);
     }
-
+    if (report.duplicates.length > 0) {
+      lines.push('');
+      lines.push('Duplicates:');
+      for (const g of report.duplicates) {
+        lines.push(`  [${formatBytes(g.size)}]  ${g.files.join(', ')}`);
+      }
+    }
     return lines.join('\n');
   }
 
-  /**
-   * Serialize the analysis as pretty-printed JSON.
-   */
-  formatJSON(analysis: BundleAnalysis): string {
-    return JSON.stringify(analysis, null, 2);
+  toJSON(report: BundleReport): string {
+    return JSON.stringify(report, null, 2);
   }
 
-  /**
-   * Render the analysis as a self-contained HTML treemap page.
-   */
-  toHTML(analysis: BundleAnalysis, title = 'HoloScript Bundle Analysis'): string {
-    const nodes: TreemapNode[] = analysis.entries.map((e) => ({
-      name: e.path,
-      size: e.size,
-      category: e.category,
+  toHTML(report: BundleReport, title = 'HoloScript Bundle Analysis'): string {
+    const nodes: TreemapNode[] = report.files.map((f) => ({
+      name: f.path,
+      size: f.size,
+      category: f.category,
     }));
     return this.treemapGenerator.generate(nodes, title);
   }
