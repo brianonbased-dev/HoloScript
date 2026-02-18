@@ -1,3 +1,13 @@
+## [3.5.0-alpha.17] - 2026-02-18
+
+### ∞ Commence All XIX — UI System Deep Push
+
+33 new tests across 2 suites — deep coverage for the UI retained-mode tree and flexbox layout engine.
+
+#### UI
+- `UIRenderer.prod.test.ts` (25 tests) — Node creation, hierarchy, findByTag, hit testing (visible/hidden/coordinates), world rect accumulation, focus management (set/next/prev/clear), dirty tracking.
+- `UILayout.prod.test.ts` (8 tests) — Column/row layout, gap, padding, justify center, flexGrow distribution, fill size mode.
+
 ## [3.5.0-alpha.16] - 2026-02-18
 
 ### ∞ Commence All XVIII — Render + UI Coverage Push
