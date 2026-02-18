@@ -308,6 +308,25 @@ export interface TraitConstraint {
 }
 
 // ---------------------------------------------------------------------------
+// Exhaustive Match Check (Sprint 4)
+// ---------------------------------------------------------------------------
+
+/**
+ * Describes a match expression for exhaustiveness checking (HSP021).
+ * Used with HoloScriptTypeChecker.checkExhaustiveMatch().
+ */
+export interface ExhaustiveMatchCheck {
+  /** The type alias name being matched (e.g. 'State') */
+  typeName: string;
+  /** The patterns covered in this match expression */
+  coveredPatterns: string[];
+  /** Line number for error reporting */
+  line?: number;
+  /** Column for error reporting */
+  column?: number;
+}
+
+// ---------------------------------------------------------------------------
 // Type Alias
 // ---------------------------------------------------------------------------
 

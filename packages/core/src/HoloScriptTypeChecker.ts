@@ -24,6 +24,7 @@ import type {
   TemplateNode,
   HoloScriptValue,
   MatchExpression,
+  ExhaustiveMatchCheck,
 } from './types';
 import { BUILTIN_CONSTRAINTS } from './traits/traitConstraints';
 import { loadConstraintsFromConfig } from './traits/constraintConfig';
@@ -619,6 +620,65 @@ export class HoloScriptTypeChecker {
     return this.unionTypes.get(name);
   }
 
+  /**
+   * Check if a match expression is exhaustive given the union type.
+   * Returns HSP021 diagnostics for missing cases.
+   */
+  checkExhaustiveMatch(matchExpr: ExhaustiveMatchCheck): TypeDiagnostic[] {
+    const decl = this.typeAliasRegistry.get(matchExpr.typeName);
+    if (!decl) return [];
+
+    // Only check union types
+    if (decl.kind !== 'union' && decl.kind !== 'simple') return [];
+
+    // Check if _ wildcard is present (catch-all)
+    if (matchExpr.coveredPatterns.includes('_')) return [];
+
+    // Extract members from the union definition
+    const members = this.extractUnionMembers(decl.definition);
+    if (members.length === 0) return [];
+
+    // Find missing cases
+    const coveredSet = new Set(matchExpr.coveredPatterns);
+    const missing = members.filter((m) => !coveredSet.has(m));
+
+    if (missing.length === 0) return [];
+
+    const missingStr = missing.map((m) => '"' + m + '"').join(', ');
+    return [
+      {
+        code: 'HSP021',
+        message: "Non-exhaustive match on '" + matchExpr.typeName + "'. Missing: " + missingStr,
+        severity: 'error' as const,
+        line: matchExpr.line ?? 0,
+        column: matchExpr.column ?? 0,
+        suggestions: missing.map((m) => 'Add case: ' + m + ' => ...'),
+      },
+    ];
+  }
+
+  /**
+   * Extract individual members from a union type definition string.
+   * Handles string literals, number literals, and identifiers.
+   */
+  private extractUnionMembers(definition: string): string[] {
+    const parts = definition.split('|').map((p) => p.trim()).filter(Boolean);
+    const members: string[] = [];
+
+    for (const part of parts) {
+      const strMatch = part.match(/^["'](.+?)["']$/);
+      if (strMatch) {
+        members.push(strMatch[1]);
+        continue;
+      }
+      if (/^-?\d+(\.\d+)?$/.test(part)) {
+        members.push(part);
+        continue;
+      }
+    }
+
+    return members;
+  }
   private checkBlock(nodes: ASTNode[]): void {
     if (!nodes) return;
     for (const node of nodes) {
