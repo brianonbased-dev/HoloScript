@@ -77,10 +77,12 @@ import { MATERIAL_PROPERTIES_TRAITS } from './material-properties';
 import { FABRICATION_DEVICES_TRAITS } from './fabrication-devices';
 import { ROBOTICS_INDUSTRIAL_TRAITS } from './robotics-industrial';
 import { SCIENTIFIC_COMPUTING_TRAITS } from './scientific-computing';
+import { V43_AI_XR_TRAITS } from './v43-ai-xr';
 
 /**
  * Combined VR_TRAITS array - the single source of truth for all valid VR trait names.
- * Now includes 213 robotics & industrial traits (CYCLE B) + 22 scientific computing traits (Phase 1).
+ * Now includes 213 robotics & industrial traits (CYCLE B) + 22 scientific computing traits (Phase 1)
+ * + 23 V43 AI/XR traits (Tier 1-3).
  */
 export const VR_TRAITS = [
   ...CORE_VR_INTERACTION_TRAITS,
@@ -157,6 +159,9 @@ export const VR_TRAITS = [
 
   // Scientific Computing & Molecular Dynamics (22 traits - Phase 1)
   ...SCIENTIFIC_COMPUTING_TRAITS,
+
+  // V43 AI/XR Traits (23 traits - Tier 1-3)
+  ...V43_AI_XR_TRAITS,
 ] as const;
 
 /**
@@ -266,3 +271,6 @@ export {
   SCIENTIFIC_COMPUTING_TRAITS,
   type ScientificComputingTraitName,
 } from './scientific-computing';
+
+// V43 AI/XR Traits (Tier 1-3)
+export { V43_AI_XR_TRAITS } from './v43-ai-xr';

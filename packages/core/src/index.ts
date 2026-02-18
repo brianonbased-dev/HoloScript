@@ -2051,3 +2051,50 @@ export {
   type ReportSummary,
   type ComplianceReport,
 } from './audit';
+
+// =============================================================================
+// V43 Trait Handlers (Tier 2: AI Generation & visionOS)
+// =============================================================================
+
+export {
+  aiInpaintingHandler,
+  type AiInpaintingConfig,
+  type InpaintModel,
+  type MaskSource,
+  type BlendMode,
+} from './traits/AiInpaintingTrait';
+
+export {
+  aiTextureGenHandler,
+  type AiTextureGenConfig,
+  type TextureStyle,
+  type TextureResolution,
+  type MaterialType as AiTextureMaterialType,
+} from './traits/AiTextureGenTrait';
+
+export {
+  controlNetHandler,
+  type ControlNetConfig,
+  type ControlNetModel,
+} from './traits/ControlNetTrait';
+
+export {
+  diffusionRealtimeHandler,
+  type DiffusionRealtimeConfig,
+  type DiffusionBackend,
+  type StreamMode,
+} from './traits/DiffusionRealtimeTrait';
+
+export {
+  sharePlayHandler,
+  type SharePlayConfig,
+  type SharePlayState,
+  type SyncPolicy,
+} from './traits/SharePlayTrait';
+
+export {
+  spatialPersonaHandler,
+  type SpatialPersonaConfig,
+  type PersonaStyle,
+  type PersonaVisibility,
+} from './traits/SpatialPersonaTrait';
