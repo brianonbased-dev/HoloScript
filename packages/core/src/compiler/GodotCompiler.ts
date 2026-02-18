@@ -430,6 +430,28 @@ export class GodotCompiler {
         ) {
           this.emit(`# @${tn} — XR input: ${JSON.stringify(trait.config || {})}`);
         }
+        // V43 AI/XR Traits
+        else if (tn === 'spatial_persona') {
+          this.emit(`# @spatial_persona — visionOS-specific; use custom avatar scene for Godot`);
+        } else if (tn === 'shareplay') {
+          this.emit(`# @shareplay — multiplayer via ENetMultiplayerPeer or WebSocketPeer`);
+        } else if (tn === 'object_tracking') {
+          this.emit(`# @object_tracking — use XRTracker or custom vision-based tracker`);
+        } else if (tn === 'scene_reconstruction') {
+          this.emit(`# @scene_reconstruction — use XRServer environment mesh`);
+        } else if (tn === 'eye_tracked' || tn === 'eye_hand_fusion') {
+          this.emit(`# @${tn} — use XRPositionalTracker for eye/hand data`);
+        } else if (tn === 'controlnet' || tn === 'ai_texture_gen' || tn === 'diffusion_realtime' || tn === 'ai_upscaling' || tn === 'ai_inpainting') {
+          this.emit(`# @${tn} — AI generation: route to external inference or GDExtension`);
+        } else if (tn === 'neural_link' || tn === 'neural_forge') {
+          this.emit(`# @${tn} — neural interface: ${JSON.stringify(trait.config || {})}`);
+        } else if (tn === 'embedding_search' || tn === 'ai_npc_brain' || tn === 'vector_db') {
+          this.emit(`# @${tn} — knowledge/AI: integrate via HTTP or GDExtension`);
+        } else if (tn === 'vision' || tn === 'ai_vision' || tn === 'spatial_awareness') {
+          this.emit(`# @${tn} — computer vision: use OpenCV GDExtension or XRServer`);
+        } else if (tn === 'neural_animation') {
+          this.emit(`# @neural_animation — motion matching via AnimationTree + custom solver`);
+        }
         // Catch-all
         else {
           this.emit(`# @${tn}: ${JSON.stringify(trait.config || {})}`);

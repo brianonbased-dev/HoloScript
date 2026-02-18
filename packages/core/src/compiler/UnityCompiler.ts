@@ -428,6 +428,41 @@ export class UnityCompiler {
             `// @accessible(role: "${trait.config?.role || 'generic'}") — Unity Accessibility`
           );
         }
+        // V43 AI/XR Traits
+        else if (trait.name === 'spatial_persona' || trait.name === 'shareplay') {
+          this.emit(`// @${trait.name} — visionOS-specific; use Mirror/Photon for Unity multiplayer`);
+        } else if (trait.name === 'object_tracking') {
+          this.emit(`// @object_tracking — AR Foundation: ARTrackedObjectManager`);
+        } else if (trait.name === 'scene_reconstruction') {
+          this.emit(`// @scene_reconstruction — AR Foundation: ARMeshManager`);
+        } else if (trait.name === 'eye_tracked') {
+          this.emit(`// @eye_tracked — XR Interaction Toolkit: XREyeInteractor`);
+        } else if (trait.name === 'eye_hand_fusion') {
+          this.emit(`// @eye_hand_fusion — combine XREyeInteractor + XRHandInteractorController`);
+        } else if (trait.name === 'controlnet') {
+          const model = (trait.config as any)?.model || 'canny';
+          this.emit(`// @controlnet(model: "${model}") — route to inference API or Unity Sentis`);
+        } else if (trait.name === 'ai_texture_gen') {
+          const style = (trait.config as any)?.style || 'photorealistic';
+          this.emit(`// @ai_texture_gen(style: "${style}") — Unity Sentis or external API`);
+        } else if (trait.name === 'diffusion_realtime') {
+          this.emit(`// @diffusion_realtime — Unity Sentis real-time diffusion pipeline`);
+        } else if (trait.name === 'ai_upscaling') {
+          const factor = (trait.config as any)?.factor || 2;
+          this.emit(`// @ai_upscaling(${factor}x) — Unity Sentis super-resolution model`);
+        } else if (trait.name === 'ai_inpainting') {
+          this.emit(`// @ai_inpainting — Unity Sentis or API-based inpainting`);
+        } else if (trait.name === 'neural_link' || trait.name === 'neural_forge') {
+          this.emit(`// @${trait.name} — ${JSON.stringify(trait.config || {})}`);
+        } else if (trait.name === 'embedding_search' || trait.name === 'ai_npc_brain' || trait.name === 'vector_db') {
+          this.emit(`// @${trait.name} — AI knowledge: use external service or on-device model`);
+        } else if (trait.name === 'vision' || trait.name === 'ai_vision') {
+          this.emit(`// @${trait.name} — Unity Barracuda / Sentis vision model`);
+        } else if (trait.name === 'spatial_awareness') {
+          this.emit(`// @spatial_awareness — AR Foundation scene understanding`);
+        } else if (trait.name === 'neural_animation') {
+          this.emit(`// @neural_animation — Motion Matching (com.unity.animation.rigging)`);
+        }
         // Catch-all for remaining expansion traits
         else {
           this.emit(`// @${trait.name}: ${JSON.stringify(trait.config || {})}`);

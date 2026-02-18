@@ -1,3 +1,40 @@
+## [3.5.0-alpha.2] - 2026-02-17
+
+### 🤖 V43: AI Generation & visionOS Traits — Complete Integration
+
+Closes all V43 coverage gaps: trait handlers, VRTraitName union, VisionOSTraitMap, compiler stubs, and package exports.
+
+### Added
+
+#### V43 Trait Handlers (6 new files)
+- `AiInpaintingTrait` — AI inpainting with sd-inpaint/flux-fill/dalle-edit/lama, mask source, blend modes
+- `AiTextureGenTrait` — Diffusion-based PBR texture generation with queue management and style transfer
+- `ControlNetTrait` — ControlNet conditioning (canny/depth/pose/normal/hed/seg/scribble/softedge/lineart)
+- `DiffusionRealtimeTrait` — Real-time diffusion streaming via LCM/StreamDiffusion/turbo/lightning backends
+- `SharePlayTrait` — visionOS SharePlay multi-user session management with participant sync
+- `SpatialPersonaTrait` — Apple Vision Pro spatial persona with proximity, visibility, and expression state
+
+#### VRTraitName Union Expansion (23 traits)
+New `v43-ai-xr.ts` constants file adds all V43 traits to the `VRTraitName` union:
+- visionOS/XR: `spatial_persona`, `shareplay`, `object_tracking`, `scene_reconstruction`, `volumetric_window`, `spatial_navigation`, `eye_tracked`, `realitykit_mesh`, `eye_hand_fusion`
+- AI generation: `controlnet`, `ai_texture_gen`, `diffusion_realtime`, `ai_upscaling`, `ai_inpainting`, `neural_link`, `neural_forge`
+- Knowledge/perception: `embedding_search`, `ai_npc_brain`, `vector_db`, `vision`, `spatial_awareness`, `neural_animation`, `ai_vision`
+
+#### VisionOSTraitMap V43 Section
+- Added `V43_VISIONOS_TRAIT_MAP` with full RealityKit mappings for spatial_persona, shareplay, object_tracking, scene_reconstruction, volumetric_window, spatial_navigation, eye_tracked
+- Added `V43_AI_GEN_TRAIT_MAP` with comment-level stubs for controlnet, ai_texture_gen, diffusion_realtime, ai_inpainting, ai_upscaling, neural_link, neural_forge
+- All V43 maps merged into `VISIONOS_TRAIT_MAP`
+
+#### Package Exports
+- All 6 new V43 handler functions and config types exported from `@holoscript/core`
+
+#### TrainingMonkey
+- 3 new generator files: v43-visionos.ts (23 generators), v43-ai-gen.ts (19), v43-knowledge.ts (19)
+- 3 new TRAIT_CATEGORIES in scene-pools.ts covering all V43 traits for dynamic bulk generation
+- `scripts/merge-v43-dataset.py` — assembles ~65K merged training set (V37 + V39 + V43 sampled)
+
+---
+
 ## [3.5.0-alpha.1] - 2026-02-16
 
 ### 🏗️ Phase 0: Language Foundations (Hololand Bootstrap)

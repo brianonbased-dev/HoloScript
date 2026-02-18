@@ -351,6 +351,23 @@ export class BabylonCompiler {
         this.emit(
           `${v}.accessibilityTag = { description: "${obj.name}", role: "${trait.config?.role || 'generic'}" };`
         );
+      // V43 AI/XR Traits
+      } else if (trait.name === 'object_tracking') {
+        this.emit(`// @object_tracking — WebXR hit-test or custom tracker for "${obj.name}"`);
+      } else if (trait.name === 'scene_reconstruction') {
+        this.emit(`// @scene_reconstruction — WebXR mesh detection for "${obj.name}"`);
+      } else if (trait.name === 'eye_tracked') {
+        this.emit(`// @eye_tracked — WebXR eye tracking (requires 'eye-tracking' feature)`);
+      } else if (trait.name === 'eye_hand_fusion') {
+        this.emit(`// @eye_hand_fusion — combine WebXR hand + eye tracking`);
+      } else if (trait.name === 'controlnet') {
+        this.emit(`// @controlnet(model: "${(trait.config as any)?.model || 'canny'}") — route to inference API`);
+      } else if (trait.name === 'ai_texture_gen') {
+        this.emit(`// @ai_texture_gen — apply generated texture to ${v}.material`);
+      } else if (trait.name === 'neural_animation') {
+        this.emit(`// @neural_animation — BabylonJS AnimationGroup + neural pose predictor`);
+      } else if (trait.name === 'ai_npc_brain') {
+        this.emit(`// @ai_npc_brain(model: "${(trait.config as any)?.model || 'llm'}") — external LLM/NPC API`);
       } else {
         this.emit(`// @${trait.name}: ${JSON.stringify(trait.config || {})}`);
       }

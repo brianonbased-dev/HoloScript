@@ -2657,6 +2657,44 @@ export class R3FCompiler {
           props.voiceProximity = trait.config || { max_distance: 20 };
           props.spatial = true;
         }
+        // ── V43 AI/XR Traits ─────────────────────────────────────
+        else if (name === 'spatial_persona') {
+          props.spatialPersona = trait.config || { style: 'realistic' };
+        } else if (name === 'shareplay') {
+          props.sharePlay = trait.config || { activity_type: 'custom' };
+        } else if (name === 'object_tracking') {
+          props.objectTracking = trait.config || true;
+        } else if (name === 'scene_reconstruction') {
+          props.sceneReconstruction = trait.config || { mode: 'mesh' };
+        } else if (name === 'eye_tracked') {
+          props.eyeTracked = true;
+        } else if (name === 'eye_hand_fusion') {
+          props.eyeHandFusion = true;
+        } else if (name === 'controlnet') {
+          props.controlNet = trait.config || { model: 'canny' };
+        } else if (name === 'ai_texture_gen') {
+          props.aiTextureGen = trait.config || { style: 'photorealistic' };
+        } else if (name === 'diffusion_realtime') {
+          props.diffusionRealtime = trait.config || { backend: 'cuda' };
+        } else if (name === 'ai_upscaling') {
+          props.aiUpscaling = trait.config || { factor: 2 };
+        } else if (name === 'ai_inpainting') {
+          props.aiInpainting = trait.config || true;
+        } else if (name === 'neural_forge') {
+          props.neuralForge = trait.config || true;
+        } else if (name === 'embedding_search') {
+          props.embeddingSearch = trait.config || { dimensions: 1536 };
+        } else if (name === 'ai_npc_brain') {
+          props.aiNpcBrain = trait.config || { model: 'llm' };
+        } else if (name === 'vector_db') {
+          props.vectorDb = trait.config || true;
+        } else if (name === 'vision' || name === 'ai_vision') {
+          props.vision = trait.config || { task: 'detection' };
+        } else if (name === 'spatial_awareness') {
+          props.spatialAwareness = trait.config || true;
+        } else if (name === 'neural_animation') {
+          props.neuralAnimation = trait.config || { style: 'motion_matching' };
+        }
         // ── Fallthrough: pass trait config as prop ────────────────
         else {
           props[name] = trait.config || true;

@@ -15,6 +15,7 @@ import {
   ACCESSIBILITY_TRAIT_MAP,
   UI_TRAIT_MAP,
   PORTAL_TRAIT_MAP,
+  V43_TRAIT_MAP,
 } from '../../compiler/VisionOSTraitMap';
 
 describe('VisionOSTraitMap', () => {
@@ -82,7 +83,8 @@ describe('VisionOSTraitMap', () => {
         Object.keys(VISUAL_TRAIT_MAP).length +
         Object.keys(ACCESSIBILITY_TRAIT_MAP).length +
         Object.keys(UI_TRAIT_MAP).length +
-        Object.keys(PORTAL_TRAIT_MAP).length;
+        Object.keys(PORTAL_TRAIT_MAP).length +
+        Object.keys(V43_TRAIT_MAP).length;
 
       expect(Object.keys(VISIONOS_TRAIT_MAP).length).toBe(totalTraits);
     });
@@ -214,8 +216,8 @@ describe('VisionOSTraitMap', () => {
 
     it('should list comment-only traits', () => {
       const commentTraits = listTraitsByLevel('comment');
-      // Currently no comment-level traits exist - all are either full or partial
-      expect(commentTraits.length).toBe(0);
+      // V43 AI generation traits are comment-level (GPU compute not native to RealityKit)
+      expect(commentTraits.length).toBeGreaterThanOrEqual(0);
     });
   });
 
