@@ -7,20 +7,25 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// ── pg mock ──────────────────────────────────────────────────────────────────
-const mockQuery = vi.fn().mockResolvedValue({ rows: [{ id: 1 }] });
-const mockOn = vi.fn();
-const mockConnect = vi.fn();
-const mockEnd = vi.fn();
-
-vi.mock('pg', () => ({
-  Pool: vi.fn().mockImplementation(() => ({
-    query: mockQuery,
-    on: mockOn,
-    connect: mockConnect,
-    end: mockEnd,
-  })),
+// ── vi.hoisted: declare mock fns before vi.mock factory runs ─────────────────
+const { mockQuery, mockOn, mockConnect, mockEnd } = vi.hoisted(() => ({
+  mockQuery: vi.fn().mockResolvedValue({ rows: [{ id: 1 }] }),
+  mockOn: vi.fn(),
+  mockConnect: vi.fn(),
+  mockEnd: vi.fn(),
 }));
+
+// ── pg mock — must use a real class because pool.ts calls `new Pool(config)` ─
+vi.mock('pg', () => {
+  class MockPool {
+    query = mockQuery;
+    on = mockOn;
+    connect = mockConnect;
+    end = mockEnd;
+    constructor(_config?: any) {}
+  }
+  return { Pool: MockPool };
+});
 
 // ── cuid mock ─────────────────────────────────────────────────────────────────
 vi.mock('cuid', () => ({
