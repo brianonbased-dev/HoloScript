@@ -1,3 +1,14 @@
+## [3.5.0-alpha.41] - 2026-02-18
+
+### ∞ Sprint XLIII–XLIV — Parser Error System + Cache + Deployer Validation 🔴🟡🔵
+
+68 new tests across 4 suites — complete parser error system coverage + LRU cache + deployer validation.
+
+- `RichErrors.prod.test.ts` (23 tests) — findSimilarTrait (3), findSimilarKeyword (3), getSourceContext (3), createRichError (3), createTraitError (2), createKeywordError (1), formatRichError (3), formatRichErrors (2), getErrorCodeDocumentation (3).
+- `ErrorCollector.prod.test.ts` (25 tests) — ParserErrorCollector lifecycle (13), createErrorCollector (1), withErrorCollection (2), SynchronizationStrategies (7: skipToStatement/skipToBlockEnd/skipToKeyword/findMatchingBracket).
+- `ParseCache.prod.test.ts` (10 tests) — hash consistency/uniqueness, get/set roundtrip, hash mismatch, LRU eviction, stats, clear, access ordering.
+- `DeployerValidation.test.ts` (10 tests) — config validation (8 cases), deployment ID generation (2).
+
 ## [3.5.0-alpha.40] - 2026-02-18
 
 ### ∞ Sprint XLII — Traits Data Integrity + Packager Sweep 🧬📦

@@ -109,3 +109,11 @@ stryker.log
 
 # Studio build artifacts
 packages/studio/.next/
+
+# Video tutorial rendered output (large MP4 files — tracked via GitHub Releases)
+packages/video-tutorials/out/*.mp4
+packages/video-tutorials/out/*.webm
+packages/video-tutorials/out/*.mov
+packages/video-tutorials/public/narration/*.mp3
+packages/video-tutorials/public/captures/*.webm
+packages/video-tutorials/public/captures/*.mp4

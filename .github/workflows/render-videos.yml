@@ -1,0 +1,137 @@
+name: Render Tutorial Videos
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Headlessly renders all Remotion compositions in packages/video-tutorials/
+# and attaches the resulting MP4 files to GitHub Releases.
+#
+# Triggers:
+#   • On every published release → full render + attach to release assets
+#   • Manual dispatch → render specific composition or all
+#   • Weekly schedule → keep videos fresh with latest code
+#
+# Chrome Headless Shell dependencies for Ubuntu:
+#   libdrm2, libasound2, libgbm1, libxkbcommon0, libxrandr2
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  release:
+    types: [published]
+
+  workflow_dispatch:
+    inputs:
+      composition:
+        description: "Composition to render (leave empty for all)"
+        required: false
+        default: ""
+        type: string
+      attach_to_release:
+        description: "Attach to latest release"
+        required: false
+        default: "false"
+        type: boolean
+
+  schedule:
+    # Run every Sunday at 03:00 UTC to keep videos current
+    - cron: "0 3 * * 0"
+
+jobs:
+  render:
+    name: Render Tutorial Videos
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Chrome Headless Shell dependencies ──────────────────────────────────
+      # Required for Remotion's renderMedia() on Ubuntu runners
+      - name: Install Chrome Headless Shell dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            libdrm2 \
+            libasound2 \
+            libgbm1 \
+            libxkbcommon0 \
+            libxrandr2 \
+            libxss1 \
+            libgtk-3-0 \
+            libx11-xcb1 \
+            libxcb-dri3-0 \
+            libgles2
+
+      # ── pnpm ────────────────────────────────────────────────────────────────
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      # ── Node.js ─────────────────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      # ── Install dependencies ─────────────────────────────────────────────────
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ── Build @holoscript/core (video-tutorials depends on it) ───────────────
+      - name: Build @holoscript/core
+        run: pnpm --filter @holoscript/core run build
+
+      # ── Render: specific composition ─────────────────────────────────────────
+      - name: Render specific composition
+        if: ${{ github.event.inputs.composition != '' }}
+        run: |
+          pnpm --filter @holoscript/video-tutorials run render \
+            -- --composition "${{ github.event.inputs.composition }}"
+        env:
+          NODE_ENV: production
+
+      # ── Render: all compositions ─────────────────────────────────────────────
+      - name: Render all compositions
+        if: ${{ github.event.inputs.composition == '' || github.event_name == 'release' || github.event_name == 'schedule' }}
+        run: pnpm --filter @holoscript/video-tutorials run render
+        env:
+          NODE_ENV: production
+
+      # ── Upload artifacts ─────────────────────────────────────────────────────
+      - name: Upload rendered videos as artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tutorial-videos-${{ github.sha }}
+          path: packages/video-tutorials/out/*.mp4
+          retention-days: 90
+          if-no-files-found: warn
+
+      # ── Attach MP4s to GitHub Release ────────────────────────────────────────
+      - name: Attach videos to release
+        if: github.event_name == 'release' || github.event.inputs.attach_to_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/video-tutorials/out/*.mp4
+          tag_name: ${{ github.event.release.tag_name || github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Summary ─────────────────────────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## 🎬 Tutorial Video Render" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -d packages/video-tutorials/out ]; then
+            echo "### Output files" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            ls -lh packages/video-tutorials/out/*.mp4 2>/dev/null || echo "(no .mp4 files found)"
+            ls -lh packages/video-tutorials/out/*.mp4 2>/dev/null >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
