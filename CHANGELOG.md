@@ -1,3 +1,13 @@
+## [3.5.0-alpha.20] - 2026-02-18
+
+### ∞ Commence All XXII — Widget Tree + UI Factories
+
+27 new tests across 2 suites — widget tree management + factory coverage.
+
+#### UI
+- `UIWidget.prod.test.ts` (17 tests) — Widget tree: createWidget (defaults, interactive auto-detect, root assignment), addChild, removeWidget (recursive), setStyle/setVisible/setText, getRenderOrder (z-sort, hidden filter), hitTest (interactive priority, miss, non-interactive skip).
+- `UIFactories.prod.test.ts` (10 tests) — createUIPanel (defaults, dimensions, children), createUIButton (3-level hierarchy, pressable trait, colors, dimensions), createVirtualKeyboard (QWERTY grid, special keys, scale).
+
 ## [3.5.0-alpha.19] - 2026-02-18
 
 ### ∞ Commence All XXI — UI System Complete
