@@ -14,6 +14,7 @@ export default [
   'packages/comparative-benchmarks/vitest.config.ts',
   'packages/llm-provider/vitest.config.ts',
   'packages/registry/vitest.config.ts',
+  'packages/holoscript-cdn/vitest.config.ts',
 
   // ── Packages without a vitest.config.ts (inline) ──────────────────────
   {
