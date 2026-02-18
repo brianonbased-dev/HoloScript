@@ -547,7 +547,7 @@ async function createCollection(
   params: { name: string; description: string; coinIds: string[] }
 ): Promise<void> {
   const collection: Collection = {
-    id: `collection_${Date.now()}`,
+    id: `collection_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     name: params.name,
     description: params.description,
     coins: params.coinIds,
