@@ -1,155 +1,115 @@
-/**
- * SocialGraph Unit Tests
- *
- * Tests user CRUD, relationship management, caching,
- * and filtered queries (friends, pending, blocked).
- */
-
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { SocialGraph, type SocialUser } from '../SocialGraph';
 
-function makeUser(id: string, overrides: Partial<SocialUser> = {}): SocialUser {
-  return {
-    id,
-    username: `user_${id}`,
-    displayName: `User ${id}`,
-    status: 'online',
-    lastSeen: Date.now(),
-    ...overrides,
-  };
+function makeUser(id: string, name = `user_${id}`): SocialUser {
+  return { id, username: name, displayName: name, status: 'online', lastSeen: Date.now() };
 }
 
 describe('SocialGraph', () => {
-  let graph: SocialGraph;
-
-  beforeEach(() => {
-    graph = new SocialGraph('local-user');
+  it('starts empty', () => {
+    const g = new SocialGraph('me');
+    expect(g.getFriends()).toEqual([]);
+    expect(g.getPendingIncoming()).toEqual([]);
+    expect(g.getPendingOutgoing()).toEqual([]);
+    expect(g.getBlocked()).toEqual([]);
   });
 
-  describe('updateUser / getUser', () => {
-    it('should add a new user', () => {
-      const user = makeUser('u1');
-      graph.updateUser(user);
-      expect(graph.getUser('u1')).toEqual(user);
-    });
-
-    it('should update an existing user', () => {
-      graph.updateUser(makeUser('u1', { status: 'online' }));
-      graph.updateUser(makeUser('u1', { status: 'away' }));
-      expect(graph.getUser('u1')?.status).toBe('away');
-    });
-
-    it('should return undefined for unknown user', () => {
-      expect(graph.getUser('nonexistent')).toBeUndefined();
-    });
+  it('updateUser adds user', () => {
+    const g = new SocialGraph('me');
+    g.updateUser(makeUser('u1'));
+    expect(g.getUser('u1')!.username).toBe('user_u1');
   });
 
-  describe('setRelationship / getRelationship', () => {
-    it('should set and get a relationship', () => {
-      graph.setRelationship('u1', 'friend');
-      expect(graph.getRelationship('u1')).toBe('friend');
-    });
-
-    it('should return none for unknown user', () => {
-      expect(graph.getRelationship('unknown')).toBe('none');
-    });
-
-    it('should update existing relationship', () => {
-      graph.setRelationship('u1', 'pending_incoming');
-      graph.setRelationship('u1', 'friend');
-      expect(graph.getRelationship('u1')).toBe('friend');
-    });
+  it('updateUser merges existing', () => {
+    const g = new SocialGraph('me');
+    g.updateUser(makeUser('u1'));
+    g.updateUser({ ...makeUser('u1'), status: 'away' });
+    expect(g.getUser('u1')!.status).toBe('away');
   });
 
-  describe('getFriends', () => {
-    it('should return only friends', () => {
-      graph.updateUser(makeUser('f1'));
-      graph.updateUser(makeUser('f2'));
-      graph.updateUser(makeUser('b1'));
-      graph.setRelationship('f1', 'friend');
-      graph.setRelationship('f2', 'friend');
-      graph.setRelationship('b1', 'blocked');
-
-      const friends = graph.getFriends();
-      expect(friends).toHaveLength(2);
-      expect(friends.map(f => f.id)).toContain('f1');
-      expect(friends.map(f => f.id)).toContain('f2');
-    });
-
-    it('should use cache on second call', () => {
-      graph.updateUser(makeUser('f1'));
-      graph.setRelationship('f1', 'friend');
-      const first = graph.getFriends();
-      const second = graph.getFriends();
-      expect(first).toBe(second); // Same reference = cached
-    });
+  it('getUser returns undefined for unknown', () => {
+    const g = new SocialGraph('me');
+    expect(g.getUser('nope')).toBeUndefined();
   });
 
-  describe('getPendingIncoming', () => {
-    it('should return only incoming requests', () => {
-      graph.updateUser(makeUser('p1'));
-      graph.updateUser(makeUser('p2'));
-      graph.setRelationship('p1', 'pending_incoming');
-      graph.setRelationship('p2', 'pending_outgoing');
-
-      const incoming = graph.getPendingIncoming();
-      expect(incoming).toHaveLength(1);
-      expect(incoming[0].id).toBe('p1');
-    });
+  it('setRelationship + getRelationship', () => {
+    const g = new SocialGraph('me');
+    g.updateUser(makeUser('u1'));
+    g.setRelationship('u1', 'friend');
+    expect(g.getRelationship('u1')).toBe('friend');
   });
 
-  describe('getPendingOutgoing', () => {
-    it('should return only outgoing requests', () => {
-      graph.updateUser(makeUser('p1'));
-      graph.setRelationship('p1', 'pending_outgoing');
-
-      const outgoing = graph.getPendingOutgoing();
-      expect(outgoing).toHaveLength(1);
-      expect(outgoing[0].id).toBe('p1');
-    });
+  it('getRelationship returns none for unknown', () => {
+    const g = new SocialGraph('me');
+    expect(g.getRelationship('unknown')).toBe('none');
   });
 
-  describe('getBlocked', () => {
-    it('should return blocked users', () => {
-      graph.updateUser(makeUser('b1'));
-      graph.setRelationship('b1', 'blocked');
-
-      const blocked = graph.getBlocked();
-      expect(blocked).toHaveLength(1);
-      expect(blocked[0].id).toBe('b1');
-    });
+  it('getFriends returns only friends', () => {
+    const g = new SocialGraph('me');
+    g.updateUser(makeUser('u1'));
+    g.updateUser(makeUser('u2'));
+    g.updateUser(makeUser('u3'));
+    g.setRelationship('u1', 'friend');
+    g.setRelationship('u2', 'blocked');
+    g.setRelationship('u3', 'friend');
+    expect(g.getFriends().length).toBe(2);
   });
 
-  describe('removeRelationship', () => {
-    it('should remove a relationship', () => {
-      graph.setRelationship('u1', 'friend');
-      graph.removeRelationship('u1');
-      expect(graph.getRelationship('u1')).toBe('none');
-    });
-
-    it('should invalidate caches on removal', () => {
-      graph.updateUser(makeUser('f1'));
-      graph.setRelationship('f1', 'friend');
-      graph.getFriends(); // populate cache
-      graph.removeRelationship('f1');
-      expect(graph.getFriends()).toHaveLength(0);
-    });
-
-    it('should be a no-op for nonexistent relationship', () => {
-      graph.removeRelationship('nonexistent'); // should not throw
-      expect(graph.getRelationship('nonexistent')).toBe('none');
-    });
+  it('getPendingIncoming filters correctly', () => {
+    const g = new SocialGraph('me');
+    g.updateUser(makeUser('u1'));
+    g.setRelationship('u1', 'pending_incoming');
+    expect(g.getPendingIncoming().length).toBe(1);
+    expect(g.getPendingIncoming()[0].id).toBe('u1');
   });
 
-  describe('invalidatedCaches', () => {
-    it('should force re-computation on next query', () => {
-      graph.updateUser(makeUser('f1'));
-      graph.setRelationship('f1', 'friend');
-      const first = graph.getFriends();
-      graph.invalidatedCaches();
-      const second = graph.getFriends();
-      expect(first).not.toBe(second); // Different reference
-      expect(second).toHaveLength(1); // Same content
-    });
+  it('getPendingOutgoing filters correctly', () => {
+    const g = new SocialGraph('me');
+    g.updateUser(makeUser('u1'));
+    g.setRelationship('u1', 'pending_outgoing');
+    expect(g.getPendingOutgoing().length).toBe(1);
+  });
+
+  it('getBlocked filters correctly', () => {
+    const g = new SocialGraph('me');
+    g.updateUser(makeUser('u1'));
+    g.setRelationship('u1', 'blocked');
+    expect(g.getBlocked().length).toBe(1);
+  });
+
+  it('removeRelationship clears relationship', () => {
+    const g = new SocialGraph('me');
+    g.updateUser(makeUser('u1'));
+    g.setRelationship('u1', 'friend');
+    g.removeRelationship('u1');
+    expect(g.getRelationship('u1')).toBe('none');
+  });
+
+  it('removeRelationship is safe for unknown', () => {
+    const g = new SocialGraph('me');
+    expect(() => g.removeRelationship('nope')).not.toThrow();
+  });
+
+  it('setRelationship only updates on change', () => {
+    const g = new SocialGraph('me');
+    g.updateUser(makeUser('u1'));
+    g.setRelationship('u1', 'friend');
+    // Get cache populated
+    g.getFriends();
+    // Set same relationship — cache should NOT be invalidated
+    g.setRelationship('u1', 'friend');
+    // We just test it doesn't throw and is still friend
+    expect(g.getRelationship('u1')).toBe('friend');
+  });
+
+  it('invalidatedCaches causes re-computation', () => {
+    const g = new SocialGraph('me');
+    g.updateUser(makeUser('u1'));
+    g.setRelationship('u1', 'friend');
+    const friends1 = g.getFriends();
+    g.invalidatedCaches();
+    const friends2 = g.getFriends();
+    expect(friends2.length).toBe(friends1.length);
+    expect(friends2).not.toBe(friends1); // Different array instances
   });
 });

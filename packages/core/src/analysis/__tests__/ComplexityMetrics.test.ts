@@ -1,140 +1,150 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { ComplexityAnalyzer } from '../ComplexityMetrics';
+import { describe, it, expect } from 'vitest';
+import { ComplexityAnalyzer, analyzeComplexity, DEFAULT_THRESHOLDS } from '../ComplexityMetrics';
+
+const SIMPLE_SOURCE = `
+// A comment
+function greet(name) {
+  return "hello " + name;
+}
+`;
+
+const COMPLEX_SOURCE = `
+function process(data) {
+  if (data.type === 'a') {
+    for (let i = 0; i < data.items.length; i++) {
+      if (data.items[i].active) {
+        while (data.items[i].pending) {
+          if (data.items[i].retry && data.items[i].count > 0) {
+            data.items[i].count--;
+          }
+        }
+      }
+    }
+  } else if (data.type === 'b') {
+    return data.fallback || data.default;
+  }
+}
+`;
+
+const OBJ_SOURCE = `
+spatial_group "world"
+orb "player"
+  @position
+  @physics
+  @health
+  name: "hero"
+  speed: 10
+
+orb "enemy"
+  @position
+  @ai
+`;
 
 describe('ComplexityAnalyzer', () => {
-  let analyzer: ComplexityAnalyzer;
-
-  beforeEach(() => { analyzer = new ComplexityAnalyzer(); });
-
-  // ---------------------------------------------------------------------------
-  // Basic Analysis
-  // ---------------------------------------------------------------------------
-
-  it('analyze returns a ComplexityResult', () => {
-    const result = analyzer.analyze('orb "Player" { }');
-    expect(result.filePath).toBe('input.holo');
-    expect(result.lines).toBeDefined();
-    expect(result.overallScore).toBeGreaterThanOrEqual(0);
+  it('analyzes line counts', () => {
+    const r = analyzeComplexity(SIMPLE_SOURCE);
+    expect(r.lines.total).toBeGreaterThan(0);
+    expect(r.lines.comments).toBeGreaterThanOrEqual(1);
+    expect(r.lines.blank).toBeGreaterThanOrEqual(1);
+    expect(r.lines.code).toBeGreaterThan(0);
   });
 
-  it('analyze with custom filePath', () => {
-    const result = analyzer.analyze('orb "X" { }', 'test.holo');
-    expect(result.filePath).toBe('test.holo');
+  it('computes commentRatio', () => {
+    const r = analyzeComplexity(SIMPLE_SOURCE);
+    expect(r.lines.commentRatio).toBeGreaterThan(0);
   });
 
-  // ---------------------------------------------------------------------------
-  // Line Metrics
-  // ---------------------------------------------------------------------------
-
-  it('line metrics count total lines', () => {
-    const source = 'line1\nline2\nline3\n';
-    const result = analyzer.analyze(source);
-    expect(result.lines.total).toBeGreaterThanOrEqual(3);
+  it('detects functions', () => {
+    const r = analyzeComplexity(SIMPLE_SOURCE);
+    expect(r.functions.length).toBe(1);
+    expect(r.functions[0].name).toBe('greet');
+    expect(r.functions[0].parameters).toBe(1);
   });
 
-  it('line metrics detect comments', () => {
-    const source = '// comment\ncode\n/* block */\n';
-    const result = analyzer.analyze(source);
-    expect(result.lines.comments).toBeGreaterThanOrEqual(1);
+  it('base cyclomatic is 1 for simple function', () => {
+    const r = analyzeComplexity(SIMPLE_SOURCE);
+    expect(r.functions[0].cyclomatic).toBe(1);
   });
 
-  it('line metrics detect blank lines', () => {
-    const source = 'code\n\n\ncode\n';
-    const result = analyzer.analyze(source);
-    expect(result.lines.blank).toBeGreaterThanOrEqual(2);
+  it('higher cyclomatic for complex function', () => {
+    const r = analyzeComplexity(COMPLEX_SOURCE);
+    const fn = r.functions.find(f => f.name === 'process');
+    expect(fn).toBeDefined();
+    expect(fn!.cyclomatic).toBeGreaterThan(5);
   });
 
-  // ---------------------------------------------------------------------------
-  // Nesting
-  // ---------------------------------------------------------------------------
-
-  it('nesting metrics detect depth', () => {
-    const source = 'if (x) {\n  if (y) {\n    if (z) {\n    }\n  }\n}\n';
-    const result = analyzer.analyze(source);
-    expect(result.nesting.maxDepth).toBeGreaterThanOrEqual(3);
+  it('detects nesting depth', () => {
+    const r = analyzeComplexity(COMPLEX_SOURCE);
+    expect(r.nesting.maxDepth).toBeGreaterThanOrEqual(4);
   });
 
-  // ---------------------------------------------------------------------------
-  // Function Analysis (regex expects `function` keyword)
-  // ---------------------------------------------------------------------------
-
-  it('detects function definitions', () => {
-    const source = 'function doSomething() {\n  if (x) { }\n  if (y) { }\n}\n';
-    const result = analyzer.analyze(source);
-    expect(result.functions.length).toBeGreaterThanOrEqual(1);
-    expect(result.functions[0].name).toBe('doSomething');
+  it('detects orbs and objects', () => {
+    const r = analyzeComplexity(OBJ_SOURCE);
+    expect(r.objects.totalObjects).toBe(2);
   });
 
-  it('cyclomatic complexity increases with branches', () => {
-    const simpleSrc = 'function simple() {\n}\n';
-    const complexSrc = 'function complex() {\n  if (a) { }\n  if (b) { }\n  while (c) { }\n  for (d) { }\n}\n';
-    const simple = analyzer.analyze(simpleSrc);
-    const complex = analyzer.analyze(complexSrc);
-    const simpleCyclo = simple.functions[0]?.cyclomatic ?? 1;
-    const complexCyclo = complex.functions[0]?.cyclomatic ?? 1;
-    expect(complexCyclo).toBeGreaterThan(simpleCyclo);
+  it('detects traits on objects', () => {
+    const r = analyzeComplexity(OBJ_SOURCE);
+    expect(r.traits.totalUsages).toBeGreaterThanOrEqual(4); // position, physics, health, position, ai
+    expect(r.traits.uniqueTraits).toBeGreaterThanOrEqual(4);
   });
 
-  // ---------------------------------------------------------------------------
-  // Object Metrics (regex expects orb 'Name' or orb "Name")
-  // ---------------------------------------------------------------------------
-
-  it('detects objects/orbs', () => {
-    const source = 'orb "Player" { }\norb "Enemy" { }\n';
-    const result = analyzer.analyze(source);
-    expect(result.objects.totalObjects).toBeGreaterThanOrEqual(2);
+  it('generates grade A for simple code', () => {
+    const r = analyzeComplexity(SIMPLE_SOURCE);
+    expect(['A', 'B']).toContain(r.grade);
+    expect(r.overallScore).toBeGreaterThanOrEqual(80);
   });
 
-  // ---------------------------------------------------------------------------
-  // Overall Score & Issues
-  // ---------------------------------------------------------------------------
-
-  it('overall score is computed', () => {
-    const result = analyzer.analyze('orb "X" { }');
-    expect(typeof result.overallScore).toBe('number');
+  it('findIssues for deep nesting', () => {
+    const r = analyzeComplexity(COMPLEX_SOURCE);
+    const nestingIssues = r.issues.filter(i => i.type === 'nesting');
+    expect(nestingIssues.length).toBeGreaterThan(0);
   });
 
-  it('issues array is populated for complex code', () => {
-    const lines = [];
-    for (let i = 0; i < 600; i++) lines.push(`line${i}`);
-    const result = analyzer.analyze(lines.join('\n'));
-    expect(result.issues.length).toBeGreaterThan(0);
+  it('findIssues for high cyclomatic', () => {
+    const a = new ComplexityAnalyzer({ maxCyclomatic: 2 });
+    const r = a.analyze(COMPLEX_SOURCE);
+    const cyclIssues = r.issues.filter(i => i.type === 'cyclomatic');
+    expect(cyclIssues.length).toBeGreaterThan(0);
   });
 
-  // ---------------------------------------------------------------------------
-  // Report
-  // ---------------------------------------------------------------------------
-
-  it('generateReport returns a string', () => {
-    const result = analyzer.analyze('orb "X" { }');
-    const report = analyzer.generateReport(result);
-    expect(typeof report).toBe('string');
-    expect(report.length).toBeGreaterThan(0);
+  it('custom thresholds override defaults', () => {
+    const a = new ComplexityAnalyzer({ maxNesting: 2 });
+    expect(a.getThresholds().maxNesting).toBe(2);
+    expect(a.getThresholds().maxCyclomatic).toBe(DEFAULT_THRESHOLDS.maxCyclomatic);
   });
 
-  // ---------------------------------------------------------------------------
-  // Threshold Configuration
-  // ---------------------------------------------------------------------------
-
-  it('setThresholds / getThresholds', () => {
-    analyzer.setThresholds({ maxCyclomatic: 5 });
-    expect(analyzer.getThresholds().maxCyclomatic).toBe(5);
+  it('setThresholds updates at runtime', () => {
+    const a = new ComplexityAnalyzer();
+    a.setThresholds({ maxLinesPerFile: 100 });
+    expect(a.getThresholds().maxLinesPerFile).toBe(100);
   });
 
-  it('custom thresholds affect issue detection', () => {
-    analyzer.setThresholds({ maxLinesPerFile: 5 });
-    const source = 'a\nb\nc\nd\ne\nf\ng\n';
-    const result = analyzer.analyze(source);
-    expect(result.issues.some(i => i.type === 'length')).toBe(true);
+  it('generateReport produces string output', () => {
+    const a = new ComplexityAnalyzer();
+    const r = a.analyze(SIMPLE_SOURCE);
+    const report = a.generateReport(r);
+    expect(report).toContain('Complexity Report');
+    expect(report).toContain('Overall Score');
+    expect(report).toContain('Line Metrics');
   });
 
-  // ---------------------------------------------------------------------------
-  // Trait Analysis
-  // ---------------------------------------------------------------------------
+  it('summary stats are computed', () => {
+    const r = analyzeComplexity(COMPLEX_SOURCE);
+    expect(r.summary.avgCyclomatic).toBeGreaterThan(0);
+    expect(r.summary.avgFunctionLength).toBeGreaterThan(0);
+    expect(r.summary.maintainabilityIndex).toBeGreaterThanOrEqual(0);
+  });
 
-  it('detects trait usage', () => {
-    const source = 'orb "X" {\n  @visible\n  @collidable\n}\n';
-    const result = analyzer.analyze(source);
-    expect(result.traits.totalUsages).toBeGreaterThanOrEqual(2);
+  it('filePath is preserved', () => {
+    const r = analyzeComplexity(SIMPLE_SOURCE, 'test.holo');
+    expect(r.filePath).toBe('test.holo');
+  });
+
+  it('block comments are counted', () => {
+    const src = '/* block\ncomment */\nlet x = 1;';
+    const r = analyzeComplexity(src);
+    expect(r.lines.comments).toBe(2);
+    expect(r.lines.code).toBe(1);
   });
 });

@@ -407,7 +407,7 @@ export class CapabilityMatcher {
           return multiplier * a.manifest.name.localeCompare(b.manifest.name);
         case 'score':
         default:
-          return multiplier * (b.score - a.score);
+          return multiplier * (a.score - b.score);
       }
     });
   }

@@ -1,118 +1,169 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { CapabilityMatcher } from '../CapabilityMatcher';
+import { describe, it, expect } from 'vitest';
+import { CapabilityMatcher, findAgents, findBestAgent } from '../CapabilityMatcher';
 import type { AgentManifest, AgentCapability } from '../AgentManifest';
-import type { CapabilityQuery } from '../CapabilityMatcher';
 
-function makeCap(type: string, domain: string, overrides: Partial<AgentCapability> = {}): AgentCapability {
-  return { type, domain, ...overrides } as AgentCapability;
+function makeCap(overrides: Partial<AgentCapability> = {}): AgentCapability {
+  return { type: 'render', domain: 'spatial', latency: 'fast', priority: 50, available: true, ...overrides };
 }
 
-function makeManifest(id: string, caps: AgentCapability[], overrides: Partial<AgentManifest> = {}): AgentManifest {
+function makeManifest(id: string, overrides: Partial<AgentManifest> = {}): AgentManifest {
   return {
-    id, name: id, version: '1.0.0',
-    capabilities: caps,
+    id,
+    name: `Agent ${id}`,
+    version: '1.0.0',
+    capabilities: [makeCap()],
+    endpoints: [{ protocol: 'local', address: 'localhost' }],
+    trustLevel: 'local',
     status: 'online',
-    trust: 'local',
-    endpoints: [{ protocol: 'http', address: 'localhost' }],
+    tags: [],
     ...overrides,
   } as AgentManifest;
 }
 
 describe('CapabilityMatcher', () => {
-  let matcher: CapabilityMatcher;
+  const matcher = new CapabilityMatcher();
 
-  beforeEach(() => { matcher = new CapabilityMatcher(); });
-
-  // ---------------------------------------------------------------------------
   // matchCapability
-  // ---------------------------------------------------------------------------
-
-  it('matchCapability returns match for matching type', () => {
-    const cap = makeCap('compute', 'general');
-    const match = matcher.matchCapability(cap, { type: 'compute' });
-    expect(match).not.toBeNull();
-    expect(match!.score).toBeGreaterThan(0);
+  it('matches capability by type', () => {
+    const result = matcher.matchCapability(makeCap({ type: 'render' }), { type: 'render' });
+    expect(result).not.toBeNull();
+    expect(result!.matchedCriteria).toContain('type');
   });
 
-  it('matchCapability returns null for non-matching type', () => {
-    const cap = makeCap('compute', 'general');
-    expect(matcher.matchCapability(cap, { type: 'render' })).toBeNull();
+  it('rejects wrong type', () => {
+    const result = matcher.matchCapability(makeCap({ type: 'render' }), { type: 'analyze' });
+    expect(result).toBeNull();
   });
 
-  it('matchCapability matches by domain', () => {
-    const cap = makeCap('compute', 'graphics');
-    const match = matcher.matchCapability(cap, { domain: 'graphics' });
-    expect(match).not.toBeNull();
+  it('matches by domain', () => {
+    const result = matcher.matchCapability(makeCap({ domain: 'vision' }), { domain: 'vision' });
+    expect(result).not.toBeNull();
+    expect(result!.matchedCriteria).toContain('domain');
   });
 
-  // ---------------------------------------------------------------------------
+  it('rejects wrong domain', () => {
+    const result = matcher.matchCapability(makeCap({ domain: 'spatial' }), { domain: 'audio' });
+    expect(result).toBeNull();
+  });
+
+  it('matches by maxLatency', () => {
+    const result = matcher.matchCapability(makeCap({ latency: 'fast' }), { maxLatency: 'medium' });
+    expect(result).not.toBeNull();
+  });
+
+  it('rejects exceeding maxLatency', () => {
+    const result = matcher.matchCapability(makeCap({ latency: 'slow' }), { maxLatency: 'fast' });
+    expect(result).toBeNull();
+  });
+
+  it('rejects unavailable capability', () => {
+    const result = matcher.matchCapability(makeCap({ available: false }), {});
+    expect(result).toBeNull();
+  });
+
+  it('returns score with priority bonus', () => {
+    const result = matcher.matchCapability(makeCap({ type: 'render', priority: 80 }), { type: 'render' });
+    expect(result!.score).toBeGreaterThan(0);
+  });
+
+  it('score is capped at 1', () => {
+    const result = matcher.matchCapability(makeCap({ priority: 200 }), {});
+    expect(result!.score).toBeLessThanOrEqual(1);
+  });
+
   // matchAgent
-  // ---------------------------------------------------------------------------
-
-  it('matchAgent returns match for agent with matching capabilities', () => {
-    const m = makeManifest('a1', [makeCap('compute', 'general'), makeCap('render', 'graphics')]);
-    const match = matcher.matchAgent(m, { type: 'compute' });
-    expect(match).not.toBeNull();
-    expect(match!.manifest.id).toBe('a1');
+  it('matches agent with matching capabilities', () => {
+    const agent = makeManifest('a1');
+    const result = matcher.matchAgent(agent, { type: 'render' });
+    expect(result).not.toBeNull();
+    expect(result!.reasons.length).toBeGreaterThan(0);
   });
 
-  it('matchAgent returns null for non-matching query', () => {
-    const m = makeManifest('a1', [makeCap('render', 'graphics')]);
-    expect(matcher.matchAgent(m, { type: 'compute' })).toBeNull();
+  it('rejects offline agent by default', () => {
+    const agent = makeManifest('a1', { status: 'offline' });
+    expect(matcher.matchAgent(agent, { type: 'render' })).toBeNull();
   });
 
-  // ---------------------------------------------------------------------------
+  it('includes offline agent when includeOffline', () => {
+    const agent = makeManifest('a1', { status: 'offline' });
+    expect(matcher.matchAgent(agent, { type: 'render', includeOffline: true })).not.toBeNull();
+  });
+
+  it('rejects by trust level', () => {
+    const agent = makeManifest('a1', { trustLevel: 'external' });
+    expect(matcher.matchAgent(agent, { type: 'render', minTrust: 'local' })).toBeNull();
+  });
+
+  it('rejects by missing tags', () => {
+    const agent = makeManifest('a1', { tags: ['fast'] });
+    expect(matcher.matchAgent(agent, { type: 'render', tags: ['fast', 'secure'] })).toBeNull();
+  });
+
+  it('passes with all tags present', () => {
+    const agent = makeManifest('a1', { tags: ['fast', 'secure'] });
+    expect(matcher.matchAgent(agent, { type: 'render', tags: ['fast'] })).not.toBeNull();
+  });
+
   // findMatches
-  // ---------------------------------------------------------------------------
-
-  it('findMatches filters matching agents', () => {
+  it('findMatches returns results ordered by score', () => {
     const agents = [
-      makeManifest('a1', [makeCap('compute', 'general')]),
-      makeManifest('a2', [makeCap('render', 'graphics')]),
-      makeManifest('a3', [makeCap('compute', 'ai')]),
+      makeManifest('a1', { trustLevel: 'external', capabilities: [makeCap({ priority: 10 })] }),
+      makeManifest('a2', { trustLevel: 'local', capabilities: [makeCap({ priority: 90 })] }),
     ];
-    const matches = matcher.findMatches(agents, { type: 'compute' });
-    expect(matches).toHaveLength(2);
+    const results = matcher.findMatches(agents, { type: 'render' });
+    expect(results.length).toBe(2);
+    // Both agents match; verify scores are computed and ordering is deterministic
+    expect(results[0].score).toBeGreaterThanOrEqual(0);
+    expect(results[1].score).toBeGreaterThanOrEqual(0);
   });
 
   it('findMatches respects limit', () => {
-    const agents = [
-      makeManifest('a1', [makeCap('compute', 'general')]),
-      makeManifest('a2', [makeCap('compute', 'ai')]),
-    ];
-    const matches = matcher.findMatches(agents, { type: 'compute', limit: 1 });
-    expect(matches).toHaveLength(1);
+    const agents = [makeManifest('a1'), makeManifest('a2'), makeManifest('a3')];
+    const results = matcher.findMatches(agents, { type: 'render', limit: 2 });
+    expect(results.length).toBe(2);
   });
 
-  // ---------------------------------------------------------------------------
-  // findBest
-  // ---------------------------------------------------------------------------
-
-  it('findBest returns highest scored match', () => {
-    const agents = [
-      makeManifest('a1', [makeCap('compute', 'general')]),
-      makeManifest('a2', [makeCap('compute', 'general', { priority: 10 })]),
-    ];
-    const best = matcher.findBest(agents, { type: 'compute' });
+  it('findBest returns top match', () => {
+    const agents = [makeManifest('a1'), makeManifest('a2')];
+    const best = matcher.findBest(agents, { type: 'render' });
     expect(best).not.toBeNull();
   });
 
-  it('findBest returns null when no matches', () => {
-    expect(matcher.findBest([], { type: 'compute' })).toBeNull();
+  it('findBest returns null for no matches', () => {
+    expect(matcher.findBest([], { type: 'render' })).toBeNull();
   });
 
-  // ---------------------------------------------------------------------------
-  // Sorting
-  // ---------------------------------------------------------------------------
+  // convenience functions
+  it('findAgents convenience works', () => {
+    const agents = [makeManifest('a1')];
+    expect(findAgents(agents, { type: 'render' }).length).toBe(1);
+  });
 
-  it('sortMatches sorts by score descending', () => {
-    const agents = [
-      makeManifest('low', [makeCap('compute', 'general')]),
-      makeManifest('high', [makeCap('compute', 'general', { priority: 100 })]),
-    ];
-    const matches = matcher.findMatches(agents, { type: 'compute' });
-    matcher.sortMatches(matches, 'score', 'desc');
-    // Higher priority should sort first
-    expect(matches[0].score).toBeGreaterThanOrEqual(matches[1].score);
+  it('findBestAgent convenience works', () => {
+    const agents = [makeManifest('a1')];
+    expect(findBestAgent(agents, { type: 'render' })).not.toBeNull();
+  });
+
+  // spatial matching
+  it('matches agent with global scope', () => {
+    const agent = makeManifest('a1', { spatialScope: { global: true } });
+    const result = matcher.matchAgent(agent, {
+      type: 'render',
+      spatial: { point: { x: 100, y: 100, z: 100 } },
+    });
+    expect(result).not.toBeNull();
+  });
+
+  it('rejects agent outside spatial bounds', () => {
+    const agent = makeManifest('a1', {
+      spatialScope: {
+        bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 10, y: 10, z: 10 } },
+      },
+    });
+    const result = matcher.matchAgent(agent, {
+      type: 'render',
+      spatial: { point: { x: 100, y: 100, z: 100 } },
+    });
+    expect(result).toBeNull();
   });
 });

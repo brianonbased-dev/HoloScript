@@ -1775,7 +1775,7 @@ export class HoloCompositionParser {
       } else if (this.check('AT')) {
         // @trait support in templates
         this.advance(); // consume @
-        const traitName = this.expectIdentifier();
+        const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name (e.g., @ui_panel)
 
         if (traitName === 'version') {
           // @version(N) — set template schema version for hot-reload
@@ -1790,6 +1790,8 @@ export class HoloCompositionParser {
           let config: Record<string, HoloValue> = {};
           if (this.check('LPAREN')) {
             config = this.parseTraitConfig();
+          } else if (this.check('LBRACE')) {
+            this.skipBlock(); // @trait { key: value } block-style config — skip it
           }
           template.traits.push({ type: 'ObjectTrait', name: traitName, config } as HoloObjectTrait);
           // Also add traits as directives for compatibility
@@ -1823,25 +1825,30 @@ export class HoloCompositionParser {
       ) {
         const eventName = this.peek(1).value;
 
-        // Handle on event(...) { } syntax
+        // Handle on event(...) { } syntax, including dot-notation: on msg.type(params) { }
         this.advance(); // consume 'on'
         this.advance(); // consume event name
+
+        // Handle dot-notation event names: on consensus.commit(op) { } or on msg.type.sub(p) { }
+        while (this.check('DOT')) {
+          this.advance(); // consume '.'
+          if (this.check('IDENTIFIER')) this.advance(); // consume sub-name
+        }
 
         let parameters: any[] = [];
         if (this.check('LPAREN')) {
           parameters = this.parseParameterList();
         }
 
-        this.expect('LBRACE');
-        const body = this.parseStatementBlock();
-        this.expect('RBRACE');
+        // Use skipBlock() to safely skip handler body — may contain arrows, dot-chains, etc.
+        this.skipBlock();
 
         // Add as lifecycle directive
         (template as any).directives!.push({
           type: 'lifecycle',
           hook: eventName,
           parameters,
-          body,
+          body: [],
         });
       } else if (
         this.isPropertyName() &&
@@ -1928,7 +1935,7 @@ export class HoloCompositionParser {
     const traits: HoloObjectTrait[] = [];
     while (this.check('AT')) {
       this.advance(); // consume @
-      const traitName = this.expectIdentifier();
+      const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name
       let config: Record<string, HoloValue> = {};
       if (this.check('LPAREN')) {
         config = this.parseTraitConfig();
@@ -1978,27 +1985,34 @@ export class HoloCompositionParser {
         this.advance(); // consume 'on'
         this.advance(); // consume event name
 
+        // Handle dot-notation event names: on msg.type(params) { }
+        while (this.check('DOT')) {
+          this.advance(); // consume '.'
+          if (this.check('IDENTIFIER')) this.advance(); // consume sub-name
+        }
+
         let parameters: any[] = [];
         if (this.check('LPAREN')) {
           parameters = this.parseParameterList();
         }
 
-        this.expect('LBRACE');
-        const body = this.parseStatementBlock();
-        this.expect('RBRACE');
+        // Use skipBlock() to safely skip handler body — may contain arrows, dot-chains, etc.
+        this.skipBlock();
 
         directives.push({
           type: 'lifecycle',
           hook: eventName,
           parameters,
-          body,
+          body: [],
         });
       } else if (this.check('AT')) {
         this.advance(); // consume @
-        const traitName = this.expectIdentifier();
+        const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name
         let config: Record<string, HoloValue> = {};
         if (this.check('LPAREN')) {
           config = this.parseTraitConfig();
+        } else if (this.check('LBRACE')) {
+          this.skipBlock(); // @trait { key: value } block-style config — skip it
         }
         const trait = { type: 'ObjectTrait', name: traitName, config } as any;
         traits.push(trait);
@@ -2044,6 +2058,12 @@ export class HoloCompositionParser {
           );
           this.advance(); // skip the =
           properties.push({ type: 'ObjectProperty', key, value: this.parseValue() });
+        } else if (this.check('STRING')) {
+          // Named sub-block: gesture "pinch" { }, text "ModuleTitle" { }, animation "walk" { }
+          const blockName = this.advance().value; // consume quoted name
+          if (this.check('LPAREN')) this.skipParens();
+          if (this.check('LBRACE')) this.skipBlock();
+          directives.push({ type: key, name: blockName, parameters: [], body: '' } as any);
         } else {
           // Bare identifier (like a trait without @)
           properties.push({ type: 'ObjectProperty', key, value: true });
@@ -2138,6 +2158,22 @@ export class HoloCompositionParser {
         objects.push(this.parseObject());
       } else if (this.check('SPATIAL_GROUP')) {
         groups.push(this.parseSpatialGroup());
+      } else if (this.check('TEMPLATE')) {
+        // Template defined inside spatial_group — parse and discard
+        this.advance(); // consume TEMPLATE
+        if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // name
+        if (this.check('LBRACE')) this.skipBlock(); // body
+      } else if (this.check('ACTION') || this.check('ASYNC')) {
+        if (this.check('ASYNC')) this.advance();
+        this.advance(); // consume ACTION
+        if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // name
+        if (this.check('LPAREN')) this.skipParens();
+        if (this.check('LBRACE')) this.skipBlock();
+      } else if (this.check('AT')) {
+        this.advance(); // consume @
+        if (!this.isAtEnd()) this.advance(); // trait name
+        if (this.check('LPAREN')) this.skipParens();
+        else if (this.check('LBRACE')) this.skipBlock();
       } else if (this.isStatementKeyword()) {
         const stmt = this.parseStatement();
         if (stmt) body.push(stmt);
@@ -2200,19 +2236,21 @@ export class HoloCompositionParser {
         actions.push(this.parseAction());
       } else if (this.check('IDENTIFIER')) {
         const name = this.advance().value;
+        // Handle `function name(params) { }` pattern — skip function name if next is IDENTIFIER
+        if (this.check('IDENTIFIER')) {
+          this.advance(); // consume function name (e.g., `forward_kinematics`)
+        }
         if (this.check('LPAREN')) {
-          // Normal event handler: on_player_touch(orb) { ... }
-          const parameters = this.parseParameterList();
-          this.expect('LBRACE');
-          const body = this.parseStatementBlock();
-          this.expect('RBRACE');
-          handlers.push({ type: 'EventHandler', event: name, parameters, body } as any);
+          // Normal event handler: on_player_touch(orb) { ... } or function name(params) { }
+          this.skipParens();
+          if (this.check('LBRACE')) {
+            this.skipBlock();
+          }
+          handlers.push({ type: 'EventHandler', event: name, parameters: [], body: [] } as any);
         } else if (this.check('LBRACE')) {
           // No-parens style: on_enter { ... }
-          this.advance(); // consume {
-          const body = this.parseStatementBlock();
-          this.expect('RBRACE');
-          handlers.push({ type: 'EventHandler', event: name, parameters: [], body } as any);
+          this.skipBlock();
+          handlers.push({ type: 'EventHandler', event: name, parameters: [], body: [] } as any);
         } else {
           this.error(`Unexpected token in logic: ${name}. Next token: ${this.current().type}`);
         }

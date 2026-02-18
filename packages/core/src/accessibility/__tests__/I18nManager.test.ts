@@ -1,123 +1,142 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { I18nManager } from '../I18nManager';
 
 describe('I18nManager', () => {
-  let i18n: I18nManager;
-
-  beforeEach(() => {
-    i18n = new I18nManager();
-    i18n.addTable('en', { greeting: 'Hello', farewell: 'Goodbye', welcome: 'Welcome, {{name}}!' });
-    i18n.addTable('es', { greeting: 'Hola', farewell: 'Adiós' });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Locale Management
-  // ---------------------------------------------------------------------------
-
   it('defaults to en locale', () => {
-    expect(i18n.getLocale()).toBe('en');
+    const m = new I18nManager();
+    expect(m.getLocale()).toBe('en');
   });
 
   it('setLocale changes current locale', () => {
-    i18n.setLocale('es');
-    expect(i18n.getLocale()).toBe('es');
+    const m = new I18nManager();
+    m.setLocale('fr');
+    expect(m.getLocale()).toBe('fr');
   });
 
-  it('onLocaleChange fires when locale changes', () => {
+  it('setLocale notifies listeners', () => {
+    const m = new I18nManager();
     const cb = vi.fn();
-    i18n.onLocaleChange(cb);
-    i18n.setLocale('es');
-    expect(cb).toHaveBeenCalledWith('es');
+    m.onLocaleChange(cb);
+    m.setLocale('de');
+    expect(cb).toHaveBeenCalledWith('de');
   });
 
-  it('getAvailableLocales returns registered locales', () => {
-    expect(i18n.getAvailableLocales()).toEqual(expect.arrayContaining(['en', 'es']));
+  it('setFallback changes fallback locale', () => {
+    const m = new I18nManager();
+    m.addTable('en', { hello: 'Hello' });
+    m.addTable('es', {});
+    m.setFallback('en');
+    m.setLocale('es');
+    expect(m.t('hello')).toBe('Hello'); // falls back to en
   });
 
-  // ---------------------------------------------------------------------------
-  // Translation
-  // ---------------------------------------------------------------------------
-
-  it('t returns translated string', () => {
-    expect(i18n.t('greeting')).toBe('Hello');
+  it('addTable and hasKey', () => {
+    const m = new I18nManager();
+    m.addTable('en', { greeting: 'Hi' });
+    expect(m.hasKey('greeting')).toBe(true);
+    expect(m.hasKey('nope')).toBe(false);
   });
 
-  it('t returns translated string for other locale', () => {
-    i18n.setLocale('es');
-    expect(i18n.t('greeting')).toBe('Hola');
+  it('hasKey with explicit locale', () => {
+    const m = new I18nManager();
+    m.addTable('fr', { bonjour: 'Salut' });
+    expect(m.hasKey('bonjour', 'fr')).toBe(true);
+    expect(m.hasKey('bonjour', 'en')).toBe(false);
   });
 
-  it('t falls back to fallback locale', () => {
-    i18n.setLocale('es');
-    // 'welcome' only in 'en'
-    expect(i18n.t('welcome', { name: 'World' })).toBe('Welcome, World!');
+  it('getAvailableLocales', () => {
+    const m = new I18nManager();
+    m.addTable('en', { a: '1' });
+    m.addTable('fr', { a: '2' });
+    m.addTable('de', { a: '3' });
+    expect(m.getAvailableLocales().sort()).toEqual(['de', 'en', 'fr']);
+  });
+
+  it('t returns simple string', () => {
+    const m = new I18nManager();
+    m.addTable('en', { hello: 'Hello World' });
+    expect(m.t('hello')).toBe('Hello World');
   });
 
   it('t returns [key] for missing key', () => {
-    expect(i18n.t('nonexistent')).toBe('[nonexistent]');
+    const m = new I18nManager();
+    expect(m.t('missing')).toBe('[missing]');
   });
 
-  // ---------------------------------------------------------------------------
-  // Interpolation
-  // ---------------------------------------------------------------------------
-
-  it('t interpolates parameters', () => {
-    expect(i18n.t('welcome', { name: 'Alice' })).toBe('Welcome, Alice!');
+  it('t interpolates params', () => {
+    const m = new I18nManager();
+    m.addTable('en', { greet: 'Hello {{name}}, age {{age}}' });
+    expect(m.t('greet', { name: 'Alice', age: 30 })).toBe('Hello Alice, age 30');
   });
 
-  it('t leaves unknown placeholders as-is', () => {
-    i18n.addTable('en', { template: '{{a}} and {{b}}' });
-    expect(i18n.t('template', { a: 'X' })).toBe('X and {{b}}');
+  it('t preserves unmatched placeholders', () => {
+    const m = new I18nManager();
+    m.addTable('en', { msg: 'Hi {{who}}' });
+    expect(m.t('msg', {})).toBe('Hi {{who}}');
   });
 
-  // ---------------------------------------------------------------------------
-  // Pluralization
-  // ---------------------------------------------------------------------------
-
-  it('t handles plural rules', () => {
-    i18n.addTable('en', {
-      items: { zero: 'No items', one: '1 item', other: '{{count}} items' },
-    });
-    expect(i18n.t('items', { count: 0 })).toBe('No items');
-    expect(i18n.t('items', { count: 1 })).toBe('1 item');
-    expect(i18n.t('items', { count: 5 })).toBe('5 items');
+  it('t handles plural zero', () => {
+    const m = new I18nManager();
+    m.addTable('en', { items: { zero: 'no items', one: '1 item', other: '{{count}} items' } });
+    expect(m.t('items', { count: 0 })).toBe('no items');
   });
 
-  it('t handles few plural form', () => {
-    i18n.addTable('en', {
-      apples: { one: '1 apple', few: 'a few apples', other: 'many apples' },
-    });
-    expect(i18n.t('apples', { count: 3 })).toBe('a few apples');
+  it('t handles plural one', () => {
+    const m = new I18nManager();
+    m.addTable('en', { items: { one: '1 item', other: '{{count}} items' } });
+    expect(m.t('items', { count: 1 })).toBe('1 item');
   });
 
-  // ---------------------------------------------------------------------------
-  // Table / Key Checks
-  // ---------------------------------------------------------------------------
-
-  it('hasKey returns true for existing key', () => {
-    expect(i18n.hasKey('greeting')).toBe(true);
+  it('t handles plural few (2-4)', () => {
+    const m = new I18nManager();
+    m.addTable('en', { items: { one: '1', few: 'a few', other: 'many' } });
+    expect(m.t('items', { count: 3 })).toBe('a few');
   });
 
-  it('hasKey returns false for missing key', () => {
-    expect(i18n.hasKey('nope')).toBe(false);
+  it('t handles plural many (>=5)', () => {
+    const m = new I18nManager();
+    m.addTable('en', { items: { one: '1', many: 'lots', other: 'other' } });
+    expect(m.t('items', { count: 10 })).toBe('lots');
   });
 
-  it('hasKey checks specific locale', () => {
-    expect(i18n.hasKey('welcome', 'es')).toBe(false);
-    expect(i18n.hasKey('welcome', 'en')).toBe(true);
+  it('t plural falls back to other', () => {
+    const m = new I18nManager();
+    m.addTable('en', { items: { one: '1', other: '{{count}}+' } });
+    expect(m.t('items', { count: 7 })).toBe('7+');
   });
 
-  // ---------------------------------------------------------------------------
-  // Completion Rate
-  // ---------------------------------------------------------------------------
+  it('t falls back to fallback locale', () => {
+    const m = new I18nManager();
+    m.addTable('en', { hello: 'Hello' });
+    m.setLocale('fr'); // fr has no table
+    expect(m.t('hello')).toBe('Hello');
+  });
 
-  it('getCompletionRate measures translation coverage', () => {
-    // en has 3 keys, es has 2 of them
-    const rate = i18n.getCompletionRate('es');
-    expect(rate).toBeCloseTo(2 / 3, 2);
+  it('getCompletionRate full', () => {
+    const m = new I18nManager();
+    m.addTable('en', { a: '1', b: '2', c: '3' });
+    m.addTable('fr', { a: '1', b: '2', c: '3' });
+    expect(m.getCompletionRate('fr')).toBe(1);
+  });
+
+  it('getCompletionRate partial', () => {
+    const m = new I18nManager();
+    m.addTable('en', { a: '1', b: '2', c: '3', d: '4' });
+    m.addTable('fr', { a: '1', b: '2' });
+    expect(m.getCompletionRate('fr')).toBe(0.5);
   });
 
   it('getCompletionRate returns 0 for unknown locale', () => {
-    expect(i18n.getCompletionRate('fr')).toBe(0);
+    const m = new I18nManager();
+    m.addTable('en', { a: '1' });
+    expect(m.getCompletionRate('zz')).toBe(0);
+  });
+
+  it('addTable merges into existing table', () => {
+    const m = new I18nManager();
+    m.addTable('en', { a: '1' });
+    m.addTable('en', { b: '2' });
+    expect(m.hasKey('a')).toBe(true);
+    expect(m.hasKey('b')).toBe(true);
   });
 });

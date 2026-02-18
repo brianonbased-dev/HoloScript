@@ -1,19 +1,28 @@
+import { createHash } from 'crypto';
+import { deflateSync } from 'zlib';
 import { DuplicateFinder, type DuplicateGroup } from './DuplicateFinder';
 import { TreemapGenerator, type TreemapNode } from './TreemapGenerator';
 
-export interface BundleFile {
+export interface BundleEntry {
   path: string;
   size: number;
+  hash: string;
   category?: string;
 }
 
-export interface BundleReport {
+export interface CategoryStats {
+  count: number;
+  size: number;
+}
+
+export interface BundleAnalysis {
   totalSize: number;
+  totalGzipped: number;
   fileCount: number;
-  files: BundleFile[];
+  entries: BundleEntry[];
   duplicates: DuplicateGroup[];
-  wastedBytes: number;
-  categories: Record<string, number>;
+  byCategory: Record<string, CategoryStats>;
+  analyzedAt: number;
 }
 
 function inferCategory(filePath: string): string {
@@ -32,67 +41,76 @@ function formatBytes(bytes: number): string {
   return `${bytes} B`;
 }
 
+function estimateGzip(content: string): number {
+  try {
+    return deflateSync(Buffer.from(content, 'utf8'), { level: 6 }).length;
+  } catch {
+    return Math.round(Buffer.byteLength(content, 'utf8') * 0.4);
+  }
+}
+
 export class BundleAnalyzer {
   private duplicateFinder = new DuplicateFinder();
   private treemapGenerator = new TreemapGenerator();
 
-  analyze(files: Map<string, string>): BundleReport {
-    const fileList: BundleFile[] = [];
-    const categories: Record<string, number> = {};
+  analyze(files: Map<string, string>): BundleAnalysis {
+    const entries: BundleEntry[] = [];
+    const byCategory: Record<string, CategoryStats> = {};
+    let totalGzipped = 0;
 
     for (const [path, content] of files) {
       const size = Buffer.byteLength(content, 'utf8');
+      const hash = createHash('sha256').update(content, 'utf8').digest('hex');
       const category = inferCategory(path);
-      fileList.push({ path, size, category });
-      categories[category] = (categories[category] ?? 0) + size;
+      entries.push({ path, size, hash, category });
+
+      if (!byCategory[category]) byCategory[category] = { count: 0, size: 0 };
+      byCategory[category]!.count++;
+      byCategory[category]!.size += size;
+
+      totalGzipped += estimateGzip(content);
     }
 
-    fileList.sort((a, b) => b.size - a.size);
-    const totalSize = fileList.reduce((s, f) => s + f.size, 0);
-    const duplicates = this.duplicateFinder.analyze(files);
-    const wastedBytes = this.duplicateFinder.wastedBytes(duplicates);
+    entries.sort((a, b) => b.size - a.size);
+    const totalSize = entries.reduce((s, e) => s + e.size, 0);
+    const duplicates = this.duplicateFinder.findExactDuplicates(files);
 
-    return { totalSize, fileCount: fileList.length, files: fileList, duplicates, wastedBytes, categories };
+    return { totalSize, totalGzipped, fileCount: entries.length, entries, duplicates, byCategory, analyzedAt: Date.now() };
   }
 
-  formatConsole(report: BundleReport): string {
+  formatTerminal(analysis: BundleAnalysis): string {
     const lines: string[] = [];
     lines.push(`Bundle Analysis`);
-    lines.push(`  Total:  ${formatBytes(report.totalSize)}  (${report.fileCount} files)`);
-    if (report.wastedBytes > 0) {
-      lines.push(`  Waste:  ${formatBytes(report.wastedBytes)} from ${report.duplicates.length} duplicate group(s)`);
+    lines.push(`  Total:    ${formatBytes(analysis.totalSize)}  (${analysis.fileCount} files)`);
+    lines.push(`  Gzipped:  ${formatBytes(analysis.totalGzipped)}`);
+    if (analysis.duplicates.length > 0) {
+      const wasted = analysis.duplicates.reduce((s, d) => s + d.wastedBytes, 0);
+      lines.push(`  Waste:    ${formatBytes(wasted)} from ${analysis.duplicates.length} duplicate group(s)`);
     }
     lines.push('');
     lines.push('By category:');
-    for (const [cat, size] of Object.entries(report.categories).sort((a, b) => b[1] - a[1])) {
-      const pct = report.totalSize > 0 ? ((size / report.totalSize) * 100).toFixed(1) : '0.0';
-      lines.push(`  ${cat.padEnd(10)}  ${formatBytes(size).padStart(10)}  (${pct}%)`);
+    for (const [cat, stats] of Object.entries(analysis.byCategory).sort((a, b) => b[1].size - a[1].size)) {
+      const pct = analysis.totalSize > 0 ? ((stats.size / analysis.totalSize) * 100).toFixed(1) : '0.0';
+      lines.push(`  ${cat.padEnd(10)}  ${formatBytes(stats.size).padStart(10)}  (${pct}%)  [${stats.count} files]`);
     }
     lines.push('');
     lines.push('Top 10 files:');
-    for (const f of report.files.slice(0, 10)) {
-      const pct = report.totalSize > 0 ? ((f.size / report.totalSize) * 100).toFixed(1) : '0.0';
-      lines.push(`  ${f.path.padEnd(50)}  ${formatBytes(f.size).padStart(10)}  (${pct}%)`);
-    }
-    if (report.duplicates.length > 0) {
-      lines.push('');
-      lines.push('Duplicates:');
-      for (const g of report.duplicates) {
-        lines.push(`  [${formatBytes(g.size)}]  ${g.files.join(', ')}`);
-      }
+    for (const e of analysis.entries.slice(0, 10)) {
+      const pct = analysis.totalSize > 0 ? ((e.size / analysis.totalSize) * 100).toFixed(1) : '0.0';
+      lines.push(`  ${e.path.padEnd(50)}  ${formatBytes(e.size).padStart(10)}  (${pct}%)`);
     }
     return lines.join('\n');
   }
 
-  toJSON(report: BundleReport): string {
-    return JSON.stringify(report, null, 2);
+  formatJSON(analysis: BundleAnalysis): string {
+    return JSON.stringify(analysis, null, 2);
   }
 
-  toHTML(report: BundleReport, title = 'HoloScript Bundle Analysis'): string {
-    const nodes: TreemapNode[] = report.files.map((f) => ({
-      name: f.path,
-      size: f.size,
-      category: f.category,
+  toHTML(analysis: BundleAnalysis, title = 'HoloScript Bundle Analysis'): string {
+    const nodes: TreemapNode[] = analysis.entries.map((e) => ({
+      name: e.path,
+      size: e.size,
+      category: e.category,
     }));
     return this.treemapGenerator.generate(nodes, title);
   }

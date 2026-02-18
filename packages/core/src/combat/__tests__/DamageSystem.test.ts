@@ -1,190 +1,102 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DamageSystem } from '../DamageSystem';
-import type { DamageInstance } from '../DamageSystem';
 
 describe('DamageSystem', () => {
-  let dmg: DamageSystem;
+  let sys: DamageSystem;
 
-  beforeEach(() => { dmg = new DamageSystem(); });
-
-  // ---------------------------------------------------------------------------
-  // Configuration
-  // ---------------------------------------------------------------------------
-
-  it('default config has critChance and multiplier', () => {
-    const cfg = dmg.getConfig();
-    expect(cfg.critChance).toBeDefined();
-    expect(cfg.critMultiplier).toBeDefined();
+  beforeEach(() => {
+    sys = new DamageSystem();
+    sys.setConfig({ critChance: 0, critMultiplier: 2, armorPenetration: 0, globalMultiplier: 1 });
   });
 
-  it('setConfig updates values', () => {
-    dmg.setConfig({ globalMultiplier: 2.0 });
-    expect(dmg.getConfig().globalMultiplier).toBe(2.0);
+  it('basic damage with no resistance', () => {
+    const dmg = sys.calculateDamage('a', 'b', 100, 'physical');
+    expect(dmg.finalDamage).toBe(100);
+    expect(dmg.isCritical).toBe(false);
   });
 
-  // ---------------------------------------------------------------------------
-  // Basic Damage Calculation
-  // ---------------------------------------------------------------------------
-
-  it('calculateDamage returns DamageInstance', () => {
-    dmg.setConfig({ critChance: 0 }); // no random crits
-    const result = dmg.calculateDamage('attacker', 'target', 100, 'physical');
-    expect(result.sourceId).toBe('attacker');
-    expect(result.targetId).toBe('target');
-    expect(result.baseDamage).toBe(100);
-    expect(result.type).toBe('physical');
-    expect(result.finalDamage).toBe(100);
-  });
-
-  it('damage is non-negative', () => {
-    dmg.setConfig({ critChance: 0, globalMultiplier: 0 });
-    const result = dmg.calculateDamage('a', 'b', 100, 'fire');
-    expect(result.finalDamage).toBeGreaterThanOrEqual(0);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Damage Types
-  // ---------------------------------------------------------------------------
-
-  it('physical damage type recorded', () => {
-    dmg.setConfig({ critChance: 0 });
-    expect(dmg.calculateDamage('a', 'b', 50, 'physical').type).toBe('physical');
-  });
-
-  it('fire damage type recorded', () => {
-    dmg.setConfig({ critChance: 0 });
-    expect(dmg.calculateDamage('a', 'b', 50, 'fire').type).toBe('fire');
-  });
-
-  it('true damage ignores resistance', () => {
-    dmg.setConfig({ critChance: 0 });
-    dmg.setResistances('target', { physical: 1.0 });
-    const result = dmg.calculateDamage('a', 'target', 100, 'true');
-    expect(result.finalDamage).toBe(100);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Resistances
-  // ---------------------------------------------------------------------------
-
-  it('setResistances / getResistances round-trip', () => {
-    dmg.setResistances('tank', { physical: 0.5, fire: 0.3 });
-    const res = dmg.getResistances('tank');
-    expect(res.physical).toBe(0.5);
-    expect(res.fire).toBe(0.3);
+  it('critical hit multiplies damage', () => {
+    const dmg = sys.calculateDamage('a', 'b', 100, 'fire', true);
+    expect(dmg.isCritical).toBe(true);
+    expect(dmg.finalDamage).toBe(200);
   });
 
   it('resistance reduces damage', () => {
-    dmg.setConfig({ critChance: 0 });
-    dmg.setResistances('tank', { physical: 0.5 });
-    const result = dmg.calculateDamage('a', 'tank', 100, 'physical');
-    expect(result.finalDamage).toBe(50);
+    sys.setResistances('b', { fire: 0.5 }); // 50% fire resistance
+    const dmg = sys.calculateDamage('a', 'b', 100, 'fire');
+    expect(dmg.finalDamage).toBe(50);
   });
 
-  it('full resistance blocks all damage', () => {
-    dmg.setConfig({ critChance: 0 });
-    dmg.setResistances('immune', { fire: 1.0 });
-    const result = dmg.calculateDamage('a', 'immune', 100, 'fire');
-    expect(result.finalDamage).toBe(0);
+  it('true damage ignores resistance', () => {
+    sys.setResistances('b', { physical: 0.9 });
+    const dmg = sys.calculateDamage('a', 'b', 100, 'true');
+    expect(dmg.finalDamage).toBe(100);
   });
 
-  it('no resistance means full damage', () => {
-    dmg.setConfig({ critChance: 0 });
-    const result = dmg.calculateDamage('a', 'glass', 100, 'ice');
-    expect(result.finalDamage).toBe(100);
+  it('armor penetration reduces effective resistance', () => {
+    sys.setConfig({ critChance: 0, critMultiplier: 2, armorPenetration: 0.5, globalMultiplier: 1 });
+    sys.setResistances('b', { physical: 0.4 }); // 40% res, 50% pen → effective 20%
+    const dmg = sys.calculateDamage('a', 'b', 100, 'physical');
+    expect(dmg.finalDamage).toBe(80);
   });
 
-  // ---------------------------------------------------------------------------
-  // Critical Hits
-  // ---------------------------------------------------------------------------
-
-  it('forced crit multiplies damage', () => {
-    dmg.setConfig({ critChance: 0, critMultiplier: 2.0 });
-    const result = dmg.calculateDamage('a', 'b', 50, 'physical', true);
-    expect(result.isCritical).toBe(true);
-    expect(result.finalDamage).toBe(100);
+  it('global multiplier scales all damage', () => {
+    sys.setConfig({ critChance: 0, critMultiplier: 2, armorPenetration: 0, globalMultiplier: 1.5 });
+    const dmg = sys.calculateDamage('a', 'b', 100, 'physical');
+    expect(dmg.finalDamage).toBe(150);
   });
 
-  it('non-crit does not multiply', () => {
-    dmg.setConfig({ critChance: 0 });
-    const result = dmg.calculateDamage('a', 'b', 50, 'physical');
-    expect(result.isCritical).toBe(false);
-    expect(result.finalDamage).toBe(50);
+  it('getResistances returns defaults for unknown entity', () => {
+    const res = sys.getResistances('unknown');
+    expect(res.physical).toBe(0);
+    expect(res.fire).toBe(0);
   });
 
-  // ---------------------------------------------------------------------------
-  // Global Multiplier
-  // ---------------------------------------------------------------------------
-
-  it('globalMultiplier scales damage', () => {
-    dmg.setConfig({ critChance: 0, globalMultiplier: 1.5 });
-    const result = dmg.calculateDamage('a', 'b', 100, 'physical');
-    expect(result.finalDamage).toBe(150);
+  it('onDamage callback fires', () => {
+    const cb = vi.fn();
+    sys.onDamage(cb);
+    sys.calculateDamage('a', 'b', 50, 'ice');
+    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb.mock.calls[0][0].finalDamage).toBe(50);
   });
 
-  // ---------------------------------------------------------------------------
-  // Damage Over Time
-  // ---------------------------------------------------------------------------
+  it('damage log tracks history', () => {
+    sys.calculateDamage('a', 'b', 10, 'physical');
+    sys.calculateDamage('a', 'b', 20, 'fire');
+    expect(sys.getDamageLog().length).toBe(2);
+  });
 
-  it('applyDoT creates DoT effect', () => {
-    const dot = dmg.applyDoT('a', 'b', 'fire', 10, 1, 5);
+  it('getTotalDamageDealt sums by source', () => {
+    sys.calculateDamage('a', 'b', 30, 'physical');
+    sys.calculateDamage('a', 'c', 20, 'fire');
+    sys.calculateDamage('x', 'b', 100, 'ice');
+    expect(sys.getTotalDamageDealt('a')).toBe(50);
+  });
+
+  it('clearLog empties damage history', () => {
+    sys.calculateDamage('a', 'b', 10, 'physical');
+    sys.clearLog();
+    expect(sys.getDamageLog().length).toBe(0);
+  });
+
+  it('applyDoT creates a DoT effect', () => {
+    const dot = sys.applyDoT('a', 'b', 'poison', 10, 1, 5);
     expect(dot.damagePerTick).toBe(10);
-    expect(dot.duration).toBe(5);
+    expect(sys.getActiveDoTs('b').length).toBe(1);
   });
 
-  it('updateDoTs ticks DoT and produces damage', () => {
-    dmg.setConfig({ critChance: 0 });
-    dmg.applyDoT('a', 'b', 'fire', 10, 0.5, 2);
-    const ticked = dmg.updateDoTs(0.5);
-    expect(ticked.length).toBeGreaterThan(0);
+  it('updateDoTs ticks damage and expires', () => {
+    sys.applyDoT('a', 'b', 'poison', 10, 1, 2, 1);
+    const ticked1 = sys.updateDoTs(1.5); // 1 tick at t=1
+    expect(ticked1.length).toBe(1);
+    const ticked2 = sys.updateDoTs(1); // tick at t=2, then expires
+    expect(ticked2.length).toBe(1);
+    expect(sys.getActiveDoTs('b').length).toBe(0); // expired
   });
 
-  it('getActiveDoTs returns active effects', () => {
-    dmg.applyDoT('a', 'b', 'poison', 5, 1, 10);
-    const dots = dmg.getActiveDoTs('b');
-    expect(dots.length).toBe(1);
-    expect(dots[0].type).toBe('poison');
-  });
-
-  it('DoT expires after duration', () => {
-    dmg.setConfig({ critChance: 0 });
-    dmg.applyDoT('a', 'b', 'fire', 10, 0.5, 1);
-    dmg.updateDoTs(2); // exceed duration
-    expect(dmg.getActiveDoTs('b')).toHaveLength(0);
-  });
-
-  // ---------------------------------------------------------------------------
-  // Damage Log & Events
-  // ---------------------------------------------------------------------------
-
-  it('getDamageLog records damage events', () => {
-    dmg.setConfig({ critChance: 0 });
-    dmg.calculateDamage('a', 'b', 25, 'physical');
-    const log = dmg.getDamageLog();
-    expect(log.length).toBeGreaterThan(0);
-    expect(log[0].baseDamage).toBe(25);
-  });
-
-  it('onDamage fires callback', () => {
-    let captured: DamageInstance | null = null;
-    dmg.onDamage((d) => { captured = d; });
-    dmg.setConfig({ critChance: 0 });
-    dmg.calculateDamage('a', 'b', 30, 'lightning');
-    expect(captured).not.toBeNull();
-    expect(captured!.type).toBe('lightning');
-  });
-
-  it('getTotalDamageDealt sums for source', () => {
-    dmg.setConfig({ critChance: 0 });
-    dmg.calculateDamage('a', 'b', 50, 'physical');
-    dmg.calculateDamage('a', 'c', 30, 'fire');
-    expect(dmg.getTotalDamageDealt('a')).toBe(80);
-  });
-
-  it('clearLog empties the log', () => {
-    dmg.setConfig({ critChance: 0 });
-    dmg.calculateDamage('a', 'b', 10, 'physical');
-    dmg.clearLog();
-    expect(dmg.getDamageLog()).toHaveLength(0);
+  it('DoT stacking multiplies tick damage', () => {
+    sys.applyDoT('a', 'b', 'fire', 5, 1, 3, 3); // 3 stacks
+    const ticked = sys.updateDoTs(1.5); // 1 tick
+    expect(ticked[0].baseDamage).toBe(15); // 5 * 3 stacks
   });
 });

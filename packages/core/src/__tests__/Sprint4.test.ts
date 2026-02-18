@@ -193,22 +193,22 @@ describe('Sprint 4 SourceMapV2', () => {
 describe('Sprint 4 DuplicateFinder', () => {
   const f = new DuplicateFinder();
   test('no dups when content differs', () => {
-    expect(f.analyze(new Map([['a.ts', 'alpha content here'], ['b.ts', 'beta content here!!']]))).toHaveLength(0);
+    expect(f.findExactDuplicates(new Map([['a.ts', 'alpha content here'], ['b.ts', 'beta content here!!']]))).toHaveLength(0);
   });
   test('detects dup content', () => {
     const c = 'z'.repeat(100);
-    const groups = f.analyze(new Map([['a.ts', c], ['b.ts', c]]));
+    const groups = f.findExactDuplicates(new Map([['a.ts', c], ['b.ts', c]]));
     expect(groups).toHaveLength(1);
-    expect(groups[0].files).toContain('a.ts');
+    expect(groups[0].paths).toContain('a.ts');
   });
-  test('wastedBytes = size * (copies-1)', () => {
+  test('wastedBytes on group', () => {
     const c = 'z'.repeat(200);
-    const groups = f.analyze(new Map([['a.ts', c], ['b.ts', c], ['c.ts', c]]));
-    expect(f.wastedBytes(groups)).toBe(groups[0].size * 2);
+    const groups = f.findExactDuplicates(new Map([['a.ts', c], ['b.ts', c], ['c.ts', c]]));
+    expect(groups[0].wastedBytes).toBe(groups[0].sizePerCopy * 2);
   });
   test('below minSize ignored', () => {
     const c = 'tiny';
-    expect(f.analyze(new Map([['a.ts', c], ['b.ts', c]]), 100)).toHaveLength(0);
+    expect(f.findExactDuplicates(new Map([['a.ts', c], ['b.ts', c]]), 100)).toHaveLength(0);
   });
 });
 
@@ -236,26 +236,26 @@ describe('Sprint 4 BundleAnalyzer', () => {
   test('fileCount correct', () => {
     expect(a.analyze(mk([['a.ts', 1], ['b.ts', 2], ['c.ts', 3]])).fileCount).toBe(3);
   });
-  test('files sorted desc', () => {
+  test('entries sorted desc', () => {
     const r = a.analyze(mk([['s.ts', 100], ['l.ts', 900], ['m.ts', 500]]));
-    expect(r.files[0].path).toBe('l.ts');
+    expect(r.entries[0].path).toBe('l.ts');
   });
   test('detects duplicates', () => {
     const c = 'z'.repeat(200);
     const r = a.analyze(new Map([['a.ts', c], ['b.ts', c], ['c.ts', 'different long content here ok']]));
     expect(r.duplicates.length).toBeGreaterThan(0);
   });
-  test('formatConsole non-empty', () => {
-    expect(a.formatConsole(a.analyze(mk([['a.ts', 500]])))).toContain('Bundle Analysis');
+  test('formatTerminal non-empty', () => {
+    expect(a.formatTerminal(a.analyze(mk([['a.ts', 500]])))).toContain('Bundle Analysis');
   });
-  test('toJSON parseable', () => {
-    expect(() => JSON.parse(a.toJSON(a.analyze(mk([['a.ts', 1]]))))).not.toThrow();
+  test('formatJSON parseable', () => {
+    expect(() => JSON.parse(a.formatJSON(a.analyze(mk([['a.ts', 1]]))))).not.toThrow();
   });
   test('toHTML valid HTML', () => {
     expect(a.toHTML(a.analyze(mk([['a.ts', 1000]])))).toContain('<!DOCTYPE html>');
   });
-  test('categories populated', () => {
+  test('byCategory populated', () => {
     const r = a.analyze(mk([['scene/x.ts', 1000], ['traits/y.ts', 500]]));
-    expect(Object.keys(r.categories).length).toBeGreaterThan(0);
+    expect(Object.keys(r.byCategory).length).toBeGreaterThan(0);
   });
 });

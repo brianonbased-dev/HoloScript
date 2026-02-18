@@ -1,105 +1,94 @@
-/**
- * ThemeEngine Unit Tests
- *
- * Tests built-in themes, theme switching, token resolution,
- * overrides, listeners, and custom theme registration.
- */
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ThemeEngine, BuiltInThemes } from '../ThemeEngine';
 
 describe('ThemeEngine', () => {
-  let engine: ThemeEngine;
-
-  beforeEach(() => {
-    engine = new ThemeEngine();
+  it('default theme is dark', () => {
+    const te = new ThemeEngine();
+    expect(te.getActiveThemeName()).toBe('dark');
+    expect(te.getTheme().mode).toBe('dark');
   });
 
-  describe('built-in themes', () => {
-    it('should start with dark theme', () => {
-      expect(engine.getActiveThemeName()).toBe('dark');
-      expect(engine.getTheme().mode).toBe('dark');
-    });
-
-    it('should list both built-in themes', () => {
-      const themes = engine.listThemes();
-      expect(themes).toContain('dark');
-      expect(themes).toContain('light');
-    });
+  it('lists built-in themes', () => {
+    const te = new ThemeEngine();
+    const names = te.listThemes();
+    expect(names).toContain('dark');
+    expect(names).toContain('light');
   });
 
-  describe('setTheme', () => {
-    it('should switch to light theme', () => {
-      engine.setTheme('light');
-      expect(engine.getActiveThemeName()).toBe('light');
-      expect(engine.getTheme().mode).toBe('light');
-    });
-
-    it('should no-op for unknown theme', () => {
-      engine.setTheme('nonexistent');
-      expect(engine.getActiveThemeName()).toBe('dark');
-    });
-
-    it('should notify listeners on change', () => {
-      const listener = vi.fn();
-      engine.onThemeChange(listener);
-      engine.setTheme('light');
-      expect(listener).toHaveBeenCalledTimes(1);
-      expect(listener).toHaveBeenCalledWith(expect.objectContaining({ name: 'light' }));
-    });
+  it('setTheme switches active theme', () => {
+    const te = new ThemeEngine();
+    te.setTheme('light');
+    expect(te.getActiveThemeName()).toBe('light');
+    expect(te.getTheme().mode).toBe('light');
   });
 
-  describe('getTokens', () => {
-    it('should return tokens for active theme', () => {
-      const tokens = engine.getTokens();
-      expect(tokens.colors.primary).toBeDefined();
-      expect(tokens.spacing.md).toBeDefined();
-      expect(tokens.fontSize.md).toBeDefined();
-    });
+  it('setTheme ignores unknown names', () => {
+    const te = new ThemeEngine();
+    te.setTheme('nonexistent');
+    expect(te.getActiveThemeName()).toBe('dark');
   });
 
-  describe('resolve', () => {
-    it('should resolve dot-path to token value', () => {
-      expect(engine.resolve('colors.primary')).toBe('#6C63FF');
+  it('registerTheme adds custom theme', () => {
+    const te = new ThemeEngine();
+    te.registerTheme({
+      name: 'ocean',
+      mode: 'dark',
+      tokens: { ...BuiltInThemes.dark.tokens, colors: { ...BuiltInThemes.dark.tokens.colors, primary: '#00AAFF' } },
     });
-
-    it('should resolve nested paths', () => {
-      expect(engine.resolve('spacing.lg')).toBeDefined();
-    });
-
-    it('should return undefined for invalid path', () => {
-      expect(engine.resolve('nonexistent.path')).toBeUndefined();
-    });
+    expect(te.listThemes()).toContain('ocean');
+    te.setTheme('ocean');
+    expect(te.getTokens().colors.primary).toBe('#00AAFF');
   });
 
-  describe('overrides', () => {
-    it('should merge overrides with base tokens', () => {
-      engine.setOverrides({ colors: { primary: '#FF0000' } as any });
-      const tokens = engine.getTokens();
-      expect(tokens.colors.primary).toBe('#FF0000');
-      // Other tokens should remain
-      expect(tokens.colors.secondary).toBe('#3F3D56');
-    });
-
-    it('should notify listeners on override change', () => {
-      const listener = vi.fn();
-      engine.onThemeChange(listener);
-      engine.setOverrides({ colors: { accent: '#00FF00' } as any });
-      expect(listener).toHaveBeenCalled();
-    });
+  it('getTokens returns dark tokens by default', () => {
+    const te = new ThemeEngine();
+    const tokens = te.getTokens();
+    expect(tokens.colors.primary).toBe('#6C63FF');
+    expect(tokens.colors.background).toBe('#0D1117');
   });
 
-  describe('registerTheme', () => {
-    it('should register custom theme', () => {
-      engine.registerTheme({
-        name: 'custom',
-        mode: 'dark',
-        tokens: BuiltInThemes.dark.tokens,
-      });
+  it('resolve returns nested token value', () => {
+    const te = new ThemeEngine();
+    expect(te.resolve('colors.primary')).toBe('#6C63FF');
+    expect(te.resolve('spacing.md')).toBe(0.016);
+    expect(te.resolve('borderRadius.full')).toBe(999);
+  });
 
-      expect(engine.listThemes()).toContain('custom');
-      engine.setTheme('custom');
-      expect(engine.getActiveThemeName()).toBe('custom');
-    });
+  it('resolve returns undefined for invalid path', () => {
+    const te = new ThemeEngine();
+    expect(te.resolve('colors.nonexistent')).toBeUndefined();
+    expect(te.resolve('invalid.deep.path')).toBeUndefined();
+  });
+
+  it('setOverrides merges onto active tokens', () => {
+    const te = new ThemeEngine();
+    te.setOverrides({ colors: { primary: '#FF0000' } as any });
+    expect(te.getTokens().colors.primary).toBe('#FF0000');
+    expect(te.getTokens().colors.secondary).toBe('#3F3D56'); // unchanged
+  });
+
+  it('onThemeChange fires on setTheme', () => {
+    const te = new ThemeEngine();
+    const cb = vi.fn();
+    te.onThemeChange(cb);
+    te.setTheme('light');
+    expect(cb).toHaveBeenCalledOnce();
+    expect(cb.mock.calls[0][0].name).toBe('light');
+  });
+
+  it('onThemeChange fires on setOverrides', () => {
+    const te = new ThemeEngine();
+    const cb = vi.fn();
+    te.onThemeChange(cb);
+    te.setOverrides({ spacing: { xs: 0.01 } as any });
+    expect(cb).toHaveBeenCalledOnce();
+  });
+
+  it('light theme has distinct colors from dark', () => {
+    const te = new ThemeEngine();
+    const dark = te.getTokens().colors.background;
+    te.setTheme('light');
+    const light = te.getTokens().colors.background;
+    expect(light).not.toBe(dark);
   });
 });

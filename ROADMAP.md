@@ -2655,10 +2655,10 @@ holoscript lint --dead-code --fix  # Remove dead code
 
 **Acceptance criteria:**
 
-- [ ] Detects unused orbs
-- [ ] Detects unused templates
-- [ ] Detects unused properties
-- [ ] Detects unused functions
+- [x] Detects unused orbs
+- [x] Detects unused templates
+- [x] Detects unused properties
+- [x] Detects unused functions
 - [ ] Auto-fix removes dead code (with confirmation)
 
 ---
@@ -2718,11 +2718,11 @@ src/scene.hsplus:15:3
 
 **Acceptance criteria:**
 
-- [ ] `@deprecated` annotation parsed
-- [ ] Warnings emitted on usage
-- [ ] Version info (deprecated in, removed in)
-- [ ] Quick-fix suggestions
-- [ ] Can suppress with `@suppress-deprecation`
+- [x] `@deprecated` annotation parsed
+- [x] Warnings emitted on usage
+- [x] Version info (deprecated in, removed in)
+- [x] Quick-fix suggestions
+- [x] Can suppress with `@suppress-deprecation`
 
 ---
 
@@ -2804,11 +2804,11 @@ Apply changes? [y/N/i(interactive)]
 
 **Acceptance criteria:**
 
-- [ ] Dry-run mode shows changes
-- [ ] Apply mode modifies files
-- [ ] Interactive mode for confirmation
-- [ ] Backup created before migration
-- [ ] Rollback on failure
+- [x] Dry-run mode shows changes
+- [x] Apply mode modifies files
+- [x] Interactive mode for confirmation
+- [x] Backup created before migration
+- [x] Rollback on failure
 
 ---
 
@@ -2874,11 +2874,11 @@ holoscript complexity --json
 
 **Acceptance criteria:**
 
-- [ ] Cyclomatic complexity calculated
-- [ ] Nesting depth calculated
-- [ ] Configurable thresholds
-- [ ] Letter grades (A-F)
-- [ ] Actionable recommendations
+- [x] Cyclomatic complexity calculated
+- [x] Nesting depth calculated
+- [x] Configurable thresholds
+- [x] Letter grades (A-F)
+- [x] Actionable recommendations
 
 ---
 
@@ -2970,11 +2970,11 @@ packages/registry/
 
 **Acceptance criteria:**
 
-- [ ] Publish packages
-- [ ] Install packages
-- [ ] Search by name/keywords
-- [ ] Version resolution
-- [ ] Rate limiting
+- [x] Publish packages
+- [x] Install packages
+- [x] Search by name/keywords
+- [x] Version resolution
+- [x] Rate limiting
 
 </details>
 

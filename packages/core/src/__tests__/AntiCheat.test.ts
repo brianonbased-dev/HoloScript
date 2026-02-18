@@ -16,10 +16,12 @@ describe('AntiCheat', () => {
   });
 
   it('accepts valid position update', () => {
+    vi.useFakeTimers();
     ac.registerPlayer('p1', { x: 0, y: 0, z: 0 });
-    // small move within speed limit
+    vi.advanceTimersByTime(1000); // 1 second elapsed → speed = 1 u/s < maxSpeed=10
     const r = ac.validatePositionUpdate('p1', { x: 1, y: 0, z: 0 });
     expect(r.valid).toBe(true);
+    vi.useRealTimers();
   });
 
   it('rejects teleport beyond threshold', () => {

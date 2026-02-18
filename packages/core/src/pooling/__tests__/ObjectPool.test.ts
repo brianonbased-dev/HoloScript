@@ -1,148 +1,123 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ObjectPool } from '../ObjectPool';
+import { describe, it, expect, vi } from 'vitest';
+import { ObjectPool, type PoolConfig } from '../ObjectPool';
 
-function makePool(overrides = {}) {
-  return new ObjectPool({
-    factory: () => ({ value: 0 }),
-    reset: (obj: any) => { obj.value = 0; },
-    initialSize: 5,
+function makeConfig(overrides: Partial<PoolConfig<{ id: number }>> = {}): PoolConfig<{ id: number }> {
+  let counter = 0;
+  return {
+    factory: () => ({ id: counter++ }),
+    reset: (obj) => { obj.id = -1; },
+    initialSize: 3,
     maxSize: 10,
     autoExpand: true,
-    expandAmount: 3,
+    expandAmount: 2,
     ...overrides,
-  });
+  };
 }
 
 describe('ObjectPool', () => {
-  let pool: ObjectPool<{ value: number }>;
-
-  beforeEach(() => { pool = makePool(); });
-
-  // ---------------------------------------------------------------------------
-  // Construction & Warm-up
-  // ---------------------------------------------------------------------------
-
   it('pre-allocates initialSize objects', () => {
-    expect(pool.getFreeCount()).toBe(5);
+    const pool = new ObjectPool(makeConfig());
+    expect(pool.getFreeCount()).toBe(3);
+    expect(pool.getTotalCount()).toBe(3);
     expect(pool.getActiveCount()).toBe(0);
-    expect(pool.getTotalCount()).toBe(5);
   });
 
-  // ---------------------------------------------------------------------------
-  // Acquire
-  // ---------------------------------------------------------------------------
-
-  it('acquire returns an object', () => {
+  it('acquire returns object and tracks active count', () => {
+    const pool = new ObjectPool(makeConfig());
     const obj = pool.acquire();
     expect(obj).not.toBeNull();
-    expect(obj!.value).toBe(0);
-  });
-
-  it('acquire reduces free count and increases active', () => {
-    pool.acquire();
-    expect(pool.getFreeCount()).toBe(4);
     expect(pool.getActiveCount()).toBe(1);
+    expect(pool.getFreeCount()).toBe(2);
   });
 
-  it('acquire auto-expands when empty', () => {
-    // Exhaust initial pool
-    for (let i = 0; i < 5; i++) pool.acquire();
-    expect(pool.getFreeCount()).toBe(0);
-    // Next acquire should trigger expansion
-    const obj = pool.acquire();
-    expect(obj).not.toBeNull();
-    expect(pool.getStats().expandCount).toBe(1);
-  });
-
-  it('acquire returns null when at maxSize with no autoExpand', () => {
-    const noExpand = makePool({ autoExpand: false, initialSize: 2, maxSize: 2 });
-    noExpand.acquire();
-    noExpand.acquire();
-    expect(noExpand.acquire()).toBeNull();
-  });
-
-  // ---------------------------------------------------------------------------
-  // Release
-  // ---------------------------------------------------------------------------
-
-  it('release returns object to free pool', () => {
+  it('release returns object to free list', () => {
+    const pool = new ObjectPool(makeConfig());
     const obj = pool.acquire()!;
-    obj.value = 42;
-    const released = pool.release(obj);
-    expect(released).toBe(true);
-    expect(pool.getFreeCount()).toBe(5);
+    expect(pool.release(obj)).toBe(true);
     expect(pool.getActiveCount()).toBe(0);
+    expect(pool.getFreeCount()).toBe(3);
   });
 
-  it('release resets the object', () => {
+  it('release calls reset function', () => {
+    const resetFn = vi.fn();
+    const pool = new ObjectPool(makeConfig({ reset: resetFn }));
     const obj = pool.acquire()!;
-    obj.value = 42;
     pool.release(obj);
-    // Re-acquire should get reset object
-    const reacquired = pool.acquire()!;
-    expect(reacquired.value).toBe(0);
+    expect(resetFn).toHaveBeenCalledWith(obj);
   });
 
-  it('release of non-active object returns false', () => {
-    expect(pool.release({ value: 999 })).toBe(false);
+  it('release returns false for unknown object', () => {
+    const pool = new ObjectPool(makeConfig());
+    expect(pool.release({ id: 999 })).toBe(false);
   });
 
-  // ---------------------------------------------------------------------------
-  // Release All
-  // ---------------------------------------------------------------------------
+  it('auto-expands when free list is empty', () => {
+    const pool = new ObjectPool(makeConfig({ initialSize: 1, expandAmount: 2 }));
+    pool.acquire(); // uses the 1 pre-allocated
+    const obj2 = pool.acquire(); // triggers expand
+    expect(obj2).not.toBeNull();
+    expect(pool.getTotalCount()).toBe(3); // 1 initial + 2 expanded
+  });
+
+  it('returns null when maxSize reached without autoExpand', () => {
+    const pool = new ObjectPool(makeConfig({ initialSize: 1, maxSize: 1, autoExpand: false }));
+    pool.acquire();
+    expect(pool.acquire()).toBeNull();
+  });
+
+  it('returns null when maxSize reached with autoExpand', () => {
+    const pool = new ObjectPool(makeConfig({ initialSize: 2, maxSize: 2, autoExpand: true }));
+    pool.acquire();
+    pool.acquire();
+    expect(pool.acquire()).toBeNull();
+  });
 
   it('releaseAll returns all active to free', () => {
-    pool.acquire();
-    pool.acquire();
-    pool.acquire();
+    const pool = new ObjectPool(makeConfig());
+    pool.acquire(); pool.acquire(); pool.acquire();
     expect(pool.getActiveCount()).toBe(3);
     pool.releaseAll();
     expect(pool.getActiveCount()).toBe(0);
-    expect(pool.getFreeCount()).toBe(5);
+    expect(pool.getFreeCount()).toBe(3);
   });
 
-  // ---------------------------------------------------------------------------
-  // Stats
-  // ---------------------------------------------------------------------------
-
-  it('getStats tracks peak active', () => {
-    pool.acquire();
-    pool.acquire();
-    pool.acquire();
-    pool.releaseAll();
-    expect(pool.getStats().peakActive).toBe(3);
-  });
-
-  it('getStats tracks acquire and release counts', () => {
-    pool.acquire();
-    const obj = pool.acquire()!;
-    pool.release(obj);
+  it('peakActive tracks high-water mark', () => {
+    const pool = new ObjectPool(makeConfig({ initialSize: 5 }));
+    pool.acquire(); pool.acquire(); pool.acquire();
     const stats = pool.getStats();
+    expect(stats.peakActive).toBe(3);
+  });
+
+  it('getStats returns complete statistics', () => {
+    const pool = new ObjectPool(makeConfig({ initialSize: 2 }));
+    pool.acquire();
+    pool.acquire();
+    const stats = pool.getStats();
+    expect(stats.totalCreated).toBe(2);
     expect(stats.acquireCount).toBe(2);
-    expect(stats.releaseCount).toBe(1);
+    expect(stats.currentActive).toBe(2);
+    expect(stats.currentFree).toBe(0);
   });
 
-  // ---------------------------------------------------------------------------
-  // forEach
-  // ---------------------------------------------------------------------------
-
-  it('forEach iterates over active objects', () => {
-    pool.acquire()!.value = 1;
-    pool.acquire()!.value = 2;
-    const values: number[] = [];
-    pool.forEach(obj => values.push(obj.value));
-    expect(values).toHaveLength(2);
+  it('forEach iterates active objects only', () => {
+    const pool = new ObjectPool(makeConfig());
+    pool.acquire(); pool.acquire();
+    const visited: number[] = [];
+    pool.forEach(obj => visited.push(obj.id));
+    expect(visited.length).toBe(2);
   });
-
-  // ---------------------------------------------------------------------------
-  // Clear
-  // ---------------------------------------------------------------------------
 
   it('clear removes all objects', () => {
-    pool.acquire();
+    const pool = new ObjectPool(makeConfig());
     pool.acquire();
     pool.clear();
     expect(pool.getActiveCount()).toBe(0);
     expect(pool.getFreeCount()).toBe(0);
+  });
+
+  it('warmUp respects maxSize', () => {
+    const pool = new ObjectPool(makeConfig({ initialSize: 0, maxSize: 5 }));
+    pool.warmUp(100);
+    expect(pool.getTotalCount()).toBe(5);
   });
 });

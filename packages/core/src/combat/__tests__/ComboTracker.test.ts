@@ -1,140 +1,90 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ComboTracker } from '../ComboTracker';
-import type { ComboDefinition } from '../ComboTracker';
+import { ComboTracker, type ComboDefinition } from '../ComboTracker';
 
-function combo(id: string, inputs: string[], delay = 500): ComboDefinition {
-  return {
-    id,
-    name: id,
-    steps: inputs.map(input => ({ input, maxDelay: delay })),
-    reward: `${id}_reward`,
-  };
-}
+const hadouken: ComboDefinition = {
+  id: 'hadouken', name: 'Hadouken',
+  steps: [
+    { input: 'down', maxDelay: 200 },
+    { input: 'forward', maxDelay: 200 },
+    { input: 'punch', maxDelay: 200 },
+  ],
+  reward: 'fireball',
+};
+
+const uppercut: ComboDefinition = {
+  id: 'uppercut', name: 'Uppercut',
+  steps: [
+    { input: 'forward', maxDelay: 150 },
+    { input: 'punch', maxDelay: 150 },
+  ],
+  reward: 'rising_punch',
+};
 
 describe('ComboTracker', () => {
   let tracker: ComboTracker;
 
-  beforeEach(() => { tracker = new ComboTracker(); });
-
-  // ---------------------------------------------------------------------------
-  // Registration
-  // ---------------------------------------------------------------------------
-
-  it('registerCombo adds a combo definition', () => {
-    tracker.registerCombo(combo('fireball', ['down', 'right', 'punch']));
-    // No error thrown is enough; we verify via getCompletedCombos
+  beforeEach(() => {
+    tracker = new ComboTracker();
+    tracker.registerCombo(hadouken);
+    tracker.registerCombo(uppercut);
   });
 
-  // ---------------------------------------------------------------------------
-  // Input Processing
-  // ---------------------------------------------------------------------------
-
-  it('pushInput returns null when no combo completes', () => {
-    tracker.registerCombo(combo('abc', ['a', 'b', 'c']));
-    const result = tracker.pushInput('a', 0);
-    expect(result).toBeNull();
+  it('no reward for random input', () => {
+    expect(tracker.pushInput('kick', 0)).toBeNull();
   });
 
-  it('detects completed combo', () => {
-    tracker.registerCombo(combo('abc', ['a', 'b', 'c']));
-    tracker.pushInput('a', 0);
-    tracker.pushInput('b', 100);
-    const result = tracker.pushInput('c', 200);
-    expect(result).toBe('abc_reward');
+  it('single-input combo triggers immediately', () => {
+    tracker.registerCombo({
+      id: 'quick', name: 'Quick', reward: 'flash',
+      steps: [{ input: 'snap', maxDelay: 100 }],
+    });
+    expect(tracker.pushInput('snap', 0)).toBe('flash');
   });
 
-  it('getCompletedCombos returns reward after completion', () => {
-    tracker.registerCombo(combo('abc', ['a', 'b', 'c']));
-    tracker.pushInput('a', 0);
-    tracker.pushInput('b', 100);
-    tracker.pushInput('c', 200);
-    const completed = tracker.getCompletedCombos();
-    expect(completed).toContain('abc_reward');
+  it('completes hadouken combo in sequence', () => {
+    const t = new ComboTracker();
+    t.registerCombo(hadouken); // Only hadouken, no uppercut interference
+    expect(t.pushInput('down', 0)).toBeNull();
+    expect(t.pushInput('forward', 100)).toBeNull();
+    expect(t.pushInput('punch', 200)).toBe('fireball');
   });
 
-  it('wrong order does not complete', () => {
-    tracker.registerCombo(combo('abc', ['a', 'b', 'c']));
-    tracker.pushInput('c', 0);
-    tracker.pushInput('b', 100);
-    tracker.pushInput('a', 200);
-    const completed = tracker.getCompletedCombos();
-    expect(completed).not.toContain('abc_reward');
+  it('fails combo if timing window exceeded', () => {
+    const t = new ComboTracker();
+    t.registerCombo(hadouken);
+    t.pushInput('down', 0);
+    t.pushInput('forward', 300); // 300 > 200ms maxDelay
+    expect(t.pushInput('punch', 400)).toBeNull();
   });
 
-  it('incomplete sequence does not fire', () => {
-    tracker.registerCombo(combo('full', ['x', 'y', 'z']));
-    tracker.pushInput('x', 0);
-    tracker.pushInput('y', 100);
-    expect(tracker.getCompletedCombos()).not.toContain('full_reward');
+  it('completes uppercut combo', () => {
+    tracker.pushInput('forward', 0);
+    expect(tracker.pushInput('punch', 100)).toBe('rising_punch');
   });
 
-  // ---------------------------------------------------------------------------
-  // Timing
-  // ---------------------------------------------------------------------------
-
-  it('combo times out if delay exceeded', () => {
-    tracker.registerCombo(combo('quick', ['a', 'b'], 100));
-    tracker.pushInput('a', 0);
-    tracker.tick(200); // expire
-    const result = tracker.pushInput('b', 200);
-    expect(result).toBeNull();
-  });
-
-  it('combo succeeds within timing window', () => {
-    tracker.registerCombo(combo('quick', ['a', 'b'], 500));
-    tracker.pushInput('a', 0);
-    const result = tracker.pushInput('b', 100);
-    expect(result).toBe('quick_reward');
-  });
-
-  // ---------------------------------------------------------------------------
-  // Active Combos
-  // ---------------------------------------------------------------------------
-
-  it('getActiveComboCount tracks in-progress combos', () => {
-    tracker.registerCombo(combo('abc', ['a', 'b', 'c']));
-    tracker.pushInput('a', 0);
-    expect(tracker.getActiveComboCount()).toBeGreaterThan(0);
-  });
-
-  it('active count drops after completion', () => {
-    tracker.registerCombo(combo('ab', ['a', 'b']));
-    tracker.pushInput('a', 0);
-    tracker.pushInput('b', 100);
+  it('tick cleans up timed-out combos', () => {
+    tracker.pushInput('down', 0); // Starts hadouken
+    expect(tracker.getActiveComboCount()).toBe(1);
+    tracker.tick(500); // Way past maxDelay
     expect(tracker.getActiveComboCount()).toBe(0);
   });
 
-  // ---------------------------------------------------------------------------
-  // Single-step combos
-  // ---------------------------------------------------------------------------
-
-  it('single-step combo fires immediately', () => {
-    tracker.registerCombo(combo('instant', ['x']));
-    const result = tracker.pushInput('x', 0);
-    expect(result).toBe('instant_reward');
-  });
-
-  // ---------------------------------------------------------------------------
-  // Reset
-  // ---------------------------------------------------------------------------
-
-  it('reset clears active and completed', () => {
-    tracker.registerCombo(combo('abc', ['a', 'b', 'c']));
-    tracker.pushInput('a', 0);
+  it('reset clears all state', () => {
+    tracker.pushInput('down', 0);
     tracker.reset();
     expect(tracker.getActiveComboCount()).toBe(0);
-    expect(tracker.getCompletedCombos()).toHaveLength(0);
+    expect(tracker.getCompletedCombos().length).toBe(0);
   });
 
-  // ---------------------------------------------------------------------------
-  // Multi-combo
-  // ---------------------------------------------------------------------------
+  it('getCompletedCombos returns rewards from last input', () => {
+    tracker.pushInput('forward', 0);
+    tracker.pushInput('punch', 100);
+    expect(tracker.getCompletedCombos()).toContain('rising_punch');
+  });
 
-  it('multiple combos can be registered', () => {
-    tracker.registerCombo(combo('ab', ['a', 'b']));
-    tracker.registerCombo(combo('cd', ['c', 'd']));
-    tracker.pushInput('c', 0);
-    const result = tracker.pushInput('d', 100);
-    expect(result).toBe('cd_reward');
+  it('multiple combos can track simultaneously', () => {
+    tracker.pushInput('down', 0);    // starts hadouken
+    tracker.pushInput('forward', 100); // advances hadouken, starts uppercut
+    expect(tracker.getActiveComboCount()).toBeGreaterThanOrEqual(1);
   });
 });

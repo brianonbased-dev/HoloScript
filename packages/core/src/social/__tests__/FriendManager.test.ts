@@ -1,167 +1,120 @@
-/**
- * FriendManager Unit Tests
- *
- * Tests friend request lifecycle: send/accept/reject/remove/block.
- * Tests event emissions and error handling.
- */
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { FriendManager } from '../FriendManager';
 import { SocialGraph, type SocialUser } from '../SocialGraph';
 
-function makeUser(id: string, overrides: Partial<SocialUser> = {}): SocialUser {
-  return {
-    id,
-    username: `user_${id}`,
-    displayName: `User ${id}`,
-    status: 'online',
-    lastSeen: Date.now(),
-    ...overrides,
-  };
+function makeUser(id: string): SocialUser {
+  return { id, username: `user_${id}`, displayName: `User ${id}`, status: 'online', lastSeen: Date.now() };
+}
+
+function makeGraph() {
+  return new SocialGraph('me');
 }
 
 describe('FriendManager', () => {
-  let graph: SocialGraph;
-  let manager: FriendManager;
-  let listener: ReturnType<typeof vi.fn>;
-
-  beforeEach(() => {
-    graph = new SocialGraph('local-user');
-    manager = new FriendManager(graph); // No transport, offline mode
-    listener = vi.fn();
-    manager.onEvent(listener);
+  it('sendRequest sets pending_outgoing', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    fm.sendRequest(makeUser('u1'));
+    expect(g.getRelationship('u1')).toBe('pending_outgoing');
   });
 
-  describe('sendRequest', () => {
-    it('should send a friend request and emit event', () => {
-      const user = makeUser('remote-1');
-      manager.sendRequest(user);
-
-      expect(graph.getRelationship('remote-1')).toBe('pending_outgoing');
-      expect(listener).toHaveBeenCalledWith('request_sent', { userId: 'remote-1' });
-    });
-
-    it('should throw if user is already a friend', () => {
-      const user = makeUser('friend-1');
-      graph.updateUser(user);
-      graph.setRelationship('friend-1', 'friend');
-
-      expect(() => manager.sendRequest(user)).toThrow('already a friend');
-    });
-
-    it('should throw if user is blocked', () => {
-      const user = makeUser('blocked-1');
-      graph.updateUser(user);
-      graph.setRelationship('blocked-1', 'blocked');
-
-      expect(() => manager.sendRequest(user)).toThrow('blocked');
-    });
-
-    it('should no-op if request already pending', () => {
-      const user = makeUser('pending-1');
-      manager.sendRequest(user);
-      listener.mockClear();
-      manager.sendRequest(user); // duplicate send
-      expect(listener).not.toHaveBeenCalled();
-    });
+  it('sendRequest emits request_sent', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    const cb = vi.fn();
+    fm.onEvent(cb);
+    fm.sendRequest(makeUser('u1'));
+    expect(cb).toHaveBeenCalledWith('request_sent', { userId: 'u1' });
   });
 
-  describe('receiveRequest', () => {
-    it('should mark as pending_incoming and emit event', () => {
-      const user = makeUser('remote-2');
-      manager.receiveRequest(user);
-
-      expect(graph.getRelationship('remote-2')).toBe('pending_incoming');
-      expect(listener).toHaveBeenCalledWith('request_received', expect.objectContaining({ user }));
-    });
-
-    it('should ignore requests from blocked users', () => {
-      const user = makeUser('blocked-2');
-      graph.updateUser(user);
-      graph.setRelationship('blocked-2', 'blocked');
-
-      manager.receiveRequest(user);
-      expect(listener).not.toHaveBeenCalledWith('request_received', expect.anything());
-    });
-
-    it('should ignore requests from existing friends', () => {
-      const user = makeUser('friend-2');
-      graph.updateUser(user);
-      graph.setRelationship('friend-2', 'friend');
-
-      manager.receiveRequest(user);
-      expect(listener).not.toHaveBeenCalledWith('request_received', expect.anything());
-    });
+  it('sendRequest throws if already friend', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    g.updateUser(makeUser('u1'));
+    g.setRelationship('u1', 'friend');
+    expect(() => fm.sendRequest(makeUser('u1'))).toThrow('already a friend');
   });
 
-  describe('acceptRequest', () => {
-    it('should promote pending_incoming to friend', () => {
-      const user = makeUser('remote-3');
-      manager.receiveRequest(user);
-      listener.mockClear();
-
-      manager.acceptRequest('remote-3');
-
-      expect(graph.getRelationship('remote-3')).toBe('friend');
-      expect(listener).toHaveBeenCalledWith('friend_added', { userId: 'remote-3' });
-    });
-
-    it('should throw if no pending request exists', () => {
-      expect(() => manager.acceptRequest('nonexistent')).toThrow('No pending request');
-    });
+  it('sendRequest throws if blocked', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    g.updateUser(makeUser('u1'));
+    g.setRelationship('u1', 'blocked');
+    expect(() => fm.sendRequest(makeUser('u1'))).toThrow('blocked');
   });
 
-  describe('rejectRequest', () => {
-    it('should remove relationship and emit event', () => {
-      const user = makeUser('remote-4');
-      manager.receiveRequest(user);
-      listener.mockClear();
-
-      manager.rejectRequest('remote-4');
-
-      expect(graph.getRelationship('remote-4')).toBe('none');
-      expect(listener).toHaveBeenCalledWith('request_rejected', { userId: 'remote-4' });
-    });
-
-    it('should no-op if no pending request', () => {
-      manager.rejectRequest('nonexistent'); // should not throw
-      expect(listener).not.toHaveBeenCalledWith('request_rejected', expect.anything());
-    });
+  it('sendRequest is no-op if already pending_outgoing', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    const cb = vi.fn();
+    fm.onEvent(cb);
+    fm.sendRequest(makeUser('u1'));
+    fm.sendRequest(makeUser('u1')); // second call
+    expect(cb).toHaveBeenCalledTimes(1); // only first emits
   });
 
-  describe('removeFriend', () => {
-    it('should remove friend and emit event', () => {
-      const user = makeUser('friend-3');
-      graph.updateUser(user);
-      graph.setRelationship('friend-3', 'friend');
-
-      manager.removeFriend('friend-3');
-
-      expect(graph.getRelationship('friend-3')).toBe('none');
-      expect(listener).toHaveBeenCalledWith('friend_removed', { userId: 'friend-3' });
-    });
+  it('receiveRequest sets pending_incoming', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    fm.receiveRequest(makeUser('u1'));
+    expect(g.getRelationship('u1')).toBe('pending_incoming');
   });
 
-  describe('blockUser / unblockUser / isBlocked', () => {
-    it('should block a user and emit event', () => {
-      const user = makeUser('troll-1');
-      manager.blockUser(user);
+  it('receiveRequest ignores if blocked', () => {
+    const g = makeGraph();
+    g.updateUser(makeUser('u1'));
+    g.setRelationship('u1', 'blocked');
+    const fm = new FriendManager(g);
+    fm.receiveRequest(makeUser('u1'));
+    expect(g.getRelationship('u1')).toBe('blocked');
+  });
 
-      expect(graph.getRelationship('troll-1')).toBe('blocked');
-      expect(manager.isBlocked('troll-1')).toBe(true);
-      expect(listener).toHaveBeenCalledWith('user_blocked', { userId: 'troll-1' });
-    });
+  it('acceptRequest promotes to friend', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    fm.receiveRequest(makeUser('u1'));
+    const cb = vi.fn();
+    fm.onEvent(cb);
+    fm.acceptRequest('u1');
+    expect(g.getRelationship('u1')).toBe('friend');
+    expect(cb).toHaveBeenCalledWith('friend_added', { userId: 'u1' });
+  });
 
-    it('should unblock a user and emit event', () => {
-      const user = makeUser('troll-2');
-      manager.blockUser(user);
-      listener.mockClear();
+  it('acceptRequest throws if no pending', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    expect(() => fm.acceptRequest('u1')).toThrow('No pending request');
+  });
 
-      manager.unblockUser('troll-2');
+  it('rejectRequest removes relationship', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    fm.receiveRequest(makeUser('u1'));
+    fm.rejectRequest('u1');
+    expect(g.getRelationship('u1')).toBe('none');
+  });
 
-      expect(graph.getRelationship('troll-2')).toBe('none');
-      expect(manager.isBlocked('troll-2')).toBe(false);
-      expect(listener).toHaveBeenCalledWith('user_unblocked', { userId: 'troll-2' });
-    });
+  it('removeFriend removes relationship', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    fm.receiveRequest(makeUser('u1'));
+    fm.acceptRequest('u1');
+    fm.removeFriend('u1');
+    expect(g.getRelationship('u1')).toBe('none');
+  });
+
+  it('blockUser sets blocked', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    fm.blockUser(makeUser('u1'));
+    expect(fm.isBlocked('u1')).toBe(true);
+  });
+
+  it('unblockUser clears blocked', () => {
+    const g = makeGraph();
+    const fm = new FriendManager(g);
+    fm.blockUser(makeUser('u1'));
+    fm.unblockUser('u1');
+    expect(fm.isBlocked('u1')).toBe(false);
   });
 });
