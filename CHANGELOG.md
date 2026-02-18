@@ -1,3 +1,18 @@
+## [3.5.0-alpha.32] - 2026-02-18
+
+### ∞ Commence All XXXIV — visionOS + AR + AI Traits Mega Sweep 🥽🎯🧠
+
+61 new tests across 3 mega suites — 9 trait handlers fully covered.
+
+#### Traits (visionOS)
+- `VisionOSTraits.prod.test.ts` (24 tests) — SharePlayTrait (lifecycle/participants/sync/end), VolumetricWindowTrait (dimensions/resize/scale/immersion), SpatialPersonaTrait (activate/expression/visibility).
+
+#### Traits (AR)
+- `ARTraits.prod.test.ts` (19 tests) — ObjectTrackingTrait (acquire/lost/recovery/detach), SceneReconstructionTrait (scan/mesh/labels/complete), RealityKitMeshTrait (activate/anchors/tick/cleanup).
+
+#### Traits (AI)
+- `AITraits.prod.test.ts` (18 tests) — DiffusionRealtimeTrait (stream/frames/drops/prompt), EmbeddingSearchTrait (query/results/scoring/cache), SpatialNavigationTrait (waypoints/reach/advance/cancel).
+
 ## [3.5.0-alpha.31] - 2026-02-18
 
 ### ∞ Commence All XXXIII — Runtime Registries + Web3 🔧🌐
