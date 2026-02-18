@@ -442,11 +442,257 @@ export const RATE_LIMITS: Record<RateLimitTier, number> = {
 };
 
 // =============================================================================
+// AGENT PACKAGE TYPES
+// =============================================================================
+
+/**
+ * Scene pool IDs from TrainingMonkey's canonical scene-pools.ts.
+ * Used to tag agent specialization domains for discovery.
+ */
+export type ScenePoolId =
+  | 'game_rpg'
+  | 'game_action'
+  | 'social_commerce'
+  | 'education'
+  | 'creative_arts'
+  | 'nature_biome'
+  | 'scifi_tech'
+  | 'architecture'
+  | 'ai_agents'
+  | 'xr_platform'
+  | 'vfx_lighting'
+  | 'maker_fabrication'
+  | 'general_vr'
+  | 'scientific_computing';
+
+/**
+ * Pricing model for agent packages
+ */
+export type AgentPricingModel = 'one_time' | 'subscription';
+
+/**
+ * Base model used for fine-tuning
+ */
+export type BaseAgentModel =
+  | 'brittney-qwen-v23'
+  | 'qwen2.5-7b'
+  | 'qwen2.5-3b'
+  | 'llama3.2-3b'
+  | string; // Allow future models
+
+/**
+ * A trained AI agent package — extends marketplace listing with model artifacts.
+ * Agents are sold as Modelfile + GGUF weights stored on Cloudflare R2.
+ */
+export interface AgentPackage {
+  // Identity (mirrors TraitPackage)
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: Author;
+  license: LicenseType;
+  keywords: string[];
+  repository?: string;
+
+  // Model artifacts
+  modelFile: string;          // Full Ollama Modelfile content
+  baseModel: BaseAgentModel;  // Which model was fine-tuned
+  ggufUrl: string;            // R2 presigned or permanent download URL
+  ggufSizeBytes: number;      // File size for display (typically ~4.1GB for Q4_K_M)
+  quantization: 'Q4_K_M' | 'Q5_K_M' | 'Q8_0' | 'F16';
+
+  // Training metadata
+  exampleCount: number;        // Training examples used
+  trainingJobId?: string;      // Reference to GPU fine-tune job
+  baseModelVersion?: string;   // Exact version of base model fine-tuned
+
+  // Quality gate (computed by platform, not submitter)
+  evalScore: number;           // 0–30 — HoloScript Score from automated 30-prompt eval
+  evalPassThreshold: number;   // Minimum to publish (default: 20)
+  evalPassedAt?: Date;
+
+  // Discovery
+  scenePools: ScenePoolId[];  // Which scene domains this agent specializes in
+  tags?: string[];
+
+  // Pricing
+  pricingModel: AgentPricingModel;
+  price: number;               // One-time price in USD cents (e.g., 999 = $9.99)
+  subscriptionPrice?: number;  // Monthly price in USD cents (if pricingModel === 'subscription')
+
+  // Status
+  verified: boolean;
+  published: boolean;
+
+  // Stats
+  downloads: number;
+  rating: number;
+  ratingCount: number;
+
+  // Royalty
+  contributorRoyaltyPercent?: number; // % of each sale distributed to example contributors
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+}
+
+/**
+ * Summarized agent info for marketplace listing cards.
+ * Shown in search results and category pages.
+ */
+export interface AgentSummary {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: Pick<Author, 'name' | 'verified'>;
+  baseModel: BaseAgentModel;
+  evalScore: number;           // Displayed as "HoloScript Score: XX/30"
+  exampleCount: number;
+  scenePools: ScenePoolId[];
+  pricingModel: AgentPricingModel;
+  price: number;
+  subscriptionPrice?: number;
+  ggufSizeBytes: number;
+  downloads: number;
+  rating: number;
+  verified: boolean;
+  publishedAt?: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Request to start a GPU fine-tune job.
+ * Submitted via POST /api/agents/train.
+ */
+export interface TrainAgentRequest {
+  name: string;                 // Agent display name
+  description: string;
+  baseModel: BaseAgentModel;
+  scenePools: ScenePoolId[];    // Domain specialization tags
+  pricingModel: AgentPricingModel;
+  price: number;                // In USD cents
+  subscriptionPrice?: number;
+  keywords?: string[];
+  // Training data is sourced from the user's submitted examples in the pool
+  // Optional: include extra inline examples for this fine-tune only
+  extraExamples?: Array<{ instruction: string; output: string }>;
+  webhookUrl?: string;          // Called on job completion/failure
+}
+
+/**
+ * Status of a GPU fine-tune job.
+ * Polled via GET /api/agents/jobs/:jobId/status.
+ */
+export interface TrainJobStatus {
+  jobId: string;
+  status: 'queued' | 'running' | 'eval_running' | 'publishing' | 'done' | 'failed';
+  progressPercent: number;      // 0–100
+  currentStep?: string;         // Human-readable: "Epoch 2/3", "Running eval harness", etc.
+  evalScore?: number;           // Set once eval completes
+  evalPassed?: boolean;
+  agentId?: string;             // Set once published
+  errorMessage?: string;
+  createdAt: Date;
+  startedAt?: Date;
+  completedAt?: Date;
+  estimatedCompletionAt?: Date;
+}
+
+/**
+ * Request to publish a completed agent to the marketplace.
+ * Usually called automatically by the pipeline after eval pass.
+ */
+export interface AgentPublishRequest {
+  jobId: string;
+  name: string;
+  description: string;
+  scenePools: ScenePoolId[];
+  pricingModel: AgentPricingModel;
+  price: number;
+  subscriptionPrice?: number;
+  keywords?: string[];
+  license?: LicenseType;
+}
+
+/**
+ * Result of agent publish operation
+ */
+export interface AgentPublishResult {
+  success: boolean;
+  agentId: string;
+  name: string;
+  ggufUrl: string;
+  evalScore: number;
+  warnings?: string[];
+  errors?: string[];
+}
+
+/**
+ * Search query parameters for agent discovery
+ */
+export interface AgentSearchQuery {
+  q?: string;
+  scenePools?: ScenePoolId[];
+  baseModel?: BaseAgentModel;
+  minEvalScore?: number;        // Filter by HoloScript Score
+  maxPrice?: number;            // In USD cents
+  pricingModel?: AgentPricingModel;
+  verified?: boolean;
+  minDownloads?: number;
+  sortBy?: 'relevance' | 'downloads' | 'rating' | 'eval_score' | 'price' | 'updated';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Agent search result with pagination
+ */
+export interface AgentSearchResult {
+  results: AgentSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  query: AgentSearchQuery;
+}
+
+/**
+ * Training example submitted by a user to the shared pool
+ */
+export interface TrainingExample {
+  instruction: string;          // Natural language prompt
+  output: string;               // Expected HoloScript DSL output
+  scenePool: ScenePoolId;       // Domain tag
+  contributorId: string;        // User who submitted
+  validationScore?: number;     // From @holoscript/ai-validator (0–1)
+  approvedAt?: Date;
+}
+
+/**
+ * Royalty record: tracks contributor earnings per model download
+ */
+export interface RoyaltyRecord {
+  contributorId: string;
+  agentId: string;
+  exampleCount: number;         // Their examples used in this model
+  totalExamplesInModel: number; // All examples in the model
+  sharePercent: number;         // exampleCount / totalExamplesInModel
+  earnedPerDownload: number;    // In USD cents
+  totalEarned: number;          // Cumulative earnings
+  lastUpdatedAt: Date;
+}
+
+// =============================================================================
 // MARKETPLACE API INTERFACE
 // =============================================================================
 
 /**
- * Main marketplace API interface
+ * Main marketplace API interface (trait packages)
  */
 export interface IMarketplaceAPI {
   // Publishing
@@ -476,4 +722,56 @@ export interface IMarketplaceAPI {
   // Verification
   requestVerification(request: VerificationRequest, token: string): Promise<void>;
   getVerificationStatus(targetId: string): Promise<VerificationStatus>;
+}
+
+/**
+ * Agent marketplace API interface.
+ * Extends the trait marketplace with AI agent training and distribution.
+ *
+ * Routes:
+ *   POST   /api/agents/train         → trainAgent()
+ *   GET    /api/agents/jobs/:id      → getTrainJobStatus()
+ *   POST   /api/agents/publish       → publishAgent()
+ *   GET    /api/agents/search        → searchAgents()
+ *   GET    /api/agents/:id           → getAgent()
+ *   GET    /api/agents/:id/download  → getDownloadUrl()
+ *   POST   /api/agents/examples      → submitTrainingExample()
+ *   GET    /api/agents/royalties     → getRoyalties()
+ */
+export interface IAgentMarketplaceAPI {
+  // Training pipeline
+  trainAgent(request: TrainAgentRequest, token: string): Promise<{ jobId: string }>;
+  getTrainJobStatus(jobId: string, token: string): Promise<TrainJobStatus>;
+  cancelTrainJob(jobId: string, token: string): Promise<void>;
+
+  // Publishing
+  publishAgent(request: AgentPublishRequest, token: string): Promise<AgentPublishResult>;
+  unpublishAgent(agentId: string, token: string): Promise<void>;
+
+  // Discovery
+  searchAgents(query: AgentSearchQuery): Promise<AgentSearchResult>;
+  getAgent(agentId: string): Promise<AgentPackage>;
+  getFeaturedAgents(scenePool?: ScenePoolId, limit?: number): Promise<AgentSummary[]>;
+  getRecentAgents(limit?: number): Promise<AgentSummary[]>;
+  getTopAgents(sortBy: 'downloads' | 'eval_score' | 'rating', limit?: number): Promise<AgentSummary[]>;
+
+  // Purchase & download
+  purchaseAgent(agentId: string, token: string): Promise<{ downloadUrl: string; expiresAt: Date }>;
+  getDownloadUrl(agentId: string, token: string): Promise<{ url: string; expiresAt: Date }>;
+
+  // Training data contribution
+  submitTrainingExample(example: Omit<TrainingExample, 'contributorId' | 'approvedAt'>, token: string): Promise<{ exampleId: string; validationScore: number }>;
+  getMyExamples(token: string, page?: number): Promise<TrainingExample[]>;
+
+  // Royalties
+  getRoyalties(token: string): Promise<RoyaltyRecord[]>;
+  getRoyaltySummary(token: string): Promise<{ totalEarned: number; pendingPayout: number; exampleCount: number }>;
+
+  // Stats
+  recordAgentDownload(agentId: string): Promise<void>;
+  getAgentDownloadStats(agentId: string): Promise<DownloadStats>;
+
+  // Ratings
+  rateAgent(agentId: string, rating: number, review?: string, token?: string): Promise<void>;
+  getAgentRatings(agentId: string, page?: number): Promise<TraitRating[]>;
 }
