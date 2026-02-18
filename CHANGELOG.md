@@ -1,3 +1,15 @@
+## [3.5.0-alpha.35] - 2026-02-18
+
+### ∞ Sprint XXXVII — Linter + Registry Sub-Package Sweep 🔍📦
+
+28 new tests across 2 sub-package suites — linter deprecation rule and package registry.
+
+#### Linter
+- `no-deprecated.prod.test.ts` (9 tests) — LinterDeprecationRegistry register/scan/formatWarning, NoDeprecatedRule registerBuiltins/check across files/formatReport, custom registry injection.
+
+#### Registry
+- `LocalRegistryProd.test.ts` (19 tests) — LocalRegistry publish/versioning/duplicate/getPackage/getVersion/list/search/download tracking/unpublish/unpublishVersion/size/clear. PackageResolver satisfies (exact/^/~/wildcard), resolve, getMatchingVersions sorted.
+
 ## [3.5.0-alpha.34] - 2026-02-18
 
 ### ∞ Sprint XXXVI — Compiler glTF + Collaboration Transport Mega Sweep 🔧🤝
