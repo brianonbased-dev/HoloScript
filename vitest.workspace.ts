@@ -24,4 +24,13 @@ export default [
       exclude: ['**/dist/**', '**/node_modules/**'],
     },
   },
+  {
+    test: {
+      name: '@holoscript/visual',
+      root: './packages/visual',
+      include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+      exclude: ['**/dist/**', '**/node_modules/**'],
+      environment: 'node',
+    },
+  },
 ];

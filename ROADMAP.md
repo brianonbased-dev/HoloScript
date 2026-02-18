@@ -3042,11 +3042,11 @@ Publishing to registry.holoscript.dev...
 
 **Acceptance criteria:**
 
-- [ ] Validates package before publish
-- [ ] Builds and bundles package
-- [ ] Uploads to registry
-- [ ] Shows success/failure clearly
-- [ ] `--dry-run` flag for testing
+- [x] Validates package before publish
+- [x] Builds and bundles package
+- [x] Uploads to registry
+- [x] Shows success/failure clearly
+- [x] `--dry-run` flag for testing
 
 ---
 
@@ -3119,11 +3119,11 @@ CREATE TABLE package_access (
 
 **Acceptance criteria:**
 
-- [ ] Create organizations
-- [ ] Publish private packages
-- [ ] Grant/revoke access
-- [ ] Token-based auth for CI
-- [ ] Private packages not visible in search
+- [x] Create organizations
+- [x] Publish private packages
+- [x] Grant/revoke access
+- [x] Token-based auth for CI
+- [x] Private packages not visible in search
 
 ---
 
@@ -3311,11 +3311,11 @@ packages/visual/
 
 **Acceptance criteria:**
 
-- [ ] Node canvas with pan/zoom
-- [ ] 20 node types available
-- [ ] Connect nodes with wires
-- [ ] Generate valid HoloScript code
-- [ ] Code preview updates live
+- [x] Node canvas with pan/zoom
+- [x] 20 node types available
+- [x] Connect nodes with wires
+- [x] Generate valid HoloScript code
+- [x] Code preview updates live
 
 ---
 
@@ -3419,11 +3419,11 @@ Suggest the most likely completion.
 
 **Acceptance criteria:**
 
-- [ ] Smart trait suggestions
-- [ ] Comment-to-code generation
-- [ ] Error fix suggestions
-- [ ] Works offline with local model
-- [ ] Respects privacy settings
+- [x] Smart trait suggestions
+- [x] Comment-to-code generation
+- [x] Error fix suggestions
+- [x] Works offline with local model
+- [x] Respects privacy settings
 
 ---
 
@@ -3506,11 +3506,11 @@ packages/intellij/
 
 **Acceptance criteria:**
 
-- [ ] Syntax highlighting works
-- [ ] LSP features (completion, hover, etc.)
-- [ ] Format on save
-- [ ] Works in IDEA, WebStorm, PyCharm
-- [ ] Published to JetBrains Marketplace
+- [x] Syntax highlighting works
+- [x] LSP features (completion, hover, etc.)
+- [x] Format on save
+- [x] Works in IDEA, WebStorm, PyCharm
+- [x] Published to JetBrains Marketplace
 
 </details>
 

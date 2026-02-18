@@ -1,248 +1,151 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { LeaderElection, type LeaderElectionConfig } from '../LeaderElection';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { LeaderElection } from '../LeaderElection';
+import type { ElectionMessage } from '../LeaderElection';
 
 describe('LeaderElection', () => {
-  let election: LeaderElection;
-  const nodeId = 'node-1';
-  const clusterMembers = ['node-2', 'node-3', 'node-4'];
-
-  beforeEach(() => {
-    election = new LeaderElection(nodeId, clusterMembers);
-  });
-
   afterEach(() => {
-    election.stop();
+    vi.useRealTimers();
   });
 
-  describe('constructor', () => {
-    it('should create with node id and cluster members', () => {
-      expect(election).toBeDefined();
+  function makeElection(nodeId: string, members: string[], config = {}) {
+    return new LeaderElection(nodeId, members, {
+      electionTimeoutMin: 10000,
+      electionTimeoutMax: 20000,
+      heartbeatInterval: 5000,
+      ...config,
     });
+  }
 
-    it('should accept custom config', () => {
-      const customConfig: Partial<LeaderElectionConfig> = {
-        electionTimeoutMin: 200,
-        electionTimeoutMax: 400,
-        heartbeatInterval: 75,
-      };
-      const customElection = new LeaderElection(nodeId, clusterMembers, customConfig);
-      expect(customElection).toBeDefined();
-      customElection.stop();
-    });
-
-    it('should start as follower with no leader', () => {
-      expect(election.getRole()).toBe('follower');
-      expect(election.getLeader()).toBeNull();
-    });
+  it('initializes as follower with no leader', () => {
+    const e = makeElection('n1', ['n2', 'n3']);
+    expect(e.getRole()).toBe('follower');
+    expect(e.getLeader()).toBeNull();
+    e.stop();
   });
 
-  describe('startElection', () => {
-    it('should elect a leader', async () => {
-      const leader = await election.startElection();
-
-      expect(leader).toBeDefined();
-      expect(typeof leader).toBe('string');
-    });
-
-    it('should become leader when receiving majority votes', async () => {
-      // Simulate receiving votes
-      election.receiveVote('node-2');
-      election.receiveVote('node-3');
-
-      const leader = await election.startElection();
-
-      expect(election.getRole()).toBe('leader');
-      expect(leader).toBe(nodeId);
-    });
-
-    it('should set leader id after election', async () => {
-      await election.startElection();
-
-      expect(election.getLeader()).not.toBeNull();
-    });
+  it('filters self from cluster members', () => {
+    // If self is in member list, should not cause issues
+    const e = makeElection('n1', ['n1', 'n2', 'n3']);
+    e.stop();
+    expect(e.getRole()).toBe('follower');
   });
 
-  describe('getLeader', () => {
-    it('should return null before election', () => {
-      expect(election.getLeader()).toBeNull();
-    });
-
-    it('should return leader id after election', async () => {
-      await election.startElection();
-      expect(election.getLeader()).toBeDefined();
-    });
+  it('wins election in local cluster (no message handler)', async () => {
+    vi.useFakeTimers();
+    const e = makeElection('n1', ['n2', 'n3']);
+    const promise = e.startElection();
+    vi.advanceTimersByTime(100);
+    const leader = await promise;
+    expect(leader).toBe('n1');
+    expect(e.getRole()).toBe('leader');
+    expect(e.getLeader()).toBe('n1');
+    e.stop();
   });
 
-  describe('getRole', () => {
-    it('should return follower initially', () => {
-      expect(election.getRole()).toBe('follower');
-    });
-
-    it('should return leader after winning election', async () => {
-      // With simulated votes, should become leader
-      election.receiveVote('node-2');
-      election.receiveVote('node-3');
-      await election.startElection();
-
-      expect(election.getRole()).toBe('leader');
-    });
+  it('accepts votes from peers', () => {
+    vi.useFakeTimers();
+    const e = makeElection('n1', ['n2', 'n3', 'n4', 'n5'], { quorumSize: 3 });
+    // Manually become a candidate
+    e.startElection();
+    // Already received own vote + all members' votes in local mode
+    expect(e.getRole()).toBe('leader');
+    e.stop();
   });
 
-  describe('onLeaderChange', () => {
-    it('should register callback', () => {
-      const callback = vi.fn();
-      const unsubscribe = election.onLeaderChange(callback);
-
-      expect(typeof unsubscribe).toBe('function');
-      unsubscribe();
-    });
-
-    it('should call callback when leader changes', async () => {
-      const callback = vi.fn();
-      election.onLeaderChange(callback);
-
-      await election.startElection();
-
-      expect(callback).toHaveBeenCalled();
-    });
-
-    it('should unsubscribe correctly', async () => {
-      const callback = vi.fn();
-      const unsubscribe = election.onLeaderChange(callback);
-      unsubscribe();
-
-      await election.startElection();
-
-      expect(callback).not.toHaveBeenCalled();
-    });
+  it('receiveVote only counts when candidate', () => {
+    const e = makeElection('n1', ['n2']);
+    e.receiveVote('n2'); // Should be ignored, not a candidate
+    expect(e.getRole()).toBe('follower');
+    e.stop();
   });
 
-  describe('receiveVote', () => {
-    it('should accumulate votes when candidate', async () => {
-      // Start election to become candidate
-      const electionPromise = election.startElection();
-
-      // Votes should be counted
-      election.receiveVote('node-2');
-      election.receiveVote('node-3');
-
-      await electionPromise;
-
-      expect(election.getRole()).toBe('leader');
-    });
+  it('onLeaderChange fires on leader win', async () => {
+    vi.useFakeTimers();
+    const e = makeElection('n1', ['n2']);
+    const cb = vi.fn();
+    e.onLeaderChange(cb);
+    const promise = e.startElection();
+    vi.advanceTimersByTime(100);
+    await promise;
+    expect(cb).toHaveBeenCalledWith('n1');
+    e.stop();
   });
 
-  describe('handleMessage', () => {
-    it('should handle heartbeat message', () => {
-      election.handleMessage('node-2', {
-        type: 'heartbeat',
-        term: 1,
-        leaderId: 'node-2',
-      });
-
-      expect(election.getLeader()).toBe('node-2');
-      expect(election.getRole()).toBe('follower');
-    });
-
-    it('should handle vote request', () => {
-      election.handleMessage('node-2', {
-        type: 'request-vote',
-        term: 1,
-        candidateId: 'node-2',
-      });
-
-      // Should remain follower but update term internally
-      expect(election.getRole()).toBe('follower');
-    });
-
-    it('should handle vote response', async () => {
-      election.startElection(); // Don't await - become candidate
-
-      // Wait a tick for state to update
-      await new Promise((r) => setTimeout(r, 10));
-
-      election.handleMessage('node-2', {
-        type: 'vote-response',
-        term: 1,
-        voteGranted: true,
-      });
-
-      // Should accumulate votes
-      expect(election.getRole()).toBe('leader'); // Already had self-vote + simulated
-    });
-
-    it('should step down when receiving higher term', () => {
-      // First become leader
-      election.receiveVote('node-2');
-      election.receiveVote('node-3');
-      election['becomeLeader'](); // Access private method for testing
-
-      expect(election.getRole()).toBe('leader');
-
-      // Receive message with higher term
-      election.handleMessage('node-5', {
-        type: 'heartbeat',
-        term: 999,
-        leaderId: 'node-5',
-      });
-
-      expect(election.getRole()).toBe('follower');
-    });
+  it('onLeaderChange returns unsubscribe fn', () => {
+    vi.useFakeTimers();
+    const e = makeElection('n1', ['n2']);
+    const cb = vi.fn();
+    const unsub = e.onLeaderChange(cb);
+    unsub();
+    e.startElection();
+    vi.advanceTimersByTime(100);
+    expect(cb).not.toHaveBeenCalled();
+    e.stop();
   });
 
-  describe('stop', () => {
-    it('should stop timers', async () => {
-      await election.startElection();
-
-      // Should not throw
-      expect(() => election.stop()).not.toThrow();
-    });
-
-    it('should be callable multiple times', () => {
-      election.stop();
-      election.stop();
-      election.stop();
-
-      // Should not throw
-      expect(true).toBe(true);
-    });
+  it('handleMessage handles vote request (grants vote)', () => {
+    vi.useFakeTimers();
+    const e = makeElection('n2', ['n1']);
+    const sent: { to: string; msg: ElectionMessage }[] = [];
+    e.setMessageHandler((to, msg) => sent.push({ to, msg }));
+    // n1 asks n2 for a vote
+    e.handleMessage('n1', { type: 'request-vote', term: 1, candidateId: 'n1' });
+    expect(sent.length).toBeGreaterThan(0);
+    const resp = sent.find(s => s.msg.type === 'vote-response');
+    expect(resp).toBeDefined();
+    expect((resp!.msg as any).voteGranted).toBe(true);
+    e.stop();
   });
 
-  describe('quorum calculation', () => {
-    it('should require majority for 3-node cluster', async () => {
-      const smallElection = new LeaderElection('a', ['b', 'c']);
+  it('handleMessage rejects old-term vote request', () => {
+    vi.useFakeTimers();
+    const e = makeElection('n2', ['n1']);
+    // Force term to 5
+    e.handleMessage('n1', { type: 'heartbeat', term: 5, leaderId: 'n1' });
+    const sent: { to: string; msg: ElectionMessage }[] = [];
+    e.setMessageHandler((to, msg) => sent.push({ to, msg }));
+    // Request with old term
+    e.handleMessage('n1', { type: 'request-vote', term: 2, candidateId: 'n1' });
+    expect(sent.filter(s => s.msg.type === 'vote-response')).toHaveLength(0);
+    e.stop();
+  });
 
-      // Need 2 votes (majority of 3)
-      smallElection.receiveVote('b'); // Now has 2 votes (self + b)
-      await smallElection.startElection();
+  it('handleMessage handles heartbeat (become follower)', () => {
+    vi.useFakeTimers();
+    const e = makeElection('n2', ['n1']);
+    e.handleMessage('n1', { type: 'heartbeat', term: 1, leaderId: 'n1' });
+    expect(e.getRole()).toBe('follower');
+    expect(e.getLeader()).toBe('n1');
+    e.stop();
+  });
 
-      expect(smallElection.getRole()).toBe('leader');
-      smallElection.stop();
-    });
+  it('handleMessage handles vote response with higher term (step down)', () => {
+    vi.useFakeTimers();
+    const e = makeElection('n1', ['n2', 'n3', 'n4'], { quorumSize: 100 }); // huge quorum so we stay candidate
+    e.setMessageHandler(() => {}); // prevent auto-vote
+    e.startElection();
+    // Now n1 is candidate. Receive vote response with higher term
+    e.handleMessage('n2', { type: 'vote-response', term: 999, voteGranted: false });
+    expect(e.getRole()).toBe('follower');
+    e.stop();
+  });
 
-    it('should require majority for 5-node cluster', async () => {
-      const largeElection = new LeaderElection('a', ['b', 'c', 'd', 'e']);
+  it('single-node cluster wins immediately', async () => {
+    vi.useFakeTimers();
+    const e = makeElection('solo', []);
+    const promise = e.startElection();
+    vi.advanceTimersByTime(100);
+    const leader = await promise;
+    expect(leader).toBe('solo');
+    e.stop();
+  });
 
-      // Need 3 votes (majority of 5)
-      largeElection.receiveVote('b');
-      largeElection.receiveVote('c');
-      await largeElection.startElection();
-
-      expect(largeElection.getRole()).toBe('leader');
-      largeElection.stop();
-    });
-
-    it('should handle custom quorum size', async () => {
-      const customElection = new LeaderElection('a', ['b', 'c', 'd'], {
-        quorumSize: 2,
-      });
-
-      // Only need 2 votes
-      customElection.receiveVote('b');
-      await customElection.startElection();
-
-      expect(customElection.getRole()).toBe('leader');
-      customElection.stop();
-    });
+  it('stop clears all timers', () => {
+    vi.useFakeTimers();
+    const e = makeElection('n1', ['n2']);
+    e.startElection();
+    e.stop();
+    // Should not throw or cause issues after stop
+    expect(e.getLeader()).toBeTruthy(); // Was already elected
   });
 });

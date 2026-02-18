@@ -1062,6 +1062,40 @@ export class HoloCompositionParser {
               this.skipBlock();
             }
           }
+        } else if (this.check('ACTION') || this.check('ASYNC')) {
+          // action / async action at composition level — skip entirely
+          if (this.check('ASYNC')) this.advance();
+          this.advance(); // consume ACTION
+          if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // optional name
+          if (this.check('LPAREN')) this.skipParens();
+          if (this.check('LBRACE')) this.skipBlock();
+        } else if (this.check('USING')) {
+          // using "path/to/module" [as Name] at composition level
+          this.advance(); // consume USING
+          if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // path or name
+          if (this.check('IDENTIFIER') && this.current().value === 'as') {
+            this.advance(); // as
+            if (this.check('IDENTIFIER')) this.advance(); // alias
+          }
+        } else if (this.check('COLON')) {
+          // Stray colon at composition level (e.g. from @anchored_to: "value")
+          this.advance(); // skip colon
+          if (!this.check('RBRACE') && !this.isAtEnd()) this.parseValue();
+        } else if (this.check('IDENTIFIER')) {
+          // Generic IDENTIFIER handler for DSL-level blocks:
+          // config { }, anchor "name" { }, activity "name" { }, module "name" { },
+          // permissions: [...], panel "HUD" { }, networked { }, gesture "pinch" { }, etc.
+          this.advance(); // consume IDENTIFIER
+          if (this.check('COLON')) {
+            // identifier: value — property at composition level
+            this.advance(); // consume :
+            if (!this.check('RBRACE') && !this.isAtEnd()) this.parseValue();
+          } else {
+            // identifier [optional-name] [(params)] [{ block }]
+            if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // optional quoted/bare name
+            if (this.check('LPAREN')) this.skipParens();
+            if (this.check('LBRACE')) this.skipBlock();
+          }
         } else {
           let suggestion: string | undefined;
 
@@ -1458,6 +1492,16 @@ export class HoloCompositionParser {
       this.skipNewlines();
       if (this.check('RBRACE')) break;
 
+      if (this.check('AT')) {
+        // @trait annotations inside audio block (e.g., @spatial_audio)
+        this.advance(); // consume @
+        if (!this.isAtEnd()) this.advance(); // trait name
+        if (this.check('LPAREN')) this.skipParens();
+        else if (this.check('LBRACE')) this.skipBlock();
+        this.skipNewlines();
+        continue;
+      }
+
       const key = this.expectIdentifier();
       this.expect('COLON');
       const value = this.parseValue();
@@ -1711,6 +1755,8 @@ export class HoloCompositionParser {
 
   private parseState(): HoloState {
     this.expect('STATE');
+    // Support optional name: state TrainingState { } or state "MyState" { }
+    if (this.check('IDENTIFIER') || this.check('STRING')) this.advance();
     return this.parseStateBody();
   }
 
