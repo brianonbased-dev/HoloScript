@@ -1,3 +1,15 @@
+## [3.5.0-alpha.36] - 2026-02-18
+
+### ∞ Sprint XXXVIII — CLI Analyze + Runtime Easing/Nav Sweep 🔍🎢🧭
+
+33 new tests across 2 sub-package suites — CLI duplicate analysis + config merge, runtime easing curves + navigation utilities.
+
+#### CLI
+- `DuplicateFinderMerge.test.ts` (13 tests) — DuplicateFinder exact/similar detection, minSize threshold, sorted by wasted bytes, report formatting. mergeConfigs deep merge, array replacement, undefined skipping, nested objects.
+
+#### Runtime
+- `EasingNavigation.test.ts` (20 tests) — All 10 easing functions (linear/easeIn/easeOut/easeInOut/cubic/elastic/bounce) boundary values + comprehensive check. parseParams/matchRoute/parseQuery (with encoding)/buildQuery.
+
 ## [3.5.0-alpha.35] - 2026-02-18
 
 ### ∞ Sprint XXXVII — Linter + Registry Sub-Package Sweep 🔍📦
