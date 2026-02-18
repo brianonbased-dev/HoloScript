@@ -1,3 +1,143 @@
+## [3.5.0-alpha.15] - 2026-02-18
+
+### 🏆 Commence All XVII — HoloScriptPlusRuntime Conquered
+
+32 new tests for the 2402-line runtime engine — the final uncovered module. **All 9 domains now at 100% coverage.**
+
+#### Runtime
+- `HoloScriptPlusRuntime.prod.test.ts` (32 tests) — Construction, vrContext init, setCopilot, state management (get/set/reset), mount/unmount lifecycle, mountObject/unmountObject, getNode, quaternionToEuler, generateHoloId, parseDurationToMs, findAllTemplates, enterVR/exitVR guards, togglePhysicsDebug.
+
+## [3.5.0-alpha.14] - 2026-02-18
+
+### ∞ Commence All XVI — Final Coverage Push
+
+23 new tests across 3 suites — closing the last assets and runtime gaps.
+
+#### Assets
+- `HumanoidLoader.prod.test.ts` (10 tests) — Avatar management, transform/expression/lookAt guards, event system, dispose.
+- `SmartAssetLoader.prod.test.ts` (7 tests) — Construction, config, setPlatform/setQuality, memory usage.
+
+#### Runtime
+- `MockSpeechRecognizer.prod.test.ts` (6 tests) — Initialize, transcribe with/without phonemes, timing, stop/dispose.
+
+## [3.5.0-alpha.13] - 2026-02-18
+
+### 🔥 Commence All XV — Remaining Gaps Push
+
+57 new tests across 5 suites — assets and runtime domain coverage. Compiler confirmed 100% already covered.
+
+#### Assets
+- `AssetManifest.prod.test.ts` (15 tests) — CRUD, path index, search, group queries, JSON round-trip, config.
+- `AssetRegistry.prod.test.ts` (12 tests) — Singleton, manifest management, asset queries, cache, config, dispose.
+- `AssetValidator.prod.test.ts` (13 tests) — Required fields, file size, model poly/LOD, texture rules, custom rules.
+
+#### Runtime
+- `NeuralVoiceAdapter.prod.test.ts` (9 tests) — VoiceManager routing, default provider, ElevenLabs/Azure construction.
+- `LocalEmotionDetector.prod.test.ts` (8 tests) — Emotion inference heuristics, history windowing, dispose.
+
+## [3.5.0-alpha.12] - 2026-02-18
+
+### 🌐 Commence All XIV — Assets + Semantics + Extensions Push
+
+Production test coverage for 3 domains: assets (2 suites), semantics (2 suites), extensions (1 suite). 59 new tests.
+
+#### Assets
+- `ResourceLoader.prod.test.ts` (8 tests) — Dependency ordering, failure propagation, cancellation, progress.
+- `AssetMetadata.prod.test.ts` (15 tests) — Factory functions, MIME types, type inference, memory estimation.
+
+#### Semantics
+- `CapabilityMatrix.prod.test.ts` (9 tests) — Singleton, profile management, feature registration, fallback.
+- `BindingManager.prod.test.ts` (20 tests) — Binding CRUD, transforms, dependency analysis, circular detection, stats.
+
+#### Extensions
+- `ExtensionRegistry.prod.test.ts` (7 tests) — Load/unload lifecycle, context injection, duplicate guard, error propagation.
+
+## [3.5.0-alpha.11] - 2026-02-18
+
+### ⚙️ Commence All XIII — Runtime Coverage Push
+
+Production test coverage for 8 runtime modules across 5 new suites. 32 new tests.
+
+#### Runtime Registries (9 tests)
+- `RuntimeRegistries.prod.test.ts` — Consolidated tests for PhysicsEngine, NavigationEngine, AssetStreamer, SpeechRecognizer registries.
+
+#### Class-Based Modules (23 tests)
+- `KeyboardSystem.prod.test.ts` (7 tests) — Virtual keyboard: focus, typing, cursor movement, key guards.
+- `BaseVoiceSynthesizer.prod.test.ts` (5 tests) — Voice synthesis: multi-backend init, generate with caching, dispose.
+- `HotReloader.prod.test.ts` (8 tests) — Template hot-reload: registration, instance lifecycle, no-change reload, accessors.
+- `ChunkLoader.prod.test.ts` (3 tests) — Chunk loading: construction, manifest guards.
+
+## [3.5.0-alpha.10] - 2026-02-18
+
+### 🏆 Commence All XII — Final 5 for 100% Trait Coverage
+
+The last 5 uncovered traits now have production test suites. **100% trait coverage achieved.** 72 new tests across 5 suites.
+
+#### Track 1: Apple VisionOS Platform Traits
+- `RealityKitMeshTrait.prod.test.ts` (13 tests) — Mesh anchor lifecycle, classification counting, onUpdate tick rate, detach cleanup.
+- `SceneReconstructionTrait.prod.test.ts` (12 tests) — Scan lifecycle, mesh_received with progress calculation, semantic labeling, onUpdate tick.
+
+#### Track 2: VisionOS Experience Traits
+- `SpatialPersonaTrait.prod.test.ts` (14 tests) — Persona activate/deactivate, position/expression sync, participant visibility, detach.
+- `VolumetricWindowTrait.prod.test.ts` (16 tests) — Window open/close, resize with guard, scale clamping, immersion progress.
+
+#### Track 3: VR System Coordinator
+- `VRTraitSystem.prod.test.ts` (17 tests) — VRTraitRegistry: handler registration/lookup, attach/detach with config merging, batch update/event dispatch, physics↔haptics bridge.
+
+## [3.5.0-alpha.9] - 2026-02-18
+
+### 🎯 Commence All XI — XR Interaction + Voice Push
+
+Production test coverage for 4 XR interaction and voice traits with zero prior coverage. 66 new tests across 4 suites.
+
+#### Track 1: AiInpaintingTrait Production Tests (15 tests)
+- `AiInpaintingTrait.prod.test.ts` — AI scene inpainting: mask management, process/complete lifecycle with region tracking, clear mask with preserve-original, rolling average time, error handling, detach during processing.
+
+#### Track 2: SpatialNavigationTrait Production Tests (13 tests)
+- `SpatialNavigationTrait.prod.test.ts` — AR waypoint navigation: start/stop, onUpdate proximity detection with player position, waypoint reached events, arrival, no-player/no-navigate skips, detach.
+
+#### Track 3: HandTrackingTrait Production Tests (21 tests)
+- `HandTrackingTrait.prod.test.ts` — Hand skeleton tracking: visibility events, joint data with smoothing, gesture detection (pinch/open/fist), gesture start/end events, haptic feedback, pinch state, rate limiting, joint query, detach.
+
+#### Track 4: VoiceInputTrait Production Tests (17 tests)
+- `VoiceInputTrait.prod.test.ts` — Voice recognition (class-based with Web Speech API mock): start/stop/toggle lifecycle, exact and fuzzy command matching, confidence filtering, error handling, listener management, dispose cleanup, factory function.
+
+## [3.5.0-alpha.8] - 2026-02-18
+
+### 🎨 Commence All X — AI/XR Creative Traits Push
+
+Production test coverage for 4 AI/XR creative traits with zero prior coverage. 56 new tests across 4 suites.
+
+#### Track 1: ControlNetTrait Production Tests (13 tests)
+- `ControlNetTrait.prod.test.ts` — ControlNet conditioning: process/complete lifecycle, rolling average time, error handling, map extraction, detach during processing.
+
+#### Track 2: DiffusionRealtimeTrait Production Tests (14 tests)
+- `DiffusionRealtimeTrait.prod.test.ts` — Real-time diffusion streaming: start/stop lifecycle, frame delivery with FPS calculation, dropped frames, latency, dynamic prompt steering, detach during stream.
+
+#### Track 3: ObjectTrackingTrait Production Tests (13 tests)
+- `ObjectTrackingTrait.prod.test.ts` — AR object tracking: acquired/lost lifecycle, tracking time accumulation via onUpdate, auto-recovery attempts, anchor management on detach.
+
+#### Track 4: AiTextureGenTrait Production Tests (16 tests)
+- `AiTextureGenTrait.prod.test.ts` — AI texture generation: generate/complete lifecycle, request queuing with auto-drain, normal/roughness map config gating, texture re-application, rolling average generation time.
+
+## [3.5.0-alpha.7] - 2026-02-18
+
+### 🔗 Commence All IX — Zero-Coverage Push + Web3 Capstone
+
+Brought 3 zero-coverage traits to production-tested status and built the cross-trait Web3 capstone integration suite. 82 new tests across 4 suites.
+
+#### Track 1: DigitalTwinTrait Production Tests (31 tests)
+- `DigitalTwinTrait.prod.test.ts` — IoT twin lifecycle: construction, simulation mode, connect/disconnect, state sync (in/out/bidirectional), polling fetch, pending update flush, divergence calculation, history buffer with retention pruning, query, and edge cases.
+
+#### Track 2: SharePlayTrait Production Tests (17 tests)
+- `SharePlayTrait.prod.test.ts` — Apple SharePlay session lifecycle (start/join/end), participant tracking with max cap enforcement, property sync/merge, detach during active session, and edge cases.
+
+#### Track 3: EmbeddingSearchTrait Production Tests (16 tests)
+- `EmbeddingSearchTrait.prod.test.ts` — Semantic search: query dispatch, cache hit tracking, result filtering (min_score/top_k), rolling average query time, detach cache cleanup, and edge cases.
+
+#### Track 4: Web3 Journey Capstone (18 tests)
+- `Web3Journey.capstone.test.ts` — Cross-trait integration: WalletTrait→TokenGatedTrait→NFTTrait happy path, gate failure (insufficient balance), blocked/allowed addresses, multi-wallet account change, disconnect flows, chain mismatch, cross-trait query, clean detach, signature flow, and NFT+gate combined scenarios.
+
 ## [3.5.0-alpha.6] - 2026-02-18
 
 ### 🧪 Commence All VIII — Web3 Coverage Push + Integration Tests
