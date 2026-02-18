@@ -1,3 +1,22 @@
+## [3.5.0-alpha.26] - 2026-02-18
+
+### ∞ Commence All XXVIII — Remaining Gaps Sweep 🔍🎯
+
+97 new tests across 7 suites — debug, services, particles remaining gaps.
+
+#### Debug
+- `RuntimeProfiler.prod.test.ts` (11 tests) — Frame timing, scopes (nested), percentile/FPS stats, scope stats, control.
+- `EntityInspector.prod.test.ts` (12 tests) — Entity CRUD, select, components, setProperty, filter (name/tag/component/active), watch.
+- `DebugRenderer.prod.test.ts` (13 tests) — All 8 draw primitives, update expiry (single-frame/timed), removeDraw, enable/disable/clear.
+
+#### Services
+- `SplatProcessingService.prod.test.ts` (6 tests) — parseSplat (ArrayBuffer decode), sortSplat (depth), intersectRay (hit/miss).
+
+#### Particles
+- `ParticlePresets.prod.test.ts` (49 tests) — All 7 presets schema validated (shape, rate, lifetime, speed, colors).
+- `ParticleTurbulence.prod.test.ts` (9 tests) — Curl noise sampling, apply, config (get/set), tick, defaults.
+- `ParticleAttractor.prod.test.ts` (7 tests) — Point attractor, kill radius, orbit, out-of-range, dead particle.
+
 ## [3.5.0-alpha.25] - 2026-02-18
 
 ### ∞ Commence All XXVII — Debug + Particles 🧠🎆
