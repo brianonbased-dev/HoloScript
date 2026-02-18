@@ -95,12 +95,13 @@ export class FileWatcher extends EventEmitter {
    * Stop the watcher and clean up.
    */
   async stop(): Promise<void> {
-    if (!this.isRunning) return;
-    this.isRunning = false;
+    // Always clear pending debounce timer regardless of running state
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
+    if (!this.isRunning) return;
+    this.isRunning = false;
     if (this.watcher) {
       await this.watcher.close();
       this.watcher = null;
