@@ -1,3 +1,11 @@
+## [3.5.0-alpha.37] - 2026-02-18
+
+### ∞ Sprint XXXIX — CLI Analyze Metrics + Reporting Deep Dive 📊📐
+
+23 new tests across 4 analyze modules — cyclomatic complexity, nesting depth, treemap HTML generation, and complexity reporting.
+
+- `AnalyzeMetrics.test.ts` — CyclomaticComplexity (9: calculate empty/ifs/operators/loops/switch/string-ignore/comment-ignore/analyzeFile with blocks/fallback), NestingDepth (6: empty/nested braces/deepestLine/comment removal), TreemapGenerator (4: HTML output/size sorting/JSON/formatBytes), ComplexityReporter (4: table format/recommendations/clean/JSON).
+
 ## [3.5.0-alpha.36] - 2026-02-18
 
 ### ∞ Sprint XXXVIII — CLI Analyze + Runtime Easing/Nav Sweep 🔍🎢🧭

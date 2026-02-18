@@ -2,7 +2,7 @@
   "name": "holoscript-vscode",
   "displayName": "HoloScript Enhanced",
   "description": "Language support for HoloScript+ with AI integration, Spatial Profiling, and Live Preview",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "publisher": "holoscript",
   "icon": "icons/holoscript-logo.png",
   "author": "Brian X Base Team",
