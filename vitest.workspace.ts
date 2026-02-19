@@ -23,6 +23,15 @@ export default [
   // ── Packages without a vitest.config.ts (inline) ──────────────────────
   {
     test: {
+      name: '@holoscript/test',
+      root: './packages/test',
+      include: ['src/**/*.test.ts'],
+      exclude: ['**/dist/**', '**/node_modules/**', 'src/__tests__/scenes.test.ts', 'src/__tests__/visual.test.ts'],
+      environment: 'node',
+    },
+  },
+  {
+    test: {
       name: '@holoscript/fs',
       root: './packages/fs',
       include: ['src/**/*.test.ts'],
