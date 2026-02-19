@@ -1,0 +1,1 @@
+const fs=require("fs");const base="C:/Users/Josep/Documents/GitHub/HoloScript/";

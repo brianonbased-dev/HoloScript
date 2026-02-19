@@ -1,0 +1,54 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mc:/Users/josep/Documents/GitHub/HoloScript[39m
+
+---STDERR---
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+[31mNo test files found, exiting with code 1
+[39m
+[2mfilter: [22m[33mpackages/core/src/traits/__tests__/RigidbodyTrait.test.ts[2m, [22mpackages/core/src/traits/__tests__/SkeletonTrait.test.ts[2m, [22mpackages/core/src/traits/__tests__/RenderingTrait.test.ts[39m
+
+[30m[42m partner-sdk [49m[39m 
+
+[2minclude: [22m[33msrc/**/*.test.ts[39m
+[2mexclude:  [22m[33m**/dist/**[2m, [22m**/node_modules/**[39m
+
+[30m[46m marketplace-api [49m[39m 
+
+[2minclude: [22m[33msrc/**/*.test.ts[39m
+[2mexclude:  [22m[33m**/dist/**[2m, [22m**/node_modules/**[39m
+
+[30m[45m @holoscript/core [49m[39m 
+
+[2minclude: [22m[33m**/*.{test,spec}.?(c|m)[jt]s?(x)[39m
+[2mexclude:  [22m[33m**/node_modules/**[2m, [22m**/dist/**[2m, [22m**/hsplus-files.test.ts[39m
+
+[30m[45m @holoscript/cli [49m[39m 
+
+[2minclude: [22m[33msrc/**/*.test.ts[39m
+[2mexclude:  [22m[33m**/node_modules/**[2m, [22m**/.git/**[39m
+
+[30m[43m @holoscript/formatter [49m[39m 
+
+[2minclude: [22m[33msrc/**/*.test.ts[39m
+[2mexclude:  [22m[33m**/dist/**[2m, [22m**/node_modules/**[39m
+
+[30m[46m @holoscript/linter [49m[39m 
+
+[2minclude: [22m[33msrc/**/*.test.ts[39m
+[2mexclude:  [22m[33m**/node_modules/**[2m, [22m**/.git/**[39m
+
+[30m[42m @holoscript/lsp [49m[39m 
+
+[2minclude: [22m[33msrc/**/*.test.ts[39m
+[2mexclude:  [22m[33m**/dist/**[2m, [22m**/node_modules/**[39m
+
+[30m[42m vscode-extension [49m[39m 
+
+[2minclude: [22m[33msrc/**/*.test.ts[39m
+[2mexclude:  [22m[33m**/dist/**[2m, [22m**/node_modules/**[39m
+
+[30m[46m @holoscript/adapter-postgres [49m[39m 
+
+[2minclude: [22m[33msrc/**/*.test.ts[39m
+[2mexclude:  [22m[33m**/dist/**[2m, [22m**/node_modules/**[39m
+

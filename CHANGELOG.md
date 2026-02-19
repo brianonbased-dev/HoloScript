@@ -1,3 +1,16 @@
+## [3.5.0-alpha.67] - 2026-02-20
+
+### ∞ Sprint CXLI–CXLV — Combat, Dialogue, Procgen & Navigation Mega-Sweep ⚔️💬🏰🧭
+
+175 tests across 4 new consolidated suites — full production coverage for 12 previously untested system classes.
+
+- `CombatSystems.prod.test.ts` (48 tests) — `CombatManager` (12: register/unregister, attack resolution, AABB collision, combo detection, cooldown, targeting, hit log queries), `DamageSystem` (16: base calc, armor penetration, resistances, crits, true damage, DoT ticks, globalMultiplier, log queries, per-source totals), `StatusEffects` (12: apply/tick/expire, stack behaviors, immunity, cleanse, stat modifiers, event hooks), `ComboTracker` (8: register/partial/full match, window expiry, reset, multi-combo coexistence).
+- `DialogueSystems.prod.test.ts` (52 tests) — `DialogueGraph` (14: text/choice/branch/event/end nodes, variable interpolation, conditional choices, advance flow, end-node termination requiring double advance), `DialogueRunner` (10: start/advance/makeChoice, events, history), `ChoiceManager` (9: add/make/flag/reputation/consequence queries), `EmotionSystem` (10: set/clamp/decay/dominantEmotion/relationships/trigger), `BarkManager` (9: trigger/cooldown/range/priority/queue), `Localization` (10: translate/interpolate/fallback/pluralize/getMissingKeys/completionPct).
+- `ProcgenSystems.prod.test.ts` (35 tests) — `DungeonGenerator` (10: BSP rooms, connectivity, min rooms, custom config, determinism), `NoiseGenerator` (12: perlin/value/worley noise, fBm, domain warp, output range, determinism), `WaveFunction` WFC (13: tile registration, init/solve, contradiction handling, weight influence, determinism).
+- `NavigationSystems.prod.test.ts` (40 tests) — `NavMesh` (12: polygon CRUD, connectivity, findPolygonAtPoint, neighbors, walkability), `AStarPathfinder` (15: direct path, multi-hop, no-path, cost optimization, adjacency-only), `SteeringBehaviors` (13: seek/flee/arrive, wander, flock cohesion/separation/alignment, avoidObstacles, applyForce, config).
+
+> **Fixes:** `DamageSystem` total-damage test now sets `critChance: 0` to prevent random crits. `DialogueGraph` end-node test requires two `advance()` calls (end node visits before returning null). `SteeringBehaviors.avoidObstacles` test offsets obstacle by z=1 to avoid zero-vector normalization.
+
 ## [3.5.0-alpha.66] - 2026-02-20
 
 ### ∞ Sprint CXXXVII–CXL — Remaining Gameplay Systems 🏆🗒️🏅🌳
