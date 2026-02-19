@@ -1,3 +1,17 @@
+## [3.5.0-alpha.55] - 2026-02-18
+
+### ∞ Sprint LXXVII–LXXX — Remaining Combat + Dialogue 🗡️💬
+
+78 tests across 7 suites — completing full coverage of Combat (6/6) and Dialogue (6/6) subsystems.
+
+- `HitboxSystem.prod.test.ts` (10 tests) — AABB overlap, frame windows, self-hit prevention, dedup, knockback, removal.
+- `ProjectileSystem.prod.test.ts` (10 tests) — spawning, movement, lifetime, gravity, homing, piercing, impact, cleanup.
+- `CombatManager.prod.test.ts` (11 tests) — collisions, combos, cooldowns, targeting, AABB, hit log.
+- `BarkManager.prod.test.ts` (10 tests) — trigger, cooldowns, range filtering, priority selection, queue management.
+- `ChoiceManager.prod.test.ts` (12 tests) — choices, reputation, relationships, flags, consequences, queries.
+- `Localization.prod.test.ts` (13 tests) — translation, interpolation, fallback, pluralization, missing keys, completion %.
+- `DialogueRunner.prod.test.ts` (12 tests) — node traversal, branching, choices, events, text resolution, history.
+
 ## [3.5.0-alpha.54] - 2026-02-18
 
 ### ∞ Sprint LXXIII–LXXVI — Combat, Dialogue, Procgen 🗡️💬🏰
