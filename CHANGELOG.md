@@ -1,3 +1,14 @@
+## [3.5.0-alpha.42] - 2026-02-18
+
+### ∞ Sprint XLV–XLVI — Type System + Security + Compiler Graph + Splitter 🔧🛡️📊
+
+59 new tests across 4 suites — deep coverage of type aliasing, security policies, trait dependency graph, and bundle splitter.
+
+- `TypeAliasRegistry.prod.test.ts` (17 tests) — parse (5: simple/union/generic/multi-param/invalid), registration (3), resolution (4: simple/generic/default/unknown), recursive detection (3), reference expansion (1).
+- `SecurityPolicy.prod.test.ts` (16 tests) — createDefaultPolicy (5), createStrictPolicy (6), mergePolicy (5: override/arrays/preservation).
+- `TraitDependencyGraph.prod.test.ts` (17 tests) — trait registration (3), object tracking (3), change detection (3), affected set (2), serialization (1), recompilation set (1), stats+clear (2).
+- `BundleSplitter.prod.test.ts` (9 tests) — string import scanning (4: functions/events/ticks/call_expression), manifest (2: multi-chunk/dedup), clear (2).
+
 ## [3.5.0-alpha.41] - 2026-02-18
 
 ### ∞ Sprint XLIII–XLIV — Parser Error System + Cache + Deployer Validation 🔴🟡🔵
