@@ -1,3 +1,14 @@
+## [3.5.0-alpha.65] - 2026-02-20
+
+### ∞ Sprint CXXXIII–CXXXVI — Gameplay Systems 🎮⚔️🎲🔨
+
+95 tests across 4 new suites — first prod coverage for QuestManager, InventorySystem, LootTable, and CraftingSystem.
+
+- `QuestManager.prod.test.ts` (27 tests) — Construction, addQuest/getQuest/removeQuest, activate (event), abandon (objective reset), updateObjective (progress cap, auto-complete, optional objectives, events), prerequisite gating, recheckAll unlock, timed failures, getByStatus/getByCategory/getProgress queries.
+- `InventorySystem.prod.test.ts` (21 tests) — Construction (defaults/custom), addItem (stack, weight cap, new slot, slot cap, currentWeight), removeItem (delete empty slot, returns 0 for unknown), transfer, hasItem, getByCategory, getAllItems, getSlot, sort (name/rarity/weight).
+- `LootTable.prod.test.ts` (21 tests) — addTable/getTable CRUD, roll (unknown table, LootDrop shape, determinism, numDrops, quantity range, guaranteed always present), conditional entries (unset excluded, true included, toggle false), pity counters, getDropRates (sum 100%, weight proportionality, guaranteed excluded), reseed.
+- `CraftingSystem.prod.test.ts` (26 tests) — Construction, addRecipe/getRecipe (discovered flag), discoverRecipe, canCraft (ingredient qty, undiscovered, level gate, exact level), startCraft (consumes ingredients, false on failure, concurrent), update (craftTime, accumulation), checkDiscovery, getAvailableRecipes, getRecipesByWorkbench, setPlayerLevel.
+
 ## [3.5.0-alpha.64] - 2026-02-19
 
 ### ∞ Sprint CXXIX–CXXXII — Terrain Sculpting + Audio Filters + LSP 🏔️🎛️✏️
