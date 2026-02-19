@@ -1,3 +1,17 @@
+## [3.5.0-alpha.66] - 2026-02-20
+
+### ∞ Sprint CXXXVII–CXL — Remaining Gameplay Systems 🏆🗒️🏅🌳
+
+133 tests across 5 new suites — completing full production coverage for the `gameplay` subsystem.
+
+- `AchievementSystem.prod.test.ts` (24 tests) — register/get CRUD, addProgress (cap, default amount, early-out on unlocked), unlock (immediate, idempotent), onUnlock event (single/multi listener), rarity points (bronze/silver/gold accumulation), queries (getAll, getUnlocked, getLocked, getByCategory, getByRarity, getUnlockedCount, getCompletionPercent, getProgress, empty state).
+- `JournalTracker.prod.test.ts` (27 tests) — addEntry/getEntry (shape, count), updateEntry (status/progress/objectives, unknown id, partial update), removeEntry (lookup miss, pin set cleanup), pin/unpin/getPinned, notifications (quest_added/completed/failed/updated, unreadOnly filter, markRead, markAllRead, getUnreadCount), getByCategory/getByStatus, search (name+description, case-insensitive, no match), getCategories/getAllEntries.
+- `LeaderboardManager.prod.test.ts` (22 tests) — createBoard (defaults/ascending/getBoardCount), submitScore (unknown board, first=PB, higher replaces lower, lower not PB on descending, lower IS PB on ascending, multi-player rank order, maxEntries cap), getTopN (count, unknown), getPage, getPlayerRank (rank, -1), getPlayerEntry, getPersonalBest (undefined), getAroundPlayer (nearby set, unknown), getEntryCount (unknown).
+- `ProgressionTree.prod.test.ts` (28 tests) — addNode/getNode (currentLevel=0, auto-unlock no prereqs, gated prereqs, downstream unlock on invest), addPoints/getAvailablePoints (start 0, increment, accumulate), invest/canInvest (true/decrements points/totalSpent, insufficient, max-level-exceeded, locked, unknown, multi-level), respec (refunds/resets currentLevel/respecCount/totalSpent), queries (getByTier/getByCategory/getUnlocked/getInvested/getNodeCount/getEffectTotal/getTiers).
+- `RewardSystem.prod.test.ts` (26 tests) — createBundle/getBundle (id/rewards/claimed=false, unique reward ids, getBundleCount), claim (null unknown/already-claimed, granted array, marked claimed, getClaimedCount), addXP/leveling (start 0, increase, level-up, no level-up, xpMultiplier, bundle XP trigger), currency (initial 0, reward adds, spendCurrency success/insufficient, unknown currency 0), unlock reward, skill_point reward, getStats snapshot.
+
+> **Fix:** `ProgressionTree` — removed incorrect `unlocked=false` assertion on a no-prerequisite node; source correctly auto-unlocks on registration, so test was wrong.
+
 ## [3.5.0-alpha.65] - 2026-02-20
 
 ### ∞ Sprint CXXXIII–CXXXVI — Gameplay Systems 🎮⚔️🎲🔨
