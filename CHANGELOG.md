@@ -1,4 +1,31 @@
+## [3.5.0-alpha.63] - 2026-02-19
+
+### ∞ Sprint CXXV–CXXVIII — Audio + Terrain 🔊🏔️
+
+69 tests across 4 new suites — first coverage for AudioMixer, AudioEnvelope, AudioDynamics, and ErosionSim.
+
+- `AudioMixer.prod.test.ts` (22 tests) — Default channels, createChannel, volume clamp, getEffectiveVolume (master/channel/source product), muteGroup/unmuteGroup.
+- `AudioEnvelope.prod.test.ts` (20 tests) — ADSR stage machine (idle→attack→decay→sustain→release→idle), isActive, setConfig, linear/exponential/logarithmic curve shapes, re-trigger.
+- `AudioDynamics.prod.test.ts` (20 tests) — Compressor (below/above threshold, soft-knee, gainReduction, makeup), noise gate (open/close, range attenuation), sidechain ducking, limiter.
+- `ErosionSim.prod.test.ts` (14 tests) — Construction, setConfig/getConfig, hydraulicErode (result fields, heightmap mutation, determinism), thermalErode (steep slope, flat map no-op, iteration override).
+
+> **Note:** `thermalAngle` threshold math — default `tan(45°)=1.0` exceeds typical slope values; tests use dedicated `thermalAngle:5/10` sims for reliable erosion assertions.
+
+## [3.5.0-alpha.62] - 2026-02-19
+
+### ∞ Sprint CXXI–CXXIV — Animation Systems 🎞️⏱️📈
+
+93 tests across 4 new suites — animation graph state machine, engine/easing, curve editor, and timeline sequencing.
+
+- `AnimationGraph.prod.test.ts` (22 tests) — Clip CRUD, state management, parameters, triggers, transition conditions, update drive, additive/override layers.
+- `AnimationEngine.prod.test.ts` (26 tests) — 9 Easing functions (boundary/midpoint), play/pause/resume/stop, update interpolation, onComplete, delay gating, clear.
+- `CurveEditor.prod.test.ts` (28 tests) — addKey/removeKey/setKey, evaluate (clamp/step/hermite), wrapMode (clamp/loop/pingPong), 7 presets, valueRange/timeRange.
+- `Timeline.prod.test.ts` (22 tests) — Sequential/parallel duration, play/pause/resume/stop, progress, delay, onComplete, loop count, onLoop callback.
+
+> **Note:** `lerp`/`lerpVec3`/`interpolateKeyframes` are private helpers — tested indirectly via `AnimationEngine.update` setter output.
+
 ## [3.5.0-alpha.61] - 2026-02-18
+
 
 ### ∞ Sprint CI–CIV — Agents, Core, Analysis, State 🤖🗺️💀🔄
 
