@@ -1,3 +1,12 @@
+## [3.5.0-alpha.52] - 2026-02-18
+
+### ∞ Sprint LXV–LXVI — InfluenceMap + GoalPlanner (GOAP) 🗺️🎯
+
+28 new tests across 2 suites — grid-based influence propagation and GOAP action planning.
+
+- `InfluenceMap.prod.test.ts` (16 tests) — layers, set/get/add influence, stampRadius, propagation/decay, world coordinates, getMaxCell, clear/clearAll.
+- `GoalPlanner.prod.test.ts` (12 tests) — registration, single/multi-step planning, cost optimization, priority, preconditions, plan execution.
+
 ## [3.5.0-alpha.51] - 2026-02-18
 
 ### ∞ Sprint LXIII–LXIV — AI Subsystem: BehaviorTree + StateMachine + UtilityAI + Blackboard 🧠🌲
