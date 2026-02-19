@@ -1,3 +1,13 @@
+## [3.5.0-alpha.47] - 2026-02-18
+
+### ∞ Sprint LV–LVI — Multiplayer Netcode Deep Prod Tests 🎮🌐
+
+38 new tests across 3 suites — full netcode stack: snapshot interpolation, lag compensation, and client-side prediction.
+
+- `SnapshotInterpolation.prod.test.ts` (13 tests) — construction (2), buffer management (3), lerp interpolation (3), render delay (1), extrapolation (2), entity filtering (1), setRenderDelay (1).
+- `LagCompensation.prod.test.ts` (14 tests) — construction (1), history buffer (2), state rewind (2), hit verification + 3D distance (5), latency EMA (3), empty history (1).
+- `ClientPrediction.prod.test.ts` (11 tests) — construction (1), input processing (3), reconciliation (4), misprediction tracking (1), max pending cap (1), multi-axis (1).
+
 ## [3.5.0-alpha.46] - 2026-02-18
 
 ### ∞ Sprint LIII–LIV — glTF PBR Materials + USDZ Pipeline 🎨📦
