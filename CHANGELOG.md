@@ -1,3 +1,12 @@
+## [3.5.0-alpha.46] - 2026-02-18
+
+### ∞ Sprint LIII–LIV — glTF PBR Materials + USDZ Pipeline 🎨📦
+
+42 new tests across 2 suites — full PBR material system (color parsing, presets, sRGB, hex, HSL, material creation) and USDZ/USDA generation pipeline.
+
+- `materials.deep.prod.test.ts` (22 tests) — named colors (1), parseColor (3), parseHexColor (2), parseRGBString (1), parseHSLString (1), hslToRgb (2), sRGB↔linear (3), presets (3), createMaterial (3), alpha/unlit (3).
+- `USDZPipeline.prod.test.ts` (20 tests) — construction (3), header (2), materials (3), geometry sphere/cube/cylinder/plane (4), transforms (2), export helpers (2), scene hierarchy (1), pipeline options (3).
+
 ## [3.5.0-alpha.45] - 2026-02-18
 
 ### ∞ Sprint LI–LII — Bundle Analysis + VisionOS Traits + Physics Islands 📦🍎⚛️
