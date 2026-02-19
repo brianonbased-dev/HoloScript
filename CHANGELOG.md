@@ -1,3 +1,13 @@
+## [3.5.0-alpha.49] - 2026-02-18
+
+### ∞ Sprint LIX–LX — TypoDetector + SDFCompiler + IncrementalCompiler 🔍🏗️
+
+47 new tests across 3 suites — parser algorithms, SDF/XML generation, and incremental compilation with AST diffing.
+
+- `TypoDetector.prod.test.ts` (18 tests) — Levenshtein distance (7), findClosestMatch (5), findAllMatches (3), isLikelyTypo (3).
+- `SDFCompiler.prod.test.ts` (13 tests) — XML header/world (3), physics engine (2), geometry types (3), transforms (1), scene (1), ground plane (1), name sanitization (1), SDF version (1).
+- `IncrementalCompiler.prod.test.ts` (16 tests) — AST diff (5), cache (3), state snapshots (2), dependency graph (2), stats (1), reset (1), compile (1), edge cases (1).
+
 ## [3.5.0-alpha.48] - 2026-02-18
 
 ### ∞ Sprint LVII–LVIII — Multiplayer Deep Authority + Interpolation + Replication 🎮🔒
