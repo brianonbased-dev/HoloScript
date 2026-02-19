@@ -1,3 +1,13 @@
+## [3.5.0-alpha.44] - 2026-02-18
+
+### ∞ Sprint XLIX–L — World Streaming + Optimization Analysis + Semantics 🌐🔍📐
+
+45 new tests across 3 suites — chunk-based world streaming, scene optimization analysis, and semantic annotation registry.
+
+- `WorldStreamer.prod.test.ts` (15 tests) — config (2), manual load (3), custom generator (2), distance-based update (3), memory budget (2), queries (2).
+- `OptimizationPass.prod.test.ts` (13 tests) — basic analysis (3), stat gathering (2), budget warnings (2), platform variations (2), score (2), walkTree (1).
+- `SemanticAnnotation.prod.test.ts` (17 tests) — singleton (2), schema registration (4), annotation index (2), category/intent queries (2), AI context (2), property suggestions (2).
+
 ## [3.5.0-alpha.43] - 2026-02-18
 
 ### ∞ Sprint XLVII–XLVIII — World Systems + Advanced Types Deep Dive 🌍🧠
