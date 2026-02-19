@@ -1,3 +1,17 @@
+## [3.5.0-alpha.58] - 2026-02-18
+
+### ∞ Sprint LXXXIX–XCII — Analysis, Top-Level Core, Physics Deep, Accessibility 🔍⚛️🎯♿
+
+93 tests across 7 new suites — first coverage for complexity analysis, reactive state, tree shaking, joints, cloth sim, accessibility, and i18n.
+
+- `ComplexityAnalyzer.prod.test.ts` (14 tests) — line metrics, nesting, cyclomatic, objects, traits, score, issues, report, thresholds.
+- `ReactiveState.prod.test.ts` (14 tests) — get/set/has, subscribe, proxy reactivity, ExpressionEvaluator (math, interpolation, security).
+- `TreeShaker.prod.test.ts` (12 tests) — shake, entry points, keepTraits/keepExports/keepNames, graph stats, side effects, dead code.
+- `JointSystem.prod.test.ts` (14 tests) — hinge/spring/slider/distance solve, break force, motors, limits, queries.
+- `ClothSim.prod.test.ts` (11 tests) — grid creation, pin/unpin, Verlet gravity, wind, AABB, config.
+- `AccessibilitySystem.prod.test.ts` (15 tests) — config, font scaling, contrast modes, screen reader, focus management, input remapping.
+- `I18nManager.prod.test.ts` (13 tests) — locale, string tables, translation, interpolation, pluralization, fallback, completion rate.
+
 ## [3.5.0-alpha.57] - 2026-02-18
 
 ### ∞ Sprint LXXXV–LXXXVIII — ECS Core, Camera Deep, Physics Deep, CommandSystem 🧩📷🎯⌨️
