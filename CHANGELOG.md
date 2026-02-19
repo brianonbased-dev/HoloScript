@@ -1,3 +1,16 @@
+## [3.5.0-alpha.60] - 2026-02-18
+
+### ∞ Sprint XCVII–C — Physics Deep II, Analysis Deep II 🔬🕸️
+
+56 tests across 6 new suites — first coverage for SoftBodySolver, IslandDetector, RaycastSystem, ReferenceGraph, ReachabilityAnalyzer, DeformableMesh.
+
+- `SoftBodySolver.prod.test.ts` (7 tests) — PBD simulation, gravity, pinning, distance constraints, floor constraint, velocity, convergence.
+- `IslandDetector.prod.test.ts` (7 tests) — DSU island detection, disconnected/connected bodies, chain merging, multi-island.
+- `RaycastSystem.prod.test.ts` (11 tests) — ray-AABB/sphere/plane, distance sorting, max distance, layer masks, normals.
+- `ReferenceGraph.prod.test.ts` (13 tests) — symbol definitions, AST building, cross-file, stats, entry points, properties, clear.
+- `ReachabilityAnalyzer.prod.test.ts` (9 tests) — dead code detection, stats, unused functions, reports, ignore patterns, additional entry points.
+- `DeformableMesh.prod.test.ts` (12 tests) — vertices, springs, auto-connect, impact, simulation, displacement queries, locked vertices.
+
 ## [3.5.0-alpha.59] - 2026-02-18
 
 ### ∞ Sprint XCIII–XCVI — ECS Deep, Analysis Deep, Events Deep, Physics Deep 🏗️🔍⚡🚗
