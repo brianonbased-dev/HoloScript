@@ -192,6 +192,10 @@ export class TypeInferenceEngine {
   }
 
   private substitute(type: HoloScriptType, subs: Map<string, HoloScriptType>): HoloScriptType {
+    if (type.kind === 'generic' && subs.has(type.name)) {
+      return subs.get(type.name)!;
+    }
+
     if (type.kind === 'custom' && subs.has(type.name)) {
       return subs.get(type.name)!;
     }
