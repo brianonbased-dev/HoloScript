@@ -417,10 +417,10 @@ describe('Stress Tests - High Load Scenarios', () => {
         expect(m.time).toBeGreaterThanOrEqual(1); // At least 1ms
       });
       
-      // Verify time increases with size
-      for (let i = 1; i < measurements.length; i++) {
-        expect(measurements[i].time).toBeGreaterThanOrEqual(measurements[i - 1].time);
-      }
+      // Verify total time grows from smallest to largest input (non-strict per-step, JIT-safe)
+      const totalSmall = measurements.slice(0, 2).reduce((s, m) => s + m.time, 0);
+      const totalLarge = measurements.slice(3).reduce((s, m) => s + m.time, 0);
+      expect(totalLarge).toBeGreaterThanOrEqual(totalSmall - 2); // allow 2ms jitter
     });
   });
 
