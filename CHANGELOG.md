@@ -1,3 +1,17 @@
+## [3.5.0-alpha.57] - 2026-02-18
+
+### ∞ Sprint LXXXV–LXXXVIII — ECS Core, Camera Deep, Physics Deep, CommandSystem 🧩📷🎯⌨️
+
+78 tests across 7 new suites — first coverage for ECS core, camera shake/paths, ragdoll/constraints, and command pattern.
+
+- `EntityRegistry.prod.test.ts` (13 tests) — create/destroy, ID recycling, tags, hierarchy, component registration, queries, activation.
+- `SystemScheduler.prod.test.ts` (12 tests) — phase ordering, priority, dependencies, enable/disable, fixedUpdate, execution count, stats.
+- `CameraShake.prod.test.ts` (10 tests) — trauma-based shake, layers, decay, clamping, multi-layer compositing, isShaking.
+- `CameraPath.prod.test.ts` (12 tests) — Catmull-Rom spline paths, play/pause/stop, looping, look-at interpolation, speed control.
+- `RagdollSystem.prod.test.ts` (11 tests) — humanoid/quadruped presets, bone/constraint generation, get/remove, total mass.
+- `ConstraintSolver.prod.test.ts` (8 tests) — distance/spring/fixed constraints, break force, warm starting config, clear.
+- `CommandSystem.prod.test.ts` (12 tests) — undo/redo, batching, macro recording/playback, mergeable commands, max history.
+
 ## [3.5.0-alpha.56] - 2026-02-18
 
 ### ∞ Sprint LXXXI–LXXXIV — Camera, Physics, Events, Input, Particles 📷🎯📡🎮✨
