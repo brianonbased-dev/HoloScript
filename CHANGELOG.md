@@ -1,3 +1,14 @@
+## [3.5.0-alpha.51] - 2026-02-18
+
+### ∞ Sprint LXIII–LXIV — AI Subsystem: BehaviorTree + StateMachine + UtilityAI + Blackboard 🧠🌲
+
+94 new tests across 4 suites — complete AI subsystem coverage for behavior trees, state machines, utility-based AI, and shared blackboard storage.
+
+- `BehaviorTree.prod.test.ts` (34 tests) — BTNodes (Sequence, Selector, Parallel, Inverter, Repeater, Guard, Action, Condition, Wait), tree management, tick/tickAll, abort, subtrees, tracing.
+- `Blackboard.prod.test.ts` (22 tests) — get/set, versioning, delete, scopes, observers, history, queries, clear, serialization.
+- `UtilityAI.prod.test.ts` (20 tests) — all curve types (linear/quadratic/logistic/step), cooldowns, inversion, bonus, selectBest, executeBest, history.
+- `StateMachine.prod.test.ts` (18 tests) — states, transitions, guards, enter/exit hooks, update, context, history, hierarchy.
+
 ## [3.5.0-alpha.50] - 2026-02-18
 
 ### ∞ Sprint LXI–LXII — GLTFPipeline + CollaborationSession 🎨🤝
