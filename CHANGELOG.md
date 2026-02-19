@@ -1,3 +1,17 @@
+## [3.5.0-alpha.56] - 2026-02-18
+
+### ∞ Sprint LXXXI–LXXXIV — Camera, Physics, Events, Input, Particles 📷🎯📡🎮✨
+
+64 tests across 6 new suites — first coverage for 5 new subsystems.
+
+- `CameraController.prod.test.ts` (12 tests) — follow/orbit/topDown modes, zoom, bounds, free movement, config.
+- `SpatialHash.prod.test.ts` (10 tests) — insert, remove, point/radius queries, nearby pairs, update, clear.
+- `TriggerZone.prod.test.ts` (10 tests) — enter/stay/exit callbacks, box/sphere overlap, enable/disable, occupant queries.
+- `EventBus.prod.test.ts` (11 tests) — pub/sub, once, off, priority, wildcard, history, pause, singleton.
+- `InputManager.prod.test.ts` (11 tests) — keyboard, mouse, gamepad, action mapping, dead zones, snapshots.
+- `ParticleSystem.prod.test.ts` (9 tests) — emission, burst, lifetime, affectors, maxParticles, pool recycling.
+- `SecurityPolicy.prod.test.ts` (existing) — policy factories, deep merge, trait blocking.
+
 ## [3.5.0-alpha.55] - 2026-02-18
 
 ### ∞ Sprint LXXVII–LXXX — Remaining Combat + Dialogue 🗡️💬
