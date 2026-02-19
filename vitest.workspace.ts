@@ -16,6 +16,7 @@ export default [
   'packages/registry/vitest.config.ts',
   'packages/holoscript-cdn/vitest.config.ts',
   'packages/runtime/vitest.config.ts',
+  'packages/fs/vitest.config.ts',
 
   // ── Packages with their own vitest.config.ts (continued) ─────────────
   'packages/playground/vitest.config.ts',
@@ -27,15 +28,6 @@ export default [
       root: './packages/test',
       include: ['src/**/*.test.ts'],
       exclude: ['**/dist/**', '**/node_modules/**', 'src/__tests__/scenes.test.ts', 'src/__tests__/visual.test.ts'],
-      environment: 'node',
-    },
-  },
-  {
-    test: {
-      name: '@holoscript/fs',
-      root: './packages/fs',
-      include: ['src/**/*.test.ts'],
-      exclude: ['**/dist/**', '**/node_modules/**'],
       environment: 'node',
     },
   },
