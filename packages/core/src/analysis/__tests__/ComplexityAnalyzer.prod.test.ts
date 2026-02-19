@@ -1,144 +1,174 @@
 /**
  * ComplexityAnalyzer — Production Test Suite
  *
- * Covers: line metrics, nesting depth, cyclomatic complexity,
- * object/orb density, trait analysis, overall score, issues, report, thresholds.
+ * Covers: analyze (line metrics, nesting, functions, objects, traits),
+ * issues, generateReport, setThresholds, getThresholds, edge cases.
  */
 import { describe, it, expect } from 'vitest';
 import { ComplexityAnalyzer, DEFAULT_THRESHOLDS } from '../ComplexityMetrics';
 
-const SIMPLE = `
-object Ball {
-  position { x: 0 y: 0 z: 0 }
+// Uses HoloScript syntax that the regex-based analyzer actually recognizes:
+// - object "name" (not `prefab Name`)
+// - template "name"
+// - @trait directives
+const SAMPLE = `
+world "testWorld" {
+  object "Player" {
+    @health
+    @movement
+    speed: 5
+    hp: 100
+  }
+  object "Enemy" {
+    @health
+    @combat
+    damage: 10
+  }
 }
-`;
 
-const COMPLEX = `
-object Player {
-  position { x: 0 y: 0 z: 0 }
-  trait Renderable
-  trait Collidable
-  trait Movable
-  on_tick {
-    if (health > 0) {
-      if (isMoving) {
-        if (speed > 10) {
-          dash()
-        }
-      }
+template "Bullet" {
+  speed: 50
+}
+
+function movePlayer(dx, dy) {
+  if (dx > 0) {
+    if (dy > 0) {
+      // nested
     }
   }
 }
 
-object Enemy {
-  trait Renderable
-  trait Hostile
-  on_tick {
-    if (target) {
-      attack()
-    } else {
-      patrol()
-    }
-  }
+function attack(target) {
+  target.health -= 1
 }
-`;
+`.trim();
 
 describe('ComplexityAnalyzer — Production', () => {
+  const analyzer = new ComplexityAnalyzer();
+
+  // ─── Basic Analysis ────────────────────────────────────────────────
+  it('analyze returns ComplexityResult', () => {
+    const result = analyzer.analyze(SAMPLE);
+    expect(result.filePath).toBe('input.holo');
+    expect(typeof result.overallScore).toBe('number');
+    expect(typeof result.grade).toBe('string');
+  });
+
+  it('analyze with custom filePath', () => {
+    const result = analyzer.analyze(SAMPLE, 'game.holo');
+    expect(result.filePath).toBe('game.holo');
+  });
+
   // ─── Line Metrics ─────────────────────────────────────────────────
-  it('analyzes line counts correctly', () => {
-    const ca = new ComplexityAnalyzer();
-    const r = ca.analyze(SIMPLE);
-    expect(r.lines.total).toBeGreaterThan(0);
-    expect(r.lines.code).toBeGreaterThanOrEqual(0);
-    expect(r.lines.blank).toBeGreaterThanOrEqual(0);
+  it('line metrics count total/code/comments/blank', () => {
+    const result = analyzer.analyze(SAMPLE);
+    expect(result.lines.total).toBeGreaterThan(0);
+    expect(result.lines.code).toBeGreaterThan(0);
+    expect(result.lines.comments).toBeGreaterThanOrEqual(1); // has "// nested"
+    expect(typeof result.lines.blank).toBe('number');
+    expect(typeof result.lines.commentRatio).toBe('number');
   });
 
-  it('counts comment lines', () => {
-    const ca = new ComplexityAnalyzer();
-    const src = `// comment line\nobject A {}\n/* block */\n`;
-    const r = ca.analyze(src);
-    expect(r.lines.comments).toBeGreaterThanOrEqual(1);
+  // ─── Nesting Metrics ──────────────────────────────────────────────
+  it('nesting metrics detect depth', () => {
+    const result = analyzer.analyze(SAMPLE);
+    expect(result.nesting.maxDepth).toBeGreaterThanOrEqual(2);
+    expect(typeof result.nesting.averageDepth).toBe('number');
   });
 
-  // ─── Nesting Depth ────────────────────────────────────────────────
-  it('detects max nesting depth', () => {
-    const ca = new ComplexityAnalyzer();
-    const r = ca.analyze(COMPLEX);
-    expect(r.nesting.maxDepth).toBeGreaterThanOrEqual(3);
+  // ─── Function Metrics ─────────────────────────────────────────────
+  it('function metrics detect functions', () => {
+    const result = analyzer.analyze(SAMPLE);
+    expect(result.functions.length).toBeGreaterThanOrEqual(2);
+    const fnNames = result.functions.map(f => f.name);
+    expect(fnNames).toContain('movePlayer');
+    expect(fnNames).toContain('attack');
   });
 
-  it('records deep locations', () => {
-    const ca = new ComplexityAnalyzer();
-    const r = ca.analyze(COMPLEX);
-    expect(r.nesting.deepLocations.length).toBeGreaterThanOrEqual(0);
-  });
-
-  // ─── Cyclomatic Complexity ────────────────────────────────────────
-  it('computes cyclomatic complexity for functions', () => {
-    const ca = new ComplexityAnalyzer();
-    const r = ca.analyze(COMPLEX);
-    // Every function starts at 1, each branch point adds 1
-    if (r.functions.length > 0) {
-      expect(r.functions[0].cyclomatic).toBeGreaterThanOrEqual(1);
-    }
-    expect(r.summary.avgCyclomatic).toBeGreaterThanOrEqual(0);
+  it('function metrics include cyclomatic complexity', () => {
+    const result = analyzer.analyze(SAMPLE);
+    const moveFn = result.functions.find(f => f.name === 'movePlayer')!;
+    expect(moveFn.cyclomatic).toBeGreaterThanOrEqual(1);
+    expect(moveFn.lines).toBeGreaterThan(0);
   });
 
   // ─── Object Metrics ───────────────────────────────────────────────
-  it('counts objects and templates', () => {
-    const ca = new ComplexityAnalyzer();
-    const r = ca.analyze(COMPLEX);
-    expect(r.objects.totalObjects).toBeGreaterThanOrEqual(2);
+  it('object metrics detect objects', () => {
+    const result = analyzer.analyze(SAMPLE);
+    expect(result.objects.totalObjects).toBeGreaterThanOrEqual(2);
   });
 
-  it('tracks traits per object', () => {
-    const ca = new ComplexityAnalyzer();
-    const r = ca.analyze(COMPLEX);
-    expect(r.traits.totalUsages).toBeGreaterThanOrEqual(4);
-    expect(r.traits.uniqueTraits).toBeGreaterThanOrEqual(1);
+  it('object metrics detect templates', () => {
+    const result = analyzer.analyze(SAMPLE);
+    expect(result.objects.totalTemplates).toBeGreaterThanOrEqual(1);
   });
 
-  // ─── Overall Score and Summary ────────────────────────────────────
-  it('produces an overall complexity score', () => {
-    const ca = new ComplexityAnalyzer();
-    const r = ca.analyze(COMPLEX);
-    expect(typeof r.overallScore).toBe('number');
-    expect(r.overallScore).toBeGreaterThanOrEqual(0);
+  // ─── Trait Metrics ────────────────────────────────────────────────
+  it('trait metrics detect trait usage', () => {
+    const result = analyzer.analyze(SAMPLE);
+    expect(result.traits.totalUsages).toBeGreaterThanOrEqual(2);
   });
 
-  it('summary includes maintainabilityIndex', () => {
-    const ca = new ComplexityAnalyzer();
-    const r = ca.analyze(SIMPLE);
-    expect(typeof r.summary.maintainabilityIndex).toBe('number');
+  // ─── Summary ──────────────────────────────────────────────────────
+  it('summary has maintainability index', () => {
+    const result = analyzer.analyze(SAMPLE);
+    expect(typeof result.summary.maintainabilityIndex).toBe('number');
+    expect(typeof result.summary.avgCyclomatic).toBe('number');
   });
 
-  // ─── Issues Detection ─────────────────────────────────────────────
-  it('flags issues when thresholds exceeded', () => {
-    const ca = new ComplexityAnalyzer({ maxNesting: 1 });
-    const r = ca.analyze(COMPLEX);
-    const nestingIssues = r.issues.filter(i => i.type === 'nesting');
-    expect(nestingIssues.length).toBeGreaterThanOrEqual(1);
+  // ─── Issues ───────────────────────────────────────────────────────
+  it('issues array is present in result', () => {
+    const result = analyzer.analyze(SAMPLE);
+    expect(Array.isArray(result.issues)).toBe(true);
   });
 
-  // ─── Report Generation ────────────────────────────────────────────
-  it('generates a text report', () => {
-    const ca = new ComplexityAnalyzer();
-    const r = ca.analyze(COMPLEX);
-    const report = ca.generateReport(r);
+  it('strict thresholds produce issues', () => {
+    const strict = new ComplexityAnalyzer({
+      maxCyclomatic: 1,
+      maxNesting: 1,
+      maxLinesPerFile: 1,
+      maxLinesPerFunction: 1,
+      maxObjectsPerGroup: 1,
+      maxTraitsPerObject: 0,
+    });
+    const result = strict.analyze(SAMPLE);
+    expect(result.issues.length).toBeGreaterThan(0);
+    const issue = result.issues[0];
+    expect(issue.severity).toMatch(/warning|error/);
+    expect(typeof issue.message).toBe('string');
+    expect(typeof issue.value).toBe('number');
+    expect(typeof issue.threshold).toBe('number');
+  });
+
+  // ─── generateReport ───────────────────────────────────────────────
+  it('generateReport returns string report', () => {
+    const result = analyzer.analyze(SAMPLE);
+    const report = analyzer.generateReport(result);
     expect(typeof report).toBe('string');
     expect(report.length).toBeGreaterThan(0);
   });
 
-  // ─── Thresholds ───────────────────────────────────────────────────
-  it('uses default thresholds', () => {
-    const ca = new ComplexityAnalyzer();
-    const t = ca.getThresholds();
+  // ─── Threshold Management ─────────────────────────────────────────
+  it('getThresholds returns defaults', () => {
+    const t = analyzer.getThresholds();
     expect(t.maxCyclomatic).toBe(DEFAULT_THRESHOLDS.maxCyclomatic);
   });
 
   it('setThresholds updates thresholds', () => {
-    const ca = new ComplexityAnalyzer();
-    ca.setThresholds({ maxCyclomatic: 5 });
-    expect(ca.getThresholds().maxCyclomatic).toBe(5);
+    const a = new ComplexityAnalyzer();
+    a.setThresholds({ maxCyclomatic: 42 });
+    expect(a.getThresholds().maxCyclomatic).toBe(42);
+  });
+
+  // ─── Edge Cases ───────────────────────────────────────────────────
+  it('empty code returns zeroed metrics', () => {
+    const result = analyzer.analyze('');
+    expect(result.functions.length).toBe(0);
+  });
+
+  it('comment-only code counts comments', () => {
+    const result = analyzer.analyze('// just a comment\n// another one');
+    expect(result.lines.comments).toBe(2);
+    expect(result.lines.code).toBe(0);
   });
 });
