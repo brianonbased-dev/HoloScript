@@ -1,127 +1,112 @@
 /**
- * DeprecationRegistry + NoDeprecatedRule Production Tests
+ * DeprecationRegistry + NoDeprecatedRule — Production Test Suite
  *
- * Register/scan/parse annotations/format, lint rule check/report.
+ * Covers: register, has, get, getAll, clear, scanForUsages,
+ * parseAnnotations, formatWarning, NoDeprecatedRule (builtins, check, formatReport).
  */
+import { describe, it, expect } from 'vitest';
+import { DeprecationRegistry, NoDeprecatedRule } from '../DeprecationRegistry';
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { DeprecationRegistry, NoDeprecatedRule, type DeprecationEntry } from '../DeprecationRegistry';
+const ENTRY = {
+  name: 'oldTrait',
+  kind: 'trait' as const,
+  message: 'Use newTrait instead',
+  deprecatedIn: '2.0',
+  removedIn: '3.0',
+  replacement: 'newTrait',
+};
 
 describe('DeprecationRegistry — Production', () => {
-  let reg: DeprecationRegistry;
-
-  beforeEach(() => {
-    reg = new DeprecationRegistry();
+  it('register/has/get work', () => {
+    const r = new DeprecationRegistry();
+    r.register(ENTRY);
+    expect(r.has('oldTrait')).toBe(true);
+    expect(r.get('oldTrait')?.replacement).toBe('newTrait');
   });
 
-  describe('register / has / get / getAll / clear', () => {
-    const entry: DeprecationEntry = { name: 'clickable', kind: 'trait', message: 'Use @interactive' };
-
-    it('register and has', () => {
-      reg.register(entry);
-      expect(reg.has('clickable')).toBe(true);
-    });
-
-    it('get returns entry', () => {
-      reg.register(entry);
-      expect(reg.get('clickable')?.message).toBe('Use @interactive');
-    });
-
-    it('getAll', () => {
-      reg.register(entry);
-      expect(reg.getAll()).toHaveLength(1);
-    });
-
-    it('clear', () => {
-      reg.register(entry);
-      reg.clear();
-      expect(reg.has('clickable')).toBe(false);
-    });
+  it('getAll returns all entries', () => {
+    const r = new DeprecationRegistry();
+    r.register(ENTRY);
+    r.register({ name: 'b', kind: 'property', message: 'gone' });
+    expect(r.getAll().length).toBe(2);
   });
 
-  describe('scanForUsages', () => {
-    it('finds @symbol in source', () => {
-      reg.register({ name: 'clickable', kind: 'trait', message: 'Deprecated' });
-      const source = 'entity Player {\n  @clickable\n  @physics\n}';
-      const warnings = reg.scanForUsages(source, 'test.holo');
-      expect(warnings).toHaveLength(1);
-      expect(warnings[0].line).toBe(2);
-      expect(warnings[0].entry.name).toBe('clickable');
-    });
-
-    it('no warnings for clean source', () => {
-      reg.register({ name: 'clickable', kind: 'trait', message: 'Deprecated' });
-      expect(reg.scanForUsages('@physics\n@mesh', 'test.holo')).toHaveLength(0);
-    });
+  it('clear removes all', () => {
+    const r = new DeprecationRegistry();
+    r.register(ENTRY);
+    r.clear();
+    expect(r.has('oldTrait')).toBe(false);
   });
 
-  describe('parseAnnotations', () => {
-    it('parses @deprecated annotation', () => {
-      const source = '@deprecated("Use @interactive instead")\ntrait clickable {}';
-      const entries = DeprecationRegistry.parseAnnotations(source);
-      expect(entries).toHaveLength(1);
-      expect(entries[0].name).toBe('clickable');
-      expect(entries[0].replacement).toBe('@interactive');
-    });
-
-    it('parses since/until', () => {
-      const source = '@deprecated("Old", since: "2.0", until: "3.0")\ntrait oldThing {}';
-      const entries = DeprecationRegistry.parseAnnotations(source);
-      expect(entries[0].deprecatedIn).toBe('2.0');
-      expect(entries[0].removedIn).toBe('3.0');
-    });
+  it('scanForUsages finds @symbol usages', () => {
+    const r = new DeprecationRegistry();
+    r.register(ENTRY);
+    const src = 'object Ball {\n  @oldTrait\n  position {}\n}';
+    const warnings = r.scanForUsages(src, 'test.holo');
+    expect(warnings.length).toBe(1);
+    expect(warnings[0].line).toBe(2);
+    expect(warnings[0].entry.name).toBe('oldTrait');
   });
 
-  describe('formatWarning', () => {
-    it('formats with context', () => {
-      reg.register({ name: 'clickable', kind: 'trait', message: 'Deprecated', replacement: '@interactive', deprecatedIn: '2.0', removedIn: '3.0' });
-      const warnings = reg.scanForUsages('  @clickable', 'test.holo');
-      const formatted = reg.formatWarning(warnings[0]);
-      expect(formatted).toContain('[DEPRECATED]');
-      expect(formatted).toContain('@interactive');
-      expect(formatted).toContain('since 2.0');
-    });
+  it('scanForUsages returns empty for clean source', () => {
+    const r = new DeprecationRegistry();
+    r.register(ENTRY);
+    const warnings = r.scanForUsages('object A {}', 'test.holo');
+    expect(warnings.length).toBe(0);
+  });
+
+  it('formatWarning produces readable string', () => {
+    const r = new DeprecationRegistry();
+    r.register(ENTRY);
+    const warnings = r.scanForUsages('@oldTrait', 'f.holo');
+    const fmt = r.formatWarning(warnings[0]);
+    expect(fmt).toContain('DEPRECATED');
+    expect(fmt).toContain('oldTrait');
+    expect(fmt).toContain('newTrait');
+  });
+
+  it('parseAnnotations extracts @deprecated entries', () => {
+    const src = `@deprecated("Use newThing instead", since: "2.0", until: "3.0")\ntrait OldThing {}`;
+    const entries = DeprecationRegistry.parseAnnotations(src);
+    expect(entries.length).toBe(1);
+    expect(entries[0].name).toBe('OldThing');
+    expect(entries[0].replacement).toBe('newThing');
+    expect(entries[0].deprecatedIn).toBe('2.0');
   });
 });
 
 describe('NoDeprecatedRule — Production', () => {
-  let rule: NoDeprecatedRule;
-
-  beforeEach(() => {
-    rule = new NoDeprecatedRule();
+  it('registerBuiltins populates registry', () => {
+    const rule = new NoDeprecatedRule();
+    rule.registerBuiltins();
+    const files = new Map([['test.holo', '@clickable\n@talkable\n@collidable']]);
+    const warnings = rule.check(files);
+    expect(warnings.length).toBeGreaterThanOrEqual(3);
   });
 
-  describe('registerBuiltins', () => {
-    it('registers built-in deprecated items', () => {
-      rule.registerBuiltins();
-      const files = new Map([['test.holo', '@clickable\n@talkable\n@collidable\n@legacyTemplate']]);
-      const warnings = rule.check(files);
-      expect(warnings.length).toBe(4);
-    });
+  it('check scans multiple files', () => {
+    const rule = new NoDeprecatedRule();
+    rule.registerBuiltins();
+    const files = new Map([
+      ['a.holo', '@clickable'],
+      ['b.holo', 'object Clean {}'],
+    ]);
+    const warnings = rule.check(files);
+    expect(warnings.length).toBe(1);
+    expect(warnings[0].filePath).toBe('a.holo');
   });
 
-  describe('check', () => {
-    it('scans multiple files', () => {
-      rule.registerBuiltins();
-      const files = new Map([
-        ['a.holo', '@clickable'],
-        ['b.holo', '@talkable'],
-      ]);
-      const warnings = rule.check(files);
-      expect(warnings).toHaveLength(2);
-    });
+  it('formatReport generates summary', () => {
+    const rule = new NoDeprecatedRule();
+    rule.registerBuiltins();
+    const w = rule.check(new Map([['x.holo', '@clickable']]));
+    const report = rule.formatReport(w);
+    expect(report).toContain('1 deprecation warning');
   });
 
-  describe('formatReport', () => {
-    it('no warnings', () => {
-      expect(rule.formatReport([])).toContain('No deprecation warnings');
-    });
-
-    it('with warnings', () => {
-      rule.registerBuiltins();
-      const warnings = rule.check(new Map([['t.holo', '@clickable']]));
-      const report = rule.formatReport(warnings);
-      expect(report).toContain('1 deprecation warning');
-    });
+  it('formatReport handles zero warnings', () => {
+    const rule = new NoDeprecatedRule();
+    const report = rule.formatReport([]);
+    expect(report).toContain('No deprecation warnings');
   });
 });

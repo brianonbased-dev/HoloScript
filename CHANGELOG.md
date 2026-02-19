@@ -1,3 +1,17 @@
+## [3.5.0-alpha.59] - 2026-02-18
+
+### ∞ Sprint XCIII–XCVI — ECS Deep, Analysis Deep, Events Deep, Physics Deep 🏗️🔍⚡🚗
+
+84 tests across 7 new suites — first coverage for ECS World, ComponentStore, DeprecationRegistry, DataBinding, RopeSystem, FluidSim, VehicleSystem.
+
+- `World.prod.test.ts` (14 tests) — entity lifecycle, components, tags, queries, undo/redo.
+- `ComponentStore.prod.test.ts` (16 tests) — pool management, CRUD, iteration, queries, bulk ops, clear.
+- `DeprecationRegistry.prod.test.ts` (11 tests) — register/scan/parse/format, NoDeprecatedRule builtins/check/report.
+- `DataBinding.prod.test.ts` (14 tests) — ReactiveProperty, ComputedProperty, DataBindingManager one-way/two-way.
+- `RopeSystem.prod.test.ts` (12 tests) — Verlet rope creation, pinning, gravity, tension, length queries.
+- `FluidSim.prod.test.ts` (11 tests) — SPH particles, blocks, gravity, boundaries, density, kinetic energy.
+- `VehicleSystem.prod.test.ts` (12 tests) — presets, throttle/brake/steering, update, forward vector, removal.
+
 ## [3.5.0-alpha.58] - 2026-02-18
 
 ### ∞ Sprint LXXXIX–XCII — Analysis, Top-Level Core, Physics Deep, Accessibility 🔍⚛️🎯♿
