@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/playground",
-  "version": "3.11.0",
+  "version": "3.12.0",
   "description": "Interactive web playground for HoloScript with Monaco editor and Three.js live preview",
   "private": true,
   "scripts": {

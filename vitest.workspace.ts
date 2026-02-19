@@ -17,7 +17,28 @@ export default [
   'packages/holoscript-cdn/vitest.config.ts',
   'packages/runtime/vitest.config.ts',
 
+  // ── Packages with their own vitest.config.ts (continued) ─────────────
+  'packages/playground/vitest.config.ts',
+
   // ── Packages without a vitest.config.ts (inline) ──────────────────────
+  {
+    test: {
+      name: '@holoscript/benchmark',
+      root: './packages/benchmark',
+      include: ['src/**/*.test.ts'],
+      exclude: ['**/dist/**', '**/node_modules/**'],
+      environment: 'node',
+    },
+  },
+  {
+    test: {
+      name: '@holoscript/sdk',
+      root: './packages/holoscript',
+      include: ['src/**/*.test.ts'],
+      exclude: ['**/dist/**', '**/node_modules/**'],
+      environment: 'node',
+    },
+  },
   {
     test: {
       name: 'std',
