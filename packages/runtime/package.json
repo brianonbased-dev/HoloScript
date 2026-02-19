@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/runtime",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "HoloScript browser runtime - React Three Fiber integration, event bus, storage, and device APIs",
   "type": "module",
   "main": "./dist/index.cjs",
