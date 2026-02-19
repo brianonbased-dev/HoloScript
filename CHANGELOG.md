@@ -1,3 +1,14 @@
+## [3.5.0-alpha.64] - 2026-02-19
+
+### ∞ Sprint CXXIX–CXXXII — Terrain Sculpting + Audio Filters + LSP 🏔️🎛️✏️
+
+96 tests across 4 new suites — terrain LOD/brush, audio EQ, and language-server completions.
+
+- `TerrainLOD.prod.test.ts` (20 tests) — Construction, `generateQuadtree` (chunk count, height sampling from sampler, regenerate), `selectLOD` (camera centre/corner, active/inactive), morphFactor range, `getStitchEdges` (unknown id, 4-key edge object), `sampleHeight` (in-bounds flat sampler, out-of-bounds → 0), `getChunk` (valid/unknown), count queries.
+- `TerrainBrush.prod.test.ts` (26 tests) — Construction (default 64×64, custom grid, zero stroke/undo count), `apply` all 5 modes (raise/lower/flatten/smooth/erode), affected count, stroke/undo recording, override does not mutate config, `paint` (layer assignment, count), `undo` (revert, true/false/stroke decrement), `setLocked` (blocks raise, re-enables on unlock), `getConfig`/`setConfig` (copy guard, partial update), `getHeightRange` (flat/raised), `getCell` (in/out of bounds).
+- `AudioFilter.prod.test.ts` (28 tests) — Band CRUD (add/remove/count), `setBandEnabled` (getEnabledBandCount, excluded from response), `setFrequency`/`setQ`/`setGain` clamp edges, `getResponse` for all 5 filter types (lowpass/highpass/bandpass/notch/peaking), cascaded bands sum, empty-filter baseline.
+- `CompletionProvider.prod.test.ts` (22 tests) — `totalCompletions` (default > 0, grows after `registerTrait`), empty prefix → node types, `@` trigger/prefix → traits+directives only, prefix filtering (`@grab`, `@version`, `@nonexistent`), colon/dot prefix → properties, general search (substring, case-insensitive, empty result), custom trait visible in `@` and general contexts, `insertText` field check, all-label string validation.
+
 ## [3.5.0-alpha.63] - 2026-02-19
 
 ### ∞ Sprint CXXV–CXXVIII — Audio + Terrain 🔊🏔️
