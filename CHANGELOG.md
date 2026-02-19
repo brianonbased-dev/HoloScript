@@ -1,3 +1,14 @@
+## [3.5.0-alpha.53] - 2026-02-18
+
+### ∞ Sprint LXVII–LXVIII — SteeringBehaviors, NavMesh, PerceptionSystem, BehaviorSelector 🤖🗺️
+
+51 tests across 4 suites — complete coverage for autonomous steering, navigation mesh A*, perception/sensing and behavior selection.
+
+- `SteeringBehaviors.prod.test.ts` (14 tests) — seek/flee/arrive, wander, flock, obstacle avoidance, applyForce.
+- `NavMesh.prod.test.ts` (12 tests) — polygon management, A* pathfinding, walkability, cost optimization, path smoothing.
+- `PerceptionSystem.prod.test.ts` (12 tests) — registration, range/FOV detection, sense types, self-detection, memory decay; queries.
+- `BehaviorSelector.prod.test.ts` (13 tests) — priority/weighted/sequential selection, conditions, lockouts, fallbacks, execution, history.
+
 ## [3.5.0-alpha.52] - 2026-02-18
 
 ### ∞ Sprint LXV–LXVI — InfluenceMap + GoalPlanner (GOAP) 🗺️🎯
