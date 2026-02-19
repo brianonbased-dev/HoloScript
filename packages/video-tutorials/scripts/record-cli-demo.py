@@ -269,7 +269,7 @@ def _generate_mock_cast(
             ]
         elif cmd.startswith("npx holoscript dev"):
             output_lines = [
-                "[36m→[0m  Dev server running at http://localhost:3000",
+                "[36m→[0m  Dev server running at http://localhost:5173",
                 "[36m→[0m  Watching .holo files...",
             ]
         elif cmd.startswith("pnpm run build"):

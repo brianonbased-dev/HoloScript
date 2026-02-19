@@ -169,7 +169,7 @@ export const TitleCard: React.FC<TitleCardProps> = ({
           fontFamily: theme.font,
         }}
       >
-        <span>packages/video-tutorials</span>
+        <span>github.com/brianonbased-dev/HoloScript</span>
         <span>·</span>
         <span style={{ color: theme.success }}>holoscript.dev</span>
       </div>
