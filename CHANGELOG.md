@@ -1,3 +1,16 @@
+## [3.5.0-alpha.61] - 2026-02-18
+
+### ∞ Sprint CI–CIV — Agents, Core, Analysis, State 🤖🗺️💀🔄
+
+75 tests across 6 new suites — first coverage for AgentRegistry, CapabilityMatcher, AgentManifest, SourceMapGenerator/Consumer, NoDeadCodeRule, StateMachineInterpreter.
+
+- `AgentRegistry.prod.test.ts` (13 tests) — register/deregister, heartbeat, discover, findBest, get, stats, clear, export/import.
+- `CapabilityMatcher.prod.test.ts` (12 tests) — type/domain matching, agent scoring, findMatches, findBest, sortMatches.
+- `AgentManifest.prod.test.ts` (14 tests) — fluent builder, createManifest, validateManifest, required field enforcement.
+- `SourceMapGenerator.prod.test.ts` (16 tests) — VLQ encoding, source/name management, mappings, v3 generation, Consumer, combineSourceMaps.
+- `NoDeadCodeRule.prod.test.ts` (10 tests) — template/function dead code detection, cross-file usage, formatReport.
+- `StateMachineInterpreter.prod.test.ts` (14 tests) — createInstance, sendEvent, transitionTo, hooks, cycle traversal, error handling.
+
 ## [3.5.0-alpha.60] - 2026-02-18
 
 ### ∞ Sprint XCVII–C — Physics Deep II, Analysis Deep II 🔬🕸️
