@@ -1,3 +1,12 @@
+## [3.5.0-alpha.50] - 2026-02-18
+
+### ∞ Sprint LXI–LXII — GLTFPipeline + CollaborationSession 🎨🤝
+
+25 new tests across 2 suites — glTF geometry compilation and collaborative editing session management.
+
+- `GLTFPipeline.prod.test.ts` (13 tests) — empty compile (1), geometry types (4), position transform (1), multi-object (1), vertex/triangle stats (1), generator/copyright options (2), scale (1), materials (1), JSON format output (1).
+- `CollaborationSession.prod.test.ts` (12 tests) — construction (2), peer management (3), document handling (5), stats (1), state (1).
+
 ## [3.5.0-alpha.49] - 2026-02-18
 
 ### ∞ Sprint LIX–LX — TypoDetector + SDFCompiler + IncrementalCompiler 🔍🏗️
