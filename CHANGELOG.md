@@ -1,3 +1,18 @@
+## [3.5.0-alpha.54] - 2026-02-18
+
+### ∞ Sprint LXXIII–LXXVI — Combat, Dialogue, Procgen 🗡️💬🏰
+
+96 tests across 8 suites — full production coverage for Combat, Dialogue, and Procedural Generation subsystems.
+
+- `DamageSystem.prod.test.ts` (16 tests) — damage calc, resistances, crits, true damage, armor penetration, DoT, events, log queries.
+- `StatusEffects.prod.test.ts` (16 tests) — apply, stack behaviors, immunity, cleanse, expiry, tick damage, stat modifiers.
+- `ComboTracker.prod.test.ts` (8 tests) — combo registration, sequence matching, timing, multi-combo, tick cleanup, reset.
+- `DialogueGraph.prod.test.ts` (12 tests) — all node types, flow control, branching, variables, interpolation, events, conditional choices.
+- `EmotionSystem.prod.test.ts` (13 tests) — emotions, decay, dominant emotion, relationships, triggers, queries.
+- `NoiseGenerator.prod.test.ts` (12 tests) — perlin/value/worley noise, fBm, warp, determinism, output ranges.
+- `WaveFunction.prod.test.ts` (9 tests) — tile registration, init, solve, determinism, contradictions, weight influence.
+- `DungeonGenerator.prod.test.ts` (10 tests) — BSP generation, room placement, connectivity, config, determinism.
+
 ## [3.5.0-alpha.53] - 2026-02-18
 
 ### ∞ Sprint LXVII–LXVIII — SteeringBehaviors, NavMesh, PerceptionSystem, BehaviorSelector 🤖🗺️
