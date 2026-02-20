@@ -1,0 +1,730 @@
+/**
+ * Smart Factory Digital Twin
+ *
+ * DESCRIPTION:
+ * Industrial IoT digital twin with real-time sensor data, device telemetry, and DTDL export.
+ * Demonstrates: IoT traits, sensor integration, Azure Digital Twins, predictive maintenance.
+ *
+ * TARGET PLATFORMS:
+ * - DTDL Export: Azure Digital Twins, AWS IoT TwinMaker
+ * - Unity: Factory visualization and monitoring
+ * - WebXR: Browser-based digital twin dashboard
+ *
+ * USE CASE:
+ * Smart factories, predictive maintenance, industrial monitoring, supply chain optimization.
+ *
+ * KEY FEATURES:
+ * ✓ Multiple IoT devices (sensors, actuators, controllers)
+ * ✓ Real-time telemetry streaming
+ * ✓ Device relationships and hierarchies
+ * ✓ Predictive maintenance alerts
+ * ✓ DTDL export for Azure Digital Twins
+ * ✓ 3D visualization of factory layout
+ *
+ * LEARNING OBJECTIVES:
+ * 1. Define IoT devices with HoloScript
+ * 2. Model device relationships and hierarchies
+ * 3. Stream telemetry data to cloud platforms
+ * 4. Export to DTDL for Azure integration
+ * 5. Create predictive maintenance rules
+ */
+
+composition "SmartFactoryDigitalTwin" {
+
+  // ===== FACTORY CONFIGURATION =====
+
+  factory#automotive_assembly @smart_factory {
+    name: "Assembly Line Alpha"
+    location: "Detroit, MI"
+    area: 5000  // sq meters
+
+    // Factory hierarchy
+    zones: ["receiving", "assembly", "quality_control", "shipping"]
+  }
+
+  // ===== ZONE 1: RECEIVING =====
+
+  zone#receiving @industrial {
+    position: { x: 0, z: 0 }
+    size: { x: 20, z: 15 }
+
+    // Conveyor belt
+    device#conveyor_1 @iot_device @actuator {
+      @dtdl_interface {
+        id: "dtmi:factory:conveyor;1"
+        displayName: "Receiving Conveyor Belt"
+        description: "Material transport conveyor"
+      }
+
+      specs {
+        length: 10  // meters
+        width: 0.6
+        speed_range: { min: 0, max: 2 }  // m/s
+        load_capacity: 500  // kg
+      }
+
+      // Telemetry (real-time data)
+      telemetry {
+        speed: {
+          type: "double"
+          unit: "metresPerSecond"
+          update_interval: 1  // seconds
+        }
+
+        current_load: {
+          type: "double"
+          unit: "kilogram"
+          update_interval: 1
+        }
+
+        operational_hours: {
+          type: "integer"
+          unit: "hours"
+        }
+
+        vibration: {
+          type: "double"
+          unit: "metersPerSecondSquared"
+          update_interval: 0.1  // High frequency for anomaly detection
+        }
+      }
+
+      // Properties (device state)
+      properties {
+        motor_status: {
+          type: "enum"
+          values: ["stopped", "running", "maintenance"]
+          writable: true
+        }
+
+        target_speed: {
+          type: "double"
+          writable: true
+          min: 0
+          max: 2
+        }
+
+        maintenance_due: {
+          type: "boolean"
+          writable: false
+        }
+      }
+
+      // Commands (device control)
+      commands {
+        start: {
+          request_schema: { speed: "double" }
+          response_schema: { status: "string" }
+
+          on_execute(params) {
+            if (motor_status == "stopped") {
+              motor_status = "running"
+              target_speed = params.speed
+              return { status: "Started at " + params.speed + " m/s" }
+            } else {
+              return { status: "Already running" }
+            }
+          }
+        }
+
+        stop: {
+          on_execute {
+            motor_status = "stopped"
+            target_speed = 0
+            return { status: "Stopped" }
+          }
+        }
+
+        set_speed: {
+          request_schema: { speed: "double" }
+
+          on_execute(params) {
+            if (params.speed >= 0 && params.speed <= specs.speed_range.max) {
+              target_speed = params.speed
+              return { status: "Speed set to " + params.speed }
+            } else {
+              return { status: "Invalid speed" }
+            }
+          }
+        }
+      }
+
+      // Predictive maintenance
+      on_telemetry_update {
+        // Vibration anomaly detection
+        if (telemetry.vibration > 5.0) {
+          raise_alert: {
+            severity: "high"
+            message: "Excessive vibration detected on Conveyor 1"
+            recommended_action: "Schedule maintenance inspection"
+          }
+        }
+
+        // Maintenance prediction (simple rule)
+        if (telemetry.operational_hours % 1000 == 0) {
+          properties.maintenance_due = true
+          raise_alert: {
+            severity: "medium"
+            message: "Conveyor 1 due for 1000-hour maintenance"
+          }
+        }
+      }
+    }
+
+    // Load cell sensor
+    sensor#load_sensor_1 @iot_device @sensor {
+      @dtdl_interface {
+        id: "dtmi:factory:loadcell;1"
+        displayName: "Load Cell Sensor"
+      }
+
+      parent: "conveyor_1"
+      position: { x: 5, y: 0, z: 0 }
+
+      specs {
+        max_capacity: 1000  // kg
+        accuracy: 0.1  // ±0.1 kg
+      }
+
+      telemetry {
+        weight: {
+          type: "double"
+          unit: "kilogram"
+          update_interval: 0.5
+        }
+
+        battery_level: {
+          type: "double"
+          unit: "percent"
+          update_interval: 60
+        }
+      }
+
+      on_telemetry_update {
+        // Update parent conveyor's current_load
+        conveyor_1.telemetry.current_load = this.telemetry.weight
+
+        // Overload detection
+        if (telemetry.weight > specs.max_capacity * 0.9) {
+          raise_alert: {
+            severity: "high"
+            message: "Conveyor 1 approaching max capacity"
+          }
+        }
+
+        // Low battery warning
+        if (telemetry.battery_level < 20) {
+          raise_alert: {
+            severity: "low"
+            message: "Load sensor 1 battery low"
+          }
+        }
+      }
+    }
+  }
+
+  // ===== ZONE 2: ASSEMBLY =====
+
+  zone#assembly @industrial {
+    position: { x: 25, z: 0 }
+    size: { x: 30, z: 20 }
+
+    // Robotic welding station
+    device#weld_robot_1 @iot_device @robot {
+      @dtdl_interface {
+        id: "dtmi:factory:weldrobot;1"
+        displayName: "Robotic Welding Station"
+      }
+
+      specs {
+        model: "FANUC ARC Mate 100iD"
+        reach: 1400  // mm
+        payload: 12  // kg
+        welding_type: "arc"
+      }
+
+      telemetry {
+        cycle_time: {
+          type: "double"
+          unit: "second"
+          update_interval: 10
+        }
+
+        welds_completed: {
+          type: "integer"
+          update_interval: 1
+        }
+
+        torch_temperature: {
+          type: "double"
+          unit: "degreeCelsius"
+          update_interval: 1
+        }
+
+        wire_remaining: {
+          type: "double"
+          unit: "meter"
+          update_interval: 60
+        }
+
+        power_consumption: {
+          type: "double"
+          unit: "kilowatt"
+          update_interval: 5
+        }
+      }
+
+      properties {
+        status: {
+          type: "enum"
+          values: ["idle", "welding", "error", "maintenance"]
+        }
+
+        program_loaded: {
+          type: "string"
+        }
+
+        quality_score: {
+          type: "double"
+          description: "Weld quality (0-100%)"
+        }
+      }
+
+      commands {
+        load_program: {
+          request_schema: { program_name: "string" }
+
+          on_execute(params) {
+            properties.program_loaded = params.program_name
+            return { status: "Program loaded: " + params.program_name }
+          }
+        }
+
+        start_welding: {
+          on_execute {
+            if (properties.status == "idle" && properties.program_loaded) {
+              properties.status = "welding"
+              return { status: "Welding started" }
+            } else {
+              return { status: "Cannot start - check status and program" }
+            }
+          }
+        }
+
+        emergency_stop: {
+          on_execute {
+            properties.status = "error"
+            stop_all_motion()
+            raise_alert: {
+              severity: "critical"
+              message: "Emergency stop activated on Weld Robot 1"
+            }
+            return { status: "Emergency stop engaged" }
+          }
+        }
+      }
+
+      on_telemetry_update {
+        // Wire replacement needed
+        if (telemetry.wire_remaining < 10) {
+          raise_alert: {
+            severity: "medium"
+            message: "Welding wire low on Robot 1"
+          }
+        }
+
+        // Quality degradation
+        if (properties.quality_score < 85) {
+          raise_alert: {
+            severity: "high"
+            message: "Weld quality below threshold"
+            recommended_action: "Inspect torch and wire feed"
+          }
+        }
+
+        // Overheating
+        if (telemetry.torch_temperature > 300) {
+          properties.status = "error"
+          raise_alert: {
+            severity: "critical"
+            message: "Torch overheating - operations halted"
+          }
+        }
+      }
+    }
+
+    // Vision inspection camera
+    sensor#vision_camera_1 @iot_device @camera {
+      @dtdl_interface {
+        id: "dtmi:factory:visioncamera;1"
+        displayName: "Quality Inspection Camera"
+      }
+
+      parent: "weld_robot_1"
+      position: { x: 0, y: 2, z: 1 }
+
+      specs {
+        resolution: { width: 1920, height: 1080 }
+        fps: 30
+        lens: "12mm"
+      }
+
+      telemetry {
+        images_captured: {
+          type: "integer"
+        }
+
+        defects_detected: {
+          type: "integer"
+        }
+
+        inspection_pass_rate: {
+          type: "double"
+          unit: "percent"
+        }
+      }
+
+      on_image_captured(image) {
+        // Run ML model for defect detection
+        defects = analyze_image(image)
+
+        if (defects.length > 0) {
+          telemetry.defects_detected += 1
+
+          raise_alert: {
+            severity: "medium"
+            message: "Defect detected: " + defects[0].type
+            metadata: {
+              defect_type: defects[0].type,
+              confidence: defects[0].confidence,
+              location: defects[0].bbox
+            }
+          }
+
+          // Update parent robot's quality score
+          weld_robot_1.properties.quality_score -= 5
+        }
+
+        // Update pass rate
+        pass_rate = (images_captured - defects_detected) / images_captured * 100
+        telemetry.inspection_pass_rate = pass_rate
+      }
+    }
+  }
+
+  // ===== ZONE 3: QUALITY CONTROL =====
+
+  zone#quality_control @industrial {
+    position: { x: 60, z: 0 }
+    size: { x: 15, z: 15 }
+
+    // Environmental monitoring
+    sensor#env_monitor_1 @iot_device @environmental {
+      @dtdl_interface {
+        id: "dtmi:factory:environmentalsensor;1"
+        displayName: "Environmental Monitor"
+      }
+
+      position: { x: 67, y: 2, z: 7 }
+
+      telemetry {
+        temperature: {
+          type: "double"
+          unit: "degreeCelsius"
+          update_interval: 30
+        }
+
+        humidity: {
+          type: "double"
+          unit: "percent"
+          update_interval: 30
+        }
+
+        air_quality: {
+          type: "double"
+          unit: "particlesPerMillion"
+          update_interval: 60
+        }
+
+        noise_level: {
+          type: "double"
+          unit: "decibel"
+          update_interval: 5
+        }
+      }
+
+      on_telemetry_update {
+        // Temperature alerts
+        if (telemetry.temperature < 15 || telemetry.temperature > 30) {
+          raise_alert: {
+            severity: "medium"
+            message: "Temperature out of optimal range: " + telemetry.temperature + "°C"
+          }
+        }
+
+        // Air quality alerts
+        if (telemetry.air_quality > 150) {
+          raise_alert: {
+            severity: "high"
+            message: "Poor air quality detected"
+            recommended_action: "Check ventilation system"
+          }
+        }
+
+        // Noise alerts (OSHA compliance)
+        if (telemetry.noise_level > 85) {
+          raise_alert: {
+            severity: "medium"
+            message: "Noise level exceeds OSHA threshold"
+            recommended_action: "Ensure workers use hearing protection"
+          }
+        }
+      }
+    }
+  }
+
+  // ===== DEVICE RELATIONSHIPS =====
+
+  relationships {
+    // Hierarchical relationships
+    factory#automotive_assembly {
+      contains: [zone#receiving, zone#assembly, zone#quality_control]
+    }
+
+    zone#receiving {
+      contains: [device#conveyor_1, sensor#load_sensor_1]
+    }
+
+    zone#assembly {
+      contains: [device#weld_robot_1, sensor#vision_camera_1]
+    }
+
+    // Functional relationships
+    sensor#load_sensor_1 {
+      monitors: device#conveyor_1
+      feeds_data_to: [cloud#azure_iot_hub]
+    }
+
+    sensor#vision_camera_1 {
+      inspects: device#weld_robot_1
+      triggers: [alert_system#quality_alerts]
+    }
+  }
+
+  // ===== CLOUD INTEGRATION =====
+
+  cloud#azure_iot_hub @azure_digital_twins {
+    connection_string: env("AZURE_IOT_HUB_CONNECTION")
+    device_provisioning: "DPS"
+
+    // Device-to-cloud telemetry
+    telemetry_routing {
+      all_devices.telemetry -> azure_digital_twins
+      all_alerts -> azure_event_grid
+    }
+
+    // Cloud-to-device commands
+    command_routing {
+      azure_digital_twins -> device.commands
+    }
+
+    // Twin synchronization
+    twin_sync {
+      interval: 10  // seconds
+      properties: ["status", "operational_hours", "maintenance_due"]
+    }
+  }
+
+  // ===== DTDL EXPORT =====
+
+  export#dtdl_export @azure_compatible {
+    target: "dtdl"
+    version: "3"
+    output_directory: "./dtdl_models/"
+
+    options {
+      include_relationships: true
+      include_commands: true
+      generate_schema_ids: true
+    }
+
+    // Generate DTDL files for each device type
+    for_each_device_type {
+      output_file: device_type.name + ".json"
+
+      dtdl_model {
+        "@context": "dtmi:dtdl:context;3"
+        "@id": device_type.dtdl_interface.id
+        "@type": "Interface"
+        "displayName": device_type.dtdl_interface.displayName
+        "description": device_type.dtdl_interface.description
+        "contents": [
+          device_type.telemetry,
+          device_type.properties,
+          device_type.commands,
+          device_type.relationships
+        ]
+      }
+    }
+  }
+
+  // ===== 3D VISUALIZATION =====
+
+  environment#factory_3d {
+    skybox: "industrial_interior"
+    ambient_light: { intensity: 0.6, color: #f0f0e8 }
+
+    // Factory floor
+    floor {
+      material: "concrete_industrial"
+      size: { x: 100, z: 50 }
+      grid_lines: true
+      grid_spacing: 5
+    }
+
+    // Visualize devices
+    for_each_device {
+      visualization {
+        model: device.specs.model_file || "default_device.glb"
+        position: device.position
+        scale: device.scale || { x: 1, y: 1, z: 1 }
+
+        // Status indicator light
+        light#status_indicator {
+          type: "point"
+          intensity: 2
+          color: device.status_color
+          position: { y: 0.5 }
+        }
+
+        // Telemetry labels
+        ui#telemetry_panel @world_space {
+          position: "above_device"
+          offset_y: 1
+
+          text {
+            content: device.name + "\nStatus: " + device.properties.status
+            font_size: 16
+            color: #ffffff
+            background: #000000aa
+          }
+        }
+      }
+    }
+
+    // Real-time data streams (particle effects)
+    for_each_active_sensor {
+      particle_effect#data_stream {
+        type: "ascending_dots"
+        start: sensor.position
+        end: { x: sensor.position.x, y: 5, z: sensor.position.z }
+        color: #00ffff
+        rate: sensor.telemetry_update_rate
+      }
+    }
+  }
+
+  // ===== DASHBOARD UI =====
+
+  ui#factory_dashboard @hud {
+    // Factory overview
+    panel#overview {
+      position: "top_left"
+      size: { x: 300, y: 200 }
+
+      text#title {
+        content: "Factory Alpha Dashboard"
+        font_size: 20
+        font_weight: "bold"
+      }
+
+      stats {
+        total_devices: count(all_devices)
+        active_devices: count(devices_where(status == "running"))
+        alerts_active: count(active_alerts)
+        uptime: factory.uptime_percent + "%"
+      }
+    }
+
+    // Device list
+    scrollable#device_list {
+      position: "left"
+      size: { x: 250, y: 600 }
+
+      for_each_device {
+        device_card {
+          name: device.name
+          status: device.properties.status
+          status_color: device.status == "running" ? #00ff00 : #ff0000
+
+          on_click {
+            select_device: device
+            show_details: true
+          }
+        }
+      }
+    }
+
+    // Alert feed
+    panel#alerts {
+      position: "bottom_right"
+      size: { x: 400, y: 300 }
+
+      for_each_alert(recent: 10) {
+        alert_item {
+          severity: alert.severity
+          message: alert.message
+          timestamp: alert.timestamp
+          severity_color: {
+            critical: #ff0000,
+            high: #ff8800,
+            medium: #ffff00,
+            low: #00ff00
+          }[alert.severity]
+        }
+      }
+    }
+  }
+
+  // ===== ANALYTICS & PREDICTIONS =====
+
+  analytics#predictive_maintenance {
+    // Simple rule-based predictions
+    predict_maintenance(device) {
+      risk_score = 0
+
+      if (device.telemetry.operational_hours > 800) {
+        risk_score += 30
+      }
+
+      if (device.telemetry.vibration > 3) {
+        risk_score += 40
+      }
+
+      if (device.properties.quality_score < 90) {
+        risk_score += 30
+      }
+
+      if (risk_score > 70) {
+        schedule_maintenance: {
+          device: device,
+          priority: "high",
+          estimated_downtime: 4  // hours
+        }
+      }
+
+      return risk_score
+    }
+
+    // Run predictions hourly
+    schedule {
+      interval: 3600  // seconds
+      on_execute {
+        for_each_device {
+          risk = predict_maintenance(device)
+          device.properties.maintenance_risk = risk
+        }
+      }
+    }
+  }
+}

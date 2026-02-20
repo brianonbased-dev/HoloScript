@@ -32,16 +32,27 @@ This directory contains examples demonstrating HoloScript's versatility across d
 - VRChat world examples
 
 ### Specialized Domains (`specialized/`)
-- **[robotics/](robotics/)** - URDF/SDF robot simulations
-- **[iot/](iot/)** - Digital twins, DTDL schemas
-- **[multiplayer/](multiplayer/)** - Networked VR/AR experiences
+**Advanced examples for specific industries and platforms:**
 
-### Hololand Platform (`hololand/`)
-**Examples for the Hololand metaverse platform:**
-- VRR (Virtual Reality Reality) twins
-- AR entry points
-- Business quests
-- AI agent integration
+- **[robotics/](specialized/robotics/)** - Industrial robot simulation (UR5)
+  - Compiles to: URDF, SDF, Gazebo, ROS2
+  - Use case: Manufacturing, automation, research
+
+- **[iot/](specialized/iot/)** - Smart factory digital twin
+  - Compiles to: DTDL, Azure Digital Twins
+  - Use case: Industrial IoT, predictive maintenance
+
+- **[multiplayer/](specialized/multiplayer/)** - Collaborative VR meeting space
+  - Compiles to: Unity (Photon/Mirror), Unreal, WebRTC
+  - Use case: Remote collaboration, social VR
+
+- **[unity-quest/](specialized/unity-quest/)** - Platform-optimized obstacle course
+  - Compiles to: Unity for Quest 2/3, PCVR
+  - Use case: Mobile VR optimization, performance tuning
+
+- **[vrchat/](specialized/vrchat/)** - Social hub world
+  - Compiles to: Unity + VRChat SDK3 + Udon#
+  - Use case: Social VR, user-generated content
 
 ## 🚀 Quick Start
 
@@ -112,12 +123,16 @@ Each example includes platform-specific instructions in its README.
 - ✅ Social VR World - VRChat/Rec Room integration
 
 ### Industrial/Technical
-- ✅ Robotics Simulation - URDF/SDF robot modeling
-- ✅ IoT Digital Twins - Real-time device mirroring
-- ✅ Factory Visualization - Industrial design
+
+- ✅ Robotics Simulation - Industrial robot arm (UR5), inverse kinematics, ROS2
+- ✅ IoT Digital Twin - Smart factory with predictive maintenance
+- ✅ Factory Visualization - Real-time telemetry and monitoring
 
 ### Platform-Specific
-- ✅ Hololand Integration - Ready Player One-style metaverse
+
+- ✅ Unity Quest - Mobile VR optimization (ASTC, LODs, foveated rendering)
+- ✅ VRChat World - Social VR with mirrors, video players, Udon# scripting
+- ✅ Multiplayer VR - Networked collaboration with voice chat
 
 ## 🔧 Example Structure
 

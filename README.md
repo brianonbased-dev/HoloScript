@@ -25,8 +25,13 @@ Jump straight to real-world examples:
 | 🛋️ **E-Commerce AR** | "Try before you buy" furniture preview on mobile | [AR Furniture Preview →](./examples/general/ar-furniture-preview/) |
 | 🎨 **Museums & Culture** | Virtual art gallery with audio guides | [Virtual Art Gallery →](./examples/general/virtual-art-gallery/) |
 | 🎮 **Gaming** | Fast-paced VR shooter with physics and AI | [VR Game Demo →](./examples/general/vr-game-demo/) |
+| 🤖 **Robotics** | Industrial robot arm with ROS2/Gazebo export | [Robotics Simulation →](./examples/specialized/robotics/) |
+| 🏭 **IoT/Industry** | Smart factory digital twin with Azure integration | [IoT Digital Twin →](./examples/specialized/iot/) |
+| 👥 **Multiplayer** | Collaborative VR meeting space with voice chat | [Multiplayer VR →](./examples/specialized/multiplayer/) |
+| 📱 **Quest/Mobile** | Platform-optimized VR with Quest 2/3 features | [Unity Quest →](./examples/specialized/unity-quest/) |
+| 🌐 **Social VR** | VRChat world with mirrors, video, and Udon# | [VRChat World →](./examples/specialized/vrchat/) |
 
-**All examples compile to Unity, Unreal, Godot, and WebXR from a single `.holo` file.**
+**[View all 9 examples →](./examples/)** | **[Browse examples catalog →](./examples/INDEX.md)**
 
 ---
 

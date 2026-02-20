@@ -397,12 +397,26 @@ Avoid platform-specific features unless necessary.
 
 ## What's Next?
 
+### Try These Examples
+
 Pick a use case and dive in:
 
-- **Corporate Training** → VR Training Simulation example
-- **E-Commerce** → AR Furniture Preview example
-- **Culture/Education** → Virtual Art Gallery example
-- **Gaming** → VR Game Demo example
+**General Examples (Start Here):**
+
+- **Corporate Training** → [VR Training Simulation](../examples/general/vr-training-simulation/)
+- **E-Commerce** → [AR Furniture Preview](../examples/general/ar-furniture-preview/)
+- **Culture/Education** → [Virtual Art Gallery](../examples/general/virtual-art-gallery/)
+- **Gaming** → [VR Game Demo](../examples/general/vr-game-demo/)
+
+**Specialized Examples (Advanced):**
+
+- **Robotics** → [Industrial Robot Simulation](../examples/specialized/robotics/) (URDF/SDF/ROS2)
+- **IoT** → [Smart Factory Digital Twin](../examples/specialized/iot/) (Azure Digital Twins)
+- **Multiplayer** → [VR Meeting Space](../examples/specialized/multiplayer/) (Photon/WebRTC)
+- **Quest/Mobile** → [Platform-Optimized VR](../examples/specialized/unity-quest/) (Quest 2/3)
+- **Social VR** → [VRChat World](../examples/specialized/vrchat/) (Udon#)
+
+**[Browse all examples →](../examples/)** | **[Examples catalog →](../examples/INDEX.md)**
 
 ---
 
