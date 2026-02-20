@@ -73,7 +73,7 @@ class PhysicsIntegrationDemo {
   private frameCount: number = 0;
 
   // Wrecking ball state
-  private ballPosition = { x: -5, y: 2, z: 0 };
+  private ballPosition = { x: -6, y: 3, z: 0 };
   private ballVelocity = { x: 0, y: 0, z: 0 };
 
   constructor(config: Partial<DemoConfig> = {}) {
@@ -195,7 +195,7 @@ class PhysicsIntegrationDemo {
     this.integrationManager.destructionToGranular.convertDestroyedFragments(
       this.fractureSystem,
       this.granularSystem,
-      true // recycle fragments
+      false // don't recycle fragments for demo (keep them destroyed for stats)
     );
 
     // 5. Simulate granular material
@@ -243,12 +243,12 @@ class PhysicsIntegrationDemo {
         Math.pow(this.ballPosition.z - wallCenter.z, 2)
     );
 
-    // Apply damage on impact
-    if (distance < 2.0 && this.ballVelocity.x > 0) {
+    // Apply damage on impact (one-time trigger)
+    if (distance < 2.0 && this.ballVelocity.x > 3.0) {
       this.fractureSystem.applyDamage({
         position: this.ballPosition,
-        radius: 1.5,
-        maxDamage: 150,
+        radius: 3.0, // Increased radius to hit more fragments
+        maxDamage: 200, // Increased damage
         falloff: 2.0,
       });
 

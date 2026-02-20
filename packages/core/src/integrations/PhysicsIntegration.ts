@@ -48,6 +48,7 @@ export interface ConversionStats {
 export class DestructionToGranularConverter {
   private config: Required<PhysicsIntegrationConfig>;
   private stats: ConversionStats;
+  private convertedFragmentIds: Set<number>;
 
   constructor(config: PhysicsIntegrationConfig = {}) {
     this.config = {
@@ -63,6 +64,8 @@ export class DestructionToGranularConverter {
       totalVolume: 0,
       averageParticleSize: 0,
     };
+
+    this.convertedFragmentIds = new Set<number>();
   }
 
   /**
@@ -91,6 +94,11 @@ export class DestructionToGranularConverter {
     let totalParticleSize = 0;
 
     for (const fragment of destroyedFragments) {
+      // Skip already converted fragments
+      if (this.convertedFragmentIds.has(fragment.id)) {
+        continue;
+      }
+
       // Skip fragments that are too small
       if (fragment.volume < this.config.minFragmentSize) {
         if (recycleFragments) {
@@ -106,6 +114,9 @@ export class DestructionToGranularConverter {
 
       // Add particle at fragment centroid
       const particleId = granularSystem.addParticle(fragment.position, radius);
+
+      // Mark fragment as converted
+      this.convertedFragmentIds.add(fragment.id);
 
       // Update statistics
       convertedCount++;
@@ -230,6 +241,7 @@ export class DestructionToGranularConverter {
       totalVolume: 0,
       averageParticleSize: 0,
     };
+    this.convertedFragmentIds.clear();
   }
 
   /**
