@@ -129,7 +129,10 @@ describe('CombatManager', () => {
 
 describe('DamageSystem', () => {
   let ds: DamageSystem;
-  beforeEach(() => { ds = new DamageSystem(); });
+  beforeEach(() => {
+    ds = new DamageSystem();
+    ds.setConfig({ critChance: 0 }); // Disable random crits for deterministic tests
+  });
 
   it('calculates base damage (true type ignores resistance)', () => {
     const inst = ds.calculateDamage('s', 't', 100, 'true', false);
