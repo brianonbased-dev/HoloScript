@@ -1,817 +1,182 @@
-// HoloScript Unity Quest Example
-// Platform-optimized obstacle course demonstrating Quest-specific features
-// Compiles to: Unity with Quest 2/3 optimizations, PCVR high-fidelity mode
+// Unity Quest Optimization
+// Mobile VR-optimized obstacle course for Quest 2/3
 
-composition "QuestObstacleCourse" {
-  metadata {
-    name: "Quest VR Obstacle Course"
-    description: "Platform-specific Unity example with Quest optimizations"
-    version: "1.0.0"
-    target_platforms: ["quest2", "quest3", "pcvr"]
+composition "Quest Obstacle Course" {
+
+  // Optimized ground
+  object "Ground" {
+    @collidable
+
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [30, 1, 30]
+    color: "#7cb342"
   }
-
-  // ============================================================================
-  // PLATFORM CONFIGURATION
-  // ============================================================================
-
-  platform_config#quest {
-    @unity_target {
-      platform: "android"
-      build_target: "oculus"
-
-      xr_settings {
-        xr_plugin: "oculus"
-        stereo_rendering: "multiview"  // Quest optimization
-        foveated_rendering: true  // Quest 3 eye tracking
-      }
-
-      graphics {
-        api: "vulkan"
-        color_space: "gamma"  // Faster than linear
-        msaa: 2  // 2x for mobile (not 4x/8x)
-
-        texture_compression: "astc"
-        texture_quality: "medium"  // Balance quality/size
-
-        shader_quality: "medium"
-        shadow_quality: "medium"
-        shadow_distance: 20  // Limit for performance
-
-        dynamic_batching: true
-        gpu_instancing: true
-        occlusion_culling: true
-      }
-
-      performance {
-        target_framerate: 90  // Quest 3 (72 for Quest 2)
-        vsync: true
-        fixed_timestep: 0.0111  // 90 Hz physics
-
-        // Quest thermal throttling
-        thermal_headroom: "sustained"
-      }
-
-      optimization {
-        scripting_backend: "il2cpp"
-        stripping_level: "high"
-        managed_stripping: true
-
-        // Reduce APK size
-        compress_textures: true
-        compress_meshes: true
-      }
-    }
-
-    // Quest-specific features
-    features {
-      hand_tracking: true  // Quest 2/3
-      passthrough: true  // Mixed reality
-      guardian_boundary: true
-      experimental_features: false
-    }
-  }
-
-  platform_config#pcvr {
-    @unity_target {
-      platform: "windows"
-      build_target: "steamvr"
-
-      xr_settings {
-        xr_plugin: "openxr"
-        stereo_rendering: "single_pass_instanced"
-      }
-
-      graphics {
-        api: "dx12"
-        color_space: "linear"  // Better quality
-        msaa: 4  // 4x or 8x for PCVR
-
-        texture_quality: "high"
-        shadow_quality: "high"
-        shadow_distance: 100
-
-        // High-quality features
-        ambient_occlusion: true
-        bloom: true
-        volumetric_fog: true
-      }
-
-      performance {
-        target_framerate: 120  // Valve Index
-        vsync: true
-      }
-    }
-  }
-
-  // ============================================================================
-  // ENVIRONMENT
-  // ============================================================================
-
-  environment {
-    skybox: "procedural_sky"
-    ambient_light: { intensity: 0.6, color: #b0c4de }
-
-    fog {
-      enabled: true
-      color: #87ceeb
-      start_distance: 50
-      end_distance: 150
-    }
-
-    // Baked lightmaps (Quest optimization)
-    lighting {
-      mode: "baked"  // Not realtime
-      lightmap_resolution: 512  // Lower for Quest
-
-      // PCVR upgrade
-      platform_override#pcvr {
-        mode: "mixed"  // Some realtime
-        lightmap_resolution: 2048
-        realtime_gi: true
-      }
-    }
-  }
-
-  // Ground plane
-  object#ground @static @optimized {
-    type: "plane"
-    size: { x: 100, y: 100 }
-    position: { x: 0, y: 0, z: 0 }
-
-    material {
-      type: "pbr"
-      base_color: #90ee90
-      metallic: 0.0
-      roughness: 0.8
-
-      // ASTC texture compression for Quest
-      texture_compression: "astc_6x6"  // Good quality/size ratio
-
-      // Use triplanar mapping (no UV seams)
-      uv_mode: "triplanar"
-    }
-
-    collision {
-      enabled: true
-      type: "mesh"
-      physics_material: {
-        friction: 0.8
-        bounciness: 0.0
-      }
-    }
-
-    // LOD for distant rendering
-    lod_group {
-      lod_0: { distance: 0, mesh: "ground_high.mesh" }
-      lod_1: { distance: 20, mesh: "ground_medium.mesh" }
-      lod_2: { distance: 50, mesh: "ground_low.mesh" }
-    }
-  }
-
-  // ============================================================================
-  // VR PLAYER RIG (Unity XR Interaction Toolkit)
-  // ============================================================================
-
-  player#xr_rig @unity_xr_toolkit {
-    name: "XR Origin"
-
-    // Unity component mapping
-    unity_components: ["XROrigin", "CharacterController"]
-
-    // VR camera
-    camera#main @vr {
-      tag: "MainCamera"
-      position: { x: 0, y: 0, z: 0 }
-      clear_flags: "skybox"
-
-      near_clip: 0.01
-      far_clip: 150  // Reduced for Quest
-
-      unity_components: ["Camera"]
-    }
-
-    // Character controller for locomotion
-    character_controller {
-      height: 1.8
-      radius: 0.3
-      center: { x: 0, y: 0.9, z: 0 }
-    }
-
-    // Locomotion system
-    locomotion#continuous_move @unity_xr {
-      unity_components: ["ContinuousMoveProvider", "ContinuousTurnProvider"]
-
-      movement {
-        speed: 2.0  // m/s
-        acceleration: 10.0
-        use_gravity: true
-      }
-
-      turning {
-        mode: "smooth"  // or "snap"
-        turn_speed: 60  // deg/s
-      }
-
-      input {
-        left_hand_move: "primary2daxis"  // Left thumbstick
-        right_hand_turn: "primary2daxis"  // Right thumbstick
-      }
-    }
-
-    // Teleportation
-    teleport_system @unity_xr {
-      unity_components: ["TeleportationProvider"]
-
-      raycast {
-        max_distance: 10
-        valid_layers: ["Teleportable"]
-      }
-
-      visual {
-        arc_line: true
-        reticle: "teleport_reticle"
-        invalid_color: #ff0000
-        valid_color: #00ff00
-      }
-    }
-
-    // Left controller
-    controller#left_hand @vr @unity_xr {
-      hand: "left"
-      unity_components: [
-        "XRController",
-        "XRRayInteractor",
-        "XRDirectInteractor",
-        "LineRenderer"
-      ]
-
-      model {
-        source: "quest_controller_left.prefab"
-      }
-
-      // Ray interactor for distant UI
-      ray_interactor {
-        max_raycast_distance: 10
-        line_type: "bezier_curve"
-        valid_color: #00ffff
-      }
-
-      // Direct interactor for grabbing
-      direct_interactor {
-        attach_transform: "attach_point"
-        force_grab: true
-        velocity_damping: 1.0
-      }
-
-      // Haptic feedback
-      haptics {
-        grab_intensity: 0.5
-        grab_duration: 0.1
-
-        release_intensity: 0.3
-        release_duration: 0.05
-      }
-
-      // Input actions (Unity Input System)
-      input_actions {
-        grip: "grip"
-        trigger: "trigger"
-        primary_button: "primarybutton"  // X button
-        secondary_button: "secondarybutton"  // Y button
-        thumbstick: "primary2daxis"
-      }
-    }
-
-    // Right controller
-    controller#right_hand @vr @unity_xr {
-      hand: "right"
-      unity_components: [
-        "XRController",
-        "XRRayInteractor",
-        "XRDirectInteractor",
-        "LineRenderer"
-      ]
-
-      model {
-        source: "quest_controller_right.prefab"
-      }
-
-      ray_interactor {
-        max_raycast_distance: 10
-        line_type: "bezier_curve"
-        valid_color: #00ffff
-      }
-
-      direct_interactor {
-        attach_transform: "attach_point"
-        force_grab: true
-        velocity_damping: 1.0
-      }
-
-      haptics {
-        grab_intensity: 0.5
-        grab_duration: 0.1
-      }
-
-      input_actions {
-        grip: "grip"
-        trigger: "trigger"
-        primary_button: "primarybutton"  // A button
-        secondary_button: "secondarybutton"  // B button
-        thumbstick: "primary2daxis"
-      }
-    }
-
-    // Hand tracking (Quest 2/3)
-    hand_tracking#both_hands @quest_feature {
-      enabled: true
-
-      hands {
-        left: "hand_left_skeleton"
-        right: "hand_right_skeleton"
-      }
-
-      gestures {
-        pinch: true
-        point: true
-        fist: true
-        open_palm: true
-      }
-
-      // Fall back to controllers if hands not detected
-      fallback_mode: "controllers"
-    }
-  }
-
-  // ============================================================================
-  // OBSTACLE COURSE - OPTIMIZED FOR QUEST
-  // ============================================================================
 
   // Start platform
-  object#start_platform @static @teleportable {
-    type: "box"
-    size: { x: 4, y: 0.2, z: 4 }
-    position: { x: 0, y: 0.1, z: 0 }
+  object "StartPlatform" {
+    @collidable
+    @glowing
 
-    material {
-      base_color: #4169e1
-      metallic: 0.2
-      roughness: 0.6
-
-      // Mobile shader
-      shader: "mobile/diffuse"  // Faster than PBR
-    }
-
-    layer: "Teleportable"
+    geometry: "cube"
+    position: [0, 0.2, 5]
+    scale: [3, 0.4, 3]
+    color: "#4caf50"
   }
 
-  // Moving platforms (physics-based)
-  for i in range(3) {
-    object#moving_platform_{i} @physics @teleportable {
-      type: "box"
-      size: { x: 2, y: 0.2, z: 2 }
-      position: { x: 5 + i * 3, y: 1, z: 0 }
+  // Obstacle 1 - Low wall
+  object "WallObstacle1" {
+    @collidable
 
-      material {
-        base_color: #ffa500
-        shader: "mobile/diffuse"
-      }
-
-      // Kinematic rigidbody (moves but not affected by forces)
-      physics {
-        type: "kinematic"
-        use_gravity: false
-      }
-
-      // Animation
-      animation#oscillate {
-        type: "position"
-
-        keyframes {
-          0.0: { y: 1.0 }
-          0.5: { y: 2.5 }
-          1.0: { y: 1.0 }
-        }
-
-        duration: 3 + i * 0.5  // Stagger timing
-        loop: true
-        easing: "ease_in_out"
-      }
-
-      layer: "Teleportable"
-
-      // Particle effect (Quest-optimized)
-      particle_effect @mobile_optimized {
-        max_particles: 20  // Low count for Quest
-        emission_rate: 5
-        lifetime: 1.0
-        size: 0.1
-        color: #ffff00
-      }
-    }
+    geometry: "cube"
+    position: [0, 0.5, 2]
+    scale: [4, 1, 0.3]
+    color: "#ff5722"
   }
 
-  // Rotating barriers
-  object#barrier_1 @obstacle {
-    type: "box"
-    size: { x: 0.5, y: 2, z: 3 }
-    position: { x: 15, y: 1, z: 0 }
+  // Obstacle 2 - Pillars
+  object "Pillar1" {
+    @collidable
 
-    material {
-      base_color: #ff0000
-      emission: #ff0000
-      emission_intensity: 0.5
-      shader: "mobile/unlit"  // Cheapest shader
-    }
-
-    physics {
-      type: "kinematic"
-      trigger: true  // Doesn't collide, just detects
-    }
-
-    animation#rotate {
-      type: "rotation"
-
-      keyframes {
-        0.0: { y: 0 }
-        1.0: { y: 360 }
-      }
-
-      duration: 4
-      loop: true
-    }
-
-    // Damage on touch
-    on_trigger_enter(other) {
-      if (other.tag == "Player") {
-        vibrate_controllers: { intensity: 1.0, duration: 0.2 }
-        respawn_player()
-      }
-    }
+    geometry: "cylinder"
+    position: [-1.5, 1, 0]
+    scale: [0.4, 2, 0.4]
+    color: "#9c27b0"
   }
 
-  // Grabbable boxes (XR Grab Interactable)
-  for i in range(5) {
-    object#box_{i} @grabbable @unity_xr_interactable {
-      unity_components: ["XRGrabInteractable", "Rigidbody"]
+  object "Pillar2" {
+    @collidable
 
-      type: "cube"
-      size: { x: 0.3, y: 0.3, z: 0.3 }
-      position: { x: 20 + i * 0.5, y: 1, z: -2 + i * 0.3 }
-
-      material {
-        base_color: random_color()
-        metallic: 0.3
-        roughness: 0.7
-        shader: "mobile/diffuse"
-      }
-
-      physics {
-        type: "dynamic"
-        mass: 1.0
-        use_gravity: true
-        drag: 0.5
-        angular_drag: 0.5
-      }
-
-      // XR Grab Interactable settings
-      grab_settings {
-        attach_ease_in_time: 0.15
-        throw_on_detach: true
-        throw_smoothing_duration: 0.25
-
-        velocity_tracking: "average"
-        velocity_damping: 1.0
-      }
-
-      // Haptics on grab/release
-      on_grab(hand) {
-        hand.send_haptic_impulse: { intensity: 0.5, duration: 0.1 }
-      }
-
-      on_release(hand) {
-        hand.send_haptic_impulse: { intensity: 0.3, duration: 0.05 }
-      }
-    }
+    geometry: "cylinder"
+    position: [1.5, 1, 0]
+    scale: [0.4, 2, 0.4]
+    color: "#9c27b0"
   }
 
-  // Target shooting range
-  for i in range(6) {
-    object#target_{i} @interactive @unity_xr_interactable {
-      unity_components: ["XRSimpleInteractable"]
+  // Obstacle 3 - Jump platforms
+  object "JumpPlatform1" {
+    @collidable
 
-      type: "sphere"
-      size: { radius: 0.3 }
-      position: {
-        x: 30,
-        y: 1 + (i % 3) * 0.8,
-        z: -2 + (i / 3) * 4
-      }
-
-      material {
-        base_color: #ff1493
-        emission: #ff1493
-        emission_intensity: 0.8
-        shader: "mobile/unlit"
-      }
-
-      physics {
-        type: "kinematic"
-        trigger: true
-      }
-
-      // Hit detection
-      on_select_entered(interactor) {
-        // Interactor is ray or direct
-        hit_target: this
-        play_sound: "target_hit.wav"
-
-        // Pop effect
-        animation#pop {
-          type: "scale"
-          keyframes {
-            0.0: { scale: 1.0 }
-            0.1: { scale: 1.5 }
-            0.2: { scale: 0.0 }
-          }
-          on_complete {
-            destroy: this
-            spawn_new_target()
-          }
-        }
-      }
-
-      // Glow animation
-      animation#glow {
-        type: "emission_intensity"
-        keyframes {
-          0.0: { intensity: 0.5 }
-          0.5: { intensity: 1.5 }
-          1.0: { intensity: 0.5 }
-        }
-        duration: 2
-        loop: true
-      }
-    }
+    geometry: "cube"
+    position: [-2, 0.5, -2]
+    scale: [1.5, 1, 1.5]
+    color: "#2196f3"
   }
 
-  // Finish platform
-  object#finish_platform @static @teleportable {
-    type: "box"
-    size: { x: 5, y: 0.2, z: 5 }
-    position: { x: 40, y: 0.1, z: 0 }
+  object "JumpPlatform2" {
+    @collidable
 
-    material {
-      base_color: #00ff00
-      emission: #00ff00
-      emission_intensity: 0.5
-      shader: "mobile/diffuse"
-    }
-
-    on_trigger_enter(other) {
-      if (other.tag == "Player") {
-        complete_course()
-      }
-    }
-
-    layer: "Teleportable"
-
-    // Celebration particles
-    particle_effect#confetti @mobile_optimized {
-      position: { x: 0, y: 2, z: 0 }
-      max_particles: 50
-      emission_rate: 0  // Burst only
-      lifetime: 3.0
-      size: 0.05
-      color_gradient: [#ff0000, #00ff00, #0000ff, #ffff00]
-
-      burst {
-        count: 50
-        interval: 0
-      }
-    }
+    geometry: "cube"
+    position: [0, 0.8, -3]
+    scale: [1.5, 1, 1.5]
+    color: "#2196f3"
   }
 
-  // ============================================================================
-  // QUEST-SPECIFIC FEATURES
-  // ============================================================================
+  object "JumpPlatform3" {
+    @collidable
 
-  // Passthrough (Mixed Reality)
-  passthrough#mr_mode @quest3_feature {
-    enabled: false  // Toggle on demand
-
-    settings {
-      opacity: 0.8
-      edge_rendering: true
-      color_mode: "grayscale"  // or "full_color" on Quest 3
-    }
-
-    toggle_button {
-      input: "secondary_button"  // Y/B button
-
-      on_toggle {
-        if (passthrough.enabled) {
-          environment.skybox = null
-          environment.fog.enabled = false
-        } else {
-          environment.skybox = "procedural_sky"
-          environment.fog.enabled = true
-        }
-      }
-    }
+    geometry: "cube"
+    position: [2, 1.1, -4]
+    scale: [1.5, 1, 1.5]
+    color: "#2196f3"
   }
 
-  // Guardian boundary visualization
-  guardian#boundary @quest_feature {
-    visualization {
-      enabled: true
-      fade_distance: 0.3  // Fade in at 30cm from boundary
-      color: #00ffff
-      opacity: 0.5
-    }
+  // Movable blocks
+  object "MovableBlock1" {
+    @grabbable
+    @physics
+    @collidable
 
-    warnings {
-      play_area_recenter: true
-      boundary_triggered: true
-    }
+    geometry: "cube"
+    position: [0, 0.5, -6]
+    scale: 0.6
+    color: "#ffc107"
   }
 
-  // Foveated rendering (Quest 3 eye tracking)
-  foveated_rendering@quest3_feature {
-    enabled: true
+  object "MovableBlock2" {
+    @grabbable
+    @physics
+    @collidable
 
-    quality {
-      high_fov: 30  // degrees (full res)
-      medium_fov: 60  // degrees (75% res)
-      low_fov: 90  // degrees (50% res)
-    }
-
-    dynamic: true  // Adjust based on eye position
+    geometry: "cube"
+    position: [1, 0.5, -6.5]
+    scale: 0.6
+    color: "#ffc107"
   }
 
-  // ============================================================================
-  // UI - CANVAS
-  // ============================================================================
+  // Collectible orbs
+  object "Collectible1" {
+    @grabbable
+    @glowing
 
-  ui#hud @canvas @unity_xr_ui {
-    unity_components: ["Canvas", "TrackedDeviceGraphicRaycaster"]
-
-    render_mode: "world_space"
-    position: { x: 0, y: 2, z: 3 }
-    rotation: { x: 0, y: 180, z: 0 }
-    scale: { x: 0.001, y: 0.001, z: 0.001 }
-
-    // Performance stats
-    text#fps_counter {
-      position: { x: -200, y: 100 }
-      text: "FPS: {{ fps }}"
-      font_size: 24
-      color: #00ff00
-    }
-
-    text#timer {
-      position: { x: 0, y: 100 }
-      text: "Time: {{ elapsed_time }}s"
-      font_size: 32
-      color: #ffffff
-    }
-
-    text#score {
-      position: { x: 200, y: 100 }
-      text: "Targets: {{ targets_hit }}/{{ total_targets }}"
-      font_size: 24
-      color: #ffff00
-    }
-
-    // Instructions
-    text#instructions {
-      position: { x: 0, y: 0 }
-      text: "Complete the obstacle course!\nGrip to grab, Thumbstick to move"
-      font_size: 20
-      color: #cccccc
-      alignment: "center"
-    }
-
-    // Platform indicator
-    text#platform_info {
-      position: { x: 0, y: -100 }
-      text: platform_name  // "Quest 2" or "Quest 3" or "PCVR"
-      font_size: 18
-      color: #888888
-    }
+    geometry: "sphere"
+    position: [0, 1.5, -1]
+    scale: 0.3
+    color: "#ffeb3b"
   }
 
-  // ============================================================================
-  // GAME LOGIC
-  // ============================================================================
+  object "Collectible2" {
+    @grabbable
+    @glowing
 
-  game_manager {
-    elapsed_time: 0.0
-    targets_hit: 0
-    total_targets: 6
-    best_time: 999.9
-
-    on_start {
-      spawn_point = start_platform.position + { y: 1.5 }
-      player.position = spawn_point
-    }
-
-    on_update {
-      elapsed_time += delta_time
-      fps = 1.0 / delta_time
-    }
-
-    function hit_target(target) {
-      targets_hit += 1
-
-      if (targets_hit >= total_targets) {
-        show_message: "All targets hit! Complete the course!"
-      }
-    }
-
-    function respawn_player() {
-      player.position = spawn_point
-      show_message: "Respawned!"
-    }
-
-    function complete_course() {
-      if (elapsed_time < best_time) {
-        best_time = elapsed_time
-        show_message: "New best time: {{ elapsed_time }}s!"
-      }
-
-      particle_effect#confetti.burst()
-      play_sound: "victory.wav"
-
-      // Restart after 5s
-      delay: 5, {
-        reset_course()
-      }
-    }
-
-    function reset_course() {
-      elapsed_time = 0
-      targets_hit = 0
-      respawn_player()
-      respawn_all_targets()
-    }
+    geometry: "sphere"
+    position: [-2, 1.5, -4]
+    scale: 0.3
+    color: "#ffeb3b"
   }
 
-  // ============================================================================
-  // AUDIO
-  // ============================================================================
+  object "Collectible3" {
+    @grabbable
+    @glowing
 
-  audio#bgm @music {
-    source: "background_music.mp3"
-    volume: 0.3
-    loop: true
-    play_on_start: true
+    geometry: "sphere"
+    position: [2, 2, -6]
+    scale: 0.3
+    color: "#ffeb3b"
   }
 
-  audio_listener {
-    attached_to: camera#main
+  // Finish line
+  object "FinishLine" {
+    @collidable
+    @glowing
+
+    geometry: "cube"
+    position: [0, 0.2, -10]
+    scale: [4, 0.4, 0.5]
+    color: "#00ff00"
   }
 
-  // ============================================================================
-  // EXPORT CONFIGURATION
-  // ============================================================================
+  // Teleport targets
+  object "TeleportTarget1" {
+    @glowing
 
-  export#unity_quest {
-    target: "unity"
-    platform: "quest"
-    output_directory: "./build/unity_quest/"
-
-    unity_version: "2022.3.0f1"  // LTS
-
-    packages {
-      xr_interaction_toolkit: "2.5.2"
-      xr_plugin_management: "4.4.0"
-      oculus_xr_plugin: "4.2.0"
-      input_system: "1.7.0"
-    }
-
-    build_settings {
-      texture_compression: "astc"
-      il2cpp_code_generation: "faster_runtime"
-      strip_engine_code: true
-    }
+    geometry: "cylinder"
+    position: [3, 0.05, -3]
+    scale: [0.5, 0.1, 0.5]
+    color: "#00bcd4"
   }
 
-  export#unity_pcvr {
-    target: "unity"
-    platform: "steamvr"
-    output_directory: "./build/unity_pcvr/"
+  object "TeleportTarget2" {
+    @glowing
 
-    packages {
-      xr_interaction_toolkit: "2.5.2"
-      xr_plugin_management: "4.4.0"
-      openxr_plugin: "1.9.1"
-      input_system: "1.7.0"
-    }
+    geometry: "cylinder"
+    position: [-3, 0.05, -6]
+    scale: [0.5, 0.1, 0.5]
+    color: "#00bcd4"
+  }
 
-    build_settings {
-      graphics_api: "dx12"
-      quality_level: "high"
-    }
+  // Performance markers (low poly)
+  object "MarkerLOD1" {
+    geometry: "sphere"
+    position: [5, 1, -5]
+    scale: 0.2
+    color: "#e91e63"
+  }
+
+  object "MarkerLOD2" {
+    geometry: "sphere"
+    position: [-5, 1, -5]
+    scale: 0.2
+    color: "#e91e63"
   }
 }

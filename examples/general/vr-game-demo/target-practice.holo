@@ -1,817 +1,142 @@
-/**
- * VR Target Practice Game
- *
- * DESCRIPTION:
- * Fast-paced VR shooter game with physics-based interactions.
- * Demonstrates: game loops, scoring, physics, VR controllers, particle effects, AI.
- *
- * TARGET PLATFORMS:
- * - Unity (primary): Quest/PCVR with XR Interaction Toolkit
- * - Godot: Open-source VR gaming
- * - VRChat: Social VR gaming world
- *
- * USE CASE:
- * VR gaming, entertainment, arcade experiences, skill training.
- *
- * KEY FEATURES:
- * ✓ Physics-based shooting mechanics (projectiles, raycasts)
- * ✓ Moving targets with AI behavior
- * ✓ Score tracking and leaderboards
- * ✓ Power-ups and combo system
- * ✓ Visual and audio feedback
- * ✓ Game state management (menu, playing, game over)
- *
- * LEARNING OBJECTIVES:
- * 1. Implement game loops and state machines
- * 2. Create physics-based weapon systems
- * 3. Design enemy AI and spawning systems
- * 4. Build scoring and progression mechanics
- * 5. Optimize performance for VR gaming (90+ FPS)
- */
+// VR Game Demo - Target Practice
+// Fast-paced VR shooter with physics
 
-composition "VRTargetPracticeGame" {
+composition "VR Target Practice" {
 
-  // ===== GAME CONFIGURATION =====
+  // Arena floor
+  object "ArenaFloor" {
+    @collidable
 
-  game_settings {
-    name: "Target Practice VR"
-    version: "1.0.0"
-    target_fps: 90  // VR standard
-    difficulty: "normal"  // "easy", "normal", "hard"
-
-    game_modes: ["classic", "time_attack", "survival"]
-    default_mode: "classic"
-
-    // Scoring
-    scoring {
-      target_hit: 10
-      headshot_bonus: 25
-      combo_multiplier: 1.5
-      perfect_round_bonus: 100
-    }
-
-    // Difficulty scaling
-    difficulty_levels: {
-      easy: { target_speed: 1.0, spawn_rate: 2.0, target_health: 1 },
-      normal: { target_speed: 1.5, spawn_rate: 1.5, target_health: 2 },
-      hard: { target_speed: 2.0, spawn_rate: 1.0, target_health: 3 }
-    }
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [20, 1, 20]
+    color: "#2f4f4f"
   }
 
-  // ===== ENVIRONMENT =====
+  // Target 1
+  object "Target1" {
+    @clickable
+    @collidable
 
-  environment#shooting_range @outdoor {
-    skybox: "desert_sky_hdri"
-    ambient_light: { intensity: 0.8, color: #f5e6d3 }
-    fog: { density: 0.0001, color: #d0c8b8, start: 50, end: 200 }
-
-    // Directional sunlight
-    light#sun @natural {
-      type: "directional"
-      intensity: 1.5
-      color: #ffe8c8
-      rotation: { x: -50, y: 45 }
-      cast_shadows: true
-    }
-
-    // Environmental audio
-    audio#wind @ambient {
-      source: "desert_wind.mp3"
-      loop: true
-      volume: 0.2
-      spatial: false
-    }
-
-    audio#distant_gunfire @ambient {
-      source: "distant_shots.mp3"
-      loop: true
-      volume: 0.1
-      spatial: true
-      position: { x: 50, z: 100 }
-    }
+    geometry: "sphere"
+    position: [-3, 1.5, -5]
+    scale: 0.5
+    color: "#ff0000"
   }
 
-  // ===== SHOOTING RANGE =====
+  // Target 2
+  object "Target2" {
+    @clickable
+    @collidable
 
-  zone#range @game_area {
-    floor#sand @physics {
-      material: "desert_sand"
-      size: { x: 50, y: 0, z: 80 }
-      collision: true
-    }
-
-    // Shooting lanes with barriers
-    spatial_group#lanes {
-      repeat(3, x_axis, 5) {
-        object#lane_barrier @static {
-          model: "sandbag_wall.glb"
-          position: { z: 0 }
-          collision: true
-        }
-
-        // Distance markers
-        object#marker_10m @ui_element {
-          type: "plane"
-          texture: "marker_10m.png"
-          size: { x: 1, y: 0.5 }
-          position: { z: 10, y: 1 }
-        }
-
-        object#marker_25m @ui_element {
-          type: "plane"
-          texture: "marker_25m.png"
-          size: { x: 1, y: 0.5 }
-          position: { z: 25, y: 1 }
-        }
-
-        object#marker_50m @ui_element {
-          type: "plane"
-          texture: "marker_50m.png"
-          size: { x: 1, y: 0.5 }
-          position: { z: 50, y: 1 }
-        }
-      }
-    }
-
-    // Shooting platform
-    object#platform @player_start {
-      type: "box"
-      size: { x: 4, y: 0.2, z: 4 }
-      material: "wood_platform"
-      position: { x: 0, y: 0, z: -5 }
-      collision: true
-    }
+    geometry: "sphere"
+    position: [0, 2, -6]
+    scale: 0.5
+    color: "#ff0000"
   }
 
-  // ===== WEAPONS SYSTEM =====
+  // Target 3
+  object "Target3" {
+    @clickable
+    @collidable
 
-  // Pistol (default weapon)
-  weapon#pistol @firearm @physics {
-    model: "pistol_glock.glb"
-    grip_position: { x: 0, y: -0.05, z: 0.05 }
-    scale: { x: 1, y: 1, z: 1 }
-
-    stats {
-      damage: 25
-      fire_rate: 0.3  // seconds between shots
-      magazine_size: 12
-      reload_time: 1.5
-      projectile_speed: 50  // m/s
-      accuracy: 0.95
-    }
-
-    // Visual recoil
-    recoil {
-      rotation: { x: -10, y: 0, z: 0 }
-      duration: 0.1
-      recovery: 0.2
-    }
-
-    // Muzzle flash
-    particle_effect#muzzle_flash @weapon_effect {
-      position: { z: 0.15 }  // Barrel tip
-      type: "flash"
-      duration: 0.05
-      size: 0.3
-      color: #ffaa00
-      emissive: true
-    }
-
-    // Bullet tracer
-    particle_effect#tracer @weapon_effect {
-      type: "line"
-      start: barrel_position
-      end: hit_position
-      duration: 0.1
-      color: #ffff00
-      width: 0.01
-    }
-
-    // Audio
-    audio#gunshot {
-      source: "pistol_shot.mp3"
-      volume: 0.8
-      spatial: true
-    }
-
-    audio#reload {
-      source: "pistol_reload.mp3"
-      volume: 0.5
-      spatial: true
-    }
-
-    on_fire {
-      if (current_ammo > 0) {
-        spawn_projectile: {
-          type: "bullet"
-          damage: stats.damage
-          speed: stats.projectile_speed
-          direction: barrel_forward + random_spread(1 - stats.accuracy)
-        }
-
-        play_audio: gunshot
-        trigger_effect: muzzle_flash
-        trigger_effect: tracer
-        apply_recoil: recoil
-        vibrate_controller: { intensity: 0.5, duration: 0.1 }
-
-        current_ammo -= 1
-
-        if (current_ammo == 0) {
-          auto_reload: true
-        }
-      } else {
-        play_audio: "empty_click.mp3"
-        vibrate_controller: { intensity: 0.2, duration: 0.05 }
-      }
-    }
-
-    on_reload {
-      play_audio: reload
-      wait: stats.reload_time
-      current_ammo = stats.magazine_size
-      show_toast: "Reloaded"
-    }
-  }
-
-  // Shotgun (power weapon, pickup)
-  weapon#shotgun @firearm @physics @pickup {
-    model: "shotgun_pump.glb"
-    grip_position: { x: 0, y: -0.08, z: -0.15 }
-
-    stats {
-      damage: 15  // Per pellet
-      pellets: 8
-      fire_rate: 1.0
-      magazine_size: 6
-      reload_time: 0.8  // Per shell
-      projectile_speed: 40
-      spread: 0.15
-    }
-
-    on_fire {
-      if (current_ammo > 0) {
-        // Spawn multiple pellets
-        repeat(stats.pellets) {
-          spawn_projectile: {
-            type: "pellet"
-            damage: stats.damage
-            speed: stats.projectile_speed
-            direction: barrel_forward + random_spread(stats.spread)
-          }
-        }
-
-        play_audio: "shotgun_blast.mp3"
-        apply_recoil: { rotation: { x: -20, y: 0 }, recovery: 0.5 }
-        vibrate_controller: { intensity: 0.8, duration: 0.15 }
-        current_ammo -= 1
-      }
-    }
-  }
-
-  // ===== TARGETS =====
-
-  // Standard target
-  target#basic @enemy @interactive {
-    model: "target_dummy.glb"
-    scale: { x: 1, y: 1, z: 1 }
-    health: 50
-
-    // Hit zones
-    hitbox#body @primary {
-      type: "cylinder"
-      size: { radius: 0.3, height: 1.2 }
-      position: { y: 0.6 }
-      damage_multiplier: 1.0
-    }
-
-    hitbox#head @critical {
-      type: "sphere"
-      size: { radius: 0.15 }
-      position: { y: 1.5 }
-      damage_multiplier: 2.0
-    }
-
-    on_hit {
-      health -= damage * hit_zone.damage_multiplier
-
-      // Visual feedback
-      spawn_particle_effect: {
-        type: "impact"
-        position: hit_position
-        color: #ff0000
-        size: 0.2
-        duration: 0.3
-      }
-
-      play_audio: "impact_metal.mp3"
-
-      if (health <= 0) {
-        on_destroyed()
-      }
-    }
-
-    on_destroyed {
-      // Award points
-      points = 10
-      if (hit_zone == "head") {
-        points += 25  // Headshot bonus
-        show_text: "+35 HEADSHOT!"
-      }
-
-      award_score: points
-      increment_combo: 1
-
-      // Destruction effect
-      spawn_particle_effect: {
-        type: "explosion"
-        position: this.position
-        size: 1.0
-        duration: 0.5
-        color: #ff8800
-      }
-
-      play_audio: "target_destroyed.mp3"
-
-      // Remove target
-      destroy: this
-
-      // Chance to spawn power-up
-      if (random() < 0.2) {
-        spawn_powerup: this.position
-      }
-    }
+    geometry: "sphere"
+    position: [3, 1.5, -5]
+    scale: 0.5
+    color: "#ff0000"
   }
 
   // Moving target
-  target#moving @enemy @interactive @moving {
-    extends: target#basic
+  object "MovingTarget" {
+    @clickable
+    @physics
+    @collidable
 
-    movement {
-      type: "rail"
-      speed: 2.0 * difficulty_multiplier
-      path: [
-        { x: -5, z: 20 },
-        { x: 5, z: 20 },
-        { x: -5, z: 20 }
-      ]
-      loop: true
-    }
-
-    on_destroyed {
-      award_score: 20  // Higher score for moving targets
-      parent.on_destroyed()
-    }
+    geometry: "cube"
+    position: [-5, 1, -7]
+    scale: 0.6
+    color: "#ffff00"
   }
 
-  // Flying drone target
-  target#drone @enemy @interactive @flying {
-    model: "drone.glb"
-    health: 30
-    scale: { x: 0.5, y: 0.5, z: 0.5 }
+  // Weapon pickup
+  object "WeaponPickup" {
+    @grabbable
+    @glowing
 
-    movement {
-      type: "hover"
-      speed: 3.0
-      height: { min: 2, max: 5 }
-      wander_radius: 8
-    }
-
-    // Propeller animation
-    object#propellers @animated {
-      animate {
-        property: "rotation_y"
-        from: 0
-        to: 360
-        duration: 0.1
-        loop: true
-      }
-    }
-
-    on_destroyed {
-      award_score: 30  // Harder target
-      spawn_particle_effect: {
-        type: "explosion"
-        size: 0.8
-        color: #0088ff
-      }
-      destroy: this
-    }
+    geometry: "cube"
+    position: [0, 1, -2]
+    scale: [0.3, 0.2, 0.6]
+    color: "#808080"
   }
 
-  // ===== TARGET SPAWNING SYSTEM =====
+  // Ammunition
+  object "AmmoBox" {
+    @grabbable
+    @clickable
 
-  system#spawner @game_system {
-    enabled: false  // Enabled when game starts
-
-    spawn_points: [
-      { x: -8, y: 0, z: 15 },
-      { x: -4, y: 0, z: 15 },
-      { x: 0, y: 0, z: 15 },
-      { x: 4, y: 0, z: 15 },
-      { x: 8, y: 0, z: 15 },
-      { x: -8, y: 0, z: 30 },
-      { x: 0, y: 0, z: 30 },
-      { x: 8, y: 0, z: 30 },
-      { x: 0, y: 0, z: 50 }
-    ]
-
-    spawn_rate: game_settings.difficulty_levels[difficulty].spawn_rate  // seconds
-    current_wave: 1
-    targets_per_wave: 10
-
-    on_update {
-      if (enabled && targets_remaining == 0) {
-        spawn_wave()
-      }
-    }
-
-    spawn_wave {
-      targets_remaining = targets_per_wave
-
-      for (i = 0; i < targets_per_wave; i++) {
-        wait: spawn_rate * i
-
-        // Randomly select target type
-        target_type = weighted_random([
-          { type: "basic", weight: 0.5 },
-          { type: "moving", weight: 0.3 },
-          { type: "drone", weight: 0.2 }
-        ])
-
-        spawn_point = random_element(spawn_points)
-
-        spawn_target: {
-          type: target_type,
-          position: spawn_point
-        }
-      }
-
-      current_wave += 1
-    }
+    geometry: "cube"
+    position: [2, 0.5, -2]
+    scale: 0.4
+    color: "#8b4513"
   }
 
-  // ===== POWER-UPS =====
+  // Cover wall 1
+  object "CoverWall1" {
+    @collidable
 
-  powerup#health @collectible {
-    model: "health_pack.glb"
-    scale: { x: 0.5, y: 0.5, z: 0.5 }
-
-    // Floating animation
-    animate {
-      property: "position_y"
-      from: 0
-      to: 0.3
-      duration: 1.5
-      loop: true
-      easing: "ease_in_out"
-    }
-
-    on_collect {
-      player.health += 25
-      play_audio: "health_pickup.mp3"
-      show_toast: "+25 Health"
-      destroy: this
-    }
+    geometry: "cube"
+    position: [-6, 1, -4]
+    scale: [2, 2, 0.3]
+    color: "#696969"
   }
 
-  powerup#ammo @collectible {
-    model: "ammo_box.glb"
+  // Cover wall 2
+  object "CoverWall2" {
+    @collidable
 
-    on_collect {
-      player.current_weapon.current_ammo = player.current_weapon.stats.magazine_size
-      player.reserve_ammo += 30
-      play_audio: "ammo_pickup.mp3"
-      show_toast: "Ammo Refilled"
-      destroy: this
-    }
+    geometry: "cube"
+    position: [6, 1, -4]
+    scale: [2, 2, 0.3]
+    color: "#696969"
   }
 
-  powerup#damage_boost @collectible @temporary {
-    model: "damage_orb.glb"
-    emissive: true
-    emissive_color: #ff0000
+  // Score panel
+  object "ScoreDisplay" {
+    @glowing
 
-    on_collect {
-      player.damage_multiplier = 2.0
-      wait: 10  // seconds
-      player.damage_multiplier = 1.0
-      show_toast: "Damage Boost!"
-      play_audio: "powerup_collect.mp3"
-      destroy: this
-    }
+    geometry: "plane"
+    position: [0, 3, -8]
+    scale: [2, 1, 1]
+    color: "#000000"
   }
 
-  // ===== SCORING & UI =====
+  // Spawn point markers
+  object "SpawnMarker1" {
+    @glowing
 
-  ui#hud @in_game {
-    // Score display
-    text#score {
-      position: "top_left"
-      offset: { x: 20, y: 20 }
-      font_size: 36
-      color: #ffff00
-      content: "SCORE: {player.score}"
-      font_weight: "bold"
-    }
-
-    text#combo {
-      position: "top_left"
-      offset: { x: 20, y: 70 }
-      font_size: 24
-      color: #ff8800
-      content: "COMBO: {player.combo}x"
-      visible: player.combo > 1
-    }
-
-    // Ammo counter
-    text#ammo {
-      position: "bottom_right"
-      offset: { x: -120, y: -60 }
-      font_size: 48
-      color: #ffffff
-      content: "{current_weapon.current_ammo} / {reserve_ammo}"
-    }
-
-    // Health bar
-    progress_bar#health {
-      position: "bottom_left"
-      offset: { x: 20, y: -60 }
-      size: { x: 200, y: 30 }
-      color: #ff0000
-      background: #330000
-      value: player.health / player.max_health
-    }
-
-    // Wave indicator
-    text#wave {
-      position: "top_center"
-      offset: { y: 20 }
-      font_size: 28
-      color: #00ffff
-      content: "WAVE {current_wave}"
-    }
+    geometry: "cylinder"
+    position: [-2, 0.1, 2]
+    scale: [0.5, 0.2, 0.5]
+    color: "#00ff00"
   }
 
-  // Floating damage numbers
-  ui#damage_numbers @world_space {
-    on_target_hit {
-      spawn_floating_text: {
-        text: "-{damage}"
-        position: hit_position
-        color: damage_is_critical ? #ff0000 : #ffffff
-        font_size: damage_is_critical ? 48 : 32
-        duration: 1.0
-        animation: "float_up_fade"
-      }
-    }
+  object "SpawnMarker2" {
+    @glowing
+
+    geometry: "cylinder"
+    position: [2, 0.1, 2]
+    scale: [0.5, 0.2, 0.5]
+    color: "#00ff00"
   }
 
-  // ===== GAME STATE MACHINE =====
+  // Barrier
+  object "Barrier" {
+    @collidable
 
-  game_state_machine {
-    initial_state: "main_menu"
-
-    state#main_menu {
-      on_enter {
-        show_menu: true
-        disable_gameplay: true
-        reset_game: true
-      }
-
-      on_start_button_pressed {
-        transition_to: "playing"
-      }
-    }
-
-    state#playing {
-      on_enter {
-        hide_menu: true
-        enable_gameplay: true
-        spawner.enabled = true
-        start_timer: true
-      }
-
-      on_update {
-        update_gameplay()
-
-        if (player.health <= 0) {
-          transition_to: "game_over"
-        }
-      }
-    }
-
-    state#game_over {
-      on_enter {
-        spawner.enabled = false
-        stop_timer: true
-        calculate_final_score()
-        show_game_over_screen: true
-
-        if (player.score > high_score) {
-          high_score = player.score
-          save_high_score()
-          show_new_high_score_animation()
-        }
-      }
-
-      on_restart_button_pressed {
-        transition_to: "main_menu"
-      }
-    }
-  }
-
-  // Main menu UI
-  ui#main_menu @menu {
-    visible: game_state == "main_menu"
-    position: "center"
-
-    panel {
-      size: { x: 600, y: 800 }
-      background: #000000cc
-      border_radius: 20
-
-      text#title {
-        position: { y: 50 }
-        content: "TARGET PRACTICE VR"
-        font_size: 48
-        font_weight: "bold"
-        color: #ffffff
-        align: "center"
-      }
-
-      button#start_game {
-        position: { y: 400 }
-        size: { x: 400, y: 80 }
-        background: #4caf50
-        text: "START GAME"
-        text_color: #ffffff
-        font_size: 32
-        border_radius: 10
-
-        on_tap {
-          start_game()
-        }
-      }
-
-      button#settings {
-        position: { y: 500 }
-        size: { x: 400, y: 60 }
-        background: #2196f3
-        text: "SETTINGS"
-        text_color: #ffffff
-        font_size: 24
-        border_radius: 10
-
-        on_tap {
-          show_settings_menu()
-        }
-      }
-
-      text#high_score {
-        position: { y: 650 }
-        content: "HIGH SCORE: {high_score}"
-        font_size: 24
-        color: #ffff00
-        align: "center"
-      }
-    }
-  }
-
-  // Game over screen
-  ui#game_over_screen @menu {
-    visible: game_state == "game_over"
-    position: "center"
-
-    panel {
-      size: { x: 600, y: 600 }
-      background: #000000ee
-      border_radius: 20
-
-      text#game_over {
-        position: { y: 50 }
-        content: "GAME OVER"
-        font_size: 48
-        color: #ff0000
-        align: "center"
-      }
-
-      text#final_score {
-        position: { y: 150 }
-        content: "FINAL SCORE: {player.score}"
-        font_size: 36
-        color: #ffffff
-        align: "center"
-      }
-
-      text#stats {
-        position: { y: 250 }
-        content: "Targets Destroyed: {targets_destroyed}\nAccuracy: {accuracy}%\nBest Combo: {best_combo}x"
-        font_size: 20
-        color: #cccccc
-        align: "center"
-        line_height: 1.5
-      }
-
-      button#restart {
-        position: { y: 450 }
-        size: { x: 400, y: 80 }
-        background: #4caf50
-        text: "PLAY AGAIN"
-        text_color: #ffffff
-        font_size: 28
-        border_radius: 10
-
-        on_tap {
-          restart_game()
-        }
-      }
-    }
-  }
-
-  // ===== VR PLAYER SETUP =====
-
-  camera#player @vr @first_person {
-    fov: 90
-    near: 0.1
-    far: 200
-    position: { x: 0, y: 1.7, z: -5 }
-
-    stats {
-      health: 100
-      max_health: 100
-      score: 0
-      combo: 0
-      accuracy: 0
-    }
-
-    controller#left_hand @utility {
-      model: "vr_controller_left.glb"
-
-      // Weapon selection wheel
-      on_button_x {
-        show_weapon_wheel()
-      }
-
-      // Reload
-      on_button_y {
-        current_weapon.reload()
-      }
-    }
-
-    controller#right_hand @weapon {
-      model: "vr_controller_right.glb"
-
-      // Fire weapon
-      on_trigger_press {
-        current_weapon.fire()
-      }
-
-      // Grab weapon
-      grab_enabled: true
-      on_grab(weapon) {
-        current_weapon = weapon
-      }
-    }
-
-    // Desktop fallback (mouse + keyboard)
-    fallback_mode: "first_person_shooter"
-    mouse_sensitivity: 2.0
-    movement_speed: 0  // Standing only (shooting range)
-
-    on_key("r") {
-      current_weapon.reload()
-    }
-
-    on_mouse_left_click {
-      current_weapon.fire()
-    }
-  }
-
-  // ===== SETTINGS =====
-
-  settings {
-    // Graphics
-    graphics_quality: "high"
-    shadow_quality: "medium"
-    particle_quality: "high"
-    antialiasing: true
-    target_fps: 90
-
-    // Audio
-    master_volume: 1.0
-    sfx_volume: 0.8
-    music_volume: 0.5
-
-    // Gameplay
-    difficulty: "normal"
-    show_damage_numbers: true
-    auto_reload: true
-    haptic_feedback: true
-
-    // Accessibility
-    colorblind_mode: "none"
-    reduce_flash: false
-    subtitle_size: "medium"
+    geometry: "cube"
+    position: [0, 0.5, 0]
+    rotation: [0, 45, 0]
+    scale: [5, 1, 0.2]
+    color: "#ff6600"
   }
 }

@@ -1,768 +1,241 @@
-// HoloScript VRChat Example
-// Social hub world with VRChat SDK and Udon# features
-// Compiles to: Unity with VRChat SDK3 + Udon#
+// VRChat Social Hub
+// Social VR world with interactive features
 
-composition "VRChatSocialHub" {
-  metadata {
-    name: "Social Hub World"
-    description: "VRChat world with mirrors, video players, and interactive Udon scripts"
-    version: "1.0.0"
-    vrchat_sdk_version: "3.5.0"
-    capacity: 32  // Max players
+composition "Social Hub World" {
+
+  // Hub floor
+  object "HubFloor" {
+    @collidable
+
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [40, 1, 40]
+    color: "#607d8b"
   }
 
-  // ============================================================================
-  // VRCHAT WORLD CONFIGURATION
-  // ============================================================================
+  // Central fountain
+  object "FountainBase" {
+    @collidable
 
-  vrchat_world#config @vrchat_sdk3 {
-    world_name: "Social Hub - HoloScript Demo"
-    author: "Your Name"
-    description: "A social VRChat world built with HoloScript"
-
-    capacity {
-      recommended: 16
-      maximum: 32
-    }
-
-    spawn_points {
-      count: 8
-      spread_radius: 5  // meters
-    }
-
-    world_settings {
-      allow_avatars: true
-      force_avatar_scaling: false
-      disable_avatar_audio: false
-
-      respawn_height: -100  // Y position to respawn
-      reference_camera_position: { x: 0, y: 1.6, z: 0 }
-    }
-
-    optimization {
-      use_occlusion_culling: true
-      dynamic_batching: true
-      use_lightmaps: true
-    }
-
-    tags: ["social", "hangout", "music", "chill"]
+    geometry: "cylinder"
+    position: [0, 0.5, 0]
+    scale: [2, 1, 2]
+    color: "#78909c"
   }
 
-  // ============================================================================
-  // ENVIRONMENT
-  // ============================================================================
+  object "FountainWater" {
+    @glowing
 
-  environment {
-    skybox: "starry_night"
-    ambient_light: { intensity: 0.4, color: #4a4a6a }
-
-    fog {
-      enabled: true
-      color: #2a2a3a
-      start_distance: 30
-      end_distance: 100
-    }
-
-    lighting {
-      mode: "baked"  // VRChat performance requirement
-      lightmap_resolution: 1024
-    }
+    geometry: "cylinder"
+    position: [0, 1.2, 0]
+    scale: [1.5, 0.8, 1.5]
+    color: "#00bcd4"
   }
 
-  // Main platform
-  object#main_platform @static {
-    type: "box"
-    size: { x: 30, y: 0.5, z: 30 }
-    position: { x: 0, y: 0, z: 0 }
+  // Mirror wall
+  object "MirrorWall" {
+    @collidable
 
-    material {
-      type: "pbr"
-      base_color: #2a2a4a
-      metallic: 0.5
-      roughness: 0.5
-
-      shader: "standard"  // VRChat compatible
-    }
-
-    collision {
-      enabled: true
-      type: "box"
-    }
-
-    layer: "Default"
-  }
-
-  // Spawn points (VRChat specific)
-  for i in range(8) {
-    object#spawn_point_{i} @vrchat_spawn {
-      unity_components: ["VRC_SceneDescriptor.SpawnLocation"]
-
-      position: {
-        x: cos(i * 45) * 5,
-        y: 0.5,
-        z: sin(i * 45) * 5
-      }
-
-      rotation: {
-        y: i * 45 + 180  // Face inward
-      }
-
-      // Spawn order
-      spawn_order: i
-    }
-  }
-
-  // ============================================================================
-  // VRCHAT MIRROR
-  // ============================================================================
-
-  object#mirror @vrchat_mirror {
-    unity_components: ["VRC_MirrorReflection"]
-
-    type: "plane"
-    size: { x: 5, y: 3 }
-    position: { x: 0, y: 2, z: -10 }
-    rotation: { x: 0, y: 0, z: 0 }
-
-    material {
-      shader: "vrchat/mobile/mirror"
-      base_color: #ffffff
-    }
-
-    mirror_settings {
-      disable_pixel_lights: false
-      turn_off_mirror_occlusion: false
-      reflect_layers: ["Default", "PlayerLocal", "Player"]
-
-      // Performance layers (Quest optimization)
-      custom_culling_mask: ["Water", "UI"]
-    }
-
-    // Mirror toggle (Udon script)
-    udon_behavior#mirror_toggle {
-      program: "MirrorToggle"
-
-      variables {
-        mirror_object: this
-        is_enabled: true
-      }
-
-      on_interact() {
-        is_enabled = !is_enabled
-
-        if (is_enabled) {
-          enable_mirror: this
-        } else {
-          disable_mirror: this
-        }
-      }
-    }
-
-    // UI toggle button
-    ui#mirror_controls @world_space {
-      position: { x: 2.6, y: -0.5, z: 0 }
-      scale: { x: 0.001, y: 0.001, z: 0.001 }
-
-      button#toggle {
-        text: "Toggle Mirror"
-        size: { width: 200, height: 60 }
-
-        on_click {
-          udon_behavior#mirror_toggle.on_interact()
-        }
-      }
-    }
+    geometry: "cube"
+    position: [0, 2.5, -10]
+    scale: [8, 5, 0.2]
+    color: "#b0bec5"
   }
 
   // Mirror frame
-  object#mirror_frame @static {
-    model: "mirror_frame.glb"
-    position: { x: 0, y: 2, z: -10 }
-    scale: { x: 5.2, y: 3.2, z: 0.2 }
+  object "MirrorFrame" {
+    @collidable
 
-    material {
-      base_color: #8b7355
-      metallic: 0.3
-      roughness: 0.7
-    }
+    geometry: "cube"
+    position: [0, 2.5, -10]
+    scale: [8.5, 5.5, 0.1]
+    color: "#37474f"
   }
 
-  // ============================================================================
-  // VRCHAT VIDEO PLAYER (AVPro)
-  // ============================================================================
+  // Video screen wall
+  object "VideoScreen" {
+    @clickable
+    @glowing
 
-  object#video_screen @vrchat_video_player {
-    unity_components: ["VRC_AVProVideoPlayer"]
-
-    type: "plane"
-    size: { x: 6, y: 4 }
-    position: { x: 10, y: 3, z: 0 }
-    rotation: { y: -90 }
-
-    material {
-      shader: "vrchat/mobile/unlit"
-      main_texture: video_texture  // Assigned by AVPro
-    }
-
-    video_player_settings {
-      use_avpro: true  // AVPro for livestreams
-      use_unity_video: false
-
-      default_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-      auto_play: false
-      loop: true
-      muted: false
-      volume: 0.5
-
-      // Audio source
-      audio_mode: "spatial"
-      spatial_audio_settings {
-        min_distance: 5
-        max_distance: 50
-        rolloff: "logarithmic"
-      }
-    }
-
-    // Udon video player controller
-    udon_behavior#video_controller {
-      program: "VideoPlayerController"
-
-      variables {
-        video_player: this
-        current_url: ""
-        is_playing: false
-        is_owner: false  // Only instance master can control
-      }
-
-      // VRChat events
-      on_player_joined(player) {
-        if (is_instance_owner(player)) {
-          is_owner = true
-        }
-      }
-
-      // Udon functions
-      function play_video() {
-        if (!is_owner) {
-          show_message: "Only instance owner can control"
-          return
-        }
-
-        video_player.play()
-        is_playing = true
-
-        send_custom_network_event: "OnVideoPlayed"
-      }
-
-      function pause_video() {
-        if (!is_owner) return
-
-        video_player.pause()
-        is_playing = false
-
-        send_custom_network_event: "OnVideoPaused"
-      }
-
-      function load_url(url) {
-        if (!is_owner) return
-
-        current_url = url
-        video_player.load_url: url
-
-        send_custom_network_event: "OnURLChanged"
-      }
-
-      // Networked events (synced across all players)
-      on_custom_network_event("OnVideoPlayed") {
-        video_player.play()
-      }
-
-      on_custom_network_event("OnVideoPaused") {
-        video_player.pause()
-      }
-
-      on_custom_network_event("OnURLChanged") {
-        video_player.load_url: current_url
-      }
-    }
-
-    // Video player UI
-    ui#video_controls @world_space {
-      position: { x: -3.1, y: -0.5, z: 0 }
-      scale: { x: 0.001, y: 0.001, z: 0.001 }
-
-      button#play {
-        text: "▶ Play"
-        position: { x: -100, y: 0 }
-        size: { width: 80, height: 50 }
-
-        on_click {
-          udon_behavior#video_controller.play_video()
-        }
-      }
-
-      button#pause {
-        text: "⏸ Pause"
-        position: { x: 0, y: 0 }
-        size: { width: 80, height: 50 }
-
-        on_click {
-          udon_behavior#video_controller.pause_video()
-        }
-      }
-
-      input_field#url_input {
-        position: { x: 100, y: 50 }
-        size: { width: 250, height: 40 }
-        placeholder: "YouTube/Twitch URL"
-      }
-
-      button#load_url {
-        text: "Load URL"
-        position: { x: 100, y: 0 }
-        size: { width: 100, height: 40 }
-
-        on_click {
-          new_url = url_input.text
-          udon_behavior#video_controller.load_url: new_url
-        }
-      }
-    }
+    geometry: "plane"
+    position: [10, 3, 0]
+    rotation: [0, -90, 0]
+    scale: [6, 4, 1]
+    color: "#000000"
   }
 
-  // ============================================================================
-  // AVATAR PEDESTALS
-  // ============================================================================
+  // Screen frame
+  object "ScreenFrame" {
+    @collidable
 
-  for i in range(4) {
-    object#avatar_pedestal_{i} @vrchat_avatar_pedestal {
-      unity_components: ["VRC_AvatarPedestal"]
-
-      type: "cylinder"
-      size: { radius: 0.5, height: 0.2 }
-      position: {
-        x: -10,
-        y: 0.1,
-        z: -5 + i * 3
-      }
-
-      material {
-        base_color: #6a5acd
-        emission: #6a5acd
-        emission_intensity: 0.5
-      }
-
-      avatar_pedestal_settings {
-        avatar_id: ""  // Set in Unity Inspector
-        placement: "pedestal"  // or "wall"
-
-        scale: { x: 1, y: 1, z: 1 }
-        rotation: { y: 90 }  // Face right
-      }
-
-      // Interaction
-      on_interact(player) {
-        switch_avatar: avatar_id
-        show_message: "Avatar switched!"
-      }
-
-      // Glow animation
-      animation#glow {
-        type: "emission_intensity"
-        keyframes {
-          0.0: { intensity: 0.5 }
-          0.5: { intensity: 1.0 }
-          1.0: { intensity: 0.5 }
-        }
-        duration: 2
-        loop: true
-      }
-    }
+    geometry: "cube"
+    position: [10.1, 3, 0]
+    rotation: [0, -90, 0]
+    scale: [6.5, 4.5, 0.2]
+    color: "#263238"
   }
 
-  // ============================================================================
-  // INTERACTIVE OBJECTS (UDON#)
-  // ============================================================================
+  // Avatar pedestals
+  object "Pedestal1" {
+    @collidable
+    @clickable
 
-  // Pickup object (synced physics)
-  object#ball @vrchat_pickup {
-    unity_components: ["VRC_Pickup"]
-
-    type: "sphere"
-    size: { radius: 0.15 }
-    position: { x: 5, y: 1, z: 5 }
-
-    material {
-      base_color: #ff6347
-      metallic: 0.2
-      roughness: 0.8
-    }
-
-    physics {
-      type: "dynamic"
-      mass: 0.5
-      use_gravity: true
-      use_auto_hold: true  // VRChat auto-hold on grab
-    }
-
-    pickup_settings {
-      disallow_theft: false  // Allow others to take it
-      exact_gun: false  // Attach to hand
-      exact_grip: false
-
-      allow_manipulation_when_equipped: true
-      orientation: "grip"  // or "gun"
-
-      throw_velocity_boost_min_speed: 3
-      throw_velocity_boost_scale: 1.1
-    }
-
-    // Udon script for pickup events
-    udon_behavior#ball_pickup {
-      program: "PickupEvents"
-
-      on_pickup() {
-        // Visual feedback
-        set_material_color: #00ff00
-        play_sound: "pickup.wav"
-      }
-
-      on_drop() {
-        set_material_color: #ff6347
-      }
-
-      on_pickup_use_down() {
-        // Use button pressed
-        apply_force: { x: 0, y: 10, z: 0 }
-        play_sound: "bounce.wav"
-      }
-    }
+    geometry: "cylinder"
+    position: [-8, 0.5, -8]
+    scale: [0.8, 1, 0.8]
+    color: "#673ab7"
   }
 
-  // Interactive button (Udon script)
-  object#color_button @interactive {
-    type: "box"
-    size: { x: 0.5, y: 0.5, z: 0.1 }
-    position: { x: -5, y: 1.5, z: 5 }
+  object "Pedestal2" {
+    @collidable
+    @clickable
 
-    material {
-      base_color: #ff0000
-      emission: #ff0000
-      emission_intensity: 0.5
-    }
-
-    udon_behavior#color_changer {
-      program: "ColorChanger"
-
-      variables {
-        current_color_index: 0
-        colors: [#ff0000, #00ff00, #0000ff, #ffff00, #ff00ff]
-        target_object: main_platform
-      }
-
-      synced_variables {
-        networked_color_index: 0  // Synced across all clients
-      }
-
-      on_interact() {
-        current_color_index = (current_color_index + 1) % colors.length
-        networked_color_index = current_color_index
-
-        // Change platform color
-        target_object.material.base_color = colors[current_color_index]
-
-        // Network sync
-        request_serialization()
-      }
-
-      on_deserialization() {
-        // Receive networked update
-        current_color_index = networked_color_index
-        target_object.material.base_color = colors[current_color_index]
-      }
-    }
-
-    // UI label
-    ui#button_label @world_space {
-      position: { x: 0, y: 0.4, z: 0 }
-      scale: { x: 0.001, y: 0.001, z: 0.001 }
-
-      text {
-        text: "Change Platform Color"
-        font_size: 24
-        color: #ffffff
-      }
-    }
+    geometry: "cylinder"
+    position: [-6, 0.5, -8]
+    scale: [0.8, 1, 0.8]
+    color: "#673ab7"
   }
 
-  // ============================================================================
-  // PORTAL (WORLD TELEPORT)
-  // ============================================================================
+  object "Pedestal3" {
+    @collidable
+    @clickable
 
-  object#portal @vrchat_portal {
-    unity_components: ["VRC_PortalMarker"]
-
-    type: "plane"
-    size: { x: 2, y: 3 }
-    position: { x: 0, y: 1.5, z: 10 }
-
-    material {
-      shader: "vrchat/mobile/unlit"
-      base_color: #00ffff
-      emission: #00ffff
-      emission_intensity: 1.0
-
-      // Animated portal effect
-      main_texture: "portal_swirl.gif"
-    }
-
-    portal_settings {
-      target_world_id: "wrld_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-      // Get from VRChat world page
-
-      room_id: ""  // Leave empty for any instance
-    }
-
-    // Portal frame
-    particle_effect#portal_particles {
-      position: { x: 0, y: 0, z: 0 }
-      max_particles: 100
-      emission_rate: 20
-      lifetime: 2.0
-      size: 0.1
-
-      color_gradient: [#00ffff, #0088ff, #00ffff]
-
-      shape: "sphere"
-      radius: 2.0
-    }
-
-    // UI label
-    ui#portal_label @world_space {
-      position: { x: 0, y: 1.7, z: 0 }
-
-      text {
-        text: "Portal to Another World"
-        font_size: 32
-        color: #00ffff
-      }
-    }
+    geometry: "cylinder"
+    position: [-4, 0.5, -8]
+    scale: [0.8, 1, 0.8]
+    color: "#673ab7"
   }
 
-  // ============================================================================
-  // WORLD TRIGGERS (UDON)
-  // ============================================================================
+  // Sitting area - Benches
+  object "Bench1" {
+    @collidable
 
-  // Trigger zone example
-  object#trigger_zone @trigger {
-    type: "box"
-    size: { x: 5, y: 3, z: 5 }
-    position: { x: 15, y: 1.5, z: 0 }
-
-    physics {
-      trigger: true  // No collision, just detection
-    }
-
-    udon_behavior#zone_trigger {
-      program: "TriggerZone"
-
-      variables {
-        player_count: 0
-      }
-
-      on_trigger_enter(other) {
-        if (other.tag == "Player") {
-          player_count += 1
-
-          show_notification: {
-            text: "{{ player_count }} players in zone"
-          }
-
-          // Play sound
-          play_sound: "zone_enter.wav"
-
-          // Visual feedback
-          set_emission_intensity: 1.5
-        }
-      }
-
-      on_trigger_exit(other) {
-        if (other.tag == "Player") {
-          player_count -= 1
-
-          if (player_count == 0) {
-            set_emission_intensity: 0.5
-          }
-        }
-      }
-    }
-
-    // Visualization (invisible in game)
-    material {
-      base_color: #00ff0050  // Transparent green
-      shader: "vrchat/mobile/unlit"
-    }
+    geometry: "cube"
+    position: [5, 0.4, 5]
+    scale: [3, 0.8, 0.6]
+    color: "#8d6e63"
   }
 
-  // ============================================================================
-  // UDON# CUSTOM SCRIPTS
-  // ============================================================================
+  object "Bench2" {
+    @collidable
 
-  // Player join/leave notifications
-  udon_behavior#player_events @global {
-    program: "PlayerEventsGlobal"
-
-    on_player_joined(player) {
-      player_name = player.display_name
-
-      show_notification: {
-        text: "{{ player_name }} joined the world!"
-        duration: 3
-        color: #00ff00
-      }
-
-      play_sound: "player_join.wav"
-    }
-
-    on_player_left(player) {
-      player_name = player.display_name
-
-      show_notification: {
-        text: "{{ player_name }} left the world"
-        duration: 3
-        color: #ff6600
-      }
-    }
+    geometry: "cube"
+    position: [-5, 0.4, 5]
+    scale: [3, 0.8, 0.6]
+    color: "#8d6e63"
   }
 
-  // World timer (Udon clock)
-  udon_behavior#world_clock @global {
-    program: "WorldClock"
+  // Interactive props
+  object "Ball1" {
+    @grabbable
+    @physics
+    @collidable
+    @throwable
 
-    variables {
-      start_time: 0.0
-      elapsed_seconds: 0.0
-    }
-
-    on_start() {
-      start_time = network_time
-    }
-
-    on_update() {
-      elapsed_seconds = network_time - start_time
-
-      // Update UI
-      update_clock_display: elapsed_seconds
-    }
+    geometry: "sphere"
+    position: [3, 0.3, 3]
+    scale: 0.3
+    color: "#f44336"
   }
 
-  // ============================================================================
-  // UI - WORLD INFO
-  // ============================================================================
+  object "Ball2" {
+    @grabbable
+    @physics
+    @collidable
+    @throwable
 
-  ui#world_info @canvas {
-    render_mode: "world_space"
-    position: { x: 0, y: 4, z: -10 }
-    rotation: { x: 0, y: 0, z: 0 }
-    scale: { x: 0.001, y: 0.001, z: 0.001 }
-
-    text#world_title {
-      text: "Social Hub World"
-      font_size: 48
-      color: #ffffff
-      alignment: "center"
-      position: { x: 0, y: 100 }
-    }
-
-    text#world_description {
-      text: "Built with HoloScript • Mirrors • Video Players • Portals"
-      font_size: 24
-      color: #cccccc
-      alignment: "center"
-      position: { x: 0, y: 50 }
-    }
-
-    text#player_count {
-      text: "Players: {{ current_players }} / {{ max_capacity }}"
-      font_size: 20
-      color: #00ff00
-      position: { x: 0, y: 0 }
-    }
-
-    text#world_timer {
-      text: "Uptime: {{ format_time(elapsed_seconds) }}"
-      font_size: 18
-      color: #ffff00
-      position: { x: 0, y: -30 }
-    }
+    geometry: "sphere"
+    position: [-3, 0.3, 3]
+    scale: 0.3
+    color: "#4caf50"
   }
 
-  // ============================================================================
-  // LIGHTING
-  // ============================================================================
+  object "Ball3" {
+    @grabbable
+    @physics
+    @collidable
+    @throwable
 
-  light#sun @directional {
-    rotation: { x: 50, y: -30, z: 0 }
-    color: #fffacd
-    intensity: 0.8
-
-    shadows {
-      enabled: true
-      type: "soft"
-      resolution: "high"
-      distance: 50
-    }
-
-    // Baked (VRChat requirement)
-    mode: "baked"
+    geometry: "sphere"
+    position: [0, 0.3, 4]
+    scale: 0.3
+    color: "#2196f3"
   }
 
-  // Accent lights
-  for i in range(4) {
-    light#accent_{i} @point {
-      position: {
-        x: cos(i * 90) * 10,
-        y: 3,
-        z: sin(i * 90) * 10
-      }
+  // Portal
+  object "Portal" {
+    @clickable
+    @glowing
 
-      color: hsl(i * 90, 0.8, 0.6)
-      intensity: 2.0
-      range: 10
-
-      mode: "baked"
-    }
+    geometry: "plane"
+    position: [-10, 2.5, 0]
+    rotation: [0, 90, 0]
+    scale: [3, 4, 1]
+    color: "#9c27b0"
   }
 
-  // ============================================================================
-  // EXPORT CONFIGURATION
-  // ============================================================================
+  // Ambient lights
+  object "Light1" {
+    @glowing
 
-  export#vrchat_sdk3 {
-    target: "unity"
-    platform: "vrchat"
-    sdk_version: "3.5.0"
+    geometry: "sphere"
+    position: [8, 4, 8]
+    scale: 0.5
+    color: "#ffeb3b"
+  }
 
-    output_directory: "./build/vrchat/"
+  object "Light2" {
+    @glowing
 
-    unity_version: "2022.3.6f1"  // VRChat-approved version
+    geometry: "sphere"
+    position: [-8, 4, 8]
+    scale: 0.5
+    color: "#ffeb3b"
+  }
 
-    packages {
-      vrchat_sdk: "3.5.0"
-      vrchat_udon: "1.1.9"
-      textmeshpro: "latest"
-    }
+  object "Light3" {
+    @glowing
 
-    world_settings {
-      content_warnings: []  // "nudity", "violence", "gore", "adult_language"
-      release_status: "private"  // or "public"
-      tags: ["social", "hangout"]
-    }
+    geometry: "sphere"
+    position: [8, 4, -8]
+    scale: 0.5
+    color: "#ffeb3b"
+  }
 
-    optimization {
-      build_target: "android"  // For Quest compatibility
-      compress_assets: true
-      strip_debug_symbols: true
-    }
+  object "Light4" {
+    @glowing
+
+    geometry: "sphere"
+    position: [-8, 4, -8]
+    scale: 0.5
+    color: "#ffeb3b"
+  }
+
+  // Spawn points
+  object "SpawnPoint1" {
+    @glowing
+
+    geometry: "cylinder"
+    position: [0, 0.05, 10]
+    scale: [0.8, 0.1, 0.8]
+    color: "#4caf50"
+  }
+
+  object "SpawnPoint2" {
+    @glowing
+
+    geometry: "cylinder"
+    position: [3, 0.05, 10]
+    scale: [0.8, 0.1, 0.8]
+    color: "#4caf50"
+  }
+
+  object "SpawnPoint3" {
+    @glowing
+
+    geometry: "cylinder"
+    position: [-3, 0.05, 10]
+    scale: [0.8, 0.1, 0.8]
+    color: "#4caf50"
   }
 }

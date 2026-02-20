@@ -1,806 +1,183 @@
-// HoloScript Multiplayer VR Example
-// Collaborative virtual meeting space with voice chat and shared interactions
-// Compiles to: Unity (Photon/Mirror), Unreal (Replication), WebXR (WebRTC)
+// Multiplayer VR Meeting Space
+// Collaborative workspace with voice chat
 
-composition "VRMeetingSpace" {
-  metadata {
-    name: "Collaborative VR Meeting Room"
-    description: "Multi-user VR workspace with voice chat and shared whiteboards"
-    max_players: 16
-    version: "1.0.0"
+composition "VR Meeting Room" {
+
+  // Meeting room floor
+  object "MeetingFloor" {
+    @collidable
+
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [15, 1, 15]
+    color: "#ecf0f1"
   }
 
-  // ============================================================================
-  // NETWORK CONFIGURATION
-  // ============================================================================
+  // Conference table
+  object "ConferenceTable" {
+    @collidable
 
-  network_manager#multiplayer @photon {
-    app_id: "YOUR_PHOTON_APP_ID"
-    region: "us"
-    max_players_per_room: 16
-
-    matchmaking {
-      mode: "random"  // or "friends_only", "public", "private"
-
-      filters {
-        region: "auto"
-        skill_level: "any"
-        language_preference: "auto"
-      }
-    }
-
-    connection {
-      protocol: "udp"  // Photon Realtime
-      serialization: "binary"
-      compression: true
-
-      timeout {
-        connect: 10000  // ms
-        disconnect: 5000
-      }
-    }
-
-    // Sync frequency
-    send_rate: 20  // Updates per second
-    serialization_rate: 10  // Full state syncs per second
+    geometry: "cube"
+    position: [0, 0.75, 0]
+    scale: [6, 1.5, 3]
+    color: "#8b4513"
   }
 
-  // Alternative: WebRTC for browser-based VR
-  network_manager#webrtc @webxr_compatible {
-    signaling_server: "wss://meeting.example.com/signaling"
-    stun_servers: ["stun:stun.l.google.com:19302"]
+  // Chair 1
+  object "Chair1" {
+    @collidable
 
-    turn_servers {
-      url: "turn:turn.example.com:3478"
-      username: "user"
-      credential: "pass"
-    }
-
-    peer_connection {
-      audio: true
-      video: false  // Camera feed (optional)
-      data_channel: true
-    }
+    geometry: "cube"
+    position: [-2, 0.5, 2]
+    scale: [0.6, 1, 0.6]
+    color: "#2c3e50"
   }
 
-  // ============================================================================
-  // LOBBY SYSTEM
-  // ============================================================================
+  // Chair 2
+  object "Chair2" {
+    @collidable
 
-  ui#lobby_screen @canvas @network_ui {
-    visible: true
-    render_mode: "screen_space_overlay"
-
-    panel#room_list {
-      position: { x: 0, y: 0 }
-      size: { width: 400, height: 600 }
-
-      title_text: "Available Meeting Rooms"
-
-      // Dynamic room list (populated from network)
-      room_list_view {
-        on_room_discovered(room_info) {
-          add_room_entry: {
-            room_name: room_info.name
-            player_count: room_info.player_count
-            max_players: room_info.max_players
-            is_full: room_info.player_count >= room_info.max_players
-          }
-        }
-
-        on_room_clicked(room_id) {
-          network_manager.join_room: room_id
-          hide_lobby()
-        }
-      }
-
-      button#create_room {
-        text: "Create New Room"
-        position: { x: 0, y: -250 }
-
-        on_click {
-          show_create_room_dialog()
-        }
-      }
-
-      button#quick_join {
-        text: "Quick Join"
-        position: { x: 0, y: -200 }
-
-        on_click {
-          network_manager.join_random_room()
-          hide_lobby()
-        }
-      }
-    }
-
-    dialog#create_room {
-      visible: false
-
-      input_field#room_name {
-        placeholder: "Room Name"
-        default_value: "Meeting Room"
-      }
-
-      dropdown#max_players {
-        options: [4, 8, 12, 16]
-        default_value: 8
-      }
-
-      toggle#voice_chat {
-        label: "Enable Voice Chat"
-        default_value: true
-      }
-
-      button#confirm_create {
-        text: "Create Room"
-
-        on_click {
-          network_manager.create_room: {
-            name: room_name.value,
-            max_players: max_players.value,
-            is_visible: true,
-            custom_properties: {
-              voice_enabled: voice_chat.value
-            }
-          }
-
-          hide_lobby()
-        }
-      }
-    }
+    geometry: "cube"
+    position: [2, 0.5, 2]
+    scale: [0.6, 1, 0.6]
+    color: "#2c3e50"
   }
 
-  // ============================================================================
-  // NETWORKED PLAYER (VR RIG)
-  // ============================================================================
+  // Chair 3
+  object "Chair3" {
+    @collidable
 
-  player#vr_rig @networked @photon_view {
-    network_id: auto  // Photon assigns ViewID
-    ownership: "mine"  // or "master_client", "scene"
-
-    // Synchronize transform
-    transform_sync {
-      position: true
-      rotation: true
-      scale: false
-
-      interpolation: "lerp"
-      extrapolation: false
-
-      send_rate: 20  // Hz
-    }
-
-    // VR camera (head)
-    camera#head @vr @synced {
-      position: { x: 0, y: 1.7, z: 0 }
-
-      network_sync {
-        position: true
-        rotation: true
-      }
-
-      // Name tag above head
-      ui#player_name_tag @world_space {
-        text: network_player.nickname
-        position: { x: 0, y: 0.3, z: 0 }
-        size: { width: 0.5, height: 0.1 }
-
-        background_color: #000000aa
-        text_color: #ffffff
-
-        // Always face local player
-        billboard_mode: "camera_facing"
-      }
-    }
-
-    // VR controllers
-    controller#left_hand @vr @synced {
-      hand: "left"
-
-      network_sync {
-        position: true
-        rotation: true
-        button_states: true  // Sync grab/trigger
-      }
-
-      // Visual hand model
-      model {
-        source: "hand_left.glb"
-        material: player_color  // Each player has unique color
-      }
-
-      // Laser pointer for UI
-      laser_pointer {
-        enabled: true
-        color: player_color
-        max_distance: 10
-      }
-
-      // Grab interaction
-      grab_interactor @networked {
-        grab_distance: 0.3
-
-        on_grab(object) {
-          if (object.@grabbable && object.@networked) {
-            network_request_ownership: object
-
-            on_ownership_granted {
-              attach_to_hand: object
-              send_rpc: "OnObjectGrabbed", [object.network_id]
-            }
-          }
-        }
-
-        on_release(object) {
-          detach_from_hand: object
-          send_rpc: "OnObjectReleased", [object.network_id]
-        }
-      }
-    }
-
-    controller#right_hand @vr @synced {
-      hand: "right"
-
-      network_sync {
-        position: true
-        rotation: true
-        button_states: true
-      }
-
-      model {
-        source: "hand_right.glb"
-        material: player_color
-      }
-
-      laser_pointer {
-        enabled: true
-        color: player_color
-        max_distance: 10
-      }
-
-      grab_interactor @networked {
-        grab_distance: 0.3
-
-        on_grab(object) {
-          if (object.@grabbable && object.@networked) {
-            network_request_ownership: object
-
-            on_ownership_granted {
-              attach_to_hand: object
-              send_rpc: "OnObjectGrabbed", [object.network_id]
-            }
-          }
-        }
-
-        on_release(object) {
-          detach_from_hand: object
-          send_rpc: "OnObjectReleased", [object.network_id]
-        }
-      }
-    }
-
-    // Voice chat component
-    voice_chat#player_voice @photon_voice {
-      enabled: true
-      codec: "opus"
-
-      input {
-        device: "default_microphone"
-        sample_rate: 48000
-        bitrate: 30000  // 30 kbps
-      }
-
-      spatial_audio {
-        enabled: true
-        min_distance: 2.0  // Full volume within 2m
-        max_distance: 20.0  // Silent beyond 20m
-        rolloff: "linear"
-      }
-
-      voice_detection {
-        mode: "auto"  // or "push_to_talk", "always_on"
-        threshold: 0.01  // Voice activation threshold
-      }
-
-      // Visual voice indicator
-      indicator {
-        type: "particle_ring"
-        position: { x: 0, y: 0.2, z: 0 }  // Around head
-        color: #00ff00
-        intensity: voice_volume  // Animated
-      }
-    }
-
-    // Player color assignment
-    on_instantiate {
-      player_color = generate_color_from_id: network_id
-    }
-
-    // Spawn position
-    spawn_point {
-      mode: "round_robin"  // Cycle through spawn points
-      positions: [
-        { x: -3, y: 0, z: 0 },
-        { x: 3, y: 0, z: 0 },
-        { x: 0, y: 0, z: -3 },
-        { x: 0, y: 0, z: 3 }
-      ]
-    }
+    geometry: "cube"
+    position: [-2, 0.5, -2]
+    scale: [0.6, 1, 0.6]
+    color: "#2c3e50"
   }
 
-  // ============================================================================
-  // SHARED ENVIRONMENT
-  // ============================================================================
+  // Chair 4
+  object "Chair4" {
+    @collidable
 
-  environment {
-    skybox: "office_interior"
-    ambient_light: { intensity: 0.8, color: #ffffff }
-    fog: { enabled: false }
+    geometry: "cube"
+    position: [2, 0.5, -2]
+    scale: [0.6, 1, 0.6]
+    color: "#2c3e50"
   }
 
-  // Meeting room
-  object#meeting_room @static {
-    model: "conference_room.glb"
-    position: { x: 0, y: 0, z: 0 }
+  // Whiteboard
+  object "Whiteboard" {
+    @clickable
+    @collidable
 
-    collision {
-      enabled: true
-      type: "mesh"
-    }
+    geometry: "plane"
+    position: [0, 2, -5]
+    scale: [4, 2.5, 1]
+    color: "#ffffff"
   }
 
-  // Conference table (static)
-  object#conference_table @static {
-    type: "box"
-    size: { x: 4, y: 0.1, z: 2 }
-    position: { x: 0, y: 0.75, z: 0 }
+  // Marker 1 (red)
+  object "RedMarker" {
+    @grabbable
 
-    material {
-      type: "pbr"
-      base_color: #8b4513
-      metallic: 0.3
-      roughness: 0.7
-    }
+    geometry: "cylinder"
+    position: [-1.5, 1.5, -4.8]
+    rotation: [0, 0, 90]
+    scale: [0.05, 0.2, 0.05]
+    color: "#e74c3c"
   }
 
-  // Chairs (static)
-  for i in range(8) {
-    object#chair_{i} @static {
-      model: "office_chair.glb"
-      position: calculate_chair_position(i, 8)
-      rotation: calculate_chair_rotation(i, 8)
-    }
+  // Marker 2 (blue)
+  object "BlueMarker" {
+    @grabbable
+
+    geometry: "cylinder"
+    position: [-1, 1.5, -4.8]
+    rotation: [0, 0, 90]
+    scale: [0.05, 0.2, 0.05]
+    color: "#3498db"
   }
 
-  // ============================================================================
-  // NETWORKED INTERACTIVE OBJECTS
-  // ============================================================================
+  // Marker 3 (green)
+  object "GreenMarker" {
+    @grabbable
 
-  // Shared whiteboard
-  object#whiteboard_1 @networked @drawable {
-    network_id: "whiteboard_1"
-    ownership: "shared"  // Multiple users can draw
-
-    type: "plane"
-    size: { x: 3, y: 2 }
-    position: { x: 0, y: 1.5, z: -3 }
-    rotation: { x: 0, y: 0, z: 0 }
-
-    material {
-      type: "unlit"
-      base_color: #ffffff
-
-      // Drawing texture (synchronized)
-      drawing_texture {
-        resolution: { width: 2048, height: 1024 }
-        format: "rgba"
-
-        network_sync {
-          mode: "incremental"  // Only sync strokes, not full texture
-          compression: true
-        }
-      }
-    }
-
-    drawing_system {
-      brush {
-        size: 0.02  // meters
-        color: player_color  // Each player has own color
-        smoothing: 0.5
-      }
-
-      on_draw(stroke_data) {
-        apply_stroke: stroke_data
-
-        send_rpc: "DrawStroke", [
-          stroke_data.points,
-          stroke_data.color,
-          stroke_data.brush_size
-        ]
-      }
-
-      on_erase(erase_data) {
-        clear_area: erase_data
-        send_rpc: "EraseArea", [erase_data.bounds]
-      }
-    }
-
-    // Whiteboard UI
-    ui#whiteboard_controls @world_space {
-      position: { x: -1.6, y: -0.3, z: 0 }
-      size: { width: 0.3, height: 0.8 }
-
-      button#clear_board {
-        text: "Clear"
-
-        on_click {
-          if (network_is_master_client) {
-            send_rpc_all: "ClearWhiteboard", []
-          }
-        }
-      }
-
-      color_picker#brush_color {
-        on_color_changed(color) {
-          drawing_system.brush.color = color
-        }
-      }
-
-      slider#brush_size {
-        min: 0.01
-        max: 0.05
-        value: 0.02
-
-        on_value_changed(size) {
-          drawing_system.brush.size = size
-        }
-      }
-    }
+    geometry: "cylinder"
+    position: [-0.5, 1.5, -4.8]
+    rotation: [0, 0, 90]
+    scale: [0.05, 0.2, 0.05]
+    color: "#2ecc71"
   }
 
-  // Grabbable marker (physical)
-  object#marker_red @grabbable @networked {
-    network_id: auto
-    ownership: "request"  // Request when grabbed
+  // Presentation screen
+  object "Screen" {
+    @glowing
 
-    type: "cylinder"
-    size: { radius: 0.01, height: 0.15 }
-    position: { x: -0.5, y: 0.85, z: 0 }
-
-    material {
-      type: "pbr"
-      base_color: #ff0000
-      metallic: 0.1
-      roughness: 0.8
-    }
-
-    physics {
-      enabled: true
-      mass: 0.02  // kg
-      use_gravity: true
-    }
-
-    // Draw on whiteboard when touching
-    on_collision_stay(other) {
-      if (other.@drawable && is_grabbed) {
-        other.drawing_system.draw: {
-          position: collision_point,
-          color: #ff0000,
-          size: 0.02
-        }
-      }
-    }
+    geometry: "plane"
+    position: [6, 2.5, 0]
+    rotation: [0, -90, 0]
+    scale: [3, 2, 1]
+    color: "#000000"
   }
 
-  object#marker_blue @grabbable @networked {
-    network_id: auto
-    ownership: "request"
+  // Video camera
+  object "Camera" {
+    @rotatable
 
-    type: "cylinder"
-    size: { radius: 0.01, height: 0.15 }
-    position: { x: -0.3, y: 0.85, z: 0 }
-
-    material {
-      base_color: #0000ff
-    }
-
-    physics {
-      mass: 0.02
-      use_gravity: true
-    }
-
-    on_collision_stay(other) {
-      if (other.@drawable && is_grabbed) {
-        other.drawing_system.draw: {
-          position: collision_point,
-          color: #0000ff,
-          size: 0.02
-        }
-      }
-    }
+    geometry: "cube"
+    position: [0, 3, 4]
+    scale: [0.3, 0.2, 0.2]
+    color: "#34495e"
   }
 
-  // Shared 3D models (grabbable)
-  object#product_model @grabbable @networked {
-    network_id: auto
-    ownership: "request"
+  // Shared document
+  object "SharedDoc" {
+    @clickable
+    @glowing
 
-    model: "product_demo.glb"
-    position: { x: 0, y: 1.5, z: 0 }
-    scale: { x: 0.5, y: 0.5, z: 0.5 }
-
-    physics {
-      enabled: true
-      mass: 0.5
-      use_gravity: true
-    }
-
-    // Rotate model with hand gestures
-    gesture_controls {
-      on_pinch_rotate(angle) {
-        if (is_grabbed) {
-          rotate: { y: angle }
-          send_rpc: "RotateObject", [network_id, rotation]
-        }
-      }
-
-      on_pinch_scale(scale_delta) {
-        if (is_grabbed) {
-          scale: scale * scale_delta
-          send_rpc: "ScaleObject", [network_id, scale]
-        }
-      }
-    }
+    geometry: "plane"
+    position: [0, 1, 0]
+    rotation: [-90, 0, 0]
+    scale: [1.5, 1, 1]
+    color: "#ffffff"
   }
 
-  // Document viewer (shared)
-  object#document_screen @networked {
-    network_id: "doc_screen"
-    ownership: "master_client"
+  // Microphone indicator
+  object "MicIndicator" {
+    @glowing
 
-    type: "plane"
-    size: { x: 2, y: 1.5 }
-    position: { x: 3, y: 1.5, z: 0 }
-    rotation: { y: -90 }
-
-    material {
-      type: "unlit"
-
-      // Shared document texture
-      main_texture: {
-        source: document_pages[current_page]
-
-        network_sync {
-          property: "current_page"
-          sync_rate: 1  // Only sync on page change
-        }
-      }
-    }
-
-    // Document state
-    current_page: 0
-    document_pages: [
-      "slides/page_1.png",
-      "slides/page_2.png",
-      "slides/page_3.png",
-      "slides/page_4.png"
-    ]
-
-    // Document controls
-    ui#doc_controls @world_space {
-      position: { x: -1.1, y: -0.3, z: 0 }
-
-      button#prev_page {
-        text: "◀"
-
-        on_click {
-          if (current_page > 0) {
-            current_page -= 1
-            send_rpc_all: "SetDocumentPage", [current_page]
-          }
-        }
-      }
-
-      text#page_number {
-        text: "{{ current_page + 1 }} / {{ document_pages.length }}"
-      }
-
-      button#next_page {
-        text: "▶"
-
-        on_click {
-          if (current_page < document_pages.length - 1) {
-            current_page += 1
-            send_rpc_all: "SetDocumentPage", [current_page]
-          }
-        }
-      }
-    }
+    geometry: "cylinder"
+    position: [0, 1.8, 0]
+    scale: [0.1, 0.3, 0.1]
+    color: "#e74c3c"
   }
 
-  // ============================================================================
-  // SHARED VIDEO PLAYER
-  // ============================================================================
+  // Avatar spawn point 1
+  object "Spawn1" {
+    @glowing
 
-  object#video_screen @networked {
-    network_id: "video_player"
-    ownership: "master_client"
-
-    type: "plane"
-    size: { x: 3, y: 2 }
-    position: { x: -3, y: 1.5, z: 0 }
-    rotation: { y: 90 }
-
-    material {
-      type: "unlit"
-
-      video_texture {
-        source: "meeting_presentation.mp4"
-
-        playback {
-          is_playing: false
-          current_time: 0.0
-          volume: 0.8
-
-          network_sync {
-            properties: ["is_playing", "current_time"]
-            sync_rate: 2  // Sync every 0.5s
-          }
-        }
-      }
-    }
-
-    // Video controls
-    ui#video_controls @world_space {
-      position: { x: -1.6, y: -0.3, z: 0 }
-
-      button#play_pause {
-        text: is_playing ? "⏸" : "▶"
-
-        on_click {
-          is_playing = !is_playing
-          send_rpc_all: "SetVideoPlayback", [is_playing, current_time]
-        }
-      }
-
-      slider#video_progress {
-        value: current_time / video_duration
-
-        on_value_changed(progress) {
-          current_time = progress * video_duration
-          send_rpc_all: "SeekVideo", [current_time]
-        }
-      }
-
-      slider#volume {
-        min: 0
-        max: 1
-        value: 0.8
-
-        on_value_changed(vol) {
-          volume = vol
-        }
-      }
-    }
-
-    // Spatial audio for video
-    audio_source @positional {
-      position: { x: 0, y: 0, z: 0 }
-      min_distance: 5
-      max_distance: 20
-      volume: volume
-    }
+    geometry: "cylinder"
+    position: [-3, 0.05, 3]
+    scale: [0.5, 0.1, 0.5]
+    color: "#27ae60"
   }
 
-  // ============================================================================
-  // NETWORK CALLBACKS
-  // ============================================================================
+  // Avatar spawn point 2
+  object "Spawn2" {
+    @glowing
 
-  on_player_joined(player) {
-    log: "Player joined: {{ player.nickname }}"
-
-    show_notification: {
-      text: "{{ player.nickname }} joined the meeting"
-      duration: 3
-      color: #00ff00
-    }
-
-    // Sync current state to new player
-    if (network_is_master_client) {
-      send_rpc: "SyncRoomState", player.id, [
-        whiteboard_1.drawing_texture.data,
-        document_screen.current_page,
-        video_screen.is_playing,
-        video_screen.current_time
-      ]
-    }
+    geometry: "cylinder"
+    position: [3, 0.05, 3]
+    scale: [0.5, 0.1, 0.5]
+    color: "#27ae60"
   }
 
-  on_player_left(player) {
-    log: "Player left: {{ player.nickname }}"
+  // Chat panel
+  object "ChatPanel" {
+    @glowing
 
-    show_notification: {
-      text: "{{ player.nickname }} left the meeting"
-      duration: 3
-      color: #ff6600
-    }
-
-    // Destroy player's networked objects
-    destroy_player_objects: player.id
-  }
-
-  on_master_client_switched(new_master) {
-    log: "Master client changed to: {{ new_master.nickname }}"
-
-    // Re-sync critical state
-    if (network_is_master_client) {
-      broadcast_room_state()
-    }
-  }
-
-  on_disconnected(reason) {
-    show_error: {
-      title: "Disconnected"
-      message: "Reason: {{ reason }}"
-    }
-
-    show_lobby()
-  }
-
-  // ============================================================================
-  // UTILITIES
-  // ============================================================================
-
-  function calculate_chair_position(index, total) {
-    angle = (index / total) * 360
-    radius = 2.5
-
-    return {
-      x: cos(angle) * radius,
-      y: 0,
-      z: sin(angle) * radius
-    }
-  }
-
-  function calculate_chair_rotation(index, total) {
-    angle = (index / total) * 360 + 180  // Face inward
-
-    return { x: 0, y: angle, z: 0 }
-  }
-
-  function generate_color_from_id(id) {
-    // Generate consistent color from player ID
-    hue = (id * 137.508) % 360  // Golden angle
-
-    return hsv_to_rgb(hue, 0.7, 0.9)
-  }
-
-  // ============================================================================
-  // PLATFORM-SPECIFIC EXPORT
-  // ============================================================================
-
-  export#unity_photon {
-    target: "unity"
-    network_backend: "photon_pun2"
-    output_directory: "./build/unity_multiplayer/"
-
-    packages {
-      photon_pun2: "2.42"
-      photon_voice: "2.35"
-    }
-  }
-
-  export#unreal_replication {
-    target: "unreal"
-    network_backend: "native_replication"
-    output_directory: "./build/unreal_multiplayer/"
-  }
-
-  export#webxr_webrtc {
-    target: "webxr"
-    network_backend: "webrtc"
-    signaling: "socket.io"
-    output_directory: "./build/webxr_multiplayer/"
+    geometry: "plane"
+    position: [-6, 2, 0]
+    rotation: [0, 90, 0]
+    scale: [2, 1.5, 1]
+    color: "#2c3e50"
   }
 }

@@ -1,282 +1,61 @@
-# [Your Example Name] - HoloScript Template
+// [Your Example Name] - HoloScript Template
+//
+// This is a minimal template for creating HoloScript examples.
+// Replace placeholders with your actual implementation.
+//
+// SYNTAX REFERENCE:
+// - Comments: // (not #)
+// - Objects: object "Name" { }
+// - Traits: @trait (inside object block)
+// - Position/rotation/scale: Arrays [x, y, z]
+// - Colors: Quoted strings "#rrggbb"
 
-# This is a template for creating HoloScript examples.
-# Replace placeholders with your actual implementation.
+composition "[Your Example Name]" {
 
-# Metadata (required for validation)
-metadata {
-  name: "[Your Example Name]"
-  description: "[Brief description of what this example demonstrates]"
-  author: "[Your Name or Organization]"
-  version: "1.0.0"
-  created: "[YYYY-MM-DD]"
+  // Ground plane
+  object "Ground" {
+    @collidable
 
-  category: "general"  # or "specialized"
-  difficulty: "beginner"  # beginner, intermediate, or advanced
-
-  platforms: [
-    "unity",
-    "unreal",
-    "godot",
-    "webxr"
-  ]
-
-  tags: [
-    "vr",
-    "ar",
-    "interactive"
-  ]
-
-  estimated_time: "2 hours"
-}
-
-# Main composition
-composition "[YourExampleName]" {
-  description: "[Detailed description of the composition]"
-
-  # Scene configuration
-  scene#main_scene {
-    background_color: #87ceeb  # Sky blue
-
-    # Lighting
-    light#sun @directional {
-      position: { x: 10, y: 20, z: 10 }
-      rotation: { x: -45, y: 45, z: 0 }
-
-      color: #ffffff
-      intensity: 1.0
-
-      shadows: true
-    }
-
-    light#ambient @ambient {
-      color: #404040
-      intensity: 0.3
-    }
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [10, 1, 10]
+    color: "#228b22"
   }
 
-  # Example object 1: Environment
-  object#ground @static {
-    type: "plane"
-    size: { x: 50, y: 1, z: 50 }
+  // Interactive cube
+  object "InteractiveCube" {
+    @grabbable
+    @throwable
+    @physics
+    @collidable
 
-    position: { x: 0, y: 0, z: 0 }
-    rotation: { x: 0, y: 0, z: 0 }
-
-    material {
-      base_color: #228b22
-      roughness: 0.8
-      metallic: 0.0
-    }
-
-    physics {
-      type: "static"
-      collider: "box"
-    }
+    geometry: "cube"
+    position: [0, 1.5, -3]
+    scale: 0.5
+    color: "#ff6347"
   }
 
-  # Example object 2: Interactive element
-  object#interactive_cube @interactive @grabbable {
-    type: "box"
-    size: { x: 1, y: 1, z: 1 }
+  // Glowing orb
+  object "GlowingOrb" {
+    @glowing
+    @pointable
+    @clickable
 
-    position: { x: 0, y: 1.5, z: -3 }
-    rotation: { x: 0, y: 45, z: 0 }
-
-    material {
-      base_color: #ff6347
-      roughness: 0.3
-      metallic: 0.5
-      emission: #000000
-      emission_intensity: 0.0
-    }
-
-    physics {
-      type: "dynamic"
-      mass: 1.0
-      use_gravity: true
-
-      collider: "box"
-      bounciness: 0.3
-      friction: 0.5
-    }
-
-    # Interaction events
-    on_interact {
-      play_sound: "click.wav"
-      set_material_emission: #00ff00
-      set_emission_intensity: 1.0
-    }
-
-    on_grab {
-      play_haptic_pulse: { duration: 0.1, intensity: 0.5 }
-      play_sound: "grab.wav"
-    }
-
-    on_release {
-      set_material_emission: #000000
-      set_emission_intensity: 0.0
-    }
+    geometry: "sphere"
+    position: [2, 1.5, -3]
+    scale: 0.3
+    color: "#00ffff"
   }
 
-  # Example object 3: UI element
-  object#info_panel @ui @world_space {
-    type: "plane"
-    size: { x: 2, y: 1 }
+  // Button
+  object "Button" {
+    @clickable
+    @pointable
 
-    position: { x: -3, y: 2, z: -2 }
-    rotation: { x: 0, y: 30, z: 0 }
-
-    material {
-      base_color: #ffffff
-      emission: #4169e1
-      emission_intensity: 0.3
-    }
-
-    ui_panel {
-      title: "[Your Example Name]"
-
-      text_elements: [
-        {
-          content: "[Description line 1]"
-          font_size: 24
-          color: #000000
-        },
-        {
-          content: "[Description line 2]"
-          font_size: 18
-          color: #666666
-        }
-      ]
-
-      layout: "vertical"
-      padding: 0.1
-    }
-  }
-
-  # Example: Player/Camera setup (VR/AR)
-  player#vr_player @vr {
-    spawn_point: { x: 0, y: 1.6, z: 0 }
-
-    # VR controllers
-    controller#left @left_hand {
-      model: "vr_controller_left.glb"
-
-      input {
-        trigger: "grab_trigger"
-        grip: "grab_grip"
-      }
-    }
-
-    controller#right @right_hand {
-      model: "vr_controller_right.glb"
-
-      input {
-        trigger: "interact_trigger"
-        grip: "grab_grip"
-      }
-    }
-
-    # Locomotion
-    locomotion {
-      teleportation: true
-      smooth_locomotion: false
-
-      teleport_range: 10
-      teleport_arc_color: #00ff00
-    }
-  }
-
-  # Example: Custom behavior script
-  script#example_behavior {
-    language: "javascript"
-
-    variables {
-      score: 0
-      timer: 0.0
-      is_active: false
-    }
-
-    on_start() {
-      log: "Example started"
-      is_active = true
-    }
-
-    on_update(delta_time) {
-      if (is_active) {
-        timer += delta_time
-
-        // Update UI every second
-        if (timer >= 1.0) {
-          update_ui: {
-            text: "Time: {{ timer.toFixed(1) }}s"
-          }
-          timer = 0.0
-        }
-      }
-    }
-
-    on_trigger_enter(other) {
-      if (other.tag == "Player") {
-        score += 10
-        play_sound: "score.wav"
-
-        show_notification: {
-          text: "Score: {{ score }}"
-          duration: 2
-          color: #00ff00
-        }
-      }
-    }
-  }
-
-  # Example: Audio
-  audio#background_music @ambient {
-    file: "background.mp3"
-
-    loop: true
-    volume: 0.3
-    spatial: false
-
-    auto_play: true
-  }
-
-  audio#interaction_sound @spatial {
-    file: "interaction.wav"
-
-    loop: false
-    volume: 1.0
-    spatial: true
-
-    spatial_settings {
-      min_distance: 1.0
-      max_distance: 10.0
-      rolloff: "logarithmic"
-    }
-  }
-}
-
-# Export configurations (optional platform-specific settings)
-export_config {
-  unity {
-    rendering_path: "forward"
-    quality_level: "high"
-
-    xr_settings {
-      enable_vr: true
-      enable_ar: false
-    }
-  }
-
-  unreal {
-    rendering: {
-      forward_shading: false
-      ray_tracing: false
-    }
-  }
-
-  webxr {
-    compression: "gzip"
-    target_framerate: 90
+    geometry: "cylinder"
+    position: [-2, 1, -3]
+    rotation: [90, 0, 0]
+    scale: [0.2, 0.05, 0.2]
+    color: "#4ecdc4"
   }
 }
