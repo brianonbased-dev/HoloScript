@@ -6,6 +6,12 @@ See individual guides for detailed implementation strategies.
 
 ## Documentation Index
 
+### Language Fundamentals
+
+1. **[FILE_TYPES.md](FILE_TYPES.md)** - Understanding `.holo`, `.hs`, and `.hsplus` file extensions
+
+### Deployment & Architecture
+
 1. **[DEPLOYMENT.md](../DEPLOYMENT.md)** - Multi-channel deployment
 2. **[MONOREPO_STRATEGY.md](MONOREPO_STRATEGY.md)** - Rust + TypeScript integration
 3. **[GAME_ENGINE_VERSIONING.md](GAME_ENGINE_VERSIONING.md)** - Unity/Unreal/Godot support
