@@ -1,3 +1,15 @@
+## [3.5.0-alpha.68] - 2026-02-20
+
+### ∞ Sprint CXLVI–CL — Scripting, TileRenderer & Spatial Mega-Sweep 📜🗺️🌐
+
+135 tests across 3 new consolidated suites — full production coverage for scripting VMs, tile rendering pipelines, and spatial indexing.
+
+- `ScriptingSystems.prod.test.ts` (47 tests) — `ScriptVM` (12: parse/execute, variable scoping, arithmetic, loops, conditionals, functions, recursion, closures, error trapping, environment isolation, tick timeout, multi-script), `EventScriptBridge` (10: event bind/unbind, fire with args, once semantics, wildcard, priority queue, cross-script events, teardown), `ScriptContext` (9: getVariable/setVariable, delete, inherit from parent, freeze, toJSON snapshot, fromJSON restore, clear), `ScriptScheduler` (8: schedule once/repeat, cancel, interval, maxRuns cap, delta accumulation, priority ordering), `HoloScriptLang` (8: tokenize, parse expression, evaluate, math ops, string concat, boolean logic, short-circuit, multi-statement).
+- `TileRendererSystems.prod.test.ts` (23 tests) — `TileRenderer` UV Mapping (6: tile 0 origin, column/row position, non-square atlas, uvW/uvH invariants), Animated Tiles (8: count init, addAnimatedTile, frame 0 on elapsed=0, advance after frameDuration, no advance before duration, wrap-around on 3rd frame, non-animated unaffected, two independent animations), Frustum Culling (9: empty map, view bounds, layer visibility, worldX/worldY, outside-view exclusion, zOrder sort, UV from atlas, offset culling).
+- `SpatialSystems.prod.test.ts` (65 tests) — `KDTree` (12: 2D/3D nearest, k-nearest, radius, insertion order independence, empty tree, duplicate points, high-dimensionality, rebuild after insert, distance metrics), `OctreeIndex` (13: insert/query, bounds clipping, subdivision, point-in-bounds, radius query, ray intersection, max depth, clear, count, multi-object same cell, remove, reinsert), `BVHBuilder` (12: build from triangles, AABB overlap, ray hit/miss, surface-area heuristic, leaf node, multi-primitive, degenerate triangle, incremental insert, global bounds, serialization, depth query, stats), `SpatialGrid` (14: cell assignment, multi-cell span, radius neighbors, empty query, remove, move, clear, cell size impact, wraparound, large grid, out-of-bounds, insert many, getAll, grid stats), `FrustumCuller` (14: inside/outside/intersecting planes, AABB, sphere, OBB, setFrustum, update, batch test, empty scene, all-visible, all-hidden, layerMask, cache hit, stats reset).
+
+> **Fixes:** `TileRendererSystems` — (1) `setTile` requires `TileData` objects, not bare numbers; (2) `'hidden'` is not in TileRenderer's allowed layer list — replaced with `'overlay'`; (3) `updateAnimations(dt)` accumulates `dt` in ms, not seconds — corrected test values from `0.1` to `100`.
+
 ## [3.5.0-alpha.67] - 2026-02-20
 
 ### ∞ Sprint CXLI–CXLV — Combat, Dialogue, Procgen & Navigation Mega-Sweep ⚔️💬🏰🧭

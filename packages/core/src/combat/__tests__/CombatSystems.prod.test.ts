@@ -164,6 +164,7 @@ describe('DamageSystem', () => {
   });
 
   it('fires onDamage callbacks', () => {
+    ds.setConfig({ critChance: 0, critMultiplier: 1, globalMultiplier: 1 });
     const events: number[] = [];
     ds.onDamage(d => events.push(d.finalDamage));
     ds.calculateDamage('s', 't', 50, 'true', false);

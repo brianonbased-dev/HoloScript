@@ -103,18 +103,22 @@ export class AICopilot {
     prompt: string,
     options?: Partial<GenerateOptions>
   ): Promise<CopilotResponse> {
-    if (!this.adapter) {
+    const adapter = this.adapter;
+    if (!adapter) {
       return {
         text: 'No AI adapter configured. Please set an adapter first.',
         suggestions: [],
         error: 'NO_ADAPTER',
       };
     }
+    if (!adapter.generateHoloScript) {
+      return { text: 'Adapter does not support generateHoloScript.', suggestions: [], error: 'UNSUPPORTED' };
+    }
 
     this.addMessage('user', prompt);
 
     try {
-      const result = await this.adapter.generateHoloScript(prompt, {
+      const result = await adapter.generateHoloScript(prompt, {
         targetPlatform: 'vr',
         includePhysics: true,
         ...options,
@@ -151,8 +155,12 @@ export class AICopilot {
    * Suggest modifications for the currently selected entity.
    */
   async suggestFromSelection(): Promise<CopilotResponse> {
-    if (!this.adapter) {
+    const adapter = this.adapter;
+    if (!adapter) {
       return { text: 'No adapter configured.', suggestions: [], error: 'NO_ADAPTER' };
+    }
+    if (!adapter.generateHoloScript) {
+      return { text: 'Adapter does not support generateHoloScript.', suggestions: [], error: 'UNSUPPORTED' };
     }
 
     const entity = this.context.selectedEntity;
@@ -166,7 +174,7 @@ export class AICopilot {
     const prompt = `Suggest improvements for a ${entity.type} entity with properties: ${JSON.stringify(entity.properties || {})}`;
 
     try {
-      const result = await this.adapter.generateHoloScript(prompt, {
+      const result = await adapter.generateHoloScript(prompt, {
         style: 'modern',
         complexity: 'medium',
       });
@@ -193,12 +201,16 @@ export class AICopilot {
    * Explain the current scene in natural language.
    */
   async explainScene(sceneCode: string): Promise<CopilotResponse> {
-    if (!this.adapter) {
+    const adapter = this.adapter;
+    if (!adapter) {
       return { text: 'No adapter configured.', suggestions: [], error: 'NO_ADAPTER' };
+    }
+    if (!adapter.explainHoloScript) {
+      return { text: 'Adapter does not support explainHoloScript.', suggestions: [], error: 'UNSUPPORTED' };
     }
 
     try {
-      const result = await this.adapter.explainHoloScript(sceneCode);
+      const result = await adapter.explainHoloScript(sceneCode);
       return {
         text: result.explanation,
         suggestions: [],
@@ -216,12 +228,16 @@ export class AICopilot {
    * Auto-fix runtime errors using the AI adapter.
    */
   async autoFix(code: string, errors: string[]): Promise<CopilotResponse> {
-    if (!this.adapter) {
+    const adapter = this.adapter;
+    if (!adapter) {
       return { text: 'No adapter configured.', suggestions: [], error: 'NO_ADAPTER' };
+    }
+    if (!adapter.fixHoloScript) {
+      return { text: 'Adapter does not support fixHoloScript.', suggestions: [], error: 'UNSUPPORTED' };
     }
 
     try {
-      const result = await this.adapter.fixHoloScript(code, errors);
+      const result = await adapter.fixHoloScript(code, errors);
       return {
         text: `Fixed ${result.fixes.length} issue(s).`,
         suggestions: result.fixes.map(fix => ({
@@ -244,8 +260,12 @@ export class AICopilot {
    * Chat with the AI about HoloScript code (multi-turn conversation).
    */
   async chat(message: string): Promise<CopilotResponse> {
-    if (!this.adapter) {
+    const adapter = this.adapter;
+    if (!adapter) {
       return { text: 'No adapter configured.', suggestions: [], error: 'NO_ADAPTER' };
+    }
+    if (!adapter.chat) {
+      return { text: 'Adapter does not support chat.', suggestions: [], error: 'UNSUPPORTED' };
     }
 
     this.addMessage('user', message);
@@ -256,7 +276,7 @@ export class AICopilot {
         content: m.content,
       }));
 
-      const response = await this.adapter.chat(message, undefined, chatHistory);
+      const response = await adapter.chat(message, undefined, chatHistory);
       this.addMessage('assistant', response);
 
       return {

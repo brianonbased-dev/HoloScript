@@ -109,8 +109,8 @@ export class AntiCheat {
       return { valid: false, violation };
     }
 
-    // Speed detection
-    if (dt > 0) {
+    // Speed detection — only meaningful when dt >= 10ms (sub-ms deltas produce invalid computed speeds)
+    if (dt >= 0.01) {
       const speed = distance / dt;
       if (speed > this.config.maxSpeed) {
         const violation: Violation = {

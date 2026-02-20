@@ -150,8 +150,10 @@ export class HoloScriptGenerator {
 
         // Get explanation
         try {
-          const explanation = await s.adapter.explainHoloScript(generated.holoScript);
-          generated.explanation = explanation.explanation;
+          if (s.adapter.explainHoloScript) {
+            const explanation = await s.adapter.explainHoloScript(generated.holoScript);
+            generated.explanation = explanation.explanation;
+          }
         } catch {
           // Explanation is optional
         }
@@ -178,6 +180,9 @@ export class HoloScriptGenerator {
 
       try {
         // Generate code via AI
+        if (!s.adapter.generateHoloScript) {
+          throw new Error(`Adapter "${s.adapter.name}" does not support generateHoloScript`);
+        }
         const result = await s.adapter.generateHoloScript(prompt);
         const responseTimeMs = performance.now() - startTime;
 
@@ -211,6 +216,9 @@ export class HoloScriptGenerator {
 
         // Auto-fix if enabled and parsing failed
         if (!parseResult.success && s.config.autoFix && attempts < s.config.maxAttempts) {
+          if (!s.adapter.fixHoloScript) {
+            throw new Error(`Adapter "${s.adapter.name}" does not support fixHoloScript`);
+          }
           const fixResult = await s.adapter.fixHoloScript(
             result.holoScript,
             parseResult.errors.map((e) => e.message)
@@ -299,8 +307,10 @@ export class HoloScriptGenerator {
 
     // Get explanation
     try {
-      const explanation = await s.adapter.explainHoloScript(generated.holoScript);
-      generated.explanation = explanation.explanation;
+      if (s.adapter.explainHoloScript) {
+        const explanation = await s.adapter.explainHoloScript(generated.holoScript);
+        generated.explanation = explanation.explanation;
+      }
     } catch {
       // Explanation is optional
     }
@@ -330,6 +340,9 @@ export class HoloScriptGenerator {
     }
 
     // Optimize via AI
+    if (!s.adapter.optimizeHoloScript) {
+      throw new Error(`Adapter "${s.adapter.name}" does not support optimizeHoloScript`);
+    }
     const optimized = await s.adapter.optimizeHoloScript(code, targetPlatform);
 
     // Parse optimized code
@@ -368,6 +381,9 @@ export class HoloScriptGenerator {
     }
 
     // Fix via AI
+    if (!s.adapter.fixHoloScript) {
+      throw new Error(`Adapter "${s.adapter.name}" does not support fixHoloScript`);
+    }
     const fixed = await s.adapter.fixHoloScript(code, errors);
 
     // Parse fixed code
@@ -391,6 +407,9 @@ export class HoloScriptGenerator {
       throw new Error('No generation session created. Call createSession first.');
     }
 
+    if (!s.adapter.explainHoloScript) {
+      throw new Error(`Adapter "${s.adapter.name}" does not support explainHoloScript`);
+    }
     const result = await s.adapter.explainHoloScript(code);
     return result.explanation;
   }
@@ -408,6 +427,9 @@ export class HoloScriptGenerator {
       throw new Error('No generation session created. Call createSession first.');
     }
 
+    if (!s.adapter.chat) {
+      throw new Error(`Adapter "${s.adapter.name}" does not support chat`);
+    }
     return s.adapter.chat(message, '', history);
   }
 
