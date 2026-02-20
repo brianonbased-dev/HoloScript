@@ -1,0 +1,62 @@
+// Complete scene composition demonstrating layered architecture
+// File type: .holo (Composition Layer)
+
+composition "Layered Architecture Demo" {
+  // Ground
+  object "Ground" {
+    @collidable
+
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [10, 1, 10]
+    color: "#2c3e50"
+  }
+
+  // Button 1 - Teal
+  object "Button1" {
+    @clickable
+    @pointable
+    @glowing
+
+    geometry: "cylinder"
+    position: [-1, 1.5, -2]
+    rotation: [90, 0, 0]
+    scale: [0.3, 0.05, 0.3]
+    color: "#4ecdc4"
+  }
+
+  // Button 2 - Red
+  object "Button2" {
+    @clickable
+    @pointable
+    @glowing
+
+    geometry: "cylinder"
+    position: [1, 1.5, -2]
+    rotation: [90, 0, 0]
+    scale: [0.3, 0.05, 0.3]
+    color: "#e74c3c"
+  }
+
+  // Score display panel
+  object "ScorePanel" {
+    @glowing
+
+    geometry: "plane"
+    position: [0, 2.5, -3]
+    rotation: [0, 0, 0]
+    scale: [2, 0.5, 1]
+    color: "#000000"
+  }
+
+  // Decorative orb
+  object "Orb" {
+    @glowing
+    @pointable
+
+    geometry: "sphere"
+    position: [0, 1.5, -2]
+    scale: 0.2
+    color: "#00ffff"
+  }
+}

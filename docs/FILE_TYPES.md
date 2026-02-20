@@ -1,18 +1,77 @@
 # HoloScript File Types Reference
 
-**Understanding `.holo`, `.hs`, and `.hsplus` - When to use each extension**
+**Understanding `.holo`, `.hs`, `.hsplus`, and `.ts` - A layered architecture**
 
-HoloScript uses three distinct file extensions, each serving a specific purpose in the ecosystem. This guide explains their differences, use cases, and how they work together.
+HoloScript uses a **four-file layered architecture** where each file type serves a distinct purpose. These are **not competing formats** - they form a separation-of-concerns architecture where each layer has specific responsibilities.
+
+> **Key Insight**: File formats are complementary layers, not alternatives. Think MVC: Model (`.hs`), View (`.hsplus`), Controller (`.holo`), Infrastructure (`.ts`).
 
 ---
 
 ## 📋 Quick Reference
 
-| Extension | Purpose | Parser | Primary Use Case | Compilation Entry Point |
-|-----------|---------|--------|------------------|------------------------|
-| **`.holo`** | Scene compositions | `HoloCompositionParser` | Complete VR/AR scenes, AI-friendly declarative format | ✅ Yes - All platforms |
-| **`.hs`** | Templates & components | `HoloScriptCodeParser` | Reusable objects, logic modules, functions | ❌ No - Import only |
-| **`.hsplus`** | Advanced modules | `HoloScriptPlusParser` | Robotics, TypeScript integration, advanced features | ✅ Yes - Specialized targets |
+| Extension | Layer | Parser | Primary Use Case | Compilation Entry Point |
+|-----------|-------|--------|------------------|------------------------|
+| **`.holo`** | Composition Layer | `HoloCompositionParser` | Complete VR/AR worlds, AI-friendly declarative format | ✅ Yes - All platforms |
+| **`.hsplus`** | Presentation Layer | `HoloScriptPlusParser` | 3D scenes with traits, visual properties, modules | ✅ Yes - Specialized targets |
+| **`.hs`** | Logic Layer | `HoloScriptPlusParser` | Business logic, state machines, shared utilities | ❌ No - Import only |
+| **`.ts`** | Infrastructure | TypeScript/Node | Parser implementations, CLI tools, build scripts | N/A - Tooling |
+
+**Important**: Both `.hs` and `.hsplus` use the same `HoloScriptPlusParser` - the difference is semantic, not syntactic.
+
+---
+
+## 🏗️ The Layered Architecture
+
+HoloScript's file system follows a **three-layer separation of concerns** (plus infrastructure):
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                .holo (Composition Layer)                 │
+│   Complete worlds, templates, objects, actions, events  │
+│   • 80+ examples (games, VR experiences, robotics)      │
+│   • AI-friendly declarative syntax                      │
+│   • Full scene definitions with state management        │
+└─────────────────────┬───────────────────────────────────┘
+                      │ uses
+┌─────────────────────▼───────────────────────────────────┐
+│              .hsplus (Presentation Layer)                │
+│   3D objects, traits, templates, visual properties      │
+│   • 21+ examples (pinball, vr-interactions, avatars)    │
+│   • Trait system (@grabbable, @physics, @audio)         │
+│   • TypeScript-like syntax with modules                 │
+└─────────────────────┬───────────────────────────────────┘
+                      │ uses
+┌─────────────────────▼───────────────────────────────────┐
+│                  .hs (Logic Layer)                       │
+│   Business logic, state machines, AI behaviors          │
+│   • 15+ examples (hello-world, ai-agent, neural-net)    │
+│   • Protocol definitions and shared utilities           │
+│   • Classic HoloScript syntax                           │
+└─────────────────────────────────────────────────────────┘
+
+      All parsed by .ts (TypeScript Infrastructure)
+```
+
+---
+
+## 🔄 Dual Parser Architecture
+
+HoloScript provides **two parser implementations** that produce identical output:
+
+### TypeScript Parser (Development & Tooling)
+- **Location**: `packages/core/src/parser/`
+- **Parsers**: `HoloCompositionParser.ts`, `HoloScriptPlusParser.ts`
+- **Best for**: Development, debugging, IDE integration, tooling
+- **Output**: JSON AST (universal bridge format)
+
+### Rust/WASM Parser (Production Performance)
+- **Location**: `packages/compiler-wasm/`
+- **Speed**: **10x faster** than TypeScript
+- **Output**: Identical JSON AST via serde
+- **Best for**: Production builds, CI/CD, large-scale compilation
+
+**Universal Bridge Format**: Both parsers output JSON AST, enabling any language to consume HoloScript (Python, Go, Java, etc.) without reimplementing the parser.
 
 ---
 
@@ -204,11 +263,21 @@ composition "Main Scene" {
 
 ---
 
-## 🚀 `.hsplus` Files - Advanced Features
+## 🚀 `.hsplus` Files - Advanced Features & `.ts` Infrastructure
 
-### What Are They?
+### What Are `.hsplus` Files?
 
 `.hsplus` files provide **advanced language features** including modules, TypeScript integration, and enhanced syntax for specialized domains like robotics and scientific computing.
+
+### What Are `.ts` Files?
+
+`.ts` files are the **TypeScript infrastructure layer** that powers the entire HoloScript ecosystem:
+- Parser implementations (HoloCompositionParser, HoloScriptPlusParser)
+- CLI tools and build scripts
+- Type definitions and AST structures
+- Error handling and validation systems
+
+**Important**: `.ts` files are NOT HoloScript - they are the implementation of HoloScript itself.
 
 ### Key Characteristics
 

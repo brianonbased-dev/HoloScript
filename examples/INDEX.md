@@ -2,19 +2,24 @@
 
 Complete catalog of all HoloScript examples organized by category, platform, and feature.
 
+> **📄 New to HoloScript file types?** See [File Types Guide](../docs/FILE_TYPES.md) to understand `.holo`, `.hs`, and `.hsplus` files.
+
 ## Quick Reference
 
-| # | Example | Category | Difficulty | Lines | Platforms | Key Features |
-|---|---------|----------|------------|-------|-----------|--------------|
-| 1 | [VR Training Simulation](general/vr-training-simulation/) | General | Beginner | 609 | Unity, Unreal, Godot, WebXR | Hazard detection, progress tracking |
-| 2 | [AR Furniture Preview](general/ar-furniture-preview/) | General | Beginner | 873 | ARKit, ARCore, WebXR | Plane detection, gestures, materials |
-| 3 | [Virtual Art Gallery](general/virtual-art-gallery/) | General | Intermediate | 888 | Unity, Unreal, Babylon.js | Audio guides, teleportation, minimap |
-| 4 | [VR Game Demo](general/vr-game-demo/) | General | Intermediate | 808 | Unity, Unreal, Godot | Physics, AI, state machine, scoring |
-| 5 | [Robotics Simulation](specialized/robotics/) | Specialized | Advanced | 789 | URDF, SDF, Gazebo, ROS2 | IK, path planning, sensors |
-| 6 | [IoT Digital Twin](specialized/iot/) | Specialized | Advanced | 700+ | DTDL, Azure Digital Twins | Telemetry, predictive maintenance |
-| 7 | [Multiplayer VR](specialized/multiplayer/) | Specialized | Advanced | 600+ | Photon, Mirror, WebRTC | Voice chat, networking, shared objects |
-| 8 | [Unity Quest](specialized/unity-quest/) | Specialized | Advanced | 800+ | Unity (Quest 2/3, PCVR) | Mobile optimization, XR Toolkit |
-| 9 | [VRChat World](specialized/vrchat/) | Specialized | Advanced | 900+ | VRChat SDK3, Udon# | Mirrors, video, portals, networking |
+| # | Example | Category | Difficulty | File Type | Platforms | Key Features |
+|---|---------|----------|------------|-----------|-----------|--------------|
+| 0 | [**Layered Architecture Demo**](integration/layered-architecture-demo/) | Tutorial | Beginner | `.holo` + `.hs` + `.hsplus` | **All platforms** | **Shows file type integration** |
+| 1 | [VR Training Simulation](general/vr-training-simulation/) | General | Beginner | `.holo` | Unity, Unreal, Godot, WebXR | Hazard detection, progress tracking |
+| 2 | [AR Furniture Preview](general/ar-furniture-preview/) | General | Beginner | `.holo` | ARKit, ARCore, WebXR | Plane detection, gestures, materials |
+| 3 | [Virtual Art Gallery](general/virtual-art-gallery/) | General | Intermediate | `.holo` | Unity, Unreal, Babylon.js | Audio guides, teleportation, minimap |
+| 4 | [VR Game Demo](general/vr-game-demo/) | General | Intermediate | `.holo` | Unity, Unreal, Godot | Physics, AI, state machine, scoring |
+| 5 | [Robotics Simulation](specialized/robotics/) | Specialized | Advanced | `.hsplus` | URDF, SDF, Gazebo, ROS2 | IK, path planning, sensors |
+| 6 | [IoT Digital Twin](specialized/iot/) | Specialized | Advanced | `.holo` | DTDL, Azure Digital Twins | Telemetry, predictive maintenance |
+| 7 | [Multiplayer VR](specialized/multiplayer/) | Specialized | Advanced | `.holo` | Photon, Mirror, WebRTC | Voice chat, networking, shared objects |
+| 8 | [Unity Quest](specialized/unity-quest/) | Specialized | Advanced | `.holo` | Unity (Quest 2/3, PCVR) | Mobile optimization, XR Toolkit |
+| 9 | [VRChat World](specialized/vrchat/) | Specialized | Advanced | `.holo` | VRChat SDK3, Udon# | Mirrors, video, portals, networking |
+
+**Note**: Most general examples use `.holo` (composition layer). Robotics examples use `.hsplus` (advanced features). The integration demo shows all three file types working together.
 
 ## By Platform
 

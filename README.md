@@ -132,7 +132,13 @@ Write **one** HoloScript file. Compile to:
 
 ## 📚 Documentation
 
+### Getting Started
+
 - 📗 **[Quickstart](./docs/getting-started/quickstart.md)** - Start building in minutes.
+- 📄 **[File Types Guide](./docs/FILE_TYPES.md)** - Understanding `.holo`, `.hs`, `.hsplus`, and `.ts` files.
+
+### Reference & Advanced
+
 - 📘 **[Traits Reference](./docs/TRAITS_REFERENCE.md)** - Explore the massive library of 1,800+ VR traits.
 - 📙 **[Academy](./docs/academy/README.md)** - Master HoloScript through interactive lessons.
 - 📕 **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues.
