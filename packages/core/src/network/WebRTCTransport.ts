@@ -41,7 +41,7 @@
  *    - Verify payment before enabling voice/video
  *
  * 6. AI Agent Voice Synthesis
- *    - Pagemaster AI narrator (TTS for quest dialogue)
+ *    - Story Weaver AI narrator (TTS for quest dialogue)
  *    - AI NPC voices (generated via ElevenLabs, Replica)
  *    - Lip-sync animation for AI agents
  *
@@ -165,12 +165,12 @@ export interface WebRTCTransportConfig {
   // };
   //
   // TODO: Add AI agent voice synthesis configuration
-  // IMPLEMENTATION: TTS for AI agents (NPCs, Pagemaster narrator) via WebRTC
+  // IMPLEMENTATION: TTS for AI agents (NPCs, Story Weaver narrator) via WebRTC
   // - When AI agent speaks: POST text to TTS provider API (ElevenLabs/Replica/PlayHT)
   // - Receive audio stream (MP3/WAV), convert to MediaStream via Web Audio API
   // - Inject into WebRTC peer connection as audio track (same as user voice)
   // - Apply spatial audio to AI agent position (see spatialAudio config above)
-  // - Pagemaster narrator mode: Global narration (no spatial audio, heard by all players)
+  // - Story Weaver narrator mode: Global narration (no spatial audio, heard by all players)
   // - Integration: Use voiceId for consistent AI personality across sessions
   // - Latency optimization: Stream TTS chunks as they arrive (don't wait for full audio)
   // - Reference: https://elevenlabs.io/docs/api-reference/websockets
@@ -178,7 +178,7 @@ export interface WebRTCTransportConfig {
   //   enabled: boolean;
   //   provider: 'elevenlabs' | 'replica' | 'playht'; // TTS provider
   //   voiceId?: string; // AI agent voice profile (e.g., 'rachel_premium' for ElevenLabs)
-  //   narrationMode?: boolean; // Pagemaster AI narrator mode (global audio, non-spatial)
+  //   narrationMode?: boolean; // Story Weaver AI narrator mode (global audio, non-spatial)
   // };
 }
 

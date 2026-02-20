@@ -1,3 +1,21 @@
+## [Unreleased]
+
+### Documentation — Trademark & Branding Guide 🏷️
+
+**Added:** Comprehensive trademark and branding documentation
+
+- **TRADEMARK_BRANDING_GUIDE.md** — Complete guide covering:
+  - Internal trademarks (HoloScript, HoloHub, StoryWeaver Protocol, VRR, Hololand, x402 Protocol)
+  - Third-party trademarks (Coinbase, AgentKit, Zora Protocol, OpenAI, Unity, etc.)
+  - Usage guidelines (DO's and DON'Ts)
+  - Capitalization & formatting rules
+  - Legal notices and attribution templates
+  - Rebranding history (PageMaster → StoryWeaver Protocol)
+  - Brand hierarchy visualization
+  - Quick reference examples
+
+> **Completed Rebranding:** PageMaster → StoryWeaver Protocol (7 files, 61 references updated)
+
 ## [3.5.0-alpha.68] - 2026-02-20
 
 ### ∞ Sprint CXLVI–CL — Scripting, TileRenderer & Spatial Mega-Sweep 📜🗺️🌐

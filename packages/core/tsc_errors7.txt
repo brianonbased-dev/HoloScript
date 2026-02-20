@@ -1,0 +1,80 @@
+﻿src/ai/GenerationCache.ts(190,17): error TS2339: Property 'key' does not exist on type 'CacheEntry'.
+src/ai/SteeringBehaviors.ts(173,18): error TS2699: Static property 'length' conflicts with built-in property 'Function.length' of constructor function 'SteeringBehaviors'.
+src/compiler/URDFCompiler.ts(133,40): error TS2352: Conversion of type 'HoloObjectTrait' to type '{ name: string; } & Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/editor/AssetBrowserPanel.ts(6,37): error TS2305: Module '"../ui/UIComponents"' has no exported member 'createText'.
+src/editor/AssetBrowserPanel.ts(31,37): error TS2554: Expected 1 arguments, but got 3.
+src/editor/AssetManager.ts(33,13): error TS2740: Type '{ id: string; name: string; assetType: "model"; url: string; format: "glb"; fileSize: number; tags: string[]; }' is missing the following properties from type 'AssetMetadata': displayName, mimeType, extension, sourcePath, and 18 more.
+src/editor/AssetManager.ts(42,13): error TS2740: Type '{ id: string; name: string; assetType: "model"; url: string; format: "glb"; fileSize: number; tags: string[]; }' is missing the following properties from type 'AssetMetadata': displayName, mimeType, extension, sourcePath, and 18 more.
+src/editor/AssetManager.ts(51,14): error TS2740: Type '{ id: string; name: string; assetType: "texture"; url: string; format: "png"; fileSize: number; tags: string[]; }' is missing the following properties from type 'AssetMetadata': displayName, mimeType, extension, sourcePath, and 18 more.
+src/editor/AssetManager.ts(108,15): error TS2740: Type '{ id: string; name: string; assetType: AssetType; url: string; format: any; fileSize: number; tags: string[]; }' is missing the following properties from type 'AssetMetadata': displayName, mimeType, extension, sourcePath, and 18 more.
+src/editor/MarketplacePanel.ts(5,37): error TS2305: Module '"../ui/UIComponents"' has no exported member 'createText'.
+src/editor/UIBuilder.ts(72,39): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+src/HoloScriptCodeParser.ts(1634,56): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
+src/HoloScriptRuntime.ts(3419,60): error TS2304: Cannot find name 'MigrationNode'.
+src/HoloScriptRuntime.ts(3432,26): error TS2304: Cannot find name 'HoloScriptCodeParser'.
+src/math/CurveEditor.ts(151,11): error TS2367: This comparison appears to be unintentional because the types '"auto"' and '"flat"' have no overlap.
+src/network/WebSocketTransport.ts(217,21): error TS2769: No overload matches this call.
+src/persistence/DataBinding.ts(81,28): error TS2345: Argument of type 'Binding<T>' is not assignable to parameter of type 'Binding<unknown>'.
+src/physics/PBDSolver.ts(2441,27): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2443,38): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2445,38): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2447,43): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2449,38): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2451,47): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2453,51): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2566,14): error TS2339: Property 'useGPU' does not exist on type 'ISoftBodyConfig'.
+src/plugins/ModRegistry.ts(226,11): error TS2304: Cannot find name 'depId'.
+src/render/postprocess/PostProcessEffect.ts(105,5): error TS2322: Type '{ threshold: number; softThreshold: number; radius: number; iterations: number; anamorphic: number; highQuality: boolean; enabled: boolean; intensity: number; blendMode?: BlendMode | undefined; } | ... 254 more ... | { ...; }' is not assignable to type 'EffectParams'.
+src/render/webgpu/PhysicsDebugDrawer.ts(8,42): error TS2307: Cannot find module '../physics/PhysicsTypes' or its corresponding type declarations.
+src/render/webgpu/PhysicsDebugDrawer.ts(9,32): error TS2307: Cannot find module '../render/webgpu/WebGPURenderer' or its corresponding type declarations.
+src/render/webgpu/PhysicsDebugDrawer.ts(51,27): error TS18046: 'state' is of type 'unknown'.
+src/render/webgpu/PhysicsDebugDrawer.ts(52,27): error TS18046: 'state' is of type 'unknown'.
+src/render/webgpu/PhysicsDebugDrawer.ts(55,15): error TS18046: 'state' is of type 'unknown'.
+src/render/webgpu/WebGPURenderer.ts(1012,121): error TS2339: Property 'space' does not exist on type 'XRWebGLLayer'.
+src/render/webgpu/WebGPURenderer.ts(1196,9): error TS2740: Type 'number[]' is missing the following properties from type 'Float32Array<ArrayBufferLike>': BYTES_PER_ELEMENT, buffer, byteLength, byteOffset, and 3 more.
+src/resilience/ResiliencePatterns.ts(316,24): error TS2769: No overload matches this call.
+src/resilience/ResiliencePatterns.ts(320,24): error TS2769: No overload matches this call.
+src/runtime/HoloScriptPlusRuntime.ts(230,44): error TS2345: Argument of type '{ id: string; type: "slider"; bodyA: string; bodyB: any; axisA: any; limits: { low: any; high: any; }; }' is not assignable to parameter of type 'Constraint'.
+src/runtime/HoloScriptPlusRuntime.ts(368,7): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(384,7): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(401,15): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(402,13): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(471,48): error TS2345: Argument of type 'import("C:/Users/josep/Documents/GitHub/HoloScript/packages/core/src/runtime/WebXRManager").XRReferenceSpace' is not assignable to parameter of type 'XRReferenceSpace'.
+src/runtime/HoloScriptPlusRuntime.ts(491,12): error TS2322: Type 'XRPose | null' is not assignable to type 'XRPose | undefined'.
+src/runtime/HoloScriptPlusRuntime.ts(491,33): error TS2345: Argument of type 'XRSpace | XRSpace' is not assignable to parameter of type 'XRSpace'.
+src/runtime/HoloScriptPlusRuntime.ts(1953,24): error TS18048: 'stmt.arguments' is possibly 'undefined'.
+src/runtime/HoloScriptPlusRuntime.ts(1954,49): error TS2538: Type 'undefined' cannot be used as an index type.
+src/runtime/HoloScriptPlusRuntime.ts(1964,56): error TS2352: Conversion of type 'HSPlusNode | undefined' to type 'HSPlusNode[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/runtime/HoloScriptPlusRuntime.ts(1966,56): error TS2352: Conversion of type 'HSPlusNode' to type 'HSPlusNode[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/runtime/HoloScriptPlusRuntime.ts(1973,21): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+src/runtime/SceneRunner.ts(84,45): error TS2339: Property 'name' does not exist on type 'HSPlusDirective'.
+src/runtime/SceneRunner.ts(88,86): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
+src/runtime/SystemIntegrator.ts(17,15): error TS2305: Module '"../ecs/SystemScheduler"' has no exported member 'ECSSystem'.
+src/runtime/SystemIntegrator.ts(153,19): error TS2554: Expected 2-6 arguments, but got 1.
+src/scripting/ScriptVM.ts(201,55): error TS2339: Property 'toString' does not exist on type 'never'.
+src/security/SecurityFramework.ts(128,23): error TS2554: Expected 2-3 arguments, but got 1.
+src/security/SecurityFramework.ts(132,15): error TS2554: Expected 2-3 arguments, but got 1.
+src/security/SecurityFramework.ts(163,14): error TS2554: Expected 2-3 arguments, but got 1.
+src/state/ReactiveState.ts(130,36): error TS2345: Argument of type '((string extends keyof T ? T[keyof T & string] : any) & object) | ((symbol extends keyof T ? T[keyof T & symbol] : any) & object)' is not assignable to parameter of type 'T'.
+src/traits/__tests__/traitTestHelpers.ts(53,53): error TS2345: Argument of type 'Partial<T>' is not assignable to parameter of type 'T'.
+src/traits/__tests__/traitTestHelpers.ts(64,52): error TS2345: Argument of type 'Partial<T>' is not assignable to parameter of type 'T'.
+src/traits/__tests__/traitTestHelpers.ts(75,53): error TS2345: Argument of type 'Partial<T>' is not assignable to parameter of type 'T'.
+src/traits/AINPCBrainTrait.ts(37,3): error TS2322: Type '{ dialogue_range: number; voice_enabled: true; personality: string; memory_size: number; conversation_history: true; player_relationship: number; idle_behavior: "static"; model?: string | undefined; ... 9 more ...; max_history_length?: number | undefined; }' is not assignable to type 'AINPCBrainConfig'.
+src/traits/AiUpscalingTrait.ts(189,3): error TS2322: Type '{ upscale_model: "swinir"; preserve_details: true; scale_factor?: 3 | 2 | 4 | undefined; tile_size?: number | undefined; denoise_strength?: number | undefined; input_source?: "live" | "texture" | "rendertarget" | undefined; output_resolution?: number; apply_to_material?: boolean | undefined; }' is not assignable to type 'AiUpscalingConfig'.
+src/traits/constraintConfig.ts(53,60): error TS2352: Conversion of type 'TraitConstraint' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/traits/ControllerInputTrait.ts(269,26): error TS2339: Property 'data' does not exist on type '{ [key: string]: any; type: string; } | { type: "controller_data"; node: HSPlusNode; hand: "left" | "right" | "none"; buttons: Record<string, { pressed: boolean; touched: boolean; value: number; }>; ... 4 more ...; timestamp: number; }'.
+src/traits/HandMeshAITrait.ts(102,3): error TS2322: Type '{ hand_model: "mediapipe_hands"; joint_count: 21; bimanual_tracking: false; mesh_resolution: "medium"; texture_enabled: false; vertex_count: number; real_time_generation: true; gesture_detection: false; ... 10 more ...; smoothing?: number | undefined; }' is not assignable to type 'HandMeshAIConfig'.
+src/traits/HandTrackingTrait.ts(280,26): error TS2339: Property 'data' does not exist on type '{ [key: string]: any; type: string; } | { type: "hand_data"; node: HSPlusNode; hand: "left" | "right" | "none"; joints: Record<string, { position: { x: number; y: number; z: number; }; rotation: { ...; }; radius: number; }>; pinchStrength: number; gripStrength: number; timestamp: number; }'.
+src/traits/NeuralForgeTrait.ts(89,11): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+src/traits/StableDiffusionTrait.ts(194,3): error TS2322: Type '{ realtime: true; streaming: true; steps: number; diffusion_model?: DiffusionModel | undefined; prompt?: string | undefined; negative_prompt?: string | undefined; resolution?: number | undefined; ... 8 more ...; upscale_model?: "esrgan" | "realesrgan" | "swinir"; }' is not assignable to type 'StableDiffusionConfig'.
+src/traits/StableDiffusionTrait.ts(208,3): error TS2322: Type '{ inpaint_strength: number; diffusion_model?: DiffusionModel | undefined; prompt?: string | undefined; negative_prompt?: string | undefined; resolution?: number | undefined; ... 10 more ...; upscale_model?: "esrgan" | "realesrgan" | "swinir"; }' is not assignable to type 'StableDiffusionConfig'.
+src/traits/StableDiffusionTrait.ts(220,3): error TS2322: Type '{ control_mode: "canny"; control_strength: number; diffusion_model?: DiffusionModel | undefined; prompt?: string | undefined; negative_prompt?: string | undefined; ... 10 more ...; upscale_model?: "esrgan" | "realesrgan" | "swinir"; }' is not assignable to type 'StableDiffusionConfig'.
+src/traits/ZoraCoinsTrait.ts(857,7): error TS2322: Type '"mintWithRewards"' is not assignable to type '"multicall" | "mint" | "addPermission" | "adminMint" | "burnBatch" | "callRenderer" | "callSale" | "delegateSetupNewToken" | "initialize" | "reduceSupply" | "removePermission" | ... 15 more ... | "withdraw"'.
+src/traits/ZoraCoinsTrait.ts(863,9): error TS2322: Type '`0x${string}`' is not assignable to type 'undefined'.
+src/traits/ZoraCoinsTrait.ts(865,7): error TS2322: Type 'bigint' is not assignable to type 'undefined'.
+src/wot/ThingDescriptionGenerator.ts(290,28): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
+src/wot/ThingDescriptionGenerator.ts(464,35): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
+src/wot/ThingDescriptionGenerator.ts(464,59): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
+src/wot/ThingDescriptionGenerator.ts(480,21): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
+src/wot/ThingDescriptionGenerator.ts(480,52): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
+src/wot/ThingDescriptionGenerator.ts(483,57): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
