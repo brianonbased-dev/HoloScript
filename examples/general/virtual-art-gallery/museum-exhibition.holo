@@ -1,0 +1,958 @@
+/**
+ * Virtual Art Gallery - Cultural/Educational Experience
+ *
+ * DESCRIPTION:
+ * Immersive VR gallery showcasing art exhibitions with interactive features.
+ * Demonstrates: spatial navigation, audio guides, interactive exhibits, multi-language support.
+ *
+ * TARGET PLATFORMS:
+ * - WebXR (primary): Browser-based VR/desktop for accessibility
+ * - Babylon.js: High-quality rendering for gallery visuals
+ * - Quest/PCVR: Full VR experience via Unity or native WebXR
+ *
+ * USE CASE:
+ * Museums, art galleries, educational institutions, virtual exhibitions, cultural preservation.
+ *
+ * KEY FEATURES:
+ * ✓ Multiple exhibition rooms with curated art collections
+ * ✓ Interactive audio guide system with narration
+ * ✓ Detailed artwork information overlays
+ * ✓ Teleportation and smooth locomotion navigation
+ * ✓ Multi-language support (6 languages)
+ * ✓ Accessibility features (subtitles, high contrast)
+ *
+ * LEARNING OBJECTIVES:
+ * 1. Design spatial gallery layouts for VR
+ * 2. Implement audio guide systems with localization
+ * 3. Create interactive information displays
+ * 4. Handle VR navigation (teleport + smooth movement)
+ * 5. Optimize lighting for art presentation
+ */
+
+composition "VirtualArtGallery" {
+
+  // ===== ENVIRONMENT SETUP =====
+
+  environment#gallery @indoor @museum_lighting {
+    skybox: "gallery_interior_hdri"
+    ambient_light: { intensity: 0.2, color: #f5f5f0 }  // Warm museum lighting
+    fog: { density: 0.0002, color: #e8e8e0, start: 30, end: 80 }
+
+    // Environmental audio
+    audio#ambient_sound @environmental {
+      source: "museum_ambience.mp3"
+      loop: true
+      volume: 0.15
+      spatial: false
+    }
+  }
+
+  // ===== MAIN GALLERY HALL =====
+
+  zone#entrance_hall @navigable {
+    floor#marble @physics {
+      material: "marble_white_polished"
+      size: { x: 15, y: 0, z: 20 }
+      collision: true
+
+      // Reflective surface for realism
+      reflection {
+        enabled: true
+        intensity: 0.3
+        blur: 0.1
+      }
+    }
+
+    walls#gallery_walls @static {
+      material: "gallery_wall_white"
+      height: 5
+      thickness: 0.3
+
+      // Picture rail molding
+      object#molding @decorative {
+        model: "crown_molding.glb"
+        position: { y: 4.8 }
+        repeat_along: "walls"
+      }
+    }
+
+    ceiling#gallery_ceiling @static {
+      material: "ceiling_white"
+      height: 5
+
+      // Track lighting
+      spatial_group#ceiling_lights {
+        repeat(8, x_axis, 2) {
+          light#spot @museum_lighting {
+            type: "spot"
+            intensity: 1.5
+            color: #fff5e6  // Warm white for artwork
+            angle: 30
+            range: 10
+            cast_shadows: true
+            shadow_softness: "soft"
+
+            // Aim at wall
+            target: { y: 2.5, z: 6.5 }
+          }
+        }
+      }
+    }
+
+    // Welcome sign
+    object#welcome_sign @interactive {
+      type: "plane"
+      size: { x: 3, y: 1.5 }
+      position: { x: 0, y: 2.5, z: -9 }
+      texture: "welcome_sign.png"
+
+      ui#welcome_text @overlay {
+        text: "WELCOME TO\nTHE VIRTUAL ART GALLERY\n\nSelect your language to begin"
+        font: "serif"
+        font_size: 32
+        color: #333333
+        align: "center"
+      }
+    }
+
+    // Language selection podium
+    object#language_selector @interactive {
+      model: "info_podium.glb"
+      position: { x: 0, y: 0, z: -6 }
+      scale: { x: 1.2, y: 1.2, z: 1.2 }
+
+      ui#language_panel @interactive {
+        type: "panel"
+        size: { x: 1.5, y: 1 }
+        position: { y: 1.2 }
+        rotation: { x: -15 }
+        background: #ffffff
+
+        text#prompt {
+          content: "Choose Language / Choisissez la langue"
+          position: { y: 10 }
+          font_size: 16
+          align: "center"
+        }
+
+        grid#language_buttons {
+          position: { y: 50 }
+          columns: 3
+          gap: 10
+          padding: 10
+
+          buttons: [
+            { label: "English", code: "en", flag: "🇬🇧" },
+            { label: "Español", code: "es", flag: "🇪🇸" },
+            { label: "Français", code: "fr", flag: "🇫🇷" },
+            { label: "Deutsch", code: "de", flag: "🇩🇪" },
+            { label: "中文", code: "zh", flag: "🇨🇳" },
+            { label: "日本語", code: "ja", flag: "🇯🇵" }
+          ]
+
+          for_each_button {
+            button {
+              size: { x: 120, y: 50 }
+              background: #f5f5f5
+              border: 1
+              border_color: #cccccc
+              border_radius: 5
+
+              text {
+                content: "{button.flag} {button.label}"
+                font_size: 14
+                align: "center"
+              }
+
+              on_tap {
+                set_language: button.code
+                play_audio: "select.mp3"
+                show_toast: "Language set to {button.label}"
+                enable_audio_guide: true
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ===== EXHIBITION ROOM 1: IMPRESSIONISM =====
+
+  zone#impressionism_room @navigable @exhibition {
+    position: { x: 0, z: 25 }
+
+    floor#parquet @physics {
+      material: "oak_parquet_herringbone"
+      size: { x: 20, y: 0, z: 15 }
+      collision: true
+    }
+
+    walls @static {
+      material: "gallery_wall_cream"
+      height: 5
+    }
+
+    // Directional lighting for impressionist works (softer)
+    light#natural_skylight @ambient {
+      type: "directional"
+      intensity: 1.0
+      color: #f0f8ff  // Cool daylight tone
+      position: { y: 5 }
+      rotation: { x: -60, y: 45 }
+      cast_shadows: false
+    }
+
+    // Room label
+    object#room_sign @ui_element {
+      type: "plane"
+      size: { x: 2, y: 0.5 }
+      position: { x: 0, y: 4, z: -7 }
+      material: "sign_background"
+
+      ui#room_label @text {
+        text: localize("IMPRESSIONISM_ROOM_TITLE")  // "Impressionism: Light and Color"
+        font: "serif"
+        font_size: 36
+        color: #333333
+        align: "center"
+      }
+    }
+
+    // Artwork 1: Monet's Water Lilies (replica)
+    artwork#monet_lilies @interactive @audio_guided {
+      position: { x: -7, y: 2.5, z: -6.5 }
+      frame_style: "ornate_gold"
+      frame_size: { x: 2.5, y: 1.8, z: 0.1 }
+
+      painting {
+        texture: "monet_water_lilies.jpg"
+        size: { x: 2.3, y: 1.6 }
+        glossy: true  // Oil painting finish
+      }
+
+      // Dedicated spotlight
+      light#artwork_spot @focused {
+        type: "spot"
+        intensity: 2.0
+        color: #fff5e6
+        angle: 25
+        position: { y: 1, z: -1 }
+        target: this
+        cast_shadows: false
+      }
+
+      metadata {
+        artist: localize("ARTIST_MONET")  // "Claude Monet"
+        title: localize("MONET_LILIES_TITLE")  // "Water Lilies"
+        year: "1914-1917"
+        medium: localize("MEDIUM_OIL_CANVAS")  // "Oil on canvas"
+        dimensions: "200 cm × 200 cm"
+        description: localize("MONET_LILIES_DESC")
+        audio_guide: "audio/monet_lilies_{language}.mp3"
+      }
+
+      // Info plaque
+      object#plaque @interactive {
+        type: "plane"
+        size: { x: 0.4, y: 0.25 }
+        position: { x: 1.5, y: -1.2, z: 0.05 }
+        material: "brass_plaque"
+
+        ui#plaque_text @small_text {
+          text: "{metadata.artist}\n\"{metadata.title}\"\n{metadata.year}"
+          font: "serif"
+          font_size: 12
+          color: #000000
+          align: "center"
+        }
+      }
+
+      on_approach(distance < 2) {
+        show_interaction_hint: localize("HINT_TAP_INFO")  // "Tap for more information"
+      }
+
+      on_interact {
+        show_artwork_detail_panel: this
+        play_audio_guide: metadata.audio_guide
+      }
+    }
+
+    // Artwork 2: Renoir (different style)
+    artwork#renoir_dance @interactive @audio_guided {
+      position: { x: 0, y: 2.5, z: -6.5 }
+      frame_style: "simple_wood"
+      frame_size: { x: 2.2, y: 2.8, z: 0.1 }
+
+      painting {
+        texture: "renoir_dance_moulin.jpg"
+        size: { x: 2.0, y: 2.6 }
+      }
+
+      light#artwork_spot @focused {
+        type: "spot"
+        intensity: 2.0
+        color: #fff5e6
+        angle: 25
+        position: { y: 1, z: -1 }
+        target: this
+      }
+
+      metadata {
+        artist: "Pierre-Auguste Renoir"
+        title: localize("RENOIR_DANCE_TITLE")
+        year: "1876"
+        medium: localize("MEDIUM_OIL_CANVAS")
+        dimensions: "131 cm × 175 cm"
+        description: localize("RENOIR_DANCE_DESC")
+        audio_guide: "audio/renoir_dance_{language}.mp3"
+      }
+
+      object#plaque @interactive {
+        type: "plane"
+        size: { x: 0.4, y: 0.25 }
+        position: { x: 1.3, y: -1.6, z: 0.05 }
+        material: "brass_plaque"
+
+        ui#plaque_text @small_text {
+          text: "{metadata.artist}\n\"{metadata.title}\"\n{metadata.year}"
+          font: "serif"
+          font_size: 12
+          color: #000000
+          align: "center"
+        }
+      }
+
+      on_interact {
+        show_artwork_detail_panel: this
+        play_audio_guide: metadata.audio_guide
+      }
+    }
+
+    // Artwork 3: Van Gogh
+    artwork#vangogh_starry @interactive @audio_guided {
+      position: { x: 7, y: 2.5, z: -6.5 }
+      frame_style: "modern_black"
+      frame_size: { x: 2.3, y: 1.9, z: 0.1 }
+
+      painting {
+        texture: "vangogh_starry_night.jpg"
+        size: { x: 2.1, y: 1.7 }
+        emissive: true  // Slight glow for stars
+        emissive_intensity: 0.3
+      }
+
+      light#artwork_spot @focused {
+        type: "spot"
+        intensity: 2.2
+        color: #fff5e6
+        angle: 25
+        position: { y: 1, z: -1 }
+        target: this
+      }
+
+      metadata {
+        artist: "Vincent van Gogh"
+        title: localize("VANGOGH_STARRY_TITLE")
+        year: "1889"
+        medium: localize("MEDIUM_OIL_CANVAS")
+        dimensions: "73.7 cm × 92.1 cm"
+        description: localize("VANGOGH_STARRY_DESC")
+        audio_guide: "audio/vangogh_starry_{language}.mp3"
+
+        // Fun fact for interactive element
+        fun_fact: localize("VANGOGH_STARRY_FACT")
+      }
+
+      object#plaque @interactive {
+        type: "plane"
+        size: { x: 0.4, y: 0.25 }
+        position: { x: -1.3, y: -1.2, z: 0.05 }
+        material: "brass_plaque"
+
+        ui#plaque_text @small_text {
+          text: "{metadata.artist}\n\"{metadata.title}\"\n{metadata.year}"
+          font: "serif"
+          font_size: 12
+          color: #000000
+          align: "center"
+        }
+      }
+
+      on_interact {
+        show_artwork_detail_panel: this
+        play_audio_guide: metadata.audio_guide
+        show_fun_fact: metadata.fun_fact
+      }
+    }
+
+    // Seating area for contemplation
+    object#bench @furniture {
+      model: "museum_bench.glb"
+      position: { x: 0, y: 0, z: 3 }
+      rotation: { y: 180 }
+      scale: { x: 1.5, y: 1, z: 1 }
+
+      // Optional sit interaction (VR only)
+      on_interact @vr_only {
+        teleport_player: {
+          position: { x: 0, y: 0.6, z: 3.2 }
+          rotation: { y: 0 }
+        }
+        show_toast: localize("SEATED_MESSAGE")  // "Take your time to appreciate the art"
+      }
+    }
+  }
+
+  // ===== EXHIBITION ROOM 2: MODERN ART =====
+
+  zone#modern_room @navigable @exhibition {
+    position: { x: 25, z: 25 }
+
+    floor#concrete @physics {
+      material: "polished_concrete"
+      size: { x: 18, y: 0, z: 18 }
+      collision: true
+    }
+
+    walls @static {
+      material: "gallery_wall_dark_gray"
+      height: 6
+    }
+
+    // Dramatic gallery lighting for modern art
+    spatial_group#track_lights {
+      repeat(12, grid, { x: 3, z: 3 }) {
+        light#modern_spot @adjustable {
+          type: "spot"
+          intensity: 2.0
+          color: #ffffff  // Pure white for modern works
+          angle: 35
+          range: 8
+          position: { y: 5.5 }
+          rotation: { x: -90 }
+          cast_shadows: true
+        }
+      }
+    }
+
+    // Modern art pieces (3D sculptures)
+    sculpture#abstract_metal @interactive @3d_artwork {
+      model: "abstract_sculpture.glb"
+      position: { x: 0, y: 0, z: 0 }
+      scale: { x: 2, y: 2, z: 2 }
+
+      material {
+        type: "metallic"
+        color: #c0c0c0
+        metallic: 1.0
+        roughness: 0.2
+        reflectivity: 0.8
+      }
+
+      // Rotating pedestal
+      object#pedestal @static {
+        type: "cylinder"
+        size: { radius: 1.5, height: 1 }
+        material: "white_marble"
+        position: { y: -1 }
+
+        animate {
+          property: "rotation_y"
+          from: 0
+          to: 360
+          duration: 60
+          loop: true
+          easing: "linear"
+        }
+      }
+
+      metadata {
+        artist: "Alexander Calder"
+        title: localize("CALDER_MOBILE_TITLE")
+        year: "1956"
+        medium: localize("MEDIUM_STEEL_WIRE")
+        description: localize("CALDER_MOBILE_DESC")
+        audio_guide: "audio/calder_mobile_{language}.mp3"
+      }
+
+      on_interact {
+        show_artwork_detail_panel: this
+        play_audio_guide: metadata.audio_guide
+
+        // Allow user to stop/start rotation
+        toggle_animation: pedestal.rotation
+      }
+    }
+
+    // Interactive digital art (screen-based)
+    artwork#digital_interactive @interactive @digital_art {
+      type: "screen"
+      size: { x: 3, y: 2 }
+      position: { x: -7, y: 2.5, z: -8 }
+      emissive: true
+      emissive_intensity: 1.5
+
+      // Generative art animation
+      shader#generative_art @animated {
+        type: "fragment"
+        source: "shaders/generative_art.glsl"
+        uniforms: {
+          time: { type: "float", value: 0, animate: true },
+          color_palette: { type: "vec3[]", value: [#ff0000, #00ff00, #0000ff] },
+          complexity: { type: "float", value: 0.5 }
+        }
+
+        on_frame {
+          uniforms.time += delta_time
+        }
+      }
+
+      metadata {
+        artist: "Casey Reas"
+        title: localize("REAS_GENERATIVE_TITLE")
+        year: "2020"
+        medium: localize("MEDIUM_DIGITAL_INTERACTIVE")
+        description: localize("REAS_GENERATIVE_DESC")
+        audio_guide: "audio/reas_generative_{language}.mp3"
+      }
+
+      // Interactive controls
+      ui#art_controls @contextual {
+        position: "right_of_artwork"
+        offset_x: 1
+
+        slider#complexity {
+          label: localize("COMPLEXITY")
+          min: 0
+          max: 1
+          value: 0.5
+
+          on_change {
+            shader.uniforms.complexity = this.value
+          }
+        }
+
+        button#randomize {
+          label: localize("RANDOMIZE")
+          on_tap {
+            shader.uniforms.color_palette = generate_random_palette()
+            play_audio: "chime.mp3"
+          }
+        }
+      }
+
+      on_interact {
+        show_artwork_detail_panel: this
+        play_audio_guide: metadata.audio_guide
+      }
+    }
+  }
+
+  // ===== AUDIO GUIDE SYSTEM =====
+
+  system#audio_guide @global {
+    enabled: false  // Enabled after language selection
+
+    current_audio: null
+    subtitles_enabled: true
+
+    on_play(audio_file) {
+      // Stop current audio if playing
+      if (current_audio) {
+        stop_audio: current_audio
+      }
+
+      // Play new audio guide
+      current_audio = play_audio: {
+        source: audio_file.replace("{language}", selected_language)
+        volume: 0.7
+        spatial: false  // Non-spatial for narration
+
+        on_start {
+          show_audio_controls: true
+        }
+
+        on_end {
+          hide_audio_controls: true
+          mark_artwork_listened: current_artwork
+        }
+      }
+
+      // Show subtitles if enabled
+      if (subtitles_enabled) {
+        load_subtitles: audio_file.replace(".mp3", ".vtt")
+        show_subtitle_panel: true
+      }
+    }
+
+    on_stop {
+      if (current_audio) {
+        stop_audio: current_audio
+        current_audio = null
+        hide_audio_controls: true
+        hide_subtitle_panel: true
+      }
+    }
+  }
+
+  // Audio control UI
+  ui#audio_controls @floating @bottom {
+    position: "bottom_center"
+    size: { x: 400, y: 80 }
+    background: #000000cc
+    border_radius: 10
+    visible: false
+
+    text#now_playing {
+      position: { x: 10, y: 10 }
+      font_size: 14
+      color: #ffffff
+      content: "🎧 {current_artwork.metadata.title} - {current_artwork.metadata.artist}"
+    }
+
+    progress_bar#audio_progress {
+      position: { y: 40 }
+      width: 380
+      height: 8
+      color: #4caf50
+      background: #333333
+      value: audio.current_time / audio.duration
+    }
+
+    button_group#playback_controls {
+      position: { y: 55 }
+
+      button#stop {
+        icon: "stop.svg"
+        size: { x: 30, y: 30 }
+        on_tap {
+          audio_guide.stop()
+        }
+      }
+
+      button#toggle_subtitles {
+        icon: subtitles_enabled ? "subtitles_on.svg" : "subtitles_off.svg"
+        size: { x: 30, y: 30 }
+        position: { x: 40 }
+        on_tap {
+          toggle_subtitles: true
+        }
+      }
+    }
+  }
+
+  // Subtitle panel
+  ui#subtitle_panel @floating @bottom {
+    position: "bottom_center"
+    offset_y: 100
+    size: { x: 600, y: 100 }
+    background: #000000dd
+    border_radius: 5
+    visible: false
+
+    text#subtitle_text {
+      font_size: 18
+      color: #ffffff
+      align: "center"
+      padding: 20
+      content: current_subtitle_text
+    }
+  }
+
+  // ===== ARTWORK DETAIL PANEL =====
+
+  ui#artwork_detail @modal {
+    visible: false
+    size: { x: 500, y: 600 }
+    position: "center"
+    background: #ffffff
+    border_radius: 15
+    shadow: true
+
+    // Close button
+    button#close {
+      position: { x: 460, y: 10 }
+      icon: "close.svg"
+      size: { x: 30, y: 30 }
+      on_tap {
+        close_panel: this
+        audio_guide.stop()
+      }
+    }
+
+    // Artwork image (larger view)
+    image#artwork_preview {
+      position: { y: 50 }
+      size: { x: 450, y: 300 }
+      source: selected_artwork.painting.texture
+      fit: "contain"
+    }
+
+    // Artwork information
+    scrollable#info_section {
+      position: { y: 360 }
+      height: 230
+
+      text#artist_name {
+        position: { y: 10 }
+        font_size: 20
+        font_weight: "bold"
+        color: #333333
+        content: selected_artwork.metadata.artist
+      }
+
+      text#artwork_title {
+        position: { y: 40 }
+        font_size: 18
+        font_style: "italic"
+        color: #666666
+        content: "\"{selected_artwork.metadata.title}\""
+      }
+
+      text#year {
+        position: { y: 70 }
+        font_size: 16
+        color: #999999
+        content: "{selected_artwork.metadata.year} • {selected_artwork.metadata.medium}"
+      }
+
+      text#dimensions {
+        position: { y: 95 }
+        font_size: 14
+        color: #999999
+        content: selected_artwork.metadata.dimensions
+      }
+
+      text#description {
+        position: { y: 125 }
+        font_size: 15
+        color: #333333
+        content: selected_artwork.metadata.description
+        wrap: true
+        line_height: 1.5
+      }
+    }
+
+    // Audio guide button
+    button#play_audio_guide {
+      position: { y: 600 }
+      size: { x: 450, y: 50 }
+      background: #2196f3
+      text: "▶ " + localize("PLAY_AUDIO_GUIDE")
+      text_color: #ffffff
+      font_size: 16
+      border_radius: 8
+
+      on_tap {
+        audio_guide.play(selected_artwork.metadata.audio_guide)
+      }
+    }
+  }
+
+  // ===== NAVIGATION SYSTEM =====
+
+  camera#player @vr @first_person {
+    fov: 90
+    near: 0.1
+    far: 100
+    position: { x: 0, y: 1.7, z: -5 }
+
+    // VR controllers
+    controller#left_hand @navigation {
+      model: "vr_controller_left.glb"
+      haptic_feedback: true
+
+      // Teleport (thumbstick/touchpad)
+      teleport {
+        enabled: true
+        arc_color: #00ff00
+        valid_surface_color: #00ff00
+        invalid_surface_color: #ff0000
+        max_distance: 10
+
+        validation {
+          require_navigable_zone: true
+          prevent_through_walls: true
+        }
+      }
+    }
+
+    controller#right_hand @interaction {
+      model: "vr_controller_right.glb"
+      haptic_feedback: true
+      ray_interact: true
+      ray_color: #ffffff
+      ray_length: 10
+
+      // Smooth locomotion (optional, for users who prefer it)
+      smooth_movement {
+        enabled: true
+        speed: 2.0
+        acceleration: 1.5
+        comfort_vignette: true  // Reduce motion sickness
+      }
+    }
+
+    // Desktop/mobile fallback
+    fallback_mode: "first_person_walk"
+    movement_speed: 2.5
+    mouse_look: true
+    touch_look: true  // Mobile gyroscope
+
+    ui#crosshair @desktop_only {
+      type: "sprite"
+      texture: "crosshair.png"
+      size: { x: 24, y: 24 }
+      position: "screen_center"
+      opacity: 0.6
+    }
+  }
+
+  // Minimap for orientation
+  ui#minimap @top_right {
+    size: { x: 200, y: 200 }
+    position: { x: -220, y: 20 }
+    background: #ffffffcc
+    border: 2
+    border_color: #333333
+    border_radius: 10
+
+    // Top-down view of gallery
+    canvas#map {
+      size: { x: 180, y: 180 }
+      position: { x: 10, y: 10 }
+
+      // Draw rooms
+      draw_rectangle: { x: 10, y: 10, width: 60, height: 80, color: #e0e0e0, label: "Entrance" }
+      draw_rectangle: { x: 10, y: 100, width: 80, height: 60, color: #d0d0f0, label: "Impressionism" }
+      draw_rectangle: { x: 100, y: 100, width: 72, height: 72, color: #f0d0d0, label: "Modern" }
+
+      // Draw player position
+      draw_circle: {
+        x: player.position.x_scaled,
+        y: player.position.z_scaled,
+        radius: 5,
+        color: #ff0000
+      }
+
+      // Draw player direction
+      draw_arrow: {
+        from: { x: player.position.x_scaled, y: player.position.z_scaled },
+        angle: player.rotation.y,
+        length: 10,
+        color: #ff0000
+      }
+    }
+  }
+
+  // ===== ACCESSIBILITY & SETTINGS =====
+
+  settings {
+    // Language
+    supported_languages: ["en", "es", "fr", "de", "zh", "ja"]
+    default_language: "en"
+
+    // Audio
+    audio_guide_enabled: true
+    subtitles_enabled: true
+    ambient_volume: 0.15
+    narration_volume: 0.7
+
+    // Visual
+    high_contrast_mode: false
+    colorblind_mode: "none"
+    reduce_motion: false  // Disable animations if true
+
+    // Navigation
+    teleport_enabled: true
+    smooth_movement_enabled: false  // Off by default (motion sickness)
+    comfort_vignette: true
+    turn_snap_angle: 30  // Degrees per snap turn
+
+    // Performance
+    shadow_quality: "high"
+    reflection_quality: "medium"
+    texture_quality: "high"
+    antialiasing: true
+
+    // Analytics
+    track_artwork_views: true
+    track_audio_guide_usage: true
+    track_time_per_room: true
+  }
+
+  // Settings menu UI
+  ui#settings_menu @modal {
+    visible: false
+    size: { x: 400, y: 500 }
+    position: "center"
+    background: #ffffff
+    border_radius: 15
+
+    text#title {
+      position: { y: 20 }
+      font_size: 24
+      font_weight: "bold"
+      content: localize("SETTINGS")
+      align: "center"
+    }
+
+    section#audio_settings {
+      position: { y: 70 }
+      label: localize("AUDIO")
+
+      toggle#subtitles {
+        label: localize("SUBTITLES")
+        value: settings.subtitles_enabled
+        on_change {
+          settings.subtitles_enabled = this.value
+        }
+      }
+
+      slider#ambient_volume {
+        label: localize("AMBIENT_VOLUME")
+        min: 0
+        max: 1
+        value: settings.ambient_volume
+        on_change {
+          settings.ambient_volume = this.value
+          update_ambient_volume: this.value
+        }
+      }
+    }
+
+    section#movement_settings {
+      position: { y: 200 }
+      label: localize("MOVEMENT")
+
+      toggle#smooth_movement {
+        label: localize("SMOOTH_MOVEMENT")
+        value: settings.smooth_movement_enabled
+        on_change {
+          settings.smooth_movement_enabled = this.value
+        }
+      }
+
+      toggle#comfort_vignette {
+        label: localize("COMFORT_VIGNETTE")
+        value: settings.comfort_vignette
+        on_change {
+          settings.comfort_vignette = this.value
+        }
+      }
+    }
+
+    button#close {
+      position: { y: 450 }
+      size: { x: 360, y: 40 }
+      background: #2196f3
+      text: localize("CLOSE")
+      text_color: #ffffff
+      border_radius: 8
+      on_tap {
+        close_panel: this
+      }
+    }
+  }
+}

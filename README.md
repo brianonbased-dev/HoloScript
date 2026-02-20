@@ -1,8 +1,10 @@
 # HoloScript v3.4.0
 
-**Write once. Run everywhere. Spatial computing for everyone.**
+## The Universal Language for VR, AR, and 3D Experiences
 
-HoloScript is an AI-native, declarative language for spatial computing. It allows developers and AI agents to define interactive worlds, complex behaviors, and high-fidelity graphics that compile to 18+ platforms from a single source.
+Write once, deploy everywhere. HoloScript compiles to Unity, Unreal, Godot, WebXR, Quest, ARKit, ARCore, and 18+ platforms from a single codebase.
+
+Perfect for corporate training, e-commerce AR, museums, games, robotics, and more.
 
 ![version-badge](https://img.shields.io/badge/version-v3.4.0-green?style=for-the-badge)
 ![Quickstart Badge](https://img.shields.io/badge/Quickstart-5_min-blue?style=for-the-badge)
@@ -10,6 +12,21 @@ HoloScript is an AI-native, declarative language for spatial computing. It allow
 [![codecov](https://codecov.io/gh/brianonbased-dev/HoloScript/branch/main/graph/badge.svg?style=for-the-badge)](https://codecov.io/gh/brianonbased-dev/HoloScript)
 [![Known Vulnerabilities](https://snyk.io/test/github/brianonbased-dev/HoloScript/badge.svg?style=for-the-badge)](https://snyk.io/test/github/brianonbased-dev/HoloScript)
 [![Security Rating](https://img.shields.io/badge/Security-A+-brightgreen?style=for-the-badge)](https://github.com/brianonbased-dev/HoloScript/security)
+
+---
+
+## 🎯 See It In Action
+
+Jump straight to real-world examples:
+
+| Use Case | Description | View Example |
+|----------|-------------|--------------|
+| 🏢 **Corporate Training** | VR safety training with interactive hazard identification | [VR Training Simulation →](./examples/general/vr-training-simulation/) |
+| 🛋️ **E-Commerce AR** | "Try before you buy" furniture preview on mobile | [AR Furniture Preview →](./examples/general/ar-furniture-preview/) |
+| 🎨 **Museums & Culture** | Virtual art gallery with audio guides | [Virtual Art Gallery →](./examples/general/virtual-art-gallery/) |
+| 🎮 **Gaming** | Fast-paced VR shooter with physics and AI | [VR Game Demo →](./examples/general/vr-game-demo/) |
+
+**All examples compile to Unity, Unreal, Godot, and WebXR from a single `.holo` file.**
 
 ---
 
@@ -76,16 +93,23 @@ composition "Hello Holo" {
 
 ---
 
-## 🔥 Key Features
+## 🔥 Why HoloScript?
 
-- ✅ **1,800+ VR Traits** - `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, 213 robotics/industrial traits, 24 scientific computing traits, and more.
-- ✅ **600+ Visual Traits** - PBR materials, procedural textures, and mood-based lighting.
-- ✅ **50+ Core Modules** - AI, physics, ECS, animation, audio, terrain, particles, networking, editor, and more.
-- ✅ **18 Compile Targets** - VRChat, Unreal Engine, iOS/ARKit, Android/ARCore, Unity, WebAssembly, and more.
-- ✅ **AI-Native** - Built for LLMs with 34 high-level MCP tools for real-time generation.
-- ✅ **Scientific Computing** - Molecular dynamics, drug discovery, and AutoDock Vina integration via `@holoscript/narupa-plugin`.
-- ✅ **Robotics & Industrial** - URDF/USD/SDF/MJCF export with 213 declarative traits for joints, actuators, sensors, and control systems.
-- ✅ **Production-Ready Runtime** - Resilience patterns, CRDT state, reactive state, WebGPU rendering, and WebXR session management.
+### Universal Compilation
+Write **one** HoloScript file. Compile to:
+- **Game Engines**: Unity, Unreal Engine, Godot
+- **WebXR**: Three.js, Babylon.js (browser-based VR/AR)
+- **Mobile AR**: ARKit (iOS), ARCore (Android), VisionOS
+- **VR Platforms**: Quest (OpenXR), SteamVR, PSVR2
+- **Social VR**: VRChat (Udon), Rec Room
+- **Specialized**: Robotics (URDF/SDF), IoT (DTDL), Simulations
+
+### Feature-Rich
+- ✅ **1,800+ VR Traits** - `@grabbable`, `@physics`, `@ai_agent`, `@teleport`
+- ✅ **600+ Visual Traits** - PBR materials, procedural textures, mood lighting
+- ✅ **AI-Native** - Built for LLMs, real-time generation via MCP tools
+- ✅ **Robotics** - 213 traits for URDF/SDF export (ROS2, Gazebo)
+- ✅ **Production-Ready** - WebGPU rendering, CRDT state, resilience patterns
 
 ---
 
