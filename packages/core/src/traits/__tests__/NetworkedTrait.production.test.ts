@@ -179,7 +179,7 @@ describe('NetworkedTrait — Production Tests', () => {
       const result = t.getInterpolatedState(100);
       expect(result).not.toBeNull();
       if (result) {
-        expect(result.position[0]).toBeCloseTo(50, 0);
+        expect(result.position[0]).toBeCloseTo(50, 1);
       }
     });
 
