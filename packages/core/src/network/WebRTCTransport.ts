@@ -10,23 +10,187 @@
  * - Signaling via WebSocket
  * - Data channel for message passing
  * - ICE candidate gathering
+ *
+ * TODO: HOLOLAND INTEGRATION - VRR Multiplayer & VR Voice Chat
+ *
+ * REQUIRED ENHANCEMENTS FOR HOLOLAND:
+ * 1. VRR Twin Multiplayer (1000+ concurrent players per twin)
+ *    - Spatial partitioning (divide VRR twin into 100m x 100m cells)
+ *    - Interest management (only sync players within 500m radius)
+ *    - Relay servers for scalability (mesh topology breaks at 50+ peers)
+ *
+ * 2. Spatial Audio for VR Worlds
+ *    - 3D positional audio (Web Audio API + PannerNode)
+ *    - Audio attenuation by distance (inverse square law)
+ *    - Occlusion (walls block sound)
+ *    - Reverb zones (different acoustics per room)
+ *
+ * 3. Quest State Synchronization
+ *    - Sync quest progress across multiplayer party
+ *    - Shared quest objectives (all party members contribute)
+ *    - Quest completion rewards distributed to party
+ *
+ * 4. AR → VRR Layer Transition State
+ *    - Persist AR scan data → VRR quest context
+ *    - Sync multiplayer state across layer transitions
+ *    - Resume party session when entering VRR from AR
+ *
+ * 5. x402 Payment Integration
+ *    - Premium voice chat (paid feature, $1/month)
+ *    - Private VR rooms (paid feature, $5/room)
+ *    - Verify payment before enabling voice/video
+ *
+ * 6. AI Agent Voice Synthesis
+ *    - Pagemaster AI narrator (TTS for quest dialogue)
+ *    - AI NPC voices (generated via ElevenLabs, Replica)
+ *    - Lip-sync animation for AI agents
+ *
+ * 7. Performance Optimizations
+ *    - Adaptive bitrate for voice/video (based on bandwidth)
+ *    - Simulcast for multi-party (send multiple quality levels)
+ *    - Selective forwarding unit (SFU) for 100+ players
+ *
+ * EXAMPLE USAGE (VRR Twin with 200 Players):
+ * ```typescript
+ * const transport = createWebRTCTransport({
+ *   signalingServerUrl: 'wss://multiplayer.hololand.io',
+ *   roomId: 'phoenix_downtown_vrr',
+ *   peerId: 'player_123',
+ *   iceServers: [{ urls: 'stun:stun.hololand.io:3478' }],
+ *   spatialAudio: true, // TODO: Add spatial audio config
+ *   interestManagement: { // TODO: Add interest management
+ *     enabled: true,
+ *     radius: 500, // meters
+ *     updateInterval: 100 // ms
+ *   }
+ * });
+ *
+ * // Enable spatial audio
+ * transport.enableSpatialAudio({
+ *   maxDistance: 100, // meters
+ *   rolloffFactor: 2, // inverse square
+ *   coneInnerAngle: 60, // degrees
+ *   coneOuterAngle: 120
+ * });
+ *
+ * // Update player position for spatial audio
+ * transport.updatePosition({ x: 100, y: 0, z: 50 });
+ * ```
+ *
+ * INTEGRATION POINTS:
+ * - VRRRuntime.ts (multiplayer state sync)
+ * - VRRCompiler.ts (generates WebRTC initialization code)
+ * - x402PaymentService.ts (verify payment for premium voice)
+ * - AgentKitIntegration.ts (AI agent voice synthesis)
+ *
+ * RESEARCH REFERENCES:
+ * - HOLOLAND_INTEGRATION_TODOS.md (WebRTC multiplayer section)
+ * - uAA2++_Protocol/5.GROW P.029: "Machine Customers for VR Platforms"
  */
 
 export interface WebRTCTransportConfig {
   /** Signaling server URL for WebRTC negotiation */
   signalingServerUrl: string;
-  
+
   /** Room ID for peer discovery */
   roomId: string;
-  
+
   /** Peer ID (auto-generated if not provided) */
   peerId?: string;
-  
+
   /** ICE servers for NAT traversal */
   iceServers?: RTCIceServer[];
+
+  // TODO: Add Hololand VRR multiplayer configuration
+  // IMPLEMENTATION: Use Web Audio API PannerNode for 3D positional audio
+  // - Create AudioContext and PannerNode per remote peer
+  // - Update panner.setPosition() on every peer movement (from social packets)
+  // - Apply distance model: panner.distanceModel = 'inverse' (inverse square law)
+  // - Add occlusion: reduce gain when walls detected via raycasting
+  // - Reference: https://developer.mozilla.org/en-US/docs/Web/API/PannerNode
+  // spatialAudio?: {
+  //   enabled: boolean;
+  //   maxDistance: number; // meters (default: 50m, voice fades beyond this)
+  //   rolloffFactor: number; // 1 = linear, 2 = inverse square (default: 2)
+  //   coneInnerAngle?: number; // degrees (directional audio, e.g., 60°)
+  //   coneOuterAngle?: number; // degrees (outer cone, e.g., 120°)
+  //   occlusionEnabled?: boolean; // reduce volume when walls block line-of-sight
+  // };
+  //
+  // TODO: Add interest management for 1000+ player scalability
+  // IMPLEMENTATION: Spatial partitioning to reduce O(n²) peer updates to O(log n)
+  // - Grid: Divide world into 50m×50m cells, only sync players in same cell + adjacent 8 cells
+  // - Quadtree: Hierarchical tree for dynamic player density (better for uneven distribution)
+  // - Update visible peers every 100-500ms (not every frame)
+  // - Send full state on enter radius, delta updates while in radius, disconnect on exit
+  // - Critical for VRR downtown Phoenix (1000+ concurrent players in same zone)
+  // - Reference: https://0fps.net/2015/01/07/spatial-data-structures-for-networked-games/
+  // interestManagement?: {
+  //   enabled: boolean;
+  //   radius: number; // meters (default: 500m for VRR, only sync players within radius)
+  //   updateInterval: number; // ms (default: 100ms, how often to update visible players)
+  //   spatialPartitioning?: 'grid' | 'quadtree'; // algorithm (grid = simpler, quadtree = adaptive)
+  // };
+  //
+  // TODO: Add x402 payment verification for premium features
+  // IMPLEMENTATION: HTTP 402 Payment Required verification before enabling features
+  // - Before getUserMedia(audio): POST to x402Endpoint with userId + feature='voice'
+  // - Response 200 = paid, enable voice; Response 402 = unpaid, show payment modal
+  // - Before getUserMedia(video): Same flow for video feature
+  // - Before creating private room: Verify payment, charge $5 via x402 protocol
+  // - Cache payment status for 1 hour (reduce API calls)
+  // - Integration: packages/marketplace-api/src/x402PaymentService.ts
+  // - Reference: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/402
+  // premiumFeatures?: {
+  //   voiceChat: boolean; // Require payment for voice ($1/month subscription)
+  //   videoChat: boolean; // Require payment for video ($5/month subscription)
+  //   privateRooms: boolean; // Require payment for private VR rooms ($5/room one-time)
+  //   x402Endpoint?: string; // x402 payment verification endpoint (e.g., /api/x402/verify)
+  // };
+  //
+  // TODO: Add VRR layer context (for AR → VRR → VR transitions)
+  // IMPLEMENTATION: Persist state across AR → VRR → VR layer transitions
+  // - AR layer: User scans QR code at coffee shop → store businessId + questId in localStorage
+  // - VRR layer: Load from localStorage, show VRR twin with quest UI, sync progress to backend
+  // - VR layer: Load quest state, immersive completion experience, mint NFT reward
+  // - On layer shift: Call onLayerShift(prevLayer, nextLayer, state) callback
+  // - Integration: packages/runtime/src/VRRRuntime.ts for state persistence
+  // - Use IndexedDB for large state (e.g., scanned AR anchor data, quest inventory)
+  // layerContext?: {
+  //   layer: 'ar' | 'vrr' | 'vr'; // Current layer
+  //   previousLayer?: 'ar' | 'vrr'; // Previous layer (for back navigation)
+  //   persistedState?: Record<string, any>; // State from previous layer (quest progress, inventory)
+  //   businessId?: string; // For VRR business twins (e.g., 'phoenix_brew_coffee')
+  //   questId?: string; // For VRR quest context (e.g., 'latte_legend_quest')
+  // };
+  //
+  // TODO: Add AI agent voice synthesis configuration
+  // IMPLEMENTATION: TTS for AI agents (NPCs, Pagemaster narrator) via WebRTC
+  // - When AI agent speaks: POST text to TTS provider API (ElevenLabs/Replica/PlayHT)
+  // - Receive audio stream (MP3/WAV), convert to MediaStream via Web Audio API
+  // - Inject into WebRTC peer connection as audio track (same as user voice)
+  // - Apply spatial audio to AI agent position (see spatialAudio config above)
+  // - Pagemaster narrator mode: Global narration (no spatial audio, heard by all players)
+  // - Integration: Use voiceId for consistent AI personality across sessions
+  // - Latency optimization: Stream TTS chunks as they arrive (don't wait for full audio)
+  // - Reference: https://elevenlabs.io/docs/api-reference/websockets
+  // aiAgentVoice?: {
+  //   enabled: boolean;
+  //   provider: 'elevenlabs' | 'replica' | 'playht'; // TTS provider
+  //   voiceId?: string; // AI agent voice profile (e.g., 'rachel_premium' for ElevenLabs)
+  //   narrationMode?: boolean; // Pagemaster AI narrator mode (global audio, non-spatial)
+  // };
 }
 
-export type SocialPacketType = 'SOCIAL_REQUEST' | 'SOCIAL_ACCEPT' | 'SOCIAL_REJECT' | 'SOCIAL_STATUS';
+export type SocialPacketType =
+  | 'SOCIAL_REQUEST'
+  | 'SOCIAL_ACCEPT'
+  | 'SOCIAL_REJECT'
+  | 'SOCIAL_STATUS'
+  | 'SOCIAL_MESSAGE'
+  | 'PARTY_INVITE'
+  | 'PARTY_JOIN'
+  | 'PARTY_LEAVE';
 
 export interface SocialPacket {
   type: SocialPacketType;
@@ -152,8 +316,8 @@ export class WebRTCTransport {
   /**
    * Connect to a peer
    */
-  async connectToPeer(removalPeerId: string): Promise<void> {
-    if (this.peers.has(removalPeerId)) {
+  async connectToPeer(remotePeerId: string): Promise<void> {
+    if (this.peers.has(remotePeerId)) {
       return; // Already connected
     }
 
@@ -172,8 +336,8 @@ export class WebRTCTransport {
       });
     }
 
-    this.peers.set(removalPeerId, {
-      peerId: removalPeerId,
+    this.peers.set(remotePeerId, {
+      peerId: remotePeerId,
       connection: pc,
       dataChannels: new Map(),
       isConnected: false,
@@ -182,7 +346,7 @@ export class WebRTCTransport {
     // Handle incoming tracks (Voice Chat)
     pc.ontrack = (evt) => {
       this.emit('stream-added', {
-        peerId: removalPeerId,
+        peerId: remotePeerId,
         stream: evt.streams[0],
         track: evt.track
       });
@@ -195,7 +359,7 @@ export class WebRTCTransport {
           JSON.stringify({
             type: 'ice-candidate',
             from: this.peerId,
-            to: removalPeerId,
+            to: remotePeerId,
             candidate: evt.candidate,
           })
         );
@@ -204,13 +368,13 @@ export class WebRTCTransport {
 
     // Handle connection state changes
     pc.onconnectionstatechange = () => {
-      const peer = this.peers.get(removalPeerId);
+      const peer = this.peers.get(remotePeerId);
       if (peer) peer.isConnected = pc.connectionState === 'connected';
     };
 
     // Handle incoming data channels
     pc.ondatachannel = (evt) => {
-      this.setupDataChannel(removalPeerId, evt.channel);
+      this.setupDataChannel(remotePeerId, evt.channel);
     };
 
     // Create offer
@@ -223,13 +387,13 @@ export class WebRTCTransport {
         JSON.stringify({
           type: 'offer',
           from: this.peerId,
-          to: removalPeerId,
+          to: remotePeerId,
           offer: offer,
         })
       );
     } catch (err) {
       console.error('Failed to create WebRTC offer:', err);
-      this.peers.delete(removalPeerId);
+      this.peers.delete(remotePeerId);
     }
   }
 
