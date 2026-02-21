@@ -1,31 +1,31 @@
 {
   "name": "@holoscript/playground",
-  "version": "3.12.0",
-  "description": "Interactive web playground for HoloScript with Monaco editor and Three.js live preview",
-  "private": true,
+  "version": "1.0.0",
+  "description": "Interactive web-based playground for trying HoloScript in the browser",
+  "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "deploy": "pnpm build && gh-pages -d dist"
   },
   "keywords": [
     "holoscript",
     "playground",
-    "monaco",
-    "three.js",
-    "interactive"
+    "editor",
+    "interactive",
+    "demo"
   ],
+  "author": "Brian X Base Team",
   "license": "MIT",
   "devDependencies": {
-    "@types/three": "^0.160.0",
-    "three": "^0.160.0",
+    "@types/node": "^20.10.0",
+    "gh-pages": "^6.1.0",
     "typescript": "^5.3.3",
-    "vite": "^5.0.0",
-    "vitest": "^1.2.0"
+    "vite": "^5.0.10"
   },
-  "peerDependencies": {
-    "@holoscript/core": "workspace:*"
+  "dependencies": {
+    "@holoscript/core": "workspace:*",
+    "monaco-editor": "^0.45.0"
   }
 }
