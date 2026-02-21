@@ -245,7 +245,7 @@ HoloScript is a **meta-framework**—the foundation for building spatial computi
 - **Digital Twins**: IoT platforms with Azure Digital Twins (DTDL)
 - **Games**: Compile to Unity/Unreal or run directly in WebXR
 
-**[📘 Build Your Own Platform Guide →](./docs/BUILD_YOUR_OWN_PLATFORM.md)** (coming soon)
+**[📘 Build Your Own Platform Guide →](./docs/BUILD_YOUR_OWN_PLATFORM.md)**
 
 ---
 
