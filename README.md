@@ -1,10 +1,14 @@
 # HoloScript v3.4.0
 
-## The Universal Language for VR, AR, and 3D Experiences
+## The Commons-Based Meta-Framework for Spatial Computing
 
-Write once, deploy everywhere. HoloScript compiles to Unity, Unreal, Godot, WebXR, Quest, ARKit, ARCore, and 18+ platforms from a single codebase.
+> **Think React for the metaverse.** Write once, build anything—from VR social platforms to robotics simulations.
 
-Perfect for corporate training, e-commerce AR, museums, games, robotics, and more.
+HoloScript is a complete spatial computing stack: **declarative language + runtime execution + multi-target compiler**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) (our VR social platform) to prove it works—now you can build your own.
+
+**Even playing field**: Hololand uses the same public APIs as everyone else. No privileged access, no lock-in.
+
+Perfect for VR/AR platforms, corporate training, robotics, games, digital twins, and more.
 
 ![version-badge](https://img.shields.io/badge/version-v3.4.0-green?style=for-the-badge)
 ![Quickstart Badge](https://img.shields.io/badge/Quickstart-5_min-blue?style=for-the-badge)
@@ -100,7 +104,25 @@ composition "Hello Holo" {
 
 ## 🔥 Why HoloScript?
 
-### Universal Compilation
+### 1. Meta-Framework Architecture
+HoloScript is **three tools in one**:
+- **Declarative DSL**: Write spatial experiences in declarative `.holo` syntax
+- **Runtime Execution**: Run directly in browser (ThreeJSRenderer, 120K particles, PBR)
+- **Multi-Target Compiler**: Export to Unity C#, Unreal C++, Godot GDScript, WebXR, URDF, and 18+ platforms
+
+**Workflow**: Prototype in HoloScript runtime → compile to production platform
+
+### 2. Even Playing Field (Commons-Based)
+We built [Hololand](https://github.com/brianonbased-dev/Hololand)—a full VR social platform—using **only public HoloScript APIs**.
+
+This proves:
+- ✅ **You can build competing platforms** with equal access
+- ✅ **No vendor lock-in** (compile to Unity/Unreal or run directly)
+- ✅ **Commons governance** (HoloScript Foundation, community-driven roadmap)
+
+Like Chromium (Chrome vs. Brave) or React (Instagram vs. Netflix)—**build your own Hololand**.
+
+### 3. Universal Compilation
 Write **one** HoloScript file. Compile to:
 - **Game Engines**: Unity, Unreal Engine, Godot
 - **WebXR**: Three.js, Babylon.js (browser-based VR/AR)
@@ -109,10 +131,10 @@ Write **one** HoloScript file. Compile to:
 - **Social VR**: VRChat (Udon), Rec Room
 - **Specialized**: Robotics (URDF/SDF), IoT (DTDL), Simulations
 
-### Feature-Rich
+### 4. Feature-Rich
 - ✅ **1,800+ VR Traits** - `@grabbable`, `@physics`, `@ai_agent`, `@teleport`
 - ✅ **600+ Visual Traits** - PBR materials, procedural textures, mood lighting
-- ✅ **AI-Native** - Built for LLMs, real-time generation via MCP tools
+- ✅ **AI-Native** - Built for LLMs, real-time generation via MCP tools (Brittney agent)
 - ✅ **Robotics** - 213 traits for URDF/SDF export (ROS2, Gazebo)
 - ✅ **Production-Ready** - WebGPU rendering, CRDT state, resilience patterns
 
@@ -205,9 +227,31 @@ composition "Robot Arm" {
 
 ---
 
-## �🤝 Contributing
+## 🏗️ Build Your Own Platform
 
-HoloScript is **MIT licensed** and open-source. We welcome contributions to the core engine, compilers, and documentation.
+HoloScript is a **meta-framework**—the foundation for building spatial computing platforms.
+
+### Reference Implementation: Hololand
+[Hololand](https://github.com/brianonbased-dev/Hololand) is a VR social platform ("Roblox for VR") built entirely on HoloScript:
+- **43+ packages**: Multiplayer, physics, rendering, voice chat
+- **Public APIs only**: No privileged access (proves others can compete)
+- **Open architecture**: Source available as reference
+
+### What You Can Build
+- **VR Social Platforms**: Compete with Hololand, VRChat, Rec Room
+- **Corporate Training**: Multi-platform VR safety training, onboarding
+- **Robotics Platforms**: ROS2/Gazebo simulations with URDF/SDF export
+- **AR E-Commerce**: "Try before you buy" apps (furniture, fashion)
+- **Digital Twins**: IoT platforms with Azure Digital Twins (DTDL)
+- **Games**: Compile to Unity/Unreal or run directly in WebXR
+
+**[📘 Build Your Own Platform Guide →](./docs/BUILD_YOUR_OWN_PLATFORM.md)** (coming soon)
+
+---
+
+## 🤝 Contributing
+
+HoloScript is **MIT licensed** and commons-based. We welcome contributions to the core engine, compilers, runtimes, and documentation.
 
 ```bash
 git clone https://github.com/brianonbased-dev/HoloScript.git
@@ -216,8 +260,16 @@ pnpm install
 pnpm test
 ```
 
+### Governance
+HoloScript is governed by the **HoloScript Foundation** (community-driven, neutral):
+- **No owner advantage**: Hololand uses public APIs only
+- **Community roadmap**: Major decisions via RFC process
+- **Corporate sponsors**: Foundation funded by Meta, Unity, Epic (coming soon)
+
+**[💰 Sponsor HoloScript →](./FUNDING.md)** | **[🗺️ Roadmap](./ROADMAP.md)** | **[🏛️ Foundation](./docs/FOUNDATION.md)** (coming soon)
+
 ---
 
-[Website](https://holoscript.dev) | [Discord](https://discord.gg/holoscript) | [Twitter](https://twitter.com/holoscript)
+[Website](https://holoscript.dev) | [Discord](https://discord.gg/holoscript) | [Twitter](https://twitter.com/holoscript) | [Hololand](https://github.com/brianonbased-dev/Hololand)
 
 © 2026 HoloScript Foundation.
