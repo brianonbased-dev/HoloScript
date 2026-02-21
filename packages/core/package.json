@@ -71,6 +71,7 @@
     "@zoralabs/protocol-deployments": "^0.7.2",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
+    "three": "^0.160.0",
     "viem": "^2.45.3",
     "wagmi": "^3.4.3",
     "ws": "^8.16.0"
@@ -86,6 +87,7 @@
   "devDependencies": {
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.4",
+    "@types/three": "^0.160.0",
     "@types/ws": "^8.5.10",
     "@vitest/coverage-v8": "^4.0.18",
     "@webgpu/types": "^0.1.40",
