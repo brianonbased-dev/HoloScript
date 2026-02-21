@@ -10,3 +10,4 @@ export * from './SedimentTransport';
 export * from './TerrainModifier';
 export * from './ErosionSimulation';
 export * from './ErosionDemoScene';
+export * from './ErosionRuntimeExecutor';

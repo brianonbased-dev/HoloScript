@@ -20,3 +20,6 @@ export { CameraController, type CameraShakeConfig, type CameraMode, type CameraP
 
 // Demo scene
 export { EarthquakeDemoScene, type DemoControls, type DemoUI } from './EarthquakeDemoScene.js';
+
+// Runtime executor
+export { EarthquakeRuntimeExecutor, type EarthquakeRuntimeConfig, type EarthquakeRuntimeStatistics } from './EarthquakeRuntimeExecutor';
