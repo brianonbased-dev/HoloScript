@@ -16,10 +16,12 @@ import type {
 } from './types/AdvancedTypeSystem';
 
 import type { HSPlusNode } from './types/HoloScriptPlus';
+import type { VRTraitName, ASTNode } from './types/base';
 
 export type { HSPlusDirective, HSPlusAST, ASTProgram, HSPlusCompileResult, HSPlusNode };
 
 export type { TraitBehavior } from './types/index';
+export type { VRTraitName, ASTNode };
 
 // ============================================================================
 // Spatial Types
@@ -160,142 +162,6 @@ export interface DestructuringPattern {
   kind: 'object' | 'array';
   properties: Array<{ key: string; pattern: MatchPattern }>;
 }
-
-export interface ASTNode {
-  type: string;
-  id?: string;
-  position?: SpatialPosition;
-  hologram?: HologramProperties;
-  /** Source line number (1-indexed) */
-  line?: number;
-  /** Source column number (0-indexed) */
-  column?: number;
-  /** HS+ Directives */
-  directives?: HSPlusDirective[];
-  /** HS+ Traits (Pre-processed map) */
-  traits?: Map<VRTraitName, any>;
-}
-
-// ============================================================================
-// HS+ Directive Types
-// ============================================================================
-
-export type VRTraitName =
-  | 'grabbable'
-  | 'throwable'
-  | 'pointable'
-  | 'hoverable'
-  | 'scalable'
-  | 'rotatable'
-  | 'stackable'
-  | 'snappable'
-  | 'breakable'
-  | 'skeleton'
-  | 'body'
-  | 'haptic'
-  | 'gaussian_splat'
-  | 'nerf'
-  | 'volumetric_video'
-  | 'networked'
-  // Environment Understanding
-  | 'plane_detection'
-  | 'mesh_detection'
-  | 'anchor'
-  | 'persistent_anchor'
-  | 'shared_anchor'
-  | 'geospatial'
-  | 'occlusion'
-  | 'light_estimation'
-  // Input Modalities
-  | 'eye_tracking'
-  | 'hand_tracking'
-  | 'controller'
-  | 'spatial_accessory'
-  | 'body_tracking'
-  | 'face_tracking'
-  // Accessibility
-  | 'accessible'
-  | 'alt_text'
-  | 'spatial_audio_cue'
-  | 'sonification'
-  | 'haptic_cue'
-  | 'magnifiable'
-  | 'high_contrast'
-  | 'motion_reduced'
-  | 'subtitle'
-  | 'screen_reader'
-  // Gaussian Splatting & Volumetric
-  | 'point_cloud'
-  | 'photogrammetry'
-  // WebGPU Compute
-  | 'compute'
-  | 'gpu_particle'
-  | 'gpu_physics'
-  | 'gpu_buffer'
-  // Digital Twin & IoT
-  | 'sensor'
-  | 'digital_twin'
-  | 'data_binding'
-  | 'alert'
-  | 'heatmap_3d'
-  // Autonomous Agents
-  | 'behavior_tree'
-  | 'goal_oriented'
-  | 'llm_agent'
-  | 'memory'
-  | 'perception'
-  | 'emotion'
-  | 'dialogue'
-  | 'faction'
-  | 'patrol'
-  // Advanced Spatial Audio
-  | 'ambisonics'
-  | 'hrtf'
-  | 'reverb_zone'
-  | 'audio_occlusion'
-  | 'audio_portal'
-  | 'audio_material'
-  | 'head_tracked_audio'
-  // OpenUSD & Interoperability
-  | 'usd'
-  | 'gltf'
-  | 'fbx'
-  | 'material_x'
-  | 'scene_graph'
-  // Co-Presence & Shared Experiences
-  | 'mitosis'
-  | 'logic'
-  | 'co_located'
-  | 'remote_presence'
-  | 'shared_world'
-  | 'voice_proximity'
-  | 'avatar_embodiment'
-  | 'spectator'
-  | 'role'
-  // Geospatial & AR Cloud
-  | 'geospatial_anchor'
-  | 'terrain_anchor'
-  | 'rooftop_anchor'
-  | 'vps'
-  | 'poi'
-  // Web3 & Ownership
-  | 'nft'
-  | 'token_gated'
-  | 'wallet'
-  | 'marketplace'
-  | 'portable'
-  // Physics Expansion
-  | 'cloth'
-  | 'fluid'
-  | 'soft_body'
-  | 'rope'
-  | 'chain'
-  | 'wind'
-  | 'buoyancy'
-  | 'destruction'
-  | 'zk_private'
-  | 'roadmap_node'
-  | 'proactive';
 
 export { VRHand } from './types/HoloScriptPlus';
 

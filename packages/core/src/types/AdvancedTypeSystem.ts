@@ -3,9 +3,8 @@
  *
  * Union types, generics, type inference, exhaustiveness checking
  */
-import { HSPlusNode } from './HoloScriptPlus';
-import { VRTraitName } from '../types';
-export type { HSPlusNode, VRTraitName };
+import type { VRTraitName } from './base';
+export type { VRTraitName };
 
 export type HoloScriptType =
   | PrimitiveType
@@ -379,11 +378,11 @@ export class AdvancedTypeChecker {
  */
 // HSPlusNode is imported from HoloScriptPlus.js
 
-export interface ASTProgram extends HSPlusNode {
+export interface ASTProgram  {
   type: 'Program';
-  body: HSPlusNode[];
+  body: any[];
   version: string | number;
-  root: HSPlusNode;
+  root: any;
   imports: Array<{ path: string; alias: string }>;
   hasState: boolean;
   hasVRTraits: boolean;
@@ -406,20 +405,20 @@ export type HSPlusDirective =
   | HSPlusVersionDirective
   | HSPlusMigrateDirective;
 
-export interface HSPlusBaseDirective extends HSPlusNode {
+export interface HSPlusBaseDirective  {
   type: 'directive' | 'fragment' | 'external_api' | 'generate';
   name: string;
   args: string[];
 }
 
-export interface HSPlusTraitDirective extends HSPlusNode {
+export interface HSPlusTraitDirective  {
   type: 'trait';
   name: string;
   args?: any[];
   config?: any;
 }
 
-export interface HSPlusLifecycleDirective extends HSPlusNode {
+export interface HSPlusLifecycleDirective  {
   type: 'lifecycle';
   name?: string;
   hook: string;
@@ -427,52 +426,52 @@ export interface HSPlusLifecycleDirective extends HSPlusNode {
   body: string;
 }
 
-export interface HSPlusStateDirective extends HSPlusNode {
+export interface HSPlusStateDirective  {
   type: 'state';
   name: string;
   body?: Record<string, any>;
   initial?: any;
 }
 
-export interface HSPlusForDirective extends HSPlusNode {
+export interface HSPlusForDirective  {
   type: 'for';
   variable: string;
   range?: [number, number];
   iterable?: any;
-  body: HSPlusNode[];
+  body: any[];
 }
 
-export interface HSPlusForEachDirective extends HSPlusNode {
+export interface HSPlusForEachDirective  {
   type: 'forEach';
   variable: string;
   collection: string;
-  body: HSPlusNode[];
+  body: any[];
 }
 
-export interface HSPlusWhileDirective extends HSPlusNode {
+export interface HSPlusWhileDirective  {
   type: 'while';
   condition: string;
-  body: HSPlusNode[];
+  body: any[];
 }
 
-export interface HSPlusIfDirective extends HSPlusNode {
+export interface HSPlusIfDirective  {
   type: 'if';
   condition: string;
-  body: HSPlusNode[];
+  body: any[];
 }
 
-export interface HSPlusImportDirective extends HSPlusNode {
+export interface HSPlusImportDirective  {
   type: 'import';
   source: string;
   specifiers: string[];
 }
 
-export interface HSPlusVersionDirective extends HSPlusNode {
+export interface HSPlusVersionDirective  {
   type: 'version';
   version: number;
 }
 
-export interface HSPlusMigrateDirective extends HSPlusNode {
+export interface HSPlusMigrateDirective  {
   type: 'migrate';
   fromVersion: number;
   body: string;

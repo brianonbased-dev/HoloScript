@@ -8,7 +8,7 @@
  * @module telemetry/SpanFactory
  */
 
-import type { Span, SpanEvent } from './TelemetryProvider';
+import type { Span, SpanEvent } from './types';
 
 function generateId(): string {
   // Use crypto.randomUUID where available, fall back to timestamp-based ID

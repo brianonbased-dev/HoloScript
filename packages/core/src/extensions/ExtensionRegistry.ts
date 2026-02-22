@@ -1,13 +1,13 @@
 import { logger } from '../logger';
 // import { TraitRegistry } from '../traits/TraitRegistry'; // Removed
-import type { HoloScriptRuntime } from '../HoloScriptRuntime';
+import type { IExtensionRuntime } from './RuntimeInterface';
 import type { HoloExtension, ExtensionContext } from './ExtensionInterface';
 
 export class ExtensionRegistry {
   private extensions: Map<string, HoloExtension> = new Map();
-  private runtime: HoloScriptRuntime;
+  private runtime: IExtensionRuntime;
 
-  constructor(runtime: HoloScriptRuntime) {
+  constructor(runtime: IExtensionRuntime) {
     this.runtime = runtime;
   }
 

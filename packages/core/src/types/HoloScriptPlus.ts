@@ -72,7 +72,8 @@ export interface HSPlusBuiltins {
   [key: string]: any;
 }
 
-import { VRTraitName, ASTNode, HSPlusDirective } from '../types';
+import type { VRTraitName, ASTNode } from './base';
+import type { HSPlusDirective } from './AdvancedTypeSystem';
 
 export interface HSPlusNode extends ASTNode {
   name?: string;

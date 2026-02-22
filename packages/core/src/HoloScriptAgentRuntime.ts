@@ -6,18 +6,18 @@
  */
 
 import { logger } from './logger';
-import { HoloScriptRuntime, Scope } from './HoloScriptRuntime';
+import type { IParentRuntime, Scope } from './runtime/IParentRuntime';
 import { OrbNode, HoloScriptValue, ExecutionResult, MethodNode } from './types';
 import { ReactiveState } from './ReactiveState';
 
 export class HoloScriptAgentRuntime {
   private agentNode: OrbNode;
-  private parentRuntime: HoloScriptRuntime;
+  private parentRuntime: IParentRuntime;
   private localState: ReactiveState;
   private runningActions: Map<string, Promise<any>> = new Map();
   private isDestroyed: boolean = false;
 
-  constructor(agentNode?: OrbNode, parentRuntime?: HoloScriptRuntime) {
+  constructor(agentNode?: OrbNode, parentRuntime?: IParentRuntime) {
     if (!agentNode || !parentRuntime) {
       // Preallocation mode
       return;
@@ -31,7 +31,7 @@ export class HoloScriptAgentRuntime {
   /**
    * Reset for pooling
    */
-  public reset(agentNode: OrbNode, parentRuntime: HoloScriptRuntime) {
+  public reset(agentNode: OrbNode, parentRuntime: IParentRuntime) {
     this.agentNode = agentNode;
     this.parentRuntime = parentRuntime;
     this.localState = new ReactiveState(agentNode.properties || {});
