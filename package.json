@@ -18,6 +18,7 @@
     "format:check": "prettier --check .",
     "bench": "pnpm --filter @holoscript/benchmark bench",
     "bench:ci": "pnpm --filter @holoscript/benchmark bench:ci",
+    "benchmark": "tsx benchmarks/tools/benchmark-runner.ts",
     "clean": "pnpm -r exec rm -rf dist",
     "types:generate": "bash scripts/generate-types.sh",
     "types:generate:win": "powershell -File scripts/generate-types.ps1",

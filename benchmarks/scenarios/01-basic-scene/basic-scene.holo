@@ -1,0 +1,25 @@
+// Scenario 1: Basic VR Scene
+// Purpose: Validate core compilation overhead
+// Expected Performance: 85-90 FPS @ Quest 2 (target: <10% overhead)
+
+composition "BasicScene" {
+  scene {
+    environment {
+      skybox: "procedural_sky"
+      lighting: "day"
+    }
+
+    object "Ground" {
+      @physics(type: "static")
+      geometry: "plane"
+      scale: [100, 1, 100]
+    }
+
+    object "Cube" {
+      @grabbable
+      @physics
+      geometry: "box"
+      position: [0, 1, 0]
+    }
+  }
+}
