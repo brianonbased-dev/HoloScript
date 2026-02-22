@@ -862,8 +862,8 @@ importers:
         specifier: ^6.0.0
         version: 6.0.1
       tree-sitter-cli:
-        specifier: ^0.22.0
-        version: 0.22.6
+        specifier: ^0.26.5
+        version: 0.26.5
 
   packages/unity-sdk: {}
 
@@ -13685,8 +13685,9 @@ packages:
     hasBin: true
     dev: true
 
-  /tree-sitter-cli@0.22.6:
-    resolution: {integrity: sha512-s7mYOJXi8sIFkt/nLJSqlYZP96VmKTc3BAwIX0rrrlRxWjWuCwixFqwzxWZBQz4R8Hx01iP7z3cT3ih58BUmZQ==}
+  /tree-sitter-cli@0.26.5:
+    resolution: {integrity: sha512-joGY67M2XUVM+ZEs7vTYmSbiDgxtwbuMf1OdKk8q1Dd6wTlbhgtU/mr3j0krBgQs2Zwom6N7vxZaqoM85b79Mw==}
+    engines: {node: '>=12.0.0'}
     hasBin: true
     requiresBuild: true
     dev: true
