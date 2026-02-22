@@ -33,12 +33,12 @@
     "vscode-debugadapter": "^1.51.0",
     "vscode-debugprotocol": "^1.51.0",
     "vscode-languageserver": "^9.0.1",
-    "vscode-languageserver-textdocument": "^1.0.11",
+    "vscode-languageserver-textdocument": "^1.0.12",
     "vscode-uri": "^3.0.8"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "typescript": "^5.3.3",
+    "@types/node": "^24.10.1",
+    "typescript": "~5.9.3",
     "vitest": "^4.0.18"
   }
 }

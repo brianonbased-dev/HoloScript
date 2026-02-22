@@ -27,14 +27,14 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@types/node": "^20.10.0",
+    "@types/node": "^24.10.1",
     "tsup": "^8.0.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
+    "typescript": "~5.9.3",
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "@holoscript/core": ">=3.0.0"
+    "@holoscript/core": "3.42.0"
   },
   "keywords": [
     "holoscript",

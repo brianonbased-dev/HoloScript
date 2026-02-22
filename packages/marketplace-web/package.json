@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@holoscript/marketplace-api": "workspace:*",
-    "next": "^14.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "next": "^15.5.10",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "@tanstack/react-query": "^5.17.0",
     "zustand": "^4.5.0",
     "clsx": "^2.1.0",
@@ -27,16 +27,16 @@
     "semver": "^7.6.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "@types/react": "^18.2.48",
-    "@types/react-dom": "^18.2.18",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@types/semver": "^7.5.6",
-    "typescript": "^5.3.0",
-    "vitest": "^1.2.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "@testing-library/react": "^14.1.2",
-    "jsdom": "^24.0.0",
-    "eslint": "^8.56.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18",
+    "@vitejs/plugin-react": "^5.1.1",
+    "@testing-library/react": "^14.2.0",
+    "jsdom": "^28.0.0",
+    "eslint": "^9.39.1",
     "eslint-config-next": "^14.1.0"
   },
   "keywords": [

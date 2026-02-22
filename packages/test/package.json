@@ -31,13 +31,13 @@
     "@types/pngjs": "^6.0.5",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
-    "puppeteer": "^21.0.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.3.0",
-    "vitest": "^1.0.0"
+    "puppeteer": "^23.0.0",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "@holoscript/core": ">=2.0.0"
+    "@holoscript/core": "3.42.0"
   },
   "keywords": [
     "holoscript",

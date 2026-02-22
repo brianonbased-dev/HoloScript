@@ -34,7 +34,7 @@
   "dependencies": {},
   "devDependencies": {
     "@bytecodealliance/jco": "^1.4.0",
-    "rimraf": "^5.0.0"
+    "rimraf": "^5.0.5"
   },
   "keywords": [
     "holoscript",

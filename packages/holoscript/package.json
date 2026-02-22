@@ -39,11 +39,11 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",
-    "zod": "^3.22.4"
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "tsup": "^8.0.1",
-    "typescript": "^5.3.3",
-    "vitest": "^1.0.0"
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
   }
 }

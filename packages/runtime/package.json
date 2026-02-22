@@ -66,9 +66,9 @@
     "cannon-es": "^0.20.0"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
-    "@react-three/fiber": "^8.0.0",
-    "three": "^0.160.0",
+    "react": "^19.2.0",
+    "@react-three/fiber": "^9.5.0",
+    "three": "^0.182.0",
     "monaco-editor": "^0.45.0"
   },
   "peerDependenciesMeta": {
@@ -87,11 +87,11 @@
   },
   "devDependencies": {
     "tsup": "^8.0.1",
-    "typescript": "^5.3.3",
-    "@types/node": "^20.10.0",
-    "@types/react": "^18.2.0",
-    "@types/three": "^0.160.0",
-    "vitest": "^1.0.0"
+    "typescript": "~5.9.3",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/three": "^0.170.0",
+    "vitest": "^4.0.18"
   },
   "keywords": [
     "holoscript",

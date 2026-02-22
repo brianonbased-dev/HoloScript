@@ -21,17 +21,17 @@
     "@remotion/media-utils": "^4.0.0",
     "@remotion/renderer": "^4.0.0",
     "elevenlabs": "^1.59.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "remotion": "^4.0.0",
     "shiki": "^1.22.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "~5.9.3"
   },
   "engines": {
     "node": ">=18.0.0"

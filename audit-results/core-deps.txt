@@ -1,0 +1,12 @@
+Unused dependencies
+* wagmi
+Unused devDependencies
+* @vitest/coverage-v8
+* typedoc
+Missing dependencies
+* zod: .\src\security\SecurityFramework.ts
+* @hololand/voice: .\src\runtime\BuiltinRegistry.ts
+* @hololand/gpu: .\src\runtime\BuiltinRegistry.ts
+* @hololand/navigation: .\src\runtime\BuiltinRegistry.ts
+* @hololand/gestures: .\src\runtime\BuiltinRegistry.ts
+* @pixiv/three-vrm: .\src\assets\HumanoidLoader.ts

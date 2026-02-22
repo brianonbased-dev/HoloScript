@@ -22,7 +22,7 @@
     "compression": "^1.7.4",
     "rate-limiter-flexible": "^4.0.1",
     "semver": "^7.6.0",
-    "zod": "^3.23.0",
+    "zod": "^3.24.0",
     "winston": "^3.11.0",
     "pg": "^8.11.3",
     "redis": "^4.6.12"
@@ -31,11 +31,11 @@
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
-    "@types/node": "^20.10.0",
-    "@types/pg": "^8.10.9",
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.11.0",
     "@types/semver": "^7.5.6",
-    "typescript": "^5.3.0",
-    "vitest": "^1.2.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18",
     "tsx": "^4.7.0"
   },
   "keywords": [
