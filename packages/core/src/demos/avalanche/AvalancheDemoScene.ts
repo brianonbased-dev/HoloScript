@@ -493,6 +493,73 @@ export class AvalancheDemoScene {
   }
 
   /**
+   * Get particle data for renderer (Runtime Integration)
+   */
+  public getParticleData(): {
+    positions: Float32Array;
+    colors: Float32Array;
+    count: number;
+  } | null {
+    const particles = this.simulation.getAvalancheParticles();
+    if (!particles || particles.length === 0) return null;
+
+    const count = Math.min(particles.length, 50000); // Cap at renderer limit
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+
+    for (let i = 0; i < count; i++) {
+      const particle = particles[i];
+      const idx = i * 3;
+
+      positions[idx] = particle.position[0];
+      positions[idx + 1] = particle.position[1];
+      positions[idx + 2] = particle.position[2];
+
+      // Color based on particle state and material
+      const state = particle.state || 'resting';
+      if (state === 'sliding' || state === 'airborne') {
+        colors[idx] = 1.0;     // R
+        colors[idx + 1] = 1.0; // G
+        colors[idx + 2] = 1.0; // B (white - moving)
+      } else {
+        colors[idx] = 0.9;     // R
+        colors[idx + 1] = 0.9; // G
+        colors[idx + 2] = 0.95; // B (light grey - resting)
+      }
+    }
+
+    return { positions, colors, count };
+  }
+
+  /**
+   * Get terrain data for renderer (Runtime Integration)
+   */
+  public getTerrainData(): any {
+    return this.simulation.getTerrainData();
+  }
+
+  /**
+   * Trigger avalanche at position (Runtime Integration)
+   */
+  public triggerAvalanche(position: { x: number; y: number; z: number }, radius: number): void {
+    this.simulation.triggerAvalanche(position.x, position.z, radius);
+  }
+
+  /**
+   * Reset simulation (Runtime Integration)
+   */
+  public reset(): void {
+    this.handleReset();
+  }
+
+  /**
+   * Update simulation (Runtime Integration)
+   */
+  public update(deltaTime: number): void {
+    this.simulation.step(deltaTime);
+  }
+
+  /**
    * Dispose resources
    */
   public dispose(): void {

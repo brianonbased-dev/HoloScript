@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { type FormatterConfig, DEFAULT_CONFIG } from './index';
+import { type FormatterConfig, DEFAULT_CONFIG } from './config';
 
 export class ConfigLoader {
   private cache: Map<string, FormatterConfig> = new Map();

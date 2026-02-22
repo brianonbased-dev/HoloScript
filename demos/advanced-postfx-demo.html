@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HoloScript Advanced Post-Processing Demo - SSAO & SSR</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      overflow: hidden;
+      background: #1a1a1a;
+      color: #ffffff;
+    }
+
+    #canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .controls {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(30, 30, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      width: 350px;
+      max-height: 90vh;
+      overflow-y: auto;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .controls h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #60a5fa;
+      border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+      padding-bottom: 10px;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 8px;
+      color: #cbd5e0;
+      font-weight: 500;
+    }
+
+    .control-group input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(96, 165, 250, 0.2);
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .control-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #60a5fa;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .control-group input[type="range"]::-webkit-slider-thumb:hover {
+      background: #3b82f6;
+    }
+
+    .value-display {
+      display: inline-block;
+      float: right;
+      color: #60a5fa;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .toggle-btn {
+      width: 100%;
+      padding: 10px;
+      background: rgba(96, 165, 250, 0.1);
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      border-radius: 6px;
+      color: #60a5fa;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .toggle-btn:hover {
+      background: rgba(96, 165, 250, 0.2);
+      border-color: rgba(96, 165, 250, 0.5);
+    }
+
+    .toggle-btn.active {
+      background: #60a5fa;
+      color: #1a1a1a;
+      border-color: #60a5fa;
+    }
+
+    .stats {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(30, 30, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 15px;
+      backdrop-filter: blur(10px);
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .stats-label {
+      color: #94a3b8;
+      margin-right: 20px;
+    }
+
+    .stats-value {
+      color: #60a5fa;
+      font-weight: 600;
+    }
+
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .preset-btn {
+      padding: 8px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 6px;
+      color: #4ade80;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-btn:hover {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: rgba(34, 197, 94, 0.5);
+    }
+
+    .section-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 20px 0;
+    }
+
+    .info-text {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(96, 165, 250, 0.05);
+      border-radius: 6px;
+      border-left: 2px solid rgba(96, 165, 250, 0.5);
+    }
+
+    .effect-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .effect-title {
+      font-size: 14px;
+      color: #f1f5f9;
+      font-weight: 600;
+    }
+
+    .effect-badge {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: rgba(234, 179, 8, 0.2);
+      color: #fbbf24;
+      font-weight: 600;
+    }
+
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 1000;
+      background: rgba(30, 30, 30, 0.95);
+      padding: 40px 60px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(96, 165, 250, 0.2);
+      border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div class="loading" id="loading">
+    <div class="loading-spinner"></div>
+    <div>Loading Three.js...</div>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stats-row">
+      <span class="stats-label">FPS:</span>
+      <span class="stats-value" id="fps">0</span>
+    </div>
+    <div class="stats-row">
+      <span class="stats-label">Frame Time:</span>
+      <span class="stats-value" id="frameTime">0 ms</span>
+    </div>
+    <div class="stats-row">
+      <span class="stats-label">Objects:</span>
+      <span class="stats-value" id="objectCount">0</span>
+    </div>
+    <div class="stats-row">
+      <span class="stats-label">Triangles:</span>
+      <span class="stats-value" id="triangles">0</span>
+    </div>
+    <div class="stats-row">
+      <span class="stats-label">Effects:</span>
+      <span class="stats-value" id="activeEffects">None</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <h2>🎨 Advanced Post-Processing</h2>
+
+    <div class="preset-buttons">
+      <button class="preset-btn" onclick="applyPreset('cinematic')">🎬 Cinematic</button>
+      <button class="preset-btn" onclick="applyPreset('realistic')">🌍 Realistic</button>
+      <button class="preset-btn" onclick="applyPreset('stylized')">✨ Stylized</button>
+      <button class="preset-btn" onclick="applyPreset('none')">🔄 Reset</button>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- SSAO Controls -->
+    <div class="control-group">
+      <div class="effect-header">
+        <span class="effect-title">Screen-Space Ambient Occlusion</span>
+        <span class="effect-badge">SSAO</span>
+      </div>
+      <button class="toggle-btn" id="ssaoToggle" onclick="toggleEffect('ssao')">
+        Enable SSAO
+      </button>
+      <div class="info-text">
+        SSAO adds realistic shadows in crevices and corners where ambient light doesn't reach, dramatically improving depth perception.
+      </div>
+    </div>
+
+    <div id="ssaoControls" style="display: none;">
+      <div class="control-group">
+        <label>
+          Kernel Radius
+          <span class="value-display" id="kernelRadiusValue">16</span>
+        </label>
+        <input type="range" id="kernelRadius" min="1" max="32" value="16" step="1">
+      </div>
+
+      <div class="control-group">
+        <label>
+          Min Distance
+          <span class="value-display" id="minDistanceValue">0.005</span>
+        </label>
+        <input type="range" id="minDistance" min="0.001" max="0.02" value="0.005" step="0.001">
+      </div>
+
+      <div class="control-group">
+        <label>
+          Max Distance
+          <span class="value-display" id="maxDistanceValue">0.1</span>
+        </label>
+        <input type="range" id="maxDistance" min="0.01" max="0.5" value="0.1" step="0.01">
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- SSR Controls -->
+    <div class="control-group">
+      <div class="effect-header">
+        <span class="effect-title">Screen-Space Reflections</span>
+        <span class="effect-badge">SSR</span>
+      </div>
+      <button class="toggle-btn" id="ssrToggle" onclick="toggleEffect('ssr')">
+        Enable SSR
+      </button>
+      <div class="info-text">
+        SSR creates realistic reflections on surfaces by ray-marching through screen-space depth, perfect for shiny floors and water.
+      </div>
+    </div>
+
+    <div id="ssrControls" style="display: none;">
+      <div class="control-group">
+        <label>
+          Thickness
+          <span class="value-display" id="thicknessValue">0.018</span>
+        </label>
+        <input type="range" id="thickness" min="0.001" max="0.1" value="0.018" step="0.001">
+      </div>
+
+      <div class="control-group">
+        <label>
+          Max Distance
+          <span class="value-display" id="ssrMaxDistanceValue">180</span>
+        </label>
+        <input type="range" id="ssrMaxDistance" min="10" max="500" value="180" step="10">
+      </div>
+
+      <div class="control-group">
+        <label>
+          Opacity
+          <span class="value-display" id="opacityValue">0.5</span>
+        </label>
+        <input type="range" id="opacity" min="0" max="1" value="0.5" step="0.05">
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- Bloom Controls -->
+    <div class="control-group">
+      <div class="effect-header">
+        <span class="effect-title">Unreal Bloom</span>
+        <span class="effect-badge">HDR</span>
+      </div>
+      <button class="toggle-btn" id="bloomToggle" onclick="toggleEffect('bloom')">
+        Enable Bloom
+      </button>
+    </div>
+
+    <div id="bloomControls" style="display: none;">
+      <div class="control-group">
+        <label>
+          Strength
+          <span class="value-display" id="bloomStrengthValue">1.5</span>
+        </label>
+        <input type="range" id="bloomStrength" min="0" max="3" value="1.5" step="0.1">
+      </div>
+
+      <div class="control-group">
+        <label>
+          Threshold
+          <span class="value-display" id="bloomThresholdValue">0.85</span>
+        </label>
+        <input type="range" id="bloomThreshold" min="0" max="1" value="0.85" step="0.05">
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js from CDN -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+    import { SSRPass } from 'three/addons/postprocessing/SSRPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+    // Make THREE global for compatibility
+    window.THREE = THREE;
+    window.THREE.EffectComposer = EffectComposer;
+    window.THREE.RenderPass = RenderPass;
+    window.THREE.SSAOPass = SSAOPass;
+    window.THREE.SSRPass = SSRPass;
+    window.THREE.UnrealBloomPass = UnrealBloomPass;
+    window.THREE.OutputPass = OutputPass;
+
+    // Scene setup
+    const canvas = document.getElementById('canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1a1a2e);
+    scene.fog = new THREE.Fog(0x1a1a2e, 20, 100);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 5, 15);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    directionalLight.position.set(10, 20, 10);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.camera.far = 50;
+    scene.add(directionalLight);
+
+    const pointLight1 = new THREE.PointLight(0x60a5fa, 2, 20);
+    pointLight1.position.set(-5, 3, 5);
+    scene.add(pointLight1);
+
+    const pointLight2 = new THREE.PointLight(0xf472b6, 2, 20);
+    pointLight2.position.set(5, 3, -5);
+    scene.add(pointLight2);
+
+    // Create scene objects
+    const objects = [];
+
+    // Ground plane (reflective)
+    const groundGeometry = new THREE.PlaneGeometry(50, 50);
+    const groundMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      metalness: 0.9,
+      roughness: 0.1,
+    });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Create various geometric objects
+    const geometries = [
+      new THREE.BoxGeometry(2, 2, 2),
+      new THREE.SphereGeometry(1.2, 32, 32),
+      new THREE.ConeGeometry(1, 2, 32),
+      new THREE.TorusGeometry(1, 0.4, 16, 100),
+      new THREE.TorusKnotGeometry(0.8, 0.3, 100, 16),
+    ];
+
+    const colors = [0x60a5fa, 0xf472b6, 0x4ade80, 0xfbbf24, 0xa78bfa];
+
+    for (let i = 0; i < 12; i++) {
+      const geometry = geometries[Math.floor(Math.random() * geometries.length)];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+
+      const material = new THREE.MeshStandardMaterial({
+        color,
+        metalness: 0.7,
+        roughness: 0.2,
+        emissive: color,
+        emissiveIntensity: 0.2,
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+
+      const angle = (i / 12) * Math.PI * 2;
+      const radius = 6;
+      mesh.position.set(
+        Math.cos(angle) * radius,
+        1 + Math.random() * 2,
+        Math.sin(angle) * radius
+      );
+
+      mesh.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      scene.add(mesh);
+      objects.push(mesh);
+    }
+
+    // Post-processing setup
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    let ssaoPass = null;
+    let ssrPass = null;
+    let bloomPass = null;
+
+    const outputPass = new OutputPass();
+    composer.addPass(outputPass);
+
+    // Effect state
+    const effects = {
+      ssao: false,
+      ssr: false,
+      bloom: false,
+    };
+
+    // Toggle effect function
+    window.toggleEffect = (effectType) => {
+      effects[effectType] = !effects[effectType];
+      updateEffect(effectType);
+    };
+
+    function updateEffect(effectType) {
+      const toggleBtn = document.getElementById(`${effectType}Toggle`);
+      const controls = document.getElementById(`${effectType}Controls`);
+
+      toggleBtn.classList.toggle('active', effects[effectType]);
+      toggleBtn.textContent = effects[effectType] ? `Disable ${effectType.toUpperCase()}` : `Enable ${effectType.toUpperCase()}`;
+
+      if (controls) {
+        controls.style.display = effects[effectType] ? 'block' : 'none';
+      }
+
+      if (effectType === 'ssao') {
+        if (effects.ssao && !ssaoPass) {
+          ssaoPass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
+          ssaoPass.kernelRadius = parseFloat(document.getElementById('kernelRadius').value);
+          ssaoPass.minDistance = parseFloat(document.getElementById('minDistance').value);
+          ssaoPass.maxDistance = parseFloat(document.getElementById('maxDistance').value);
+          composer.insertPass(ssaoPass, 1);
+        } else if (!effects.ssao && ssaoPass) {
+          composer.removePass(ssaoPass);
+          ssaoPass = null;
+        }
+      } else if (effectType === 'ssr') {
+        if (effects.ssr && !ssrPass) {
+          ssrPass = new SSRPass({
+            renderer,
+            scene,
+            camera,
+            width: window.innerWidth,
+            height: window.innerHeight,
+          });
+          ssrPass.thickness = parseFloat(document.getElementById('thickness').value);
+          ssrPass.maxDistance = parseFloat(document.getElementById('ssrMaxDistance').value);
+          ssrPass.opacity = parseFloat(document.getElementById('opacity').value);
+          composer.insertPass(ssrPass, 1);
+        } else if (!effects.ssr && ssrPass) {
+          composer.removePass(ssrPass);
+          ssrPass = null;
+        }
+      } else if (effectType === 'bloom') {
+        if (effects.bloom && !bloomPass) {
+          bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            parseFloat(document.getElementById('bloomStrength').value),
+            0.4,
+            parseFloat(document.getElementById('bloomThreshold').value)
+          );
+          composer.insertPass(bloomPass, 1);
+        } else if (!effects.bloom && bloomPass) {
+          composer.removePass(bloomPass);
+          bloomPass = null;
+        }
+      }
+
+      updateActiveEffects();
+    }
+
+    // Parameter controls
+    document.getElementById('kernelRadius').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('kernelRadiusValue').textContent = value;
+      if (ssaoPass) ssaoPass.kernelRadius = value;
+    });
+
+    document.getElementById('minDistance').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('minDistanceValue').textContent = value.toFixed(3);
+      if (ssaoPass) ssaoPass.minDistance = value;
+    });
+
+    document.getElementById('maxDistance').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('maxDistanceValue').textContent = value.toFixed(2);
+      if (ssaoPass) ssaoPass.maxDistance = value;
+    });
+
+    document.getElementById('thickness').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('thicknessValue').textContent = value.toFixed(3);
+      if (ssrPass) ssrPass.thickness = value;
+    });
+
+    document.getElementById('ssrMaxDistance').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('ssrMaxDistanceValue').textContent = value;
+      if (ssrPass) ssrPass.maxDistance = value;
+    });
+
+    document.getElementById('opacity').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('opacityValue').textContent = value.toFixed(2);
+      if (ssrPass) ssrPass.opacity = value;
+    });
+
+    document.getElementById('bloomStrength').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('bloomStrengthValue').textContent = value.toFixed(1);
+      if (bloomPass) bloomPass.strength = value;
+    });
+
+    document.getElementById('bloomThreshold').addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      document.getElementById('bloomThresholdValue').textContent = value.toFixed(2);
+      if (bloomPass) bloomPass.threshold = value;
+    });
+
+    // Presets
+    window.applyPreset = (presetName) => {
+      // Reset all
+      if (effects.ssao) toggleEffect('ssao');
+      if (effects.ssr) toggleEffect('ssr');
+      if (effects.bloom) toggleEffect('bloom');
+
+      if (presetName === 'cinematic') {
+        toggleEffect('bloom');
+        toggleEffect('ssao');
+        document.getElementById('bloomStrength').value = 2.0;
+        document.getElementById('bloomStrength').dispatchEvent(new Event('input'));
+        document.getElementById('kernelRadius').value = 20;
+        document.getElementById('kernelRadius').dispatchEvent(new Event('input'));
+      } else if (presetName === 'realistic') {
+        toggleEffect('ssao');
+        toggleEffect('ssr');
+        document.getElementById('kernelRadius').value = 16;
+        document.getElementById('kernelRadius').dispatchEvent(new Event('input'));
+        document.getElementById('opacity').value = 0.7;
+        document.getElementById('opacity').dispatchEvent(new Event('input'));
+      } else if (presetName === 'stylized') {
+        toggleEffect('bloom');
+        document.getElementById('bloomStrength').value = 2.5;
+        document.getElementById('bloomStrength').dispatchEvent(new Event('input'));
+        document.getElementById('bloomThreshold').value = 0.7;
+        document.getElementById('bloomThreshold').dispatchEvent(new Event('input'));
+      }
+    };
+
+    // Update active effects display
+    function updateActiveEffects() {
+      const active = [];
+      if (effects.ssao) active.push('SSAO');
+      if (effects.ssr) active.push('SSR');
+      if (effects.bloom) active.push('Bloom');
+      document.getElementById('activeEffects').textContent = active.length > 0 ? active.join(', ') : 'None';
+    }
+
+    // Stats tracking
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let fps = 0;
+    let frameTime = 0;
+
+    function updateStats() {
+      const currentTime = performance.now();
+      const delta = currentTime - lastTime;
+      frameCount++;
+
+      if (delta >= 1000) {
+        fps = Math.round((frameCount * 1000) / delta);
+        frameTime = delta / frameCount;
+        frameCount = 0;
+        lastTime = currentTime;
+
+        document.getElementById('fps').textContent = fps;
+        document.getElementById('frameTime').textContent = frameTime.toFixed(1) + ' ms';
+      }
+
+      document.getElementById('objectCount').textContent = scene.children.length;
+
+      let triangles = 0;
+      scene.traverse((obj) => {
+        if (obj.geometry) {
+          const index = obj.geometry.index;
+          triangles += index ? index.count / 3 : obj.geometry.attributes.position.count / 3;
+        }
+      });
+      document.getElementById('triangles').textContent = Math.floor(triangles).toLocaleString();
+    }
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Rotate objects
+      objects.forEach((obj, i) => {
+        obj.rotation.x += 0.005;
+        obj.rotation.y += 0.01;
+        obj.position.y += Math.sin(Date.now() * 0.001 + i) * 0.002;
+      });
+
+      // Animate point lights
+      const time = Date.now() * 0.001;
+      pointLight1.position.x = Math.cos(time) * 8;
+      pointLight1.position.z = Math.sin(time) * 8;
+      pointLight2.position.x = Math.cos(time + Math.PI) * 8;
+      pointLight2.position.z = Math.sin(time + Math.PI) * 8;
+
+      controls.update();
+      composer.render();
+      updateStats();
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+
+      if (ssaoPass) {
+        ssaoPass.setSize(window.innerWidth, window.innerHeight);
+      }
+      if (ssrPass) {
+        ssrPass.setSize(window.innerWidth, window.innerHeight);
+      }
+    });
+
+    // Hide loading screen
+    document.getElementById('loading').style.display = 'none';
+
+    // Start animation
+    animate();
+  </script>
+</body>
+</html>

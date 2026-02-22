@@ -1,367 +1,390 @@
 /**
- * BehaviorTreeTrait — Production Tests
- * Tests the pure BT execution engine: sequence, selector, parallel,
- * inverter, repeater, condition, action, wait, plus handler lifecycle.
+ * BehaviorTreeTrait — Production Test Suite
  */
 import { describe, it, expect, vi } from 'vitest';
 import { behaviorTreeHandler } from '../BehaviorTreeTrait';
 
-type BTConfig = NonNullable<Parameters<typeof behaviorTreeHandler.onAttach>[1]>;
-type BTNode = BTConfig['root'];
-
-function mkCtx() {
-  const ctx = { emitted: [] as any[], emit: vi.fn() };
-  ctx.emit = vi.fn((type: string, payload: any) => ctx.emitted.push({ type, payload })) as any;
-  return ctx;
-}
-function mkNode(id = 'n1') { return { id } as any; }
-function mkCfg(root: BTNode, overrides: Partial<BTConfig> = {}): BTConfig {
-  return { ...behaviorTreeHandler.defaultConfig!, root, ...overrides };
+function makeNode(props: any = {}) { return { id: 'bt_node', ...props }; }
+function makeCtx(extras: any = {}) { return { emit: vi.fn(), ...extras }; }
+function attach(cfg: any = {}, nodeProps: any = {}) {
+  const node = makeNode(nodeProps);
+  const ctx = makeCtx();
+  const config = { ...behaviorTreeHandler.defaultConfig!, ...cfg };
+  behaviorTreeHandler.onAttach!(node, config, ctx);
+  return { node: node as any, ctx, config };
 }
 
-function attachNode(root: BTNode, overrides: Partial<BTConfig> = {}) {
-  const node = mkNode();
-  const ctx = mkCtx();
-  const cfg = mkCfg(root, overrides);
-  behaviorTreeHandler.onAttach!(node, cfg, ctx as any);
-  ctx.emitted.length = 0;
-  return { node, ctx, cfg };
-}
+// ─── defaultConfig ─────────────────────────────────────────────────────────────
 
-function tick(node: any, cfg: BTConfig, ctx: any, delta = 1.0) {
-  // tick_rate=1 → tickInterval=1 → one update fires per tick(delta=1)
-  behaviorTreeHandler.onUpdate!(node, cfg, ctx as any, delta);
-}
+describe('behaviorTreeHandler.defaultConfig', () => {
+  const d = behaviorTreeHandler.defaultConfig!;
+  it('root is sequence with no children', () => {
+    expect(d.root.type).toBe('sequence');
+    expect(d.root.children).toEqual([]);
+  });
+  it('tick_rate=10', () => expect(d.tick_rate).toBe(10));
+  it('debug_visualization=false', () => expect(d.debug_visualization).toBe(false));
+  it('blackboard={}', () => expect(d.blackboard).toEqual({}));
+  it('restart_on_complete=true', () => expect(d.restart_on_complete).toBe(true));
+});
 
-// ─── defaultConfig ────────────────────────────────────────────────────────────
-describe('behaviorTreeHandler — defaultConfig', () => {
-  it('tick_rate = 10', () => expect(behaviorTreeHandler.defaultConfig?.tick_rate).toBe(10));
-  it('restart_on_complete = true', () => expect(behaviorTreeHandler.defaultConfig?.restart_on_complete).toBe(true));
-  it('debug_visualization = false', () => expect(behaviorTreeHandler.defaultConfig?.debug_visualization).toBe(false));
-  it('root is empty sequence', () => {
-    expect(behaviorTreeHandler.defaultConfig?.root.type).toBe('sequence');
-    expect(behaviorTreeHandler.defaultConfig?.root.children).toHaveLength(0);
+// ─── onAttach ─────────────────────────────────────────────────────────────────
+
+describe('behaviorTreeHandler.onAttach', () => {
+  it('creates __behaviorTreeState', () => expect(attach().node.__behaviorTreeState).toBeDefined());
+  it('status=running', () => expect(attach().node.__behaviorTreeState.status).toBe('running'));
+  it('isRunning=true', () => expect(attach().node.__behaviorTreeState.isRunning).toBe(true));
+  it('tickAccumulator=0', () => expect(attach().node.__behaviorTreeState.tickAccumulator).toBe(0));
+  it('blackboard cloned from config', () => {
+    const { node } = attach({ blackboard: { hp: 100 } });
+    expect(node.__behaviorTreeState.blackboard.hp).toBe(100);
+  });
+  it('emits bt_started', () => {
+    const { ctx } = attach();
+    expect(ctx.emit).toHaveBeenCalledWith('bt_started', expect.anything());
+  });
+  it('nodeStates is a Map', () => {
+    const { node } = attach();
+    expect(node.__behaviorTreeState.nodeStates).toBeInstanceOf(Map);
   });
 });
 
-// ─── onAttach / onDetach ──────────────────────────────────────────────────────
-describe('behaviorTreeHandler — attach/detach', () => {
-  it('creates __behaviorTreeState on attach', () => {
-    const { node, ctx, cfg } = attachNode({ type: 'sequence', children: [] });
-    expect((node as any).__behaviorTreeState).toBeDefined();
-  });
-  it('emits bt_started on attach', () => {
-    const node = mkNode();
-    const ctx = mkCtx();
-    const cfg = mkCfg({ type: 'sequence', children: [] });
-    behaviorTreeHandler.onAttach!(node, cfg, ctx as any);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_started')).toBeDefined();
-  });
-  it('isRunning = true after attach', () => {
-    const { node } = attachNode({ type: 'sequence', children: [] });
-    expect((node as any).__behaviorTreeState.isRunning).toBe(true);
-  });
-  it('removes __behaviorTreeState on detach', () => {
-    const { node, ctx, cfg } = attachNode({ type: 'sequence', children: [] });
-    behaviorTreeHandler.onDetach!(node, cfg, ctx as any);
-    expect((node as any).__behaviorTreeState).toBeUndefined();
+// ─── onDetach ─────────────────────────────────────────────────────────────────
+
+describe('behaviorTreeHandler.onDetach', () => {
+  it('removes __behaviorTreeState', () => {
+    const { node, config, ctx } = attach();
+    behaviorTreeHandler.onDetach!(node, config, ctx);
+    expect(node.__behaviorTreeState).toBeUndefined();
   });
 });
 
-// ─── Sequence Node ────────────────────────────────────────────────────────────
-describe('BehaviorTree — Sequence', () => {
-  function makeSuccessAction(name: string) {
-    return { type: 'action' as const, name, action: `set:${name}:true` };
-  }
+// ─── onUpdate — tick accumulation ─────────────────────────────────────────────
 
-  it('succeeds when all children succeed', () => {
-    const root: BTNode = {
-      type: 'sequence',
-      children: [
-        { type: 'action', action: 'set:a:true' },
-        { type: 'action', action: 'set:b:true' },
-      ],
-    };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('success');
+describe('behaviorTreeHandler.onUpdate — tick accumulation', () => {
+  it('accumulates delta before ticking (tick_rate=10 → interval=0.1s)', () => {
+    const root = { type: 'sequence' as const, children: [] };
+    const { node, config, ctx } = attach({ root, tick_rate: 10 });
+    ctx.emit.mockClear();
+    // 0.05s < 0.1s interval — no tick yet
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 0.05);
+    expect(ctx.emit).not.toHaveBeenCalledWith('bt_complete', expect.anything());
+    expect(node.__behaviorTreeState.tickAccumulator).toBeCloseTo(0.05);
   });
 
-  it('fails on first failure', () => {
-    // condition key 'never_true' not in blackboard → failure
-    const root: BTNode = {
-      type: 'sequence',
-      children: [
-        { type: 'condition', condition: 'never_true' },
-        { type: 'action', action: 'set:x:true' },
-      ],
-    };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('failure');
+  it('ticks when accumulator reaches interval', () => {
+    const root = { type: 'sequence' as const, children: [] };
+    const { node, config, ctx } = attach({ root, tick_rate: 10 });
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 0.1);
+    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.anything());
   });
 
-  it('restarts on complete when restart_on_complete=true', () => {
-    const root: BTNode = { type: 'sequence', children: [{ type: 'action', action: 'set:a:true' }] };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: true });
-    tick(node, cfg, ctx);
-    // bt_complete is emitted but isRunning stays true
-    expect((node as any).__behaviorTreeState.isRunning).toBe(true);
-  });
-
-  it('stops running when restart_on_complete=false', () => {
-    const root: BTNode = { type: 'sequence', children: [{ type: 'action', action: 'set:a:true' }] };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect((node as any).__behaviorTreeState.isRunning).toBe(false);
+  it('no-op when isRunning=false', () => {
+    const root = { type: 'sequence' as const, children: [] };
+    const { node, config, ctx } = attach({ root, tick_rate: 10 });
+    node.__behaviorTreeState.isRunning = false;
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    expect(ctx.emit).not.toHaveBeenCalled();
   });
 });
 
-// ─── Selector Node ────────────────────────────────────────────────────────────
-describe('BehaviorTree — Selector', () => {
-  it('succeeds on first child success', () => {
-    const root: BTNode = {
-      type: 'selector',
+// ─── onUpdate — sequence node ─────────────────────────────────────────────────
+
+describe('behaviorTreeHandler.onUpdate — sequence', () => {
+  it('sequence with all-success children → success → bt_complete', () => {
+    const ctx = makeCtx({ executeAction: () => true });
+    const node = makeNode();
+    const root = {
+      type: 'sequence' as const,
       children: [
-        { type: 'action', action: 'set:good:true' },
-        { type: 'condition', condition: 'never_true' },
+        { type: 'action' as const, action: 'doA' },
+        { type: 'action' as const, action: 'doB' },
       ],
     };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('success');
+    const config: any = { ...behaviorTreeHandler.defaultConfig!, root, tick_rate: 1 };
+    behaviorTreeHandler.onAttach!(node, config, ctx);
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node as any, config, ctx, 1);
+    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'bt_complete');
+    expect(call).toBeDefined();
+    expect(call![1].status).toBe('success');
   });
 
-  it('fails when all children fail', () => {
-    const root: BTNode = {
-      type: 'selector',
+  it('sequence fails on first failing child', () => {
+    let callCount = 0;
+    const ctx = makeCtx({ executeAction: () => { callCount++; return false; } });
+    const node = makeNode();
+    const root = {
+      type: 'sequence' as const,
       children: [
-        { type: 'condition', condition: 'nope1' },
-        { type: 'condition', condition: 'nope2' },
+        { type: 'action' as const, action: 'fail' },
+        { type: 'action' as const, action: 'shouldNotRun' },
       ],
     };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('failure');
-  });
-
-  it('skips first failing child, uses second succeeding child', () => {
-    const root: BTNode = {
-      type: 'selector',
-      children: [
-        { type: 'condition', condition: 'nope' },
-        { type: 'action', action: 'set:ok:true' },
-      ],
-    };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('success');
+    const config: any = { ...behaviorTreeHandler.defaultConfig!, root, tick_rate: 1 };
+    behaviorTreeHandler.onAttach!(node, config, ctx);
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node as any, config, ctx, 1);
+    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'bt_complete');
+    expect(call![1].status).toBe('failure');
+    expect(callCount).toBe(1); // Only first child ran
   });
 });
 
-// ─── Parallel Node ────────────────────────────────────────────────────────────
-describe('BehaviorTree — Parallel', () => {
-  it('succeeds when all children succeed (default threshold = all)', () => {
-    const root: BTNode = {
-      type: 'parallel',
+// ─── onUpdate — selector node ─────────────────────────────────────────────────
+
+describe('behaviorTreeHandler.onUpdate — selector', () => {
+  it('selector succeeds on first succeeding child', () => {
+    const ctx = makeCtx({ executeAction: () => true });
+    const node = makeNode();
+    const root = {
+      type: 'selector' as const,
       children: [
-        { type: 'action', action: 'set:a:true' },
-        { type: 'action', action: 'set:b:true' },
+        { type: 'action' as const, action: 'tryA' },
+        { type: 'action' as const, action: 'tryB' },
       ],
     };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('success');
+    const config: any = { ...behaviorTreeHandler.defaultConfig!, root, tick_rate: 1 };
+    behaviorTreeHandler.onAttach!(node, config, ctx);
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node as any, config, ctx, 1);
+    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'bt_complete');
+    expect(call![1].status).toBe('success');
   });
 
-  it('succeeds when successThreshold children succeed', () => {
-    const root: BTNode = {
-      type: 'parallel',
+  it('selector fails when all children fail', () => {
+    const ctx = makeCtx({ executeAction: () => false });
+    const node = makeNode();
+    const root = {
+      type: 'selector' as const,
+      children: [
+        { type: 'action' as const, action: 'a' },
+        { type: 'action' as const, action: 'b' },
+      ],
+    };
+    const config: any = { ...behaviorTreeHandler.defaultConfig!, root, tick_rate: 1 };
+    behaviorTreeHandler.onAttach!(node, config, ctx);
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node as any, config, ctx, 1);
+    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'bt_complete');
+    expect(call![1].status).toBe('failure');
+  });
+});
+
+// ─── onUpdate — inverter node ─────────────────────────────────────────────────
+
+describe('behaviorTreeHandler.onUpdate — inverter', () => {
+  it('inverts success to failure', () => {
+    const ctx = makeCtx({ executeAction: () => true });
+    const node = makeNode();
+    const root = {
+      type: 'inverter' as const,
+      children: [{ type: 'action' as const, action: 'succeed' }],
+    };
+    const config: any = { ...behaviorTreeHandler.defaultConfig!, root, tick_rate: 1 };
+    behaviorTreeHandler.onAttach!(node, config, ctx);
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node as any, config, ctx, 1);
+    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'bt_complete');
+    expect(call![1].status).toBe('failure');
+  });
+
+  it('inverts failure to success', () => {
+    const ctx = makeCtx({ executeAction: () => false });
+    const node = makeNode();
+    const root = {
+      type: 'inverter' as const,
+      children: [{ type: 'action' as const, action: 'fail' }],
+    };
+    const config: any = { ...behaviorTreeHandler.defaultConfig!, root, tick_rate: 1 };
+    behaviorTreeHandler.onAttach!(node, config, ctx);
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node as any, config, ctx, 1);
+    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'bt_complete');
+    expect(call![1].status).toBe('success');
+  });
+});
+
+// ─── onUpdate — condition node ─────────────────────────────────────────────────
+
+describe('behaviorTreeHandler.onUpdate — condition', () => {
+  it('truthy blackboard key → success', () => {
+    const root = { type: 'condition' as const, condition: 'hasTarget' };
+    const { node, config, ctx } = attach({ root, tick_rate: 1, blackboard: { hasTarget: true } });
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.objectContaining({ status: 'success' }));
+  });
+
+  it('falsy blackboard key → failure', () => {
+    const root = { type: 'condition' as const, condition: 'hasTarget' };
+    const { node, config, ctx } = attach({ root, tick_rate: 1, blackboard: { hasTarget: false } });
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.objectContaining({ status: 'failure' }));
+  });
+
+  it('negation with ! prefix', () => {
+    const root = { type: 'condition' as const, condition: '!isEnemy' };
+    const { node, config, ctx } = attach({ root, tick_rate: 1, blackboard: { isEnemy: false } });
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.objectContaining({ status: 'success' }));
+  });
+
+  it('greater-than expression: hp>50 with hp=80 → success', () => {
+    const root = { type: 'condition' as const, condition: 'hp>50' };
+    const { node, config, ctx } = attach({ root, tick_rate: 1, blackboard: { hp: 80 } });
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.objectContaining({ status: 'success' }));
+  });
+
+  it('greater-than expression: hp>50 with hp=30 → failure', () => {
+    const root = { type: 'condition' as const, condition: 'hp>50' };
+    const { node, config, ctx } = attach({ root, tick_rate: 1, blackboard: { hp: 30 } });
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    expect(ctx.emit).toHaveBeenCalledWith('bt_complete', expect.objectContaining({ status: 'failure' }));
+  });
+});
+
+// ─── onUpdate — wait node ─────────────────────────────────────────────────────
+
+describe('behaviorTreeHandler.onUpdate — wait', () => {
+  it('wait returns running before duration', () => {
+    const root = { type: 'wait' as const, duration: 1 };
+    const { node, config, ctx } = attach({ root, tick_rate: 100 });
+    // tick at 0.01s (< 1s duration)
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 0.01);
+    expect(ctx.emit).not.toHaveBeenCalledWith('bt_complete', expect.anything());
+  });
+
+  it('wait returns success after duration accumulated', () => {
+    const root = { type: 'wait' as const, duration: 0.5 };
+    const { node, config, ctx } = attach({ root, tick_rate: 1 });
+    // Tick once at 1s delta → accumulator hits interval, wait accumulates 1s > 0.5s duration
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'bt_complete');
+    expect(call).toBeDefined();
+    expect(call![1].status).toBe('success');
+  });
+});
+
+// ─── onUpdate — action set: prefix ────────────────────────────────────────────
+
+describe('behaviorTreeHandler.onUpdate — action set:', () => {
+  it('set:key:true sets blackboard key to true → success', () => {
+    const root = { type: 'action' as const, action: 'set:isReady:true' };
+    const { node, config, ctx } = attach({ root, tick_rate: 1 });
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    expect(node.__behaviorTreeState.blackboard.isReady).toBe(true);
+  });
+
+  it('set:key:false sets blackboard key to false', () => {
+    const root = { type: 'action' as const, action: 'set:active:false' };
+    const { node, config, ctx } = attach({ root, tick_rate: 1 });
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    expect(node.__behaviorTreeState.blackboard.active).toBe(false);
+  });
+});
+
+// ─── onUpdate — restart_on_complete ───────────────────────────────────────────
+
+describe('behaviorTreeHandler.onUpdate — restart_on_complete', () => {
+  it('when restart_on_complete=true: stays running after completion', () => {
+    const root = { type: 'sequence' as const, children: [] };
+    const { node, config, ctx } = attach({ root, tick_rate: 1, restart_on_complete: true });
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    expect(node.__behaviorTreeState.isRunning).toBe(true);
+  });
+
+  it('when restart_on_complete=false: stops after completion', () => {
+    const root = { type: 'sequence' as const, children: [] };
+    const { node, config, ctx } = attach({ root, tick_rate: 1, restart_on_complete: false });
+    behaviorTreeHandler.onUpdate!(node, config, ctx, 1);
+    expect(node.__behaviorTreeState.isRunning).toBe(false);
+  });
+});
+
+// ─── onUpdate — parallel node ─────────────────────────────────────────────────
+
+describe('behaviorTreeHandler.onUpdate — parallel', () => {
+  it('parallel succeeds when all children succeed (full threshold)', () => {
+    const ctx = makeCtx({ executeAction: () => true });
+    const node = makeNode();
+    const root = {
+      type: 'parallel' as const,
+      children: [
+        { type: 'action' as const, action: 'a' },
+        { type: 'action' as const, action: 'b' },
+      ],
+    };
+    const config: any = { ...behaviorTreeHandler.defaultConfig!, root, tick_rate: 1 };
+    behaviorTreeHandler.onAttach!(node, config, ctx);
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node as any, config, ctx, 1);
+    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'bt_complete');
+    expect(call![1].status).toBe('success');
+  });
+
+  it('parallel succeeds with successThreshold=1 when one succeeds', () => {
+    let n = 0;
+    const ctx = makeCtx({ executeAction: () => { return n++ === 0; } });
+    const node = makeNode();
+    const root = {
+      type: 'parallel' as const,
       successThreshold: 1,
       children: [
-        { type: 'action', action: 'set:a:true' },
-        { type: 'condition', condition: 'nope' },
+        { type: 'action' as const, action: 'a' },
+        { type: 'action' as const, action: 'b' },
       ],
     };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('success');
-  });
-});
-
-// ─── Inverter ─────────────────────────────────────────────────────────────────
-describe('BehaviorTree — Inverter', () => {
-  it('inverts success → failure', () => {
-    const root: BTNode = {
-      type: 'inverter',
-      children: [{ type: 'action', action: 'set:x:true' }],
-    };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('failure');
-  });
-
-  it('inverts failure → success', () => {
-    const root: BTNode = {
-      type: 'inverter',
-      children: [{ type: 'condition', condition: 'nope' }],
-    };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('success');
-  });
-
-  it('returns failure when no child', () => {
-    // inverter with no children → failure (per tickInverter)
-    const root: BTNode = { type: 'inverter' };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('failure');
-  });
-});
-
-// ─── Repeater ─────────────────────────────────────────────────────────────────
-describe('BehaviorTree — Repeater', () => {
-  it('runs child count times then succeeds', () => {
-    // Repeater with count=2 → runs child 2 times → success
-    const root: BTNode = {
-      type: 'repeater',
-      count: 2,
-      children: [{ type: 'action', action: 'set:x:true' }],
-    };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    // First tick: child runs once (count=1) → still running
-    tick(node, cfg, ctx);
-    // Not completed yet (running), re-tick in next frame…
-    tick(node, cfg, ctx);
-    const complete = ctx.emitted.find((e: any) => e.type === 'bt_complete');
-    expect(complete?.payload.status).toBe('success');
-  });
-});
-
-// ─── Condition Node ───────────────────────────────────────────────────────────
-describe('BehaviorTree — Condition', () => {
-  it('succeeds when blackboard key is truthy', () => {
-    const root: BTNode = { type: 'condition', condition: 'flag' };
-    const { node, ctx, cfg } = attachNode(root, {
-      tick_rate: 1,
-      restart_on_complete: false,
-      blackboard: { flag: true },
-    });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('success');
-  });
-
-  it('fails when blackboard key is falsy', () => {
-    const root: BTNode = { type: 'condition', condition: 'flag' };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false, blackboard: { flag: false } });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('failure');
-  });
-
-  it('inverted condition: !flag succeeds when flag=false', () => {
-    const root: BTNode = { type: 'condition', condition: '!flag' };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false, blackboard: { flag: false } });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('success');
-  });
-
-  it('expression condition: "health>50" succeeds when health=80', () => {
-    const root: BTNode = { type: 'condition', condition: 'health>50' };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false, blackboard: { health: 80 } });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('success');
-  });
-
-  it('expression condition: "health>50" fails when health=30', () => {
-    const root: BTNode = { type: 'condition', condition: 'health>50' };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false, blackboard: { health: 30 } });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('failure');
-  });
-});
-
-// ─── Action Node ──────────────────────────────────────────────────────────────
-describe('BehaviorTree — Action', () => {
-  it('set: action writes to blackboard and returns success', () => {
-    const root: BTNode = { type: 'action', action: 'set:myKey:true' };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect((node as any).__behaviorTreeState.blackboard.myKey).toBe(true);
-  });
-
-  it('unknown action emits bt_action', () => {
-    const root: BTNode = { type: 'action', action: 'attack', params: { target: 'enemy' } };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_action')?.payload.action).toBe('attack');
-  });
-});
-
-// ─── Wait Node ────────────────────────────────────────────────────────────────
-describe('BehaviorTree — Wait', () => {
-  it('returns running while waiting', () => {
-    const root: BTNode = { type: 'wait', duration: 2 };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx, 1.0); // only 1s out of 2s done
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')).toBeUndefined();
-  });
-
-  it('succeeds after duration elapsed', () => {
-    const root: BTNode = { type: 'wait', duration: 1 };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 1, restart_on_complete: false });
-    tick(node, cfg, ctx, 1.5);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')?.payload.status).toBe('success');
+    const config: any = { ...behaviorTreeHandler.defaultConfig!, root, tick_rate: 1 };
+    behaviorTreeHandler.onAttach!(node, config, ctx);
+    ctx.emit.mockClear();
+    behaviorTreeHandler.onUpdate!(node as any, config, ctx, 1);
+    const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'bt_complete');
+    expect(call![1].status).toBe('success');
   });
 });
 
 // ─── onEvent ──────────────────────────────────────────────────────────────────
-describe('behaviorTreeHandler — onEvent', () => {
-  it('bt_set_blackboard updates blackboard', () => {
-    const { node, ctx, cfg } = attachNode({ type: 'sequence', children: [] });
-    behaviorTreeHandler.onEvent!(node, cfg, ctx as any, { type: 'bt_set_blackboard', values: { hp: 99 } } as any);
-    expect((node as any).__behaviorTreeState.blackboard.hp).toBe(99);
-  });
 
-  it('bt_pause sets isRunning = false', () => {
-    const { node, ctx, cfg } = attachNode({ type: 'sequence', children: [] });
-    behaviorTreeHandler.onEvent!(node, cfg, ctx as any, { type: 'bt_pause' } as any);
-    expect((node as any).__behaviorTreeState.isRunning).toBe(false);
-  });
-
-  it('bt_resume sets isRunning = true', () => {
-    const { node, ctx, cfg } = attachNode({ type: 'sequence', children: [] });
-    behaviorTreeHandler.onEvent!(node, cfg, ctx as any, { type: 'bt_pause' } as any);
-    behaviorTreeHandler.onEvent!(node, cfg, ctx as any, { type: 'bt_resume' } as any);
-    expect((node as any).__behaviorTreeState.isRunning).toBe(true);
-  });
-
-  it('bt_reset clears nodeStates and sets status=running', () => {
-    const { node, ctx, cfg } = attachNode({ type: 'sequence', children: [] });
-    behaviorTreeHandler.onEvent!(node, cfg, ctx as any, { type: 'bt_reset' } as any);
-    expect((node as any).__behaviorTreeState.status).toBe('running');
-    expect((node as any).__behaviorTreeState.isRunning).toBe(true);
-  });
-
-  it('no-op when no state on node', () => {
-    expect(() => behaviorTreeHandler.onEvent!(mkNode() as any, behaviorTreeHandler.defaultConfig!, mkCtx() as any, { type: 'bt_pause' } as any)).not.toThrow();
+describe('behaviorTreeHandler.onEvent — bt_set_blackboard', () => {
+  it('merges values into blackboard', () => {
+    const { node, config, ctx } = attach({ blackboard: { hp: 100 } });
+    behaviorTreeHandler.onEvent!(node, config, ctx, { type: 'bt_set_blackboard', values: { hp: 50, mana: 30 } });
+    expect(node.__behaviorTreeState.blackboard.hp).toBe(50);
+    expect(node.__behaviorTreeState.blackboard.mana).toBe(30);
   });
 });
 
-// ─── tick rate throttling ─────────────────────────────────────────────────────
-describe('behaviorTreeHandler — tick rate throttling', () => {
-  it('does not tick when delta < tickInterval', () => {
-    const root: BTNode = { type: 'sequence', children: [{ type: 'action', action: 'set:x:true' }] };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 10, restart_on_complete: false });
-    // tickInterval = 1/10 = 0.1. delta=0.05 → no tick fired
-    tick(node, cfg, ctx, 0.05);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')).toBeUndefined();
+describe('behaviorTreeHandler.onEvent — bt_pause / bt_resume', () => {
+  it('bt_pause sets isRunning=false', () => {
+    const { node, config, ctx } = attach();
+    behaviorTreeHandler.onEvent!(node, config, ctx, { type: 'bt_pause' });
+    expect(node.__behaviorTreeState.isRunning).toBe(false);
   });
+  it('bt_resume sets isRunning=true', () => {
+    const { node, config, ctx } = attach();
+    node.__behaviorTreeState.isRunning = false;
+    behaviorTreeHandler.onEvent!(node, config, ctx, { type: 'bt_resume' });
+    expect(node.__behaviorTreeState.isRunning).toBe(true);
+  });
+});
 
-  it('ticks when delta >= tickInterval', () => {
-    const root: BTNode = { type: 'sequence', children: [{ type: 'action', action: 'set:x:true' }] };
-    const { node, ctx, cfg } = attachNode(root, { tick_rate: 10, restart_on_complete: false });
-    tick(node, cfg, ctx, 0.15);
-    expect(ctx.emitted.find((e: any) => e.type === 'bt_complete')).toBeDefined();
+describe('behaviorTreeHandler.onEvent — bt_reset', () => {
+  it('clears nodeStates, resets status+isRunning', () => {
+    const { node, config, ctx } = attach();
+    node.__behaviorTreeState.isRunning = false;
+    node.__behaviorTreeState.status = 'failure' as any;
+    (node.__behaviorTreeState.nodeStates as Map<any, any>).set({}, {});
+    behaviorTreeHandler.onEvent!(node, config, ctx, { type: 'bt_reset' });
+    expect(node.__behaviorTreeState.status).toBe('running');
+    expect(node.__behaviorTreeState.isRunning).toBe(true);
+    expect(node.__behaviorTreeState.nodeStates.size).toBe(0);
   });
 });

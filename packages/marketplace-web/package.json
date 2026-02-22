@@ -36,7 +36,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "@testing-library/react": "^14.2.0",
     "jsdom": "^28.0.0",
-    "eslint": "^9.39.1",
+    "eslint": "^8.57.0",
     "eslint-config-next": "^14.1.0"
   },
   "keywords": [

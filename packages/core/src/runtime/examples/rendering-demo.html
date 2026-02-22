@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HoloScript Runtime Rendering Demo</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: monospace;
+      background: #000;
+      color: #fff;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 5px;
+      font-size: 12px;
+      z-index: 100;
+    }
+    #info h2 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: #0f0;
+    }
+    #info p {
+      margin: 5px 0;
+    }
+    #stats {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 5px;
+      font-size: 12px;
+      z-index: 100;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <h2>🎬 HoloScript Runtime Rendering</h2>
+    <p><strong>Path 2:</strong> Runtime Platform (like Unity)</p>
+    <p>✅ Parser → Composition</p>
+    <p>✅ Runtime Registry</p>
+    <p>✅ Demolition Runtime</p>
+    <p>✅ Three.js Renderer (NEW!)</p>
+    <p></p>
+    <p>Scene: Demolition Demo</p>
+    <p>Renderer: Three.js + R3F Materials</p>
+  </div>
+
+  <div id="stats">
+    <h3 style="margin: 0 0 10px 0; color: #0f0;">Stats</h3>
+    <div id="fps">FPS: --</div>
+    <div id="frame-time">Frame Time: -- ms</div>
+    <div id="objects">Objects: --</div>
+    <div id="lights">Lights: --</div>
+    <div id="triangles">Triangles: --</div>
+  </div>
+
+  <!-- Three.js library -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js"></script>
+
+  <script type="module">
+    // This is a demo showing how HoloScript runtime rendering works
+    // In production, this would be bundled with the HoloScript runtime
+
+    console.log('🎬 HoloScript Runtime Rendering Demo');
+
+    // Simulate HoloComposition (would come from parser)
+    const composition = {
+      name: 'DemolitionDemo',
+      type: 'demolition',
+      version: '1.0.0',
+      entities: [
+        {
+          name: 'Building',
+          type: 'box',
+          position: [0, 5, 0],
+          rotation: [0, 0, 0],
+          scale: [10, 10, 10],
+          traits: [{
+            name: 'fracturable',
+            properties: {
+              material: { type: 'concrete', color: '#808080' }
+            }
+          }]
+        },
+        {
+          name: 'Ground',
+          type: 'plane',
+          position: [0, 0, 0],
+          rotation: [-Math.PI / 2, 0, 0],
+          scale: [100, 100, 1],
+          traits: [{
+            name: 'fracturable',
+            properties: {
+              material: { type: 'wet_concrete', color: '#404040' }
+            }
+          }]
+        },
+        {
+          name: 'Debris1',
+          type: 'box',
+          position: [-5, 3, 0],
+          scale: [2, 2, 2],
+          traits: [{
+            name: 'fracturable',
+            properties: {
+              material: { type: 'stone', color: '#606060' }
+            }
+          }]
+        },
+        {
+          name: 'Debris2',
+          type: 'box',
+          position: [5, 3, 0],
+          scale: [2, 2, 2],
+          traits: [{
+            name: 'fracturable',
+            properties: {
+              material: { type: 'metal', color: '#c0c0c0' }
+            }
+          }]
+        }
+      ],
+      traits: [
+        {
+          name: 'physics',
+          properties: {
+            gravity: [0, -9.8, 0],
+            timeScale: 1.0
+          }
+        },
+        {
+          name: 'camera',
+          properties: {
+            position: [0, 20, 50],
+            target: [0, 10, 0],
+            fov: 60
+          }
+        }
+      ]
+    };
+
+    // Material presets (extracted from R3FCompiler)
+    const MATERIAL_PRESETS = {
+      concrete: { roughness: 0.9, metalness: 0.0, color: '#808080' },
+      wet_concrete: { roughness: 0.5, metalness: 0.0, clearcoat: 0.5, clearcoatRoughness: 0.2 },
+      stone: { roughness: 0.85, metalness: 0.0 },
+      metal: { roughness: 0.2, metalness: 1.0 },
+      plastic: { roughness: 0.5, metalness: 0.0, clearcoat: 0.1 },
+    };
+
+    // Initialize Three.js scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#1a1a2e');
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
+    camera.position.set(0, 20, 50);
+    camera.lookAt(0, 10, 0);
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    document.body.appendChild(renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight('#404040', 0.5);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight('#ffffff', 1.0);
+    directionalLight.position.set(50, 100, 50);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    scene.add(directionalLight);
+
+    // Load composition entities
+    console.log(`📦 Loading ${composition.entities.length} entities...`);
+
+    composition.entities.forEach(entity => {
+      // Create geometry
+      let geometry;
+      const size = entity.scale || [1, 1, 1];
+
+      if (entity.type === 'plane') {
+        geometry = new THREE.PlaneGeometry(size[0], size[1]);
+      } else {
+        geometry = new THREE.BoxGeometry(...size);
+      }
+
+      // Create material using R3FCompiler presets
+      const trait = entity.traits?.find(t => t.name === 'fracturable');
+      const materialSpec = trait?.properties?.material || {};
+      const presetName = materialSpec.type || 'plastic';
+      const preset = MATERIAL_PRESETS[presetName] || MATERIAL_PRESETS.plastic;
+
+      const materialProps = {
+        ...preset,
+        color: new THREE.Color(materialSpec.color || preset.color || '#808080'),
+      };
+
+      const material = new THREE.MeshStandardMaterial(materialProps);
+
+      // Create mesh
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.name = entity.name;
+      mesh.position.set(...entity.position);
+      if (entity.rotation) {
+        mesh.rotation.set(...entity.rotation);
+      }
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      scene.add(mesh);
+      console.log(`  ✅ ${entity.name} (${entity.type}, material: ${presetName})`);
+    });
+
+    // Stats
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let fps = 0;
+
+    function updateStats() {
+      const info = renderer.info;
+      document.getElementById('fps').textContent = `FPS: ${fps}`;
+      document.getElementById('frame-time').textContent = `Frame Time: ${(1000 / fps).toFixed(2)} ms`;
+      document.getElementById('objects').textContent = `Objects: ${scene.children.filter(c => c.isMesh).length}`;
+      document.getElementById('lights').textContent = `Lights: ${scene.children.filter(c => c.isLight).length}`;
+      document.getElementById('triangles').textContent = `Triangles: ${info.render.triangles.toLocaleString()}`;
+    }
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Calculate FPS
+      frameCount++;
+      const now = performance.now();
+      if (now - lastTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        lastTime = now;
+        updateStats();
+      }
+
+      // Render
+      renderer.render(scene, camera);
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Start animation
+    animate();
+    console.log('✅ Runtime rendering started');
+    console.log('🎉 HoloScript is now a platform (like Unity)!');
+  </script>
+</body>
+</html>

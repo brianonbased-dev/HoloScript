@@ -1,300 +1,207 @@
 /**
- * ClothTrait — Production Tests (TraitHandler pattern)
- *
- * Tests the clothHandler by invoking handler methods directly against a mock node.
- * Also tests initializeClothMesh behaviour observable through onAttach, and
- * vertex/constraint state mutations via onEvent.
+ * ClothTrait — Production Test Suite
  */
 import { describe, it, expect, vi } from 'vitest';
 import { clothHandler } from '../ClothTrait';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────────
-
-type ClothConfig = NonNullable<Parameters<typeof clothHandler.onAttach>[1]>;
-
-function mkNode(): Record<string, any> {
-  return {};
+function makeNode() { return { id: 'cloth_node' }; }
+function makeCtx() { return { emit: vi.fn() }; }
+function attach(cfg: any = {}) {
+  const node = makeNode();
+  const ctx = makeCtx();
+  const config = { ...clothHandler.defaultConfig!, ...cfg };
+  clothHandler.onAttach!(node, config, ctx);
+  return { node: node as any, ctx, config };
 }
 
-function mkCtx() {
-  const ctx = {
-    emitted: [] as Array<{ type: string; payload: any }>,
-    emit: vi.fn(),
-  };
-  ctx.emit = vi.fn((type: string, payload: any) => {
-    ctx.emitted.push({ type, payload });
-  }) as any;
-  return ctx;
-}
+describe('clothHandler.defaultConfig', () => {
+  const d = clothHandler.defaultConfig!;
+  it('resolution=32', () => expect(d.resolution).toBe(32));
+  it('stiffness=0.8', () => expect(d.stiffness).toBe(0.8));
+  it('damping=0.01', () => expect(d.damping).toBeCloseTo(0.01));
+  it('mass=1.0', () => expect(d.mass).toBe(1.0));
+  it('gravity_scale=1.0', () => expect(d.gravity_scale).toBe(1.0));
+  it('wind_response=0.5', () => expect(d.wind_response).toBe(0.5));
+  it('tearable=false', () => expect(d.tearable).toBe(false));
+  it('self_collision=false', () => expect(d.self_collision).toBe(false));
+  it('pin_vertices=[]', () => expect(d.pin_vertices).toEqual([]));
+});
 
-function mkConfig(overrides: Partial<ClothConfig> = {}): ClothConfig {
-  return { ...clothHandler.defaultConfig!, ...overrides };
-}
-
-function attachNode(config: ClothConfig = mkConfig(), node = mkNode(), ctx = mkCtx()) {
-  clothHandler.onAttach!(node as any, config, ctx as any);
-  return { node, ctx };
-}
-
-// ─── defaultConfig ────────────────────────────────────────────────────────────────
-
-describe('clothHandler — defaultConfig', () => {
-  it('resolution defaults to 32', () => {
-    expect(clothHandler.defaultConfig?.resolution).toBe(32);
+describe('clothHandler.onAttach', () => {
+  it('creates __clothState', () => expect(attach().node.__clothState).toBeDefined());
+  it('isSimulating=true', () => expect(attach().node.__clothState.isSimulating).toBe(true));
+  it('isTorn=false', () => expect(attach().node.__clothState.isTorn).toBe(false));
+  it('windForce={0,0,0}', () => expect(attach().node.__clothState.windForce).toEqual({x:0,y:0,z:0}));
+  it('vertices grid is res×res', () => {
+    const {node} = attach({resolution:4});
+    expect(node.__clothState.vertices.length).toBe(4);
+    expect(node.__clothState.vertices[0].length).toBe(4);
   });
-
-  it('stiffness defaults to 0.8', () => {
-    expect(clothHandler.defaultConfig?.stiffness).toBeCloseTo(0.8);
+  it('pin_vertices marks isPinned correctly', () => {
+    const {node} = attach({resolution:4, pin_vertices:[[0,0],[1,2]]});
+    expect(node.__clothState.vertices[0][0].isPinned).toBe(true);
+    expect(node.__clothState.vertices[1][2].isPinned).toBe(true);
+    expect(node.__clothState.vertices[2][2].isPinned).toBe(false);
   });
-
-  it('tearable defaults to false', () => {
-    expect(clothHandler.defaultConfig?.tearable).toBe(false);
+  it('constraint count = (res-1)*res*2 for res=4', () => {
+    const {node} = attach({resolution:4});
+    expect(node.__clothState.constraints.length).toBe(24);
   });
-
-  it('self_collision defaults to false', () => {
-    expect(clothHandler.defaultConfig?.self_collision).toBe(false);
+  it('emits cloth_create', () => {
+    const {ctx} = attach({resolution:4, stiffness:0.9});
+    expect(ctx.emit).toHaveBeenCalledWith('cloth_create', expect.objectContaining({resolution:4, stiffness:0.9}));
+  });
+  it('vertex mass = config.mass/(res*res)', () => {
+    const {node} = attach({resolution:4, mass:4});
+    expect(node.__clothState.vertices[1][1].mass).toBeCloseTo(4/16, 5);
   });
 });
 
-// ─── onAttach ─────────────────────────────────────────────────────────────────────
-
-describe('clothHandler — onAttach', () => {
-  it('sets isSimulating = true on node state', () => {
-    const { node } = attachNode();
-    expect((node as any).__clothState.isSimulating).toBe(true);
+describe('clothHandler.onDetach', () => {
+  it('removes __clothState', () => {
+    const {node, config, ctx} = attach();
+    clothHandler.onDetach!(node, config, ctx);
+    expect(node.__clothState).toBeUndefined();
   });
-
-  it('isTorn = false initially', () => {
-    const { node } = attachNode();
-    expect((node as any).__clothState.isTorn).toBe(false);
+  it('emits cloth_destroy when isSimulating=true', () => {
+    const {node, config, ctx} = attach();
+    ctx.emit.mockClear();
+    clothHandler.onDetach!(node, config, ctx);
+    expect(ctx.emit).toHaveBeenCalledWith('cloth_destroy', {node});
   });
-
-  it('emits cloth_create event', () => {
-    const config = mkConfig({ resolution: 4 });
-    const { ctx } = attachNode(config);
-    const ev = ctx.emitted.find((e) => e.type === 'cloth_create');
-    expect(ev).toBeDefined();
-    expect(ev?.payload.resolution).toBe(4);
-    expect(ev?.payload.stiffness).toBeCloseTo(0.8);
-  });
-
-  it('initialises vertices grid at resolution x resolution', () => {
-    const config = mkConfig({ resolution: 4 });
-    const { node } = attachNode(config);
-    const state = (node as any).__clothState;
-    expect(state.vertices.length).toBe(4);
-    expect(state.vertices[0].length).toBe(4);
-  });
-
-  it('pinned vertices are marked isPinned=true', () => {
-    const config = mkConfig({ resolution: 4, pin_vertices: [[0, 0], [0, 3]] });
-    const { node } = attachNode(config);
-    const state = (node as any).__clothState;
-    expect(state.vertices[0][0].isPinned).toBe(true);
-    expect(state.vertices[0][3].isPinned).toBe(true);
-    expect(state.vertices[1][0].isPinned).toBe(false);
-  });
-
-  it('non-pinned vertices have isPinned=false', () => {
-    const config = mkConfig({ resolution: 3, pin_vertices: [] });
-    const { node } = attachNode(config);
-    const state = (node as any).__clothState;
-    for (const row of state.vertices) {
-      for (const v of row) {
-        expect(v.isPinned).toBe(false);
-      }
-    }
-  });
-
-  it('constraint count: (res-1)*res*2 for grid (horizontal + vertical)', () => {
-    // resolution=3: 3 rows, 2 horizontal constraints per row = 6, 2 vertical per col = 6 → 12
-    const config = mkConfig({ resolution: 3 });
-    const { node } = attachNode(config);
-    const state = (node as any).__clothState;
-    // (3-1)*3 horizontal + (3-1)*3 vertical = 6 + 6 = 12
-    expect(state.constraints.length).toBe(12);
-  });
-
-  it('all constraints start as not broken', () => {
-    const config = mkConfig({ resolution: 3 });
-    const { node } = attachNode(config);
-    const state = (node as any).__clothState;
-    expect(state.constraints.every((c: any) => !c.broken)).toBe(true);
-  });
-
-  it('vertex mass = total mass / (res*res)', () => {
-    const config = mkConfig({ resolution: 2, mass: 4.0 });
-    const { node } = attachNode(config);
-    const state = (node as any).__clothState;
-    expect(state.vertices[0][0].mass).toBeCloseTo(4.0 / 4);
+  it('no cloth_destroy when isSimulating=false', () => {
+    const {node, config, ctx} = attach();
+    node.__clothState.isSimulating = false;
+    ctx.emit.mockClear();
+    clothHandler.onDetach!(node, config, ctx);
+    expect(ctx.emit).not.toHaveBeenCalledWith('cloth_destroy', expect.any(Object));
   });
 });
 
-// ─── onDetach ─────────────────────────────────────────────────────────────────────
-
-describe('clothHandler — onDetach', () => {
-  it('removes __clothState from node', () => {
-    const config = mkConfig({ resolution: 2 });
-    const { node, ctx } = attachNode(config);
-    clothHandler.onDetach!(node as any, config, ctx as any);
-    expect((node as any).__clothState).toBeUndefined();
+describe('clothHandler.onUpdate', () => {
+  it('emits cloth_apply_force with scaled wind', () => {
+    const {node, config, ctx} = attach({wind_response:0.5});
+    node.__clothState.windForce = {x:4, y:0, z:2};
+    ctx.emit.mockClear();
+    clothHandler.onUpdate!(node, config, ctx, 0.016);
+    expect(ctx.emit).toHaveBeenCalledWith('cloth_apply_force', expect.objectContaining({force:{x:2,y:0,z:1}}));
   });
-
-  it('emits cloth_destroy when was simulating', () => {
-    const config = mkConfig({ resolution: 2 });
-    const { node, ctx } = attachNode(config);
-    clothHandler.onDetach!(node as any, config, ctx as any);
-    const ev = ctx.emitted.find((e) => e.type === 'cloth_destroy');
-    expect(ev).toBeDefined();
+  it('no cloth_apply_force when wind_response=0', () => {
+    const {node, config, ctx} = attach({wind_response:0});
+    node.__clothState.windForce = {x:5, y:0, z:0};
+    ctx.emit.mockClear();
+    clothHandler.onUpdate!(node, config, ctx, 0.016);
+    expect(ctx.emit).not.toHaveBeenCalledWith('cloth_apply_force', expect.any(Object));
   });
-});
-
-// ─── onUpdate ─────────────────────────────────────────────────────────────────────
-
-describe('clothHandler — onUpdate', () => {
-  it('emits cloth_step with deltaTime', () => {
-    const config = mkConfig({ resolution: 2, wind_response: 0 });
-    const { node, ctx } = attachNode(config);
-    clothHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    const ev = ctx.emitted.find((e) => e.type === 'cloth_step');
-    expect(ev?.payload.deltaTime).toBeCloseTo(0.016);
+  it('always emits cloth_step with deltaTime', () => {
+    const {node, config, ctx} = attach();
+    ctx.emit.mockClear();
+    clothHandler.onUpdate!(node, config, ctx, 0.033);
+    expect(ctx.emit).toHaveBeenCalledWith('cloth_step', {node, deltaTime:0.033});
   });
-
-  it('emits cloth_apply_force when wind_response > 0', () => {
-    const config = mkConfig({ resolution: 2, wind_response: 0.5 });
-    const node = mkNode();
-    const ctx = mkCtx();
-    clothHandler.onAttach!(node as any, config, ctx as any);
-    (node as any).__clothState.windForce = { x: 1, y: 0, z: 0 };
-    ctx.emitted.length = 0;
-    clothHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    const ev = ctx.emitted.find((e) => e.type === 'cloth_apply_force');
-    expect(ev).toBeDefined();
-    expect(ev?.payload.force.x).toBeCloseTo(0.5); // 1 * 0.5
-  });
-
-  it('does not emit cloth_apply_force when wind_response = 0', () => {
-    const config = mkConfig({ resolution: 2, wind_response: 0 });
-    const { node, ctx } = attachNode(config);
-    (node as any).__clothState.windForce = { x: 5, y: 0, z: 0 };
-    ctx.emitted.length = 0;
-    clothHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emitted.find((e) => e.type === 'cloth_apply_force')).toBeUndefined();
-  });
-
-  it('no-ops when isSimulating=false', () => {
-    const config = mkConfig({ resolution: 2 });
-    const { node, ctx } = attachNode(config);
-    (node as any).__clothState.isSimulating = false;
-    ctx.emitted.length = 0;
-    clothHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emitted).toHaveLength(0);
+  it('no-op when isSimulating=false', () => {
+    const {node, config, ctx} = attach();
+    node.__clothState.isSimulating = false;
+    ctx.emit.mockClear();
+    clothHandler.onUpdate!(node, config, ctx, 0.016);
+    expect(ctx.emit).not.toHaveBeenCalled();
   });
 });
 
-// ─── onEvent ─────────────────────────────────────────────────────────────────────
-
-describe('clothHandler — onEvent', () => {
-  it('wind_update sets windForce on state', () => {
-    const config = mkConfig({ resolution: 2 });
-    const { node, ctx } = attachNode(config);
-    clothHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'wind_update',
-      direction: { x: 2, y: 0, z: -1 },
-    } as any);
-    expect((node as any).__clothState.windForce).toEqual({ x: 2, y: 0, z: -1 });
+describe('clothHandler.onEvent', () => {
+  it('wind_update sets windForce', () => {
+    const {node, config, ctx} = attach();
+    clothHandler.onEvent!(node, config, ctx, {type:'wind_update', direction:{x:3,y:0,z:-1}});
+    expect(node.__clothState.windForce).toEqual({x:3,y:0,z:-1});
   });
-
-  it('cloth_pin_vertex marks vertex as pinned and emits cloth_update_pin', () => {
-    const config = mkConfig({ resolution: 3 });
-    const { node, ctx } = attachNode(config);
-    ctx.emitted.length = 0;
-    clothHandler.onEvent!(node as any, config, ctx as any, { type: 'cloth_pin_vertex', x: 1, y: 1 } as any);
-    expect((node as any).__clothState.vertices[1][1].isPinned).toBe(true);
-    const ev = ctx.emitted.find((e) => e.type === 'cloth_update_pin');
-    expect(ev?.payload.pinned).toBe(true);
-    expect(ev?.payload.vertex).toEqual([1, 1]);
+  it('cloth_apply_force emits cloth_external_force with radius', () => {
+    const {node, config, ctx} = attach();
+    ctx.emit.mockClear();
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_apply_force', force:{x:1,y:0,z:0}, radius:1.5});
+    expect(ctx.emit).toHaveBeenCalledWith('cloth_external_force', expect.objectContaining({radius:1.5}));
   });
-
-  it('cloth_unpin_vertex marks vertex as unpinned', () => {
-    const config = mkConfig({ resolution: 3, pin_vertices: [[0, 0]] });
-    const { node, ctx } = attachNode(config);
-    clothHandler.onEvent!(node as any, config, ctx as any, { type: 'cloth_unpin_vertex', x: 0, y: 0 } as any);
-    expect((node as any).__clothState.vertices[0][0].isPinned).toBe(false);
+  it('cloth_apply_force defaults radius to 0.5', () => {
+    const {node, config, ctx} = attach();
+    ctx.emit.mockClear();
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_apply_force', force:{x:1,y:0,z:0}});
+    expect(ctx.emit).toHaveBeenCalledWith('cloth_external_force', expect.objectContaining({radius:0.5}));
   });
-
+  it('cloth_pin_vertex marks isPinned=true and emits cloth_update_pin', () => {
+    const {node, config, ctx} = attach({resolution:4});
+    ctx.emit.mockClear();
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_pin_vertex', x:1, y:2});
+    expect(node.__clothState.vertices[1][2].isPinned).toBe(true);
+    expect(ctx.emit).toHaveBeenCalledWith('cloth_update_pin', expect.objectContaining({vertex:[1,2], pinned:true}));
+  });
+  it('cloth_unpin_vertex marks isPinned=false', () => {
+    const {node, config, ctx} = attach({resolution:4, pin_vertices:[[0,0]]});
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_unpin_vertex', x:0, y:0});
+    expect(node.__clothState.vertices[0][0].isPinned).toBe(false);
+  });
+  it('cloth_pin_vertex graceful for out-of-bounds', () => {
+    const {node, config, ctx} = attach({resolution:4});
+    expect(() => clothHandler.onEvent!(node, config, ctx, {type:'cloth_pin_vertex', x:99, y:99})).not.toThrow();
+  });
+  it('cloth_constraint_break sets broken+isTorn when tearable=true', () => {
+    const {node, config, ctx} = attach({resolution:4, tearable:true});
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_constraint_break', constraintIndex:0});
+    expect(node.__clothState.constraints[0].broken).toBe(true);
+    expect(node.__clothState.isTorn).toBe(true);
+    expect(ctx.emit).toHaveBeenCalledWith('on_cloth_tear', expect.objectContaining({constraintIndex:0}));
+  });
+  it('cloth_constraint_break no-op when tearable=false', () => {
+    const {node, config, ctx} = attach({resolution:4, tearable:false});
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_constraint_break', constraintIndex:0});
+    expect(node.__clothState.constraints[0].broken).toBe(false);
+  });
   it('cloth_pause sets isSimulating=false', () => {
-    const config = mkConfig({ resolution: 2 });
-    const { node, ctx } = attachNode(config);
-    clothHandler.onEvent!(node as any, config, ctx as any, { type: 'cloth_pause' } as any);
-    expect((node as any).__clothState.isSimulating).toBe(false);
+    const {node, config, ctx} = attach();
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_pause'});
+    expect(node.__clothState.isSimulating).toBe(false);
   });
-
   it('cloth_resume sets isSimulating=true', () => {
-    const config = mkConfig({ resolution: 2 });
-    const { node, ctx } = attachNode(config);
-    clothHandler.onEvent!(node as any, config, ctx as any, { type: 'cloth_pause' } as any);
-    clothHandler.onEvent!(node as any, config, ctx as any, { type: 'cloth_resume' } as any);
-    expect((node as any).__clothState.isSimulating).toBe(true);
+    const {node, config, ctx} = attach();
+    node.__clothState.isSimulating = false;
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_resume'});
+    expect(node.__clothState.isSimulating).toBe(true);
   });
-
-  it('cloth_constraint_break sets constraint.broken=true and isTorn=true when tearable', () => {
-    const config = mkConfig({ resolution: 2, tearable: true });
-    const { node, ctx } = attachNode(config);
-    ctx.emitted.length = 0;
-    clothHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'cloth_constraint_break',
-      constraintIndex: 0,
-    } as any);
-    const state = (node as any).__clothState;
-    expect(state.constraints[0].broken).toBe(true);
-    expect(state.isTorn).toBe(true);
-    expect(ctx.emitted.find((e) => e.type === 'on_cloth_tear')).toBeDefined();
+  it('cloth_reset reinitializes grid and clears isTorn', () => {
+    const {node, config, ctx} = attach({resolution:4, tearable:true});
+    node.__clothState.isTorn = true;
+    ctx.emit.mockClear();
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_reset'});
+    expect(node.__clothState.isTorn).toBe(false);
+    expect(node.__clothState.vertices.length).toBe(4);
+    expect(ctx.emit).toHaveBeenCalledWith('cloth_reinitialize', expect.objectContaining({node}));
   });
-
-  it('cloth_constraint_break is ignored when tearable=false', () => {
-    const config = mkConfig({ resolution: 2, tearable: false });
-    const { node, ctx } = attachNode(config);
-    clothHandler.onEvent!(node as any, config, ctx as any, {
-      type: 'cloth_constraint_break',
-      constraintIndex: 0,
-    } as any);
-    const state = (node as any).__clothState;
-    expect(state.constraints[0].broken).toBe(false);
-    expect(state.isTorn).toBe(false);
+  it('cloth_query emits cloth_info snapshot', () => {
+    const {node, config, ctx} = attach({resolution:4});
+    ctx.emit.mockClear();
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_query', queryId:'q1'});
+    expect(ctx.emit).toHaveBeenCalledWith('cloth_info', expect.objectContaining({
+      queryId:'q1', isSimulating:true, isTorn:false, vertexCount:16,
+    }));
   });
-
-  it('cloth_reset re-initialises mesh and sets isTorn=false', () => {
-    const config = mkConfig({ resolution: 2, tearable: true });
-    const { node, ctx } = attachNode(config);
-    // Break a constraint to set isTorn=true
-    clothHandler.onEvent!(node as any, config, ctx as any, { type: 'cloth_constraint_break', constraintIndex: 0 } as any);
-    expect((node as any).__clothState.isTorn).toBe(true);
-    // Reset
-    clothHandler.onEvent!(node as any, config, ctx as any, { type: 'cloth_reset' } as any);
-    expect((node as any).__clothState.isTorn).toBe(false);
-    expect((node as any).__clothState.constraints.every((c: any) => !c.broken)).toBe(true);
+  it('cloth_query brokenConstraints counts broken', () => {
+    const {node, config, ctx} = attach({resolution:4, tearable:true});
+    node.__clothState.constraints[0].broken = true;
+    node.__clothState.constraints[2].broken = true;
+    ctx.emit.mockClear();
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_query', queryId:'q2'});
+    const c = ctx.emit.mock.calls.find((c:any[])=>c[0]==='cloth_info');
+    expect(c?.[1].brokenConstraints).toBe(2);
   });
-
-  it('cloth_query emits cloth_info with correct fields', () => {
-    const config = mkConfig({ resolution: 3 });
-    const { node, ctx } = attachNode(config);
-    ctx.emitted.length = 0;
-    clothHandler.onEvent!(node as any, config, ctx as any, { type: 'cloth_query', queryId: 'q1' } as any);
-    const ev = ctx.emitted.find((e) => e.type === 'cloth_info');
-    expect(ev).toBeDefined();
-    expect(ev?.payload.queryId).toBe('q1');
-    expect(ev?.payload.vertexCount).toBe(9); // 3*3
-    expect(ev?.payload.isSimulating).toBe(true);
-    expect(ev?.payload.brokenConstraints).toBe(0);
+  it('cloth_vertex_update patches vertex positions', () => {
+    const {node, config, ctx} = attach({resolution:2});
+    const positions = [{x:1,y:2,z:3},{x:4,y:5,z:6},{x:7,y:8,z:9},{x:10,y:11,z:12}];
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_vertex_update', positions});
+    expect(node.__clothState.vertices[0][0].position).toEqual({x:1,y:2,z:3});
   });
-
-  it('onEvent no-ops when node has no __clothState', () => {
-    const config = mkConfig({ resolution: 2 });
-    const node = mkNode(); // no state attached
-    const ctx = mkCtx();
-    expect(() =>
-      clothHandler.onEvent!(node as any, config, ctx as any, { type: 'cloth_pause' } as any)
-    ).not.toThrow();
+  it('cloth_vertex_update emits cloth_mesh_update', () => {
+    const {node, config, ctx} = attach({resolution:2});
+    const positions = [{x:0,y:0,z:0},{x:1,y:0,z:0},{x:0,y:0,z:1},{x:1,y:0,z:1}];
+    ctx.emit.mockClear();
+    clothHandler.onEvent!(node, config, ctx, {type:'cloth_vertex_update', positions});
+    expect(ctx.emit).toHaveBeenCalledWith('cloth_mesh_update', expect.objectContaining({node}));
   });
 });

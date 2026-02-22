@@ -1,353 +1,383 @@
 /**
- * VoiceOutputTrait — Production Tests
+ * VoiceOutputTrait — Production Test Suite
  *
- * Pure-logic coverage (no browser SpeechSynthesis required):
- * - Constructor defaults and config
- * - Voice CRUD: addVoice, removeVoice, getVoice, getVoiceIds, setVoice, getCurrentVoice
- * - setVoice ignores unknown ids
- * - speak() returns unique IDs and enqueues (state check)
- * - speak() with priority: higher priority items go to front of queue
- * - speakSegments() enqueues segment-based requests
- * - Queue management: getQueueLength, clearQueue, removeFromQueue
- * - Settings clamping: setVolume, setPitch, setRate
- * - Volume/Pitch/Rate getters round-trip
- * - stop() transitions state back to idle
- * - stopAll() clears queue
- * - Event system: on / off / emit (via state-changing calls)
- * - Cache: getCacheSize, clearCache
- * - dispose: does not throw
- * - createVoiceOutputTrait factory
- * - VoiceOutputTrait with voices config initialized from constructor
+ * Tests pure CPU logic:  voice registry, queue priority ordering, config
+ * getters/setters with clamps, segment→text conversion, cache management,
+ * event listener registration, and the full state machine guards.
+ *
+ * Browser SpeechSynthesis is stubbed out so the entire suite runs in Node.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { VoiceOutputTrait, createVoiceOutputTrait } from '../VoiceOutputTrait';
 import type { VoiceDefinition, SpeechSegment } from '../VoiceOutputTrait';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────────
+// ── stub global SpeechSynthesis + SpeechSynthesisUtterance ─────────────────
+const onendCallbacks: Array<() => void> = [];
 
-function mkTrait(overrides: ConstructorParameters<typeof VoiceOutputTrait>[0] = {}) {
-  return new VoiceOutputTrait({ engine: 'browser', maxQueueSize: 10, ...overrides });
-}
+const MockUtterance = class {
+  text: string;
+  pitch = 1; rate = 1; volume = 1;
+  voice: any = null;
+  onend: (() => void) | null = null;
+  onerror: ((e: any) => void) | null = null;
+  onboundary: ((e: any) => void) | null = null;
+  constructor(t: string) { this.text = t; }
+};
 
-const ALICE: VoiceDefinition = { id: 'alice', name: 'Alice', language: 'en-US', gender: 'female' };
-const BOB: VoiceDefinition   = { id: 'bob',   name: 'Bob',   language: 'en-GB', gender: 'male'   };
+const mockSynth = {
+  speak: vi.fn(), // does NOT fire onend - items stay in speaking state
+  cancel: vi.fn(),
+  pause: vi.fn(),
+  resume: vi.fn(),
+  getVoices: vi.fn(() => []),
+};
 
-// ─── Constructor ─────────────────────────────────────────────────────────────────
+beforeEach(() => {
+  onendCallbacks.length = 0;
+  (global as any).window = { speechSynthesis: mockSynth };
+  (global as any).SpeechSynthesisUtterance = MockUtterance;
+  vi.clearAllMocks();
+});
+afterEach(() => {
+  delete (global as any).window;
+  delete (global as any).SpeechSynthesisUtterance;
+  vi.restoreAllMocks();
+});
 
-describe('VoiceOutputTrait — constructor', () => {
-  it('starts in idle state', () => {
-    expect(mkTrait().getState()).toBe('idle');
+// ─── constructor defaults ─────────────────────────────────────────────────────
+
+describe('VoiceOutputTrait — constructor defaults', () => {
+  it('engine defaults to browser', () => {
+    const t = new VoiceOutputTrait();
+    expect(t.getConfig().engine).toBe('browser');
   });
-
-  it('isSpeaking = false when idle', () => {
-    expect(mkTrait().isSpeaking()).toBe(false);
+  it('pitch defaults to 1.0', () => expect(new VoiceOutputTrait().getConfig().pitch).toBe(1.0));
+  it('rate defaults to 1.0', () => expect(new VoiceOutputTrait().getConfig().rate).toBe(1.0));
+  it('volume defaults to 1.0', () => expect(new VoiceOutputTrait().getConfig().volume).toBe(1.0));
+  it('ssml defaults to false', () => expect(new VoiceOutputTrait().getConfig().ssml).toBe(false));
+  it('maxQueueSize defaults to 50', () => expect(new VoiceOutputTrait().getConfig().maxQueueSize).toBe(50));
+  it('interrupt defaults to false', () => expect(new VoiceOutputTrait().getConfig().interrupt).toBe(false));
+  it('initial state = idle', () => expect(new VoiceOutputTrait().getState()).toBe('idle'));
+  it('isSpeaking() = false initially', () => expect(new VoiceOutputTrait().isSpeaking()).toBe(false));
+  it('isPaused() = false initially', () => expect(new VoiceOutputTrait().isPaused()).toBe(false));
+  it('createVoiceOutputTrait factory returns VoiceOutputTrait instance', () => {
+    expect(createVoiceOutputTrait()).toBeInstanceOf(VoiceOutputTrait);
   });
-
-  it('isPaused = false when idle', () => {
-    expect(mkTrait().isPaused()).toBe(false);
+  it('config overrides are applied', () => {
+    const t = new VoiceOutputTrait({ pitch: 1.5, rate: 0.8, volume: 0.5 });
+    expect(t.getConfig().pitch).toBe(1.5);
+    expect(t.getConfig().rate).toBe(0.8);
+    expect(t.getConfig().volume).toBe(0.5);
   });
-
-  it('defaults: volume 1, pitch 1, rate 1', () => {
-    const t = mkTrait();
-    expect(t.getVolume()).toBe(1.0);
-    expect(t.getPitch()).toBe(1.0);
-    expect(t.getRate()).toBe(1.0);
+  it('defaultVoice sets currentVoice', () => {
+    const t = new VoiceOutputTrait({ defaultVoice: 'v1' });
+    expect(t.getCurrentVoice()).toBe('v1');
   });
-
-  it('custom config values are set via getConfig', () => {
-    const t = mkTrait({ pitch: 1.5, rate: 0.8, volume: 0.7 });
-    expect(t.getConfig().pitch).toBeCloseTo(1.5);
-    expect(t.getConfig().rate).toBeCloseTo(0.8);
-    expect(t.getConfig().volume).toBeCloseTo(0.7);
-  });
-
-  it('voices provided in config are stored', () => {
-    const t = new VoiceOutputTrait({ voices: [ALICE, BOB] });
-    expect(t.getVoice('alice')).toEqual(ALICE);
-    expect(t.getVoice('bob')).toEqual(BOB);
-  });
-
-  it('defaultVoice from config becomes currentVoice', () => {
-    const t = new VoiceOutputTrait({ voices: [ALICE], defaultVoice: 'alice' });
-    expect(t.getCurrentVoice()).toBe('alice');
-  });
-
-  it('empty voices → voice map empty', () => {
-    const t = mkTrait();
-    expect(t.getVoiceIds()).toHaveLength(0);
+  it('initial currentVoice is null when no defaultVoice', () => {
+    expect(new VoiceOutputTrait().getCurrentVoice()).toBeNull();
   });
 });
 
-// ─── Voice Management ─────────────────────────────────────────────────────────────
+// ─── voice management ────────────────────────────────────────────────────────
 
 describe('VoiceOutputTrait — voice management', () => {
-  it('addVoice stores a voice', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
-    expect(t.getVoice('alice')).toEqual(ALICE);
-  });
+  const sampleVoice: VoiceDefinition = {
+    id: 'v1', name: 'Alice', language: 'en-US', gender: 'female',
+  };
 
-  it('addVoice multiple voices', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
-    t.addVoice(BOB);
-    expect(t.getVoiceIds()).toHaveLength(2);
-    expect(t.getVoiceIds()).toContain('alice');
-    expect(t.getVoiceIds()).toContain('bob');
+  it('addVoice stores voice by id', () => {
+    const t = new VoiceOutputTrait();
+    t.addVoice(sampleVoice);
+    expect(t.getVoice('v1')).toEqual(sampleVoice);
   });
-
-  it('removeVoice deletes the voice', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
-    t.removeVoice('alice');
-    expect(t.getVoice('alice')).toBeUndefined();
+  it('getVoiceIds returns array of stored ids', () => {
+    const t = new VoiceOutputTrait();
+    t.addVoice(sampleVoice);
+    t.addVoice({ id: 'v2', name: 'Bob', language: 'en-GB' });
+    expect(t.getVoiceIds()).toContain('v1');
+    expect(t.getVoiceIds()).toContain('v2');
   });
-
+  it('removeVoice deletes voice', () => {
+    const t = new VoiceOutputTrait();
+    t.addVoice(sampleVoice);
+    t.removeVoice('v1');
+    expect(t.getVoice('v1')).toBeUndefined();
+  });
   it('getVoice returns undefined for unknown id', () => {
-    const t = mkTrait();
-    expect(t.getVoice('ghost')).toBeUndefined();
+    expect(new VoiceOutputTrait().getVoice('unknown')).toBeUndefined();
   });
-
   it('setVoice updates currentVoice when voice exists', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
-    t.setVoice('alice');
-    expect(t.getCurrentVoice()).toBe('alice');
+    const t = new VoiceOutputTrait();
+    t.addVoice(sampleVoice);
+    t.setVoice('v1');
+    expect(t.getCurrentVoice()).toBe('v1');
   });
-
-  it('setVoice ignores unknown voice id', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
-    t.setVoice('alice');
-    t.setVoice('ghost'); // should not change
-    expect(t.getCurrentVoice()).toBe('alice');
+  it('setVoice is no-op when voice not registered', () => {
+    const t = new VoiceOutputTrait();
+    t.setVoice('ghost');
+    expect(t.getCurrentVoice()).toBeNull();
   });
-
   it('setVoice emits voice-changed event', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
-    const events: string[] = [];
-    t.on('voice-changed', () => events.push('vc'));
-    t.setVoice('alice');
-    expect(events).toContain('vc');
+    const t = new VoiceOutputTrait();
+    t.addVoice(sampleVoice);
+    const cb = vi.fn();
+    t.on('voice-changed', cb);
+    t.setVoice('v1');
+    expect(cb).toHaveBeenCalledOnce();
   });
-
-  it('getBrowserVoices returns [] when no synth (non-browser env)', () => {
-    expect(mkTrait().getBrowserVoices()).toEqual([]);
+  it('voices from config constructor are registered', () => {
+    const t = new VoiceOutputTrait({ voices: [sampleVoice] });
+    expect(t.getVoice('v1')).toEqual(sampleVoice);
+  });
+  it('getBrowserVoices returns [] when no synth', () => {
+    delete (global as any).window;
+    const t = new VoiceOutputTrait();
+    expect(t.getBrowserVoices()).toEqual([]);
   });
 });
 
-// ─── speak() / enqueue ────────────────────────────────────────────────────────────
+// ─── speak / queue management ─────────────────────────────────────────────────
 
-describe('VoiceOutputTrait — speak / speakSegments', () => {
-  it('speak returns a unique string id', () => {
-    const t = mkTrait();
-    const id = t.speak('Hello');
+describe('VoiceOutputTrait — speak / queue / priority', () => {
+  it('speak returns an id string', () => {
+    const t = new VoiceOutputTrait();
+    const id = t.speak('hello');
     expect(typeof id).toBe('string');
-    expect(id.startsWith('speech_')).toBe(true);
+    expect(id).toMatch(/^speech_/);
   });
-
-  it('consecutive speak calls return different ids', () => {
-    const t = mkTrait();
-    const id1 = t.speak('One');
-    const id2 = t.speak('Two');
+  it('speak increments id counter', () => {
+    const t = new VoiceOutputTrait();
+    const id1 = t.speak('one');
+    const id2 = t.speak('two');
+    // When speaking starts processQueue is called inside, which may clear queue.
+    // Use stopAll to prevent browser synth doing anything and see queue directly.
+    t.stopAll();
     expect(id1).not.toBe(id2);
   });
-
-  it('speakSegments returns a unique id', () => {
-    const t = mkTrait();
-    const segs: SpeechSegment[] = [{ text: 'Hello' }, { text: 'World' }];
-    const id = t.speakSegments(segs);
-    expect(id.startsWith('speech_')).toBe(true);
+  it('getQueueLength reflects queued items', () => {
+    const t = new VoiceOutputTrait();
+    // mockSynth.speak does NOT fire onend, so state stays 'speaking' until stop() or onend
+    t.speak('a'); // starts processing (state=speaking, utterance pending in synth)
+    t.speak('b'); // queued (length=1)
+    t.speak('c'); // queued (length=2)
+    expect(t.getQueueLength()).toBe(2);
   });
-
-  it('queue length grows when items enqueued (no browser synth = no processing)', () => {
-    const t = mkTrait();
-    // First speak → processQueue runs, but synth is null → handleError → processQueue again → idle
-    // Subsequent items sit in queue until state is not idle
-    // Both effectively get processed/errored immediately; focus on id format
-    t.speak('Hello');
-    t.speak('World');
-    // Both should produce valid ids — queue may be 0 or 1 after error handling
-    expect(t.getQueueLength()).toBeGreaterThanOrEqual(0);
+  it('higher priority item is inserted before lower priority', () => {
+    const t = new VoiceOutputTrait();
+    // First speaks → state=speaking; subsequent items go to queue
+    t.speak('low', { priority: 0 });
+    // Now state=speaking; next items go to queue
+    const id2 = t.speak('also-low', { priority: 0 });
+    const id3 = t.speak('high', { priority: 10 });
+    // High-priority should be first in queue (queue=[high, also-low])
+    expect(t.getQueueLength()).toBe(2);
+    // Remove high-priority id first (it was inserted at head)
+    expect(t.removeFromQueue(id3)).toBe(true);
+    expect(t.getQueueLength()).toBe(1);
   });
-
-  it('priority enqueue: higher priority item is first in queue', () => {
-    const t = mkTrait();
-    // Manually replicate: add two items to queue by calling enqueue twice
-    // when state is 'speaking' (so processQueue doesn't consume immediately)
-    // Trick: push one item, then manipulate state via pause (which sets state directly)
-    // Actually we can't set state externally — so test via removeFromQueue ordering:
-    // Create a large queue by filling with lower priority, then adding high priority
-    const lowId1 = t.speak('Low1', { priority: 0 });
-    // After first speak → state becomes 'speaking' (synth null → handleError → idle again)
-    // So we need to pre-fill queue while speaking — fill manually indirectly:
-    // Use a large batch while keeping idle suppressed: test the priority math in queue
-
-    // Best approach: add multiple items fast before processing completes
-    // Note: in vitest (no browser synth), handleError is called synchronously → state stays idle
-    // So we can't test actual queue priority via speak() without mocking processQueue.
-    // Instead just verify the IDs increment properly.
-    expect(typeof lowId1).toBe('string');
-  });
-
-  it('queue clears with clearQueue', () => {
-    const t = mkTrait();
+  it('clearQueue empties queue without stopping current', () => {
+    const t = new VoiceOutputTrait();
+    t.speak('a');
+    t.speak('b');
+    t.speak('c');
     t.clearQueue();
     expect(t.getQueueLength()).toBe(0);
   });
-
-  it('removeFromQueue returns false for unknown request id', () => {
-    const t = mkTrait();
-    expect(t.removeFromQueue('nonexistent_999')).toBe(false);
+  it('removeFromQueue removes specific item by id', () => {
+    const t = new VoiceOutputTrait();
+    t.speak('a');         // starts speaking, state=speaking
+    const id = t.speak('b'); // queued [0]
+    t.speak('c');         // queued [1]
+    // b and c are in the queue, a is being "spoken"
+    expect(t.removeFromQueue(id)).toBe(true);
+    expect(t.getQueueLength()).toBe(1);
   });
-});
-
-// ─── Settings clamping ────────────────────────────────────────────────────────────
-
-describe('VoiceOutputTrait — settings clamping', () => {
-  it('setVolume clamps to 0..1', () => {
-    const t = mkTrait();
-    t.setVolume(-5);
-    expect(t.getVolume()).toBe(0);
-    t.setVolume(10);
-    expect(t.getVolume()).toBe(1);
-    t.setVolume(0.75);
-    expect(t.getVolume()).toBeCloseTo(0.75);
+  it('removeFromQueue returns false for unknown id', () => {
+    const t = new VoiceOutputTrait();
+    expect(t.removeFromQueue('ghost_123')).toBe(false);
   });
-
-  it('setPitch clamps to 0.5..2', () => {
-    const t = mkTrait();
-    t.setPitch(0.1);
-    expect(t.getPitch()).toBe(0.5);
-    t.setPitch(5);
-    expect(t.getPitch()).toBe(2);
-    t.setPitch(1.2);
-    expect(t.getPitch()).toBeCloseTo(1.2);
+  it('maxQueueSize limits queue', () => {
+    const t = new VoiceOutputTrait({ maxQueueSize: 2 });
+    t.speak('a'); // starts processing (state=speaking)
+    t.speak('b'); // queued (length=1)
+    t.speak('c'); // queued (length=2 = max)
+    t.speak('d'); // rejected — queue full
+    expect(t.getQueueLength()).toBe(2);
   });
-
-  it('setRate clamps to 0.5..2', () => {
-    const t = mkTrait();
-    t.setRate(0);
-    expect(t.getRate()).toBe(0.5);
-    t.setRate(3);
-    expect(t.getRate()).toBe(2);
-    t.setRate(1.5);
-    expect(t.getRate()).toBeCloseTo(1.5);
-  });
-});
-
-// ─── Control: stop / stopAll / skip ──────────────────────────────────────────────
-
-describe('VoiceOutputTrait — control', () => {
-  it('stop() transitions to idle', () => {
-    const t = mkTrait();
-    t.stop();
-    expect(t.getState()).toBe('idle');
-  });
-
-  it('stopAll() also clears queue', () => {
-    const t = mkTrait();
+  it('stopAll empties queue and resets state to idle', () => {
+    const t = new VoiceOutputTrait();
+    t.speak('a'); t.speak('b');
     t.stopAll();
     expect(t.getQueueLength()).toBe(0);
     expect(t.getState()).toBe('idle');
   });
-
-  it('pause() does not throw even if idle', () => {
-    const t = mkTrait();
-    expect(() => t.pause()).not.toThrow();
-  });
-
-  it('resume() does not throw when not paused', () => {
-    const t = mkTrait();
-    expect(() => t.resume()).not.toThrow();
-  });
-
-  it('skip() does not throw', () => {
-    const t = mkTrait();
-    expect(() => t.skip()).not.toThrow();
+  it('speakSegments returns id string', () => {
+    const t = new VoiceOutputTrait();
+    const segs: SpeechSegment[] = [{ text: 'hello' }, { text: 'world' }];
+    const id = t.speakSegments(segs);
+    expect(id).toMatch(/^speech_/);
   });
 });
 
-// ─── Events ──────────────────────────────────────────────────────────────────────
+// ─── pause / resume / stop guards ────────────────────────────────────────────
 
-describe('VoiceOutputTrait — events', () => {
-  it('on / off wiring: listener is called on voice-changed', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
-    const cb = vi.fn();
-    t.on('voice-changed', cb);
-    t.setVoice('alice');
-    expect(cb).toHaveBeenCalledTimes(1);
-    expect(cb.mock.calls[0][0].type).toBe('voice-changed');
+describe('VoiceOutputTrait — pause / resume / stop guards', () => {
+  it('pause() changes state to paused when speaking', () => {
+    const t = new VoiceOutputTrait();
+    t.speak('hello'); // state = speaking
+    t.pause();
+    expect(t.isPaused()).toBe(true);
+    expect(t.getState()).toBe('paused');
   });
+  it('pause() does nothing when already paused', () => {
+    const t = new VoiceOutputTrait();
+    t.speak('hello');
+    t.pause();
+    t.pause(); // second call must not throw
+    expect(t.isPaused()).toBe(true);
+  });
+  it('resume() transitions paused → speaking', () => {
+    const t = new VoiceOutputTrait();
+    t.speak('hello');
+    t.pause();
+    t.resume();
+    expect(t.isSpeaking()).toBe(true);
+  });
+  it('resume() is no-op when not paused', () => {
+    const t = new VoiceOutputTrait();
+    t.speak('hello'); // state=speaking (synth.speak does not fire onend)
+    expect(t.isSpeaking()).toBe(true);
+    t.resume(); // no-op: not paused, state stays speaking
+    expect(t.isSpeaking()).toBe(true);
+  });
+  it('stop() resets state to idle', () => {
+    const t = new VoiceOutputTrait();
+    t.speak('hello');
+    t.stop();
+    expect(t.getState()).toBe('idle');
+  });
+  it('isSpeaking() returns false after stop', () => {
+    const t = new VoiceOutputTrait();
+    t.speak('hello');
+    t.stop();
+    expect(t.isSpeaking()).toBe(false);
+  });
+});
 
-  it('off removes listener', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
+// ─── settings — volume / pitch / rate clamping ────────────────────────────────
+
+describe('VoiceOutputTrait — setVolume / setPitch / setRate', () => {
+  it('setVolume clamps to 0 minimum', () => {
+    const t = new VoiceOutputTrait();
+    t.setVolume(-5);
+    expect(t.getVolume()).toBe(0);
+  });
+  it('setVolume clamps to 1 maximum', () => {
+    const t = new VoiceOutputTrait();
+    t.setVolume(99);
+    expect(t.getVolume()).toBe(1);
+  });
+  it('setVolume within range is preserved', () => {
+    const t = new VoiceOutputTrait();
+    t.setVolume(0.7);
+    expect(t.getVolume()).toBeCloseTo(0.7, 5);
+  });
+  it('setPitch clamps to 0.5 minimum', () => {
+    const t = new VoiceOutputTrait();
+    t.setPitch(0.1);
+    expect(t.getPitch()).toBe(0.5);
+  });
+  it('setPitch clamps to 2 maximum', () => {
+    const t = new VoiceOutputTrait();
+    t.setPitch(5);
+    expect(t.getPitch()).toBe(2);
+  });
+  it('setPitch in range preserved', () => {
+    const t = new VoiceOutputTrait();
+    t.setPitch(1.2);
+    expect(t.getPitch()).toBeCloseTo(1.2, 5);
+  });
+  it('setRate clamps to 0.5 minimum', () => {
+    const t = new VoiceOutputTrait();
+    t.setRate(0.1);
+    expect(t.getRate()).toBe(0.5);
+  });
+  it('setRate clamps to 2 maximum', () => {
+    const t = new VoiceOutputTrait();
+    t.setRate(10);
+    expect(t.getRate()).toBe(2);
+  });
+  it('setRate in range preserved', () => {
+    const t = new VoiceOutputTrait();
+    t.setRate(1.5);
+    expect(t.getRate()).toBeCloseTo(1.5, 5);
+  });
+});
+
+// ─── event listeners ──────────────────────────────────────────────────────────
+
+describe('VoiceOutputTrait — on / off event listeners', () => {
+  it('on registers listener and it is called on matching event', () => {
+    const t = new VoiceOutputTrait();
     const cb = vi.fn();
-    t.on('voice-changed', cb);
-    t.off('voice-changed', cb);
-    t.setVoice('alice');
+    t.on('pause', cb);
+    t.speak('hello');
+    t.pause();
+    expect(cb).toHaveBeenCalledOnce();
+    expect(cb.mock.calls[0][0].type).toBe('pause');
+  });
+  it('off removes listener — no longer called', () => {
+    const t = new VoiceOutputTrait();
+    const cb = vi.fn();
+    t.on('pause', cb);
+    t.off('pause', cb);
+    t.speak('hello');
+    t.pause();
     expect(cb).not.toHaveBeenCalled();
   });
-
-  it('multiple listeners on same event are all called', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
-    const cb1 = vi.fn();
-    const cb2 = vi.fn();
-    t.on('voice-changed', cb1);
-    t.on('voice-changed', cb2);
-    t.setVoice('alice');
-    expect(cb1).toHaveBeenCalledTimes(1);
-    expect(cb2).toHaveBeenCalledTimes(1);
+  it('resume event is emitted on resume()', () => {
+    const t = new VoiceOutputTrait();
+    const cb = vi.fn();
+    t.on('resume', cb);
+    t.speak('hi');
+    t.pause();
+    t.resume();
+    expect(cb).toHaveBeenCalledOnce();
   });
-
-  it('listener throwing does not propagate (caught internally)', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
-    t.on('voice-changed', () => { throw new Error('boom'); });
-    expect(() => t.setVoice('alice')).not.toThrow();
+  it('queue-empty event fires when speak queue drains without synth', () => {
+    // Without browser synth, processQueue → synthesize → handleError → processQueue → queue-empty
+    delete (global as any).window;
+    delete (global as any).SpeechSynthesisUtterance;
+    const t = new VoiceOutputTrait();
+    const cb = vi.fn();
+    t.on('queue-empty', cb);
+    t.speak('hello');
+    // processQueue ran, synthesize ran, synth==null → handleError → processQueue → queue-empty
+    expect(cb).toHaveBeenCalled();
   });
 });
 
-// ─── Cache ────────────────────────────────────────────────────────────────────────
+// ─── cache ────────────────────────────────────────────────────────────────────
 
 describe('VoiceOutputTrait — cache', () => {
-  it('getCacheSize starts at 0', () => {
-    expect(mkTrait().getCacheSize()).toBe(0);
+  it('getCacheSize = 0 initially', () => {
+    expect(new VoiceOutputTrait().getCacheSize()).toBe(0);
   });
-
   it('clearCache does not throw', () => {
-    expect(() => mkTrait().clearCache()).not.toThrow();
+    const t = new VoiceOutputTrait();
+    expect(() => t.clearCache()).not.toThrow();
   });
 });
 
-// ─── dispose ─────────────────────────────────────────────────────────────────────
+// ─── dispose ─────────────────────────────────────────────────────────────────
 
 describe('VoiceOutputTrait — dispose', () => {
-  it('dispose does not throw', () => {
-    expect(() => mkTrait().dispose()).not.toThrow();
-  });
-
-  it('after dispose, voice map is cleared', () => {
-    const t = mkTrait();
-    t.addVoice(ALICE);
+  it('dispose() clears queue and voices', () => {
+    const t = new VoiceOutputTrait({ voices: [{ id: 'v1', name: 'A', language: 'en' }] });
+    t.speak('hi');
     t.dispose();
+    expect(t.getQueueLength()).toBe(0);
     expect(t.getVoiceIds()).toHaveLength(0);
-  });
-});
-
-// ─── createVoiceOutputTrait factory ──────────────────────────────────────────────
-
-describe('createVoiceOutputTrait', () => {
-  it('factory returns VoiceOutputTrait', () => {
-    expect(createVoiceOutputTrait()).toBeInstanceOf(VoiceOutputTrait);
-  });
-
-  it('factory passes config through', () => {
-    const t = createVoiceOutputTrait({ pitch: 1.8 });
-    expect(t.getPitch()).toBeCloseTo(1.8);
+    expect(t.getState()).toBe('idle');
   });
 });
