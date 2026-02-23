@@ -1,0 +1,94 @@
+{
+  "name": "vscode-holoscript",
+  "displayName": "HoloScript",
+  "description": "HoloScript language support — syntax highlighting, completion, hover docs, diagnostics, and debugging via the @holoscript/lsp server.",
+  "version": "0.1.0",
+  "publisher": "holoscript",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/holoscript/HoloScript"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Programming Languages", "Linters", "Debuggers"],
+  "keywords": ["holoscript", "spatial", "xr", "3d", "language"],
+  "icon": "resources/icon.png",
+  "activationEvents": [
+    "onLanguage:holoscript"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "holoscript",
+        "aliases": ["HoloScript", "holoscript", "holo"],
+        "extensions": [".holo", ".holoscript", ".hs+"],
+        "configuration": "./language/holoscript-language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "holoscript",
+        "scopeName": "source.holoscript",
+        "path": "./language/holoscript.tmLanguage.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "HoloScript Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/holoscript-dark.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "holoscript.restartServer",
+        "title": "HoloScript: Restart Language Server"
+      },
+      {
+        "command": "holoscript.openPlayground",
+        "title": "HoloScript: Open Playground"
+      }
+    ],
+    "configuration": {
+      "title": "HoloScript",
+      "properties": {
+        "holoscript.trace.server": {
+          "scope": "window",
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the HoloScript Language Server."
+        },
+        "holoscript.server.path": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to the HoloScript LSP server binary (leave empty to use bundled server)."
+        },
+        "holoscript.playground.url": {
+          "type": "string",
+          "default": "http://localhost:3000/playground",
+          "description": "URL of the HoloScript Playground to open via the command."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch",
+    "package": "vsce package",
+    "publish": "vsce publish",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}

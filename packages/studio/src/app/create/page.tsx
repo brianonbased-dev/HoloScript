@@ -18,6 +18,7 @@ import { useOllamaStatus } from '@/hooks/useOllamaStatus';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTemporalStore } from '@/lib/historyStore';
+import { useProjectStore } from '@/lib/projectStore';
 import { AssetDropOverlay } from '@/components/assets/AssetDropProcessor';
 import {
   AlertTriangle,
@@ -40,6 +41,8 @@ import {
   Users,
   Lightbulb,
   Package,
+  GitBranch,
+  Terminal,
   X,
   History,
 } from 'lucide-react';
@@ -102,6 +105,21 @@ const SceneCritiquePanel = dynamic(
 
 const AssetPackPanel = dynamic(
   () => import('@/components/assets/AssetPackPanel').then((m) => ({ default: m.AssetPackPanel })),
+  { ssr: false }
+);
+
+const SceneVersionPanel = dynamic(
+  () => import('@/components/versions/SceneVersionPanel').then((m) => ({ default: m.SceneVersionPanel })),
+  { ssr: false }
+);
+
+const REPLPanel = dynamic(
+  () => import('@/components/repl/REPLPanel').then((m) => ({ default: m.REPLPanel })),
+  { ssr: false }
+);
+
+const ProjectTabBar = dynamic(
+  () => import('@/components/project/ProjectTabBar').then((m) => ({ default: m.ProjectTabBar })),
   { ssr: false }
 );
 
@@ -289,6 +307,8 @@ export default function CreatePage() {
   const [shareOpen, setShareOpen] = useState(false);
   const [critiqueOpen, setCritiqueOpen] = useState(false);
   const [assetPackOpen, setAssetPackOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [replOpen, setReplOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
 
   // Undo/Redo keyboard shortcuts
@@ -324,6 +344,14 @@ export default function CreatePage() {
   return (
     <>
       <StudioHeader />
+      {/* Multi-scene project tabs */}
+      <ProjectTabBar
+        onSwitch={(sceneId) => {
+          const { scenes } = useProjectStore.getState();
+          const s = scenes.find((sc) => sc.id === sceneId);
+          if (s) setCode(s.code);
+        }}
+      />
 
       {/* ── 3-panel layout ───────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
@@ -475,6 +503,20 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Scene Versions */}
+        {versionsOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <SceneVersionPanel sceneId="scene-1" onClose={() => setVersionsOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: REPL */}
+        {replOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <REPLPanel onClose={() => setReplOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -559,6 +601,26 @@ export default function CreatePage() {
             }`}
           >
             <Package className="h-4 w-4" />
+          </button>
+          {/* Versions toggle */}
+          <button
+            onClick={() => { setVersionsOpen((v) => !v); setReplOpen(false); }}
+            title={versionsOpen ? 'Close Versions' : 'Scene Version History'}
+            className={`transition ${
+              versionsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <GitBranch className="h-4 w-4" />
+          </button>
+          {/* REPL toggle */}
+          <button
+            onClick={() => { setReplOpen((v) => !v); setVersionsOpen(false); }}
+            title={replOpen ? 'Close REPL' : 'HoloScript REPL'}
+            className={`transition ${
+              replOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Terminal className="h-4 w-4" />
           </button>
         </div>
       </div>
