@@ -43,6 +43,8 @@ import {
   Package,
   GitBranch,
   Terminal,
+  Store,
+  Smartphone,
   X,
   History,
 } from 'lucide-react';
@@ -120,6 +122,21 @@ const REPLPanel = dynamic(
 
 const ProjectTabBar = dynamic(
   () => import('@/components/project/ProjectTabBar').then((m) => ({ default: m.ProjectTabBar })),
+  { ssr: false }
+);
+
+const LivePreviewBar = dynamic(
+  () => import('@/components/preview/LivePreviewBar').then((m) => ({ default: m.LivePreviewBar })),
+  { ssr: false }
+);
+
+const RegistryPanel = dynamic(
+  () => import('@/components/registry/RegistryPanel').then((m) => ({ default: m.RegistryPanel })),
+  { ssr: false }
+);
+
+const QRRemotePanel = dynamic(
+  () => import('@/components/remote/QRRemotePanel').then((m) => ({ default: m.QRRemotePanel })),
   { ssr: false }
 );
 
@@ -309,6 +326,8 @@ export default function CreatePage() {
   const [assetPackOpen, setAssetPackOpen] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [replOpen, setReplOpen] = useState(false);
+  const [registryOpen, setRegistryOpen] = useState(false);
+  const [remoteOpen, setRemoteOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
 
   // Undo/Redo keyboard shortcuts
@@ -352,6 +371,8 @@ export default function CreatePage() {
           if (s) setCode(s.code);
         }}
       />
+      {/* Live preview status bar */}
+      <LivePreviewBar sceneId="scene-1" />
 
       {/* ── 3-panel layout ───────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
@@ -517,6 +538,20 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Pack Registry */}
+        {registryOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <RegistryPanel onClose={() => setRegistryOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Mobile Remote */}
+        {remoteOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <QRRemotePanel onClose={() => setRemoteOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -621,6 +656,26 @@ export default function CreatePage() {
             }`}
           >
             <Terminal className="h-4 w-4" />
+          </button>
+          {/* Registry toggle */}
+          <button
+            onClick={() => { setRegistryOpen((v) => !v); setRemoteOpen(false); }}
+            title={registryOpen ? 'Close Registry' : 'Pack Registry'}
+            className={`transition ${
+              registryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Store className="h-4 w-4" />
+          </button>
+          {/* Mobile Remote toggle */}
+          <button
+            onClick={() => { setRemoteOpen((v) => !v); setRegistryOpen(false); }}
+            title={remoteOpen ? 'Close Remote' : 'Mobile Remote (QR)'}
+            className={`transition ${
+              remoteOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Smartphone className="h-4 w-4" />
           </button>
         </div>
       </div>
