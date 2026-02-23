@@ -132,9 +132,9 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
   }
 }`,
     nodes: [
-      { id: id(), name: 'Sun',   geometry: 'sphere', position: [0, 0, 0], color: '#ffaa00', scale: [1.5, 1.5, 1.5], traits: [{ name: 'glow', properties: { emissive: '#ff6600', emissiveIntensity: 2 } }] },
-      { id: id(), name: 'Earth', geometry: 'sphere', position: [4, 0, 0], color: '#2244aa', scale: [0.5, 0.5, 0.5], traits: [] },
-      { id: id(), name: 'Moon',  geometry: 'sphere', position: [5.2, 0, 0], color: '#aaaaaa', scale: [0.14, 0.14, 0.14], traits: [] },
+      { id: id(), name: 'Sun',   type: 'mesh', parentId: null, position: [0, 0, 0],   scale: [1.5, 1.5, 1.5], rotation: [0,0,0], traits: [{ name: 'glow', properties: { emissive: '#ff6600', emissiveIntensity: 2 } }] },
+      { id: id(), name: 'Earth', type: 'mesh', parentId: null, position: [4, 0, 0],   scale: [0.5, 0.5, 0.5], rotation: [0,0,0], traits: [] },
+      { id: id(), name: 'Moon',  type: 'mesh', parentId: null, position: [5.2, 0, 0], scale: [0.14, 0.14, 0.14], rotation: [0,0,0], traits: [] },
     ],
   },
 

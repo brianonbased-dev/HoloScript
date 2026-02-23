@@ -62,6 +62,10 @@ import {
   Eye,
   Terminal as TerminalIcon,
   Clock as ClockIcon,
+  Layers,
+  Palette,
+  Atom,
+  GitCompare,
 } from 'lucide-react';
 import type { GizmoMode } from '@/lib/store';
 
@@ -252,6 +256,26 @@ const ScriptConsole = dynamic(
 
 const UndoHistorySidebar = dynamic(
   () => import('@/components/history/UndoHistorySidebar').then((m) => ({ default: m.UndoHistorySidebar })),
+  { ssr: false }
+);
+
+const SceneOutliner = dynamic(
+  () => import('@/components/outliner/SceneOutliner').then((m) => ({ default: m.SceneOutliner })),
+  { ssr: false }
+);
+
+const MaterialPanel = dynamic(
+  () => import('@/components/materials/MaterialPanel').then((m) => ({ default: m.MaterialPanel })),
+  { ssr: false }
+);
+
+const PhysicsPanel = dynamic(
+  () => import('@/components/physics/PhysicsPanel').then((m) => ({ default: m.PhysicsPanel })),
+  { ssr: false }
+);
+
+const SnapshotDiffPanel = dynamic(
+  () => import('@/components/diff/SnapshotDiffPanel').then((m) => ({ default: m.SnapshotDiffPanel })),
   { ssr: false }
 );
 
@@ -465,6 +489,11 @@ export default function CreatePage() {
   const [lodOpen, setLodOpen] = useState(false);
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [undoHistoryOpen, setUndoHistoryOpen] = useState(false);
+  // Sprint U
+  const [outlinerOpen, setOutlinerOpen] = useState(false);
+  const [materialOpen, setMaterialOpen] = useState(false);
+  const [physicsOpen, setPhysicsOpen] = useState(false);
+  const [snapshotDiffOpen, setSnapshotDiffOpen] = useState(false);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -795,6 +824,34 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Scene Outliner */}
+        {outlinerOpen && (
+          <div className="flex w-64 shrink-0 flex-col border-l border-studio-border">
+            <SceneOutliner onClose={() => setOutlinerOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Material Editor */}
+        {materialOpen && (
+          <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+            <MaterialPanel onClose={() => setMaterialOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Physics Traits */}
+        {physicsOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <PhysicsPanel onClose={() => setPhysicsOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Snapshot Diff */}
+        {snapshotDiffOpen && (
+          <div className="flex w-[640px] shrink-0 flex-col border-l border-studio-border">
+            <SnapshotDiffPanel onClose={() => setSnapshotDiffOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -1069,6 +1126,38 @@ export default function CreatePage() {
             className={`transition ${undoHistoryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
             <ClockIcon className="h-4 w-4" />
+          </button>
+          {/* Scene Outliner toggle */}
+          <button
+            onClick={() => setOutlinerOpen((v) => !v)}
+            title={outlinerOpen ? 'Close Outliner' : 'Scene Outliner'}
+            className={`transition ${outlinerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Layers className="h-4 w-4" />
+          </button>
+          {/* Material Editor toggle */}
+          <button
+            onClick={() => setMaterialOpen((v) => !v)}
+            title={materialOpen ? 'Close Material Editor' : 'Material Editor'}
+            className={`transition ${materialOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Palette className="h-4 w-4" />
+          </button>
+          {/* Physics Traits toggle */}
+          <button
+            onClick={() => setPhysicsOpen((v) => !v)}
+            title={physicsOpen ? 'Close Physics' : 'Physics Traits'}
+            className={`transition ${physicsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Atom className="h-4 w-4" />
+          </button>
+          {/* Snapshot Diff toggle */}
+          <button
+            onClick={() => setSnapshotDiffOpen((v) => !v)}
+            title={snapshotDiffOpen ? 'Close Diff' : 'Snapshot Diff'}
+            className={`transition ${snapshotDiffOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <GitCompare className="h-4 w-4" />
           </button>
         </div>
       </div>
