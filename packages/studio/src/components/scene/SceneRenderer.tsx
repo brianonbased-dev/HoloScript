@@ -1,11 +1,14 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Stars, Environment } from '@react-three/drei';
 import type { R3FNode } from '@holoscript/core';
 import { R3FNodeRenderer } from './R3FNodeRenderer';
-import { useEditorStore } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore } from '@/lib/store';
+import type { SceneNode } from '@/lib/store';
+import { ASSET_DRAG_TYPE } from '@/components/assets/AssetLibrary';
+import type { Asset } from '@/components/assets/useAssetStore';
 
 interface SceneRendererProps {
   r3fTree: R3FNode | null;
@@ -14,8 +17,9 @@ interface SceneRendererProps {
 function SceneContent({ r3fTree }: { r3fTree: R3FNode }) {
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
 
-  // Check if the tree already contains lights
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hasLights = r3fTree.children?.some(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (c: any) =>
       c.type === 'ambientLight' ||
       c.type === 'directionalLight' ||
@@ -23,24 +27,18 @@ function SceneContent({ r3fTree }: { r3fTree: R3FNode }) {
       c.type === 'spotLight' ||
       c.type === 'hemisphereLight'
   );
-
-  // Check if tree has environment
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hasEnv = r3fTree.children?.some((c: any) => c.type === 'Environment');
 
   return (
     <group onClick={() => setSelectedId(null)}>
-      {/* Default lighting if scene doesn't provide its own */}
       {!hasLights && (
         <>
           <ambientLight intensity={0.4} color="#e8e0ff" />
           <directionalLight position={[5, 10, 5]} intensity={1} castShadow />
         </>
       )}
-
-      {/* Default environment if none provided */}
       {!hasEnv && <Environment preset="studio" background={false} />}
-
-      {/* Render the compiled scene */}
       <R3FNodeRenderer node={r3fTree} />
     </group>
   );
@@ -56,9 +54,89 @@ function EmptyScene() {
   );
 }
 
+// ─── Category → node type + trait mapping ────────────────────────────────────
+
+function assetToNodeType(category: Asset['category']): SceneNode['type'] {
+  if (category === 'splat') return 'splat';
+  if (category === 'audio') return 'audio';
+  if (category === 'model') return 'mesh';
+  return 'mesh';
+}
+
+function assetToTrait(asset: Asset): { name: string; properties: Record<string, unknown> } | null {
+  switch (asset.category) {
+    case 'splat':
+      return { name: 'gaussian_splat', properties: { source: asset.src, quality: 'medium', sh_degree: 3 } };
+    case 'audio':
+      return { name: 'audio_source', properties: { src: asset.src, volume: 1.0, loop: false, spatial: true } };
+    case 'hdri':
+      return { name: 'environment', properties: { src: asset.src } };
+    default:
+      return null;
+  }
+}
+
+// ─── Main renderer with drop zone ────────────────────────────────────────────
+
 export function SceneRenderer({ r3fTree }: SceneRendererProps) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const addNode = useSceneGraphStore((s) => s.addNode);
+  const addTrait = useSceneGraphStore((s) => s.addTrait);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes(ASSET_DRAG_TYPE)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      setIsDragOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    // Only clear if leaving the container entirely (not entering a child)
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
+
+      const raw = e.dataTransfer.getData(ASSET_DRAG_TYPE);
+      if (!raw) return;
+
+      try {
+        const asset = JSON.parse(raw) as Asset;
+        const nodeId = `dropped-${Date.now()}`;
+        const node: SceneNode = {
+          id: nodeId,
+          name: asset.name,
+          type: assetToNodeType(asset.category),
+          parentId: null,
+          traits: [],
+          position: [0, 0, 0],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+        };
+        addNode(node);
+
+        const trait = assetToTrait(asset);
+        if (trait) addTrait(nodeId, trait);
+      } catch {
+        // ignore malformed drag data
+      }
+    },
+    [addNode, addTrait]
+  );
+
   return (
-    <div className="relative h-full w-full">
+    <div
+      className="relative h-full w-full"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <Canvas
         camera={{ position: [3, 3, 5], fov: 60 }}
         shadows
@@ -92,6 +170,16 @@ export function SceneRenderer({ r3fTree }: SceneRendererProps) {
         <Stars radius={80} depth={50} count={2000} factor={3} saturation={0.1} fade speed={0.5} />
       </Canvas>
 
+      {/* Drop overlay */}
+      {isDragOver && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded border-2 border-dashed border-studio-accent bg-studio-accent/10 backdrop-blur-[1px]">
+          <div className="rounded-xl bg-studio-panel/90 px-6 py-4 text-center shadow-xl">
+            <p className="text-base font-semibold text-studio-accent">Drop to place in scene</p>
+            <p className="mt-0.5 text-xs text-studio-muted">Asset will be added at origin</p>
+          </div>
+        </div>
+      )}
+
       {/* Scene info overlay */}
       {r3fTree && r3fTree.children && (
         <div className="absolute bottom-3 left-3 rounded-md bg-studio-panel/80 px-3 py-1.5 text-xs text-studio-muted backdrop-blur">
@@ -101,3 +189,5 @@ export function SceneRenderer({ r3fTree }: SceneRendererProps) {
     </div>
   );
 }
+
+

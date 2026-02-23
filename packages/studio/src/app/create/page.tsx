@@ -7,8 +7,9 @@ import { SceneGraphPanel } from '@/components/scene/SceneGraphPanel';
 import { TraitInspector } from '@/components/inspector/TraitInspector';
 import { TraitPalette } from '@/components/inspector/TraitPalette';
 import { BrittneyChatPanel } from '@/components/ai/BrittneyChatPanel';
+import { AssetLibrary } from '@/components/assets/AssetLibrary';
+import { SplatCaptureWizard } from '@/components/assets/SplatCaptureWizard';
 import { useSceneStore, useEditorStore } from '@/lib/store';
-
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
 import {
@@ -19,6 +20,8 @@ import {
   Sparkles,
   Loader2,
   MessageCircle,
+  Layers,
+  List,
   X,
 } from 'lucide-react';
 import type { GizmoMode } from '@/lib/store';
@@ -85,12 +88,24 @@ function ViewportToolbar() {
 
 function AIPromptOverlay() {
   const [open, setOpen] = useState(false);
-  const code = useSceneStore((s) => s.code);
-  const status = useAIStore((s) => s.status);
-  const generateFn = useAIStore((s) => s.addPrompt);
   const [prompt, setPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false); // Changed from useAIStore
 
-  const isGenerating = status === 'generating';
+  // Removed: const code = useSceneStore((s) => s.code);
+  // Removed: const status = useAIStore((s) => s.status);
+  // Removed: const generateFn = useAIStore((s) => s.addPrompt);
+  // Removed: const isGenerating = status === 'generating';
+
+  // Placeholder for actual generation logic
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log("Generating with prompt:", prompt);
+    setIsGenerating(false);
+    setOpen(false); // Close after generation
+    setPrompt(''); // Clear prompt
+  };
 
   if (!open) {
     return (
@@ -122,6 +137,7 @@ function AIPromptOverlay() {
       />
       <button
         disabled={isGenerating || !prompt.trim()}
+        onClick={handleGenerate} // Added onClick handler
         className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-studio-accent py-2 text-xs font-medium text-white transition hover:bg-studio-accent/80 disabled:opacity-40"
       >
         {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
@@ -141,6 +157,8 @@ export default function CreatePage() {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
+  const [leftTab, setLeftTab] = useState<'scene' | 'assets'>('scene');
+  const [splatWizardOpen, setSplatWizardOpen] = useState(false);
 
   useOllamaStatus();
   const { r3fTree, errors: pipelineErrors } = useScenePipeline(code);
@@ -154,12 +172,45 @@ export default function CreatePage() {
     <>
       <StudioHeader />
 
-      {/* ── 3-panel layout ─────────────────────────────────────────────────── */}
+      {/* ── 3-panel layout ───────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* LEFT: Scene Graph */}
-        <div className="flex w-56 shrink-0 flex-col border-r border-studio-border">
-          <SceneGraphPanel />
+        {/* LEFT: Scene Graph + Assets tabbed panel */}
+        <div className="flex w-64 shrink-0 flex-col border-r border-studio-border">
+          {/* Tab strip */}
+          <div className="flex shrink-0 border-b border-studio-border">
+            <button
+              onClick={() => setLeftTab('scene')}
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
+                leftTab === 'scene'
+                  ? 'border-b-2 border-studio-accent text-studio-accent'
+                  : 'text-studio-muted hover:text-studio-text'
+              }`}
+            >
+              <List className="h-3.5 w-3.5" />
+              Scene
+            </button>
+            <button
+              onClick={() => setLeftTab('assets')}
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
+                leftTab === 'assets'
+                  ? 'border-b-2 border-studio-accent text-studio-accent'
+                  : 'text-studio-muted hover:text-studio-text'
+              }`}
+            >
+              <Layers className="h-3.5 w-3.5" />
+              Assets
+            </button>
+          </div>
+
+          {/* Panel content */}
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {leftTab === 'scene' ? (
+              <SceneGraphPanel />
+            ) : (
+              <AssetLibrary onOpenSplatWizard={() => setSplatWizardOpen(true)} />
+            )}
+          </div>
         </div>
 
         {/* CENTER: Viewport + Inspector split */}
@@ -210,6 +261,10 @@ export default function CreatePage() {
 
       {/* Trait Palette modal */}
       <TraitPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+
+      {/* Gaussian Splat capture wizard */}
+      <SplatCaptureWizard open={splatWizardOpen} onClose={() => setSplatWizardOpen(false)} />
     </>
   );
 }
+
