@@ -108,6 +108,14 @@ export class LODManager {
   private frameTime: number = 16.67;
   private running: boolean = false;
 
+  // v3.5 Performance enhancements
+  private workerPool: Worker[] = [];
+  private workerEnabled: boolean = false;
+  private spatialHashGrid: Map<string, Set<string>> = new Map();
+  private transitionQueue: Array<{ objectId: string; level: number; priority: number }> = [];
+  private maxTransitionsPerFrame: number = 10;
+  private gridCellSize: number = 50; // World units per grid cell
+
   constructor(options?: Partial<LODManagerOptions>) {
     this.options = { ...DEFAULT_MANAGER_OPTIONS, ...options };
     this.metrics = createLODMetrics();
@@ -698,6 +706,361 @@ export class LODManager {
    */
   getGroups(): string[] {
     return Array.from(this.groups.keys());
+  }
+
+  // ==========================================================================
+  // v3.5 Performance Optimizations
+  // ==========================================================================
+
+  /**
+   * Enable multi-threaded LOD selection using Web Workers
+   */
+  enableMultiThreading(workerCount: number = 4): void {
+    if (typeof Worker === 'undefined') {
+      console.warn('[LOD] Web Workers not supported, falling back to single-threaded mode');
+      return;
+    }
+
+    // Create worker pool
+    for (let i = 0; i < workerCount; i++) {
+      try {
+        const workerCode = this.generateWorkerCode();
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const workerUrl = URL.createObjectURL(blob);
+        const worker = new Worker(workerUrl);
+
+        worker.onmessage = (e) => this.handleWorkerMessage(e);
+        worker.onerror = (e) => console.error('[LOD] Worker error:', e);
+
+        this.workerPool.push(worker);
+      } catch (error) {
+        console.warn('[LOD] Failed to create worker:', error);
+      }
+    }
+
+    this.workerEnabled = this.workerPool.length > 0;
+    if (this.options.debug) {
+      console.log(`[LOD] Multi-threading enabled with ${this.workerPool.length} workers`);
+    }
+  }
+
+  /**
+   * Disable multi-threading and cleanup workers
+   */
+  disableMultiThreading(): void {
+    for (const worker of this.workerPool) {
+      worker.terminate();
+    }
+    this.workerPool = [];
+    this.workerEnabled = false;
+  }
+
+  /**
+   * Generate Web Worker code for LOD distance calculations
+   */
+  private generateWorkerCode(): string {
+    return `
+      self.onmessage = function(e) {
+        const { objects, cameraPos } = e.data;
+        const results = [];
+
+        for (const obj of objects) {
+          const dx = obj.position[0] - cameraPos[0];
+          const dy = obj.position[1] - cameraPos[1];
+          const dz = obj.position[2] - cameraPos[2];
+
+          // SIMD-style optimized distance calculation
+          const distSq = dx * dx + dy * dy + dz * dz;
+          const distance = Math.sqrt(distSq);
+
+          results.push({
+            objectId: obj.objectId,
+            distance: distance,
+            distanceSq: distSq
+          });
+        }
+
+        self.postMessage({ results });
+      };
+    `;
+  }
+
+  /**
+   * Handle worker message with distance calculation results
+   */
+  private handleWorkerMessage(e: MessageEvent): void {
+    const { results } = e.data;
+
+    for (const result of results) {
+      const state = this.states.get(result.objectId);
+      if (state) {
+        state.cameraDistance = result.distance;
+      }
+    }
+  }
+
+  /**
+   * Batch update multiple objects efficiently
+   */
+  updateBatch(objectIds: string[], deltaTime: number): void {
+    const startTime = performance.now();
+
+    // Reset per-frame metrics
+    this.metrics.transitionsThisFrame = 0;
+    this.transitionQueue = [];
+
+    if (this.workerEnabled && objectIds.length > 100) {
+      // Use multi-threaded approach for large batches
+      this.updateBatchMultiThreaded(objectIds, deltaTime);
+    } else {
+      // Use single-threaded optimized approach
+      this.updateBatchSingleThreaded(objectIds, deltaTime);
+    }
+
+    // Process transition queue (max 10 per frame to prevent stuttering)
+    this.processTransitionQueue(deltaTime);
+
+    this.metrics.selectionTimeMs = performance.now() - startTime;
+    this.lastUpdateTime = Date.now();
+  }
+
+  /**
+   * Single-threaded batch update with SIMD-style optimizations
+   */
+  private updateBatchSingleThreaded(objectIds: string[], deltaTime: number): void {
+    const camX = this.cameraPosition[0];
+    const camY = this.cameraPosition[1];
+    const camZ = this.cameraPosition[2];
+
+    // Process in chunks for cache efficiency
+    for (let i = 0; i < objectIds.length; i++) {
+      const objectId = objectIds[i];
+      const config = this.configs.get(objectId);
+      const state = this.states.get(objectId);
+
+      if (!config?.enabled || !state) continue;
+
+      // Get object position
+      const objectPosition = this.getObjectPosition(objectId);
+      const dx = objectPosition[0] - camX;
+      const dy = objectPosition[1] - camY;
+      const dz = objectPosition[2] - camZ;
+
+      // Optimized distance calculation
+      const distanceSq = dx * dx + dy * dy + dz * dz;
+      const distance = Math.sqrt(distanceSq);
+
+      state.cameraDistance = distance;
+
+      // Select appropriate LOD level
+      const newLevel = this.selectLevel(config, state);
+
+      // Queue transition instead of executing immediately
+      if (newLevel !== state.currentLevel && !state.isTransitioning) {
+        this.queueTransition(objectId, newLevel, distance);
+      }
+
+      // Update existing transitions
+      if (state.isTransitioning) {
+        this.updateTransition(objectId, config, state, deltaTime);
+      }
+
+      state.lastUpdate = Date.now();
+    }
+  }
+
+  /**
+   * Multi-threaded batch update using worker pool
+   */
+  private updateBatchMultiThreaded(objectIds: string[], deltaTime: number): void {
+    const chunkSize = Math.ceil(objectIds.length / this.workerPool.length);
+
+    for (let i = 0; i < this.workerPool.length; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, objectIds.length);
+      const chunk = objectIds.slice(start, end);
+
+      const objects = chunk.map(id => ({
+        objectId: id,
+        position: this.getObjectPosition(id)
+      }));
+
+      this.workerPool[i].postMessage({
+        objects,
+        cameraPos: this.cameraPosition
+      });
+    }
+
+    // Continue with level selection (workers update distances asynchronously)
+    setTimeout(() => {
+      for (const objectId of objectIds) {
+        const config = this.configs.get(objectId);
+        const state = this.states.get(objectId);
+
+        if (!config?.enabled || !state) continue;
+
+        const newLevel = this.selectLevel(config, state);
+
+        if (newLevel !== state.currentLevel && !state.isTransitioning) {
+          this.queueTransition(objectId, newLevel, state.cameraDistance);
+        }
+
+        if (state.isTransitioning) {
+          this.updateTransition(objectId, config, state, deltaTime);
+        }
+      }
+
+      this.processTransitionQueue(deltaTime);
+    }, 0);
+  }
+
+  /**
+   * Queue a transition with priority based on distance
+   */
+  private queueTransition(objectId: string, level: number, distance: number): void {
+    // Priority: closer objects get higher priority (lower distance = higher priority)
+    const priority = 1 / (distance + 1);
+
+    this.transitionQueue.push({ objectId, level, priority });
+  }
+
+  /**
+   * Process transition queue (max transitions per frame to prevent stuttering)
+   */
+  private processTransitionQueue(deltaTime: number): void {
+    // Sort by priority (highest first)
+    this.transitionQueue.sort((a, b) => b.priority - a.priority);
+
+    // Process top N transitions
+    const transitionsToProcess = this.transitionQueue.slice(0, this.maxTransitionsPerFrame);
+
+    for (const { objectId, level } of transitionsToProcess) {
+      const config = this.configs.get(objectId);
+      const state = this.states.get(objectId);
+
+      if (config && state) {
+        this.startTransition(objectId, config, state, level);
+      }
+    }
+
+    // Clear queue
+    this.transitionQueue = [];
+  }
+
+  /**
+   * Query nearby objects using spatial hash grid
+   */
+  queryNearby(position: [number, number, number], radius: number): string[] {
+    const nearby: Set<string> = new Set();
+
+    // Get grid cells within radius
+    const minCellX = Math.floor((position[0] - radius) / this.gridCellSize);
+    const maxCellX = Math.floor((position[0] + radius) / this.gridCellSize);
+    const minCellY = Math.floor((position[1] - radius) / this.gridCellSize);
+    const maxCellY = Math.floor((position[1] + radius) / this.gridCellSize);
+    const minCellZ = Math.floor((position[2] - radius) / this.gridCellSize);
+    const maxCellZ = Math.floor((position[2] + radius) / this.gridCellSize);
+
+    for (let x = minCellX; x <= maxCellX; x++) {
+      for (let y = minCellY; y <= maxCellY; y++) {
+        for (let z = minCellZ; z <= maxCellZ; z++) {
+          const cellKey = `${x},${y},${z}`;
+          const cellObjects = this.spatialHashGrid.get(cellKey);
+
+          if (cellObjects) {
+            for (const objectId of cellObjects) {
+              const objPos = this.getObjectPosition(objectId);
+              const dx = objPos[0] - position[0];
+              const dy = objPos[1] - position[1];
+              const dz = objPos[2] - position[2];
+              const distSq = dx * dx + dy * dy + dz * dz;
+
+              if (distSq <= radius * radius) {
+                nearby.add(objectId);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(nearby);
+  }
+
+  /**
+   * Update spatial hash grid for an object
+   */
+  private updateSpatialHash(objectId: string, position: [number, number, number]): void {
+    // Remove from old cell
+    for (const [_, objects] of this.spatialHashGrid) {
+      objects.delete(objectId);
+    }
+
+    // Add to new cell
+    const cellX = Math.floor(position[0] / this.gridCellSize);
+    const cellY = Math.floor(position[1] / this.gridCellSize);
+    const cellZ = Math.floor(position[2] / this.gridCellSize);
+    const cellKey = `${cellX},${cellY},${cellZ}`;
+
+    if (!this.spatialHashGrid.has(cellKey)) {
+      this.spatialHashGrid.set(cellKey, new Set());
+    }
+
+    this.spatialHashGrid.get(cellKey)!.add(objectId);
+  }
+
+  /**
+   * Set object position and update spatial hash
+   */
+  setObjectPositionOptimized(objectId: string, position: [number, number, number]): void {
+    this.objectPositions.set(objectId, position);
+    this.updateSpatialHash(objectId, position);
+  }
+
+  /**
+   * Set maximum transitions per frame (prevent stuttering)
+   */
+  setMaxTransitionsPerFrame(max: number): void {
+    this.maxTransitionsPerFrame = Math.max(1, max);
+  }
+
+  /**
+   * Get maximum transitions per frame
+   */
+  getMaxTransitionsPerFrame(): number {
+    return this.maxTransitionsPerFrame;
+  }
+
+  /**
+   * Check if multi-threading is enabled
+   */
+  isMultiThreadingEnabled(): boolean {
+    return this.workerEnabled;
+  }
+
+  /**
+   * Get worker pool size
+   */
+  getWorkerPoolSize(): number {
+    return this.workerPool.length;
+  }
+
+  /**
+   * Clear spatial hash grid
+   */
+  clearSpatialHash(): void {
+    this.spatialHashGrid.clear();
+  }
+
+  /**
+   * Rebuild spatial hash grid for all objects
+   */
+  rebuildSpatialHash(): void {
+    this.spatialHashGrid.clear();
+
+    for (const [objectId, position] of this.objectPositions) {
+      this.updateSpatialHash(objectId, position);
+    }
   }
 }
 
