@@ -38,7 +38,7 @@
   </link>
 
   <!-- HoloScript Metadata (custom tags for traits) -->
-  <holoscript xmlns="https://holoscript.dev/urdf/v1">
+  <holoscript xmlns="https://holoscript.net/urdf/v1">
     <object type="cube" name="cube_body">
       <traits>
         <trait name="@color">
