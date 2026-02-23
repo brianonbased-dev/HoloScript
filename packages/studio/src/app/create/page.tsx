@@ -15,10 +15,14 @@ import { useAssetStore } from '@/components/assets/useAssetStore';
 import { decodeSceneFromURL } from '@/lib/serializer';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
+import { HistoryPanel } from '@/components/HistoryPanel';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
+import { useTemporalStore } from '@/lib/historyStore';
 import {
   AlertTriangle,
   Move,
   RotateCw,
+  RotateCcw,
   Maximize2,
   Sparkles,
   Loader2,
@@ -26,6 +30,7 @@ import {
   Layers,
   List,
   X,
+  History,
 } from 'lucide-react';
 import type { GizmoMode } from '@/lib/store';
 
@@ -53,6 +58,10 @@ const GIZMO_BUTTONS: Array<{ mode: GizmoMode; icon: typeof Move; label: string; 
 function ViewportToolbar() {
   const gizmoMode = useEditorStore((s) => s.gizmoMode);
   const setGizmoMode = useEditorStore((s) => s.setGizmoMode);
+  const undo = useTemporalStore((s) => s.undo);
+  const redo = useTemporalStore((s) => s.redo);
+  const canUndo = useTemporalStore((s) => s.pastStates.length > 0);
+  const canRedo = useTemporalStore((s) => s.futureStates.length > 0);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -67,6 +76,28 @@ function ViewportToolbar() {
 
   return (
     <div className="absolute left-3 top-3 flex items-center gap-1 rounded-lg border border-studio-border/60 bg-studio-panel/90 p-1 backdrop-blur">
+      {/* Undo / Redo */}
+      <button
+        onClick={() => undo()}
+        disabled={!canUndo}
+        title="Undo (Ctrl+Z)"
+        className="rounded-md p-2 text-studio-muted transition hover:bg-studio-surface hover:text-studio-text disabled:opacity-30"
+      >
+        <RotateCcw className="h-3.5 w-3.5" />
+      </button>
+      <button
+        onClick={() => redo()}
+        disabled={!canRedo}
+        title="Redo (Ctrl+Shift+Z)"
+        className="rounded-md p-2 text-studio-muted transition hover:bg-studio-surface hover:text-studio-text disabled:opacity-30"
+      >
+        <RotateCw className="h-3.5 w-3.5" />
+      </button>
+
+      {/* Divider */}
+      <div className="mx-1 h-4 w-px bg-studio-border/60" />
+
+      {/* Gizmo mode buttons */}
       {GIZMO_BUTTONS.map(({ mode, icon: Icon, label }) => (
         <button
           key={mode}
@@ -166,7 +197,11 @@ export default function CreatePage() {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<'scene' | 'assets'>('scene');
+
+  // Undo/Redo keyboard shortcuts
+  useUndoRedo();
   const [splatWizardOpen, setSplatWizardOpen] = useState(false);
 
   useOllamaStatus();
@@ -269,21 +304,45 @@ export default function CreatePage() {
           </div>
         </div>
 
-        {/* RIGHT: Brittney Chat */}
+        {/* RIGHT RAIL: History panel (optional) */}
+        {historyOpen && (
+          <div className="flex w-56 shrink-0 flex-col border-l border-studio-border">
+            <HistoryPanel onClose={() => setHistoryOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
             <BrittneyChatPanel />
           </div>
         )}
 
-        {/* Chat toggle tab */}
-        <button
-          onClick={() => setChatOpen((v) => !v)}
-          title={chatOpen ? 'Hide Brittney' : 'Open Brittney'}
-          className={`absolute right-0 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-1 rounded-l-lg border border-r-0 border-studio-border bg-studio-panel px-1.5 py-3 text-studio-muted transition hover:text-studio-text ${chatOpen ? 'translate-x-[-288px]' : ''}`}
+        {/* Floating tab strip (right edge) */}
+        <div
+          className={`absolute right-0 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-1 rounded-l-lg border border-r-0 border-studio-border bg-studio-panel px-1.5 py-3 ${
+            chatOpen ? 'translate-x-[-288px]' : historyOpen ? 'translate-x-[-224px]' : ''
+          }`}
         >
-          <MessageCircle className="h-4 w-4" />
-        </button>
+          {/* Brittney toggle */}
+          <button
+            onClick={() => setChatOpen((v) => !v)}
+            title={chatOpen ? 'Hide Brittney' : 'Open Brittney'}
+            className="text-studio-muted transition hover:text-studio-text"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </button>
+          {/* History toggle */}
+          <button
+            onClick={() => setHistoryOpen((v) => !v)}
+            title={historyOpen ? 'Hide History' : 'Show History'}
+            className={`transition ${
+              historyOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <History className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Trait Palette modal */}
