@@ -48,6 +48,10 @@ import {
   Download,
   Wand2,
   Activity,
+  Users2,
+  Bug,
+  Camera,
+  Library,
   X,
   History,
 } from 'lucide-react';
@@ -160,6 +164,26 @@ const ProfilerPanel = dynamic(
 
 const ProfilerOverlay = dynamic(
   () => import('@/components/profiler/ProfilerOverlay').then((m) => ({ default: m.ProfilerOverlay })),
+  { ssr: false }
+);
+
+const MultiplayerPanel = dynamic(
+  () => import('@/components/collab/MultiplayerPanel').then((m) => ({ default: m.MultiplayerPanel })),
+  { ssr: false }
+);
+
+const DebuggerPanel = dynamic(
+  () => import('@/components/debugger/DebuggerPanel').then((m) => ({ default: m.DebuggerPanel })),
+  { ssr: false }
+);
+
+const SnapshotGallery = dynamic(
+  () => import('@/components/gallery/SnapshotGallery').then((m) => ({ default: m.SnapshotGallery })),
+  { ssr: false }
+);
+
+const AssetLibraryPanel = dynamic(
+  () => import('@/components/assets/AssetLibraryPanel').then((m) => ({ default: m.AssetLibraryPanel })),
   { ssr: false }
 );
 
@@ -354,6 +378,10 @@ export default function CreatePage() {
   const [exportOpen, setExportOpen] = useState(false);
   const [generatorOpen, setGeneratorOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
+  const [multiplayerOpen, setMultiplayerOpen] = useState(false);
+  const [debuggerOpen, setDebuggerOpen] = useState(false);
+  const [snapshotsOpen, setSnapshotsOpen] = useState(false);
+  const [assetLibOpen, setAssetLibOpen] = useState(false);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -599,6 +627,34 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Multiplayer */}
+        {multiplayerOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <MultiplayerPanel onClose={() => setMultiplayerOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Debugger */}
+        {debuggerOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <DebuggerPanel onClose={() => setDebuggerOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Snapshot Gallery */}
+        {snapshotsOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <SnapshotGallery onClose={() => setSnapshotsOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Asset Library v2 */}
+        {assetLibOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <AssetLibraryPanel onClose={() => setAssetLibOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -753,6 +809,38 @@ export default function CreatePage() {
             }`}
           >
             <Activity className="h-4 w-4" />
+          </button>
+          {/* Multiplayer toggle */}
+          <button
+            onClick={() => { setMultiplayerOpen((v) => !v); setDebuggerOpen(false); setSnapshotsOpen(false); setAssetLibOpen(false); }}
+            title={multiplayerOpen ? 'Close Multiplayer' : 'Multiplayer Room'}
+            className={`transition ${multiplayerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Users2 className="h-4 w-4" />
+          </button>
+          {/* Debugger toggle */}
+          <button
+            onClick={() => { setDebuggerOpen((v) => !v); setMultiplayerOpen(false); setSnapshotsOpen(false); setAssetLibOpen(false); }}
+            title={debuggerOpen ? 'Close Debugger' : 'HoloScript Debugger'}
+            className={`transition ${debuggerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Bug className="h-4 w-4" />
+          </button>
+          {/* Snapshot Gallery toggle */}
+          <button
+            onClick={() => { setSnapshotsOpen((v) => !v); setMultiplayerOpen(false); setDebuggerOpen(false); setAssetLibOpen(false); }}
+            title={snapshotsOpen ? 'Close Gallery' : 'Snapshot Gallery'}
+            className={`transition ${snapshotsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Camera className="h-4 w-4" />
+          </button>
+          {/* Asset Library toggle */}
+          <button
+            onClick={() => { setAssetLibOpen((v) => !v); setMultiplayerOpen(false); setDebuggerOpen(false); setSnapshotsOpen(false); }}
+            title={assetLibOpen ? 'Close Asset Library' : 'Asset Library v2'}
+            className={`transition ${assetLibOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Library className="h-4 w-4" />
           </button>
         </div>
       </div>
