@@ -91,6 +91,86 @@ import { AUDIO_TRAITS } from '@holoscript/core'; // Just audio traits
 import { MAGIC_FANTASY_TRAITS } from '@holoscript/core'; // Just magic/fantasy
 ```
 
+## Language Features
+
+HoloScript v4.1 adds five production-ready language features. See [LANGUAGE_FEATURES.md](../../docs/LANGUAGE_FEATURES.md) for the full reference.
+
+### Module System (`@import` / `@export`)
+
+```holoscript
+@import { PhysicsSystem, Gravity } from './physics.hs'
+@import * as UI from './ui-components.hs'
+
+@export PhysicsSystem
+```
+
+### Trait Composition
+
+```holoscript
+// Compose multiple traits into one named trait
+@HoverVehicle = @physics + @navmesh + @propulsion
+@Warrior = @combat + @inventory + @stats
+```
+
+```typescript
+import { TraitCompositionCompiler, TraitComposer } from '@holoscript/core';
+
+// Low-level API
+const compiler = new TraitCompositionCompiler();
+const [hovercraft] = compiler.compile(
+  [{ name: 'Hovercraft', components: ['physics', 'navmesh'], overrides: { gravity: 0.1 } }],
+  (name) => registry.get(name),
+  traitGraph,
+);
+
+// High-level composer (with lifecycle dispatch)
+const composer = new TraitComposer(graph);
+const result = composer.compose('Warrior', handlers, ['combat', 'inventory', 'stats']);
+// result.handler.onAttach dispatches to all in order; onDetach is reversed
+```
+
+### Reactive State
+
+```holoscript
+@state {
+  hp: 100,
+  shield: 50,
+}
+```
+
+```typescript
+import { reactive, computed, effect } from '@holoscript/core';
+
+const state = reactive({ hp: 100 });
+const isAlive = computed(() => state.hp > 0);
+effect(() => console.log('HP changed:', state.hp));
+```
+
+### LLM Agent Trait
+
+```holoscript
+@llm_agent {
+  model: "gpt-4",
+  system_prompt: "You are a game NPC",
+  tools: [{ name: "move", ... }],
+  bounded_autonomy: true,
+  max_actions_per_turn: 3,
+}
+```
+
+### Gaussian Splat Trait
+
+```holoscript
+@gaussian_splat {
+  source: "./assets/scene.ply",
+  quality: "ultra",
+  sh_degree: 3,
+  sort_mode: "distance",
+  streaming: true,
+}
+```
+
 ## License
 
 MIT
+

@@ -784,3 +784,30 @@ Most moderation vendors only handle text/images. Spatial harassment, physics-bas
 
 _This roadmap supersedes previous versions and incorporates all uAA2++ Research Protocol findings with honest maturity assessment._
 
+---
+
+## Sprint Report — Feb 2026 (v4.1 Language Features)
+
+**Date**: 2026-02-23  
+**Status**: ✅ Complete — 5 commits, 100 new tests
+
+### P1: Language Features (All ✅ — Previously Implemented, Now Tested)
+
+| Feature | Implementation | Tests | Status |
+|---|---|---|---|
+| `@import` / `@export` Module System | `ImportResolver.ts` (436 lines) | 20 (new) | ✅ |
+| Trait Composition (`@A = @b + @c`) | `TraitCompositionCompiler.ts` + `TraitComposer.ts` | 31 (new) | ✅ |
+| Local Reactive State | `ReactiveState.ts` + `StateTrait.ts` | 87 (existing) | ✅ |
+
+### P2: Traits & Demo (All ✅)
+
+| Deliverable | Tests | Status |
+|---|---|---|
+| `LLMAgentTrait` v2 (multi-turn, tool calls, escalation, rate-limit, bounded autonomy) | 27 (new) | ✅ |
+| `GaussianSplatTrait` v2 (load lifecycle, camera sort, source swap, quality, query) | 22 (new) | ✅ |
+| WASM Benchmark Demo (`demos/wasm-benchmark/index.html`) | Live ECS 1K entities @60fps | ✅ |
+
+### Documentation Updated
+
+- `docs/LANGUAGE_FEATURES.md` — full @import/@export + composition + state reference
+- `packages/core/README.md` — Language Features section with code examples for all 5 features
