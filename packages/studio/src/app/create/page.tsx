@@ -33,6 +33,8 @@ import {
   List,
   Code2,
   GitGraph,
+  Film,
+  LayoutTemplate,
   X,
   History,
 } from 'lucide-react';
@@ -56,6 +58,16 @@ const ShaderEditorPanel = dynamic(
 const NodeGraphEditor = dynamic(
   () => import('@/components/node-graph/NodeGraphEditor').then((m) => ({ default: m.NodeGraphEditor })),
   { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">Loading node graph…</div> }
+);
+
+const TemplatePicker = dynamic(
+  () => import('@/components/templates/TemplatePicker').then((m) => ({ default: m.TemplatePicker })),
+  { ssr: false }
+);
+
+const AnimationTimeline = dynamic(
+  () => import('@/components/timeline/AnimationTimeline').then((m) => ({ default: m.AnimationTimeline })),
+  { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">Loading timeline…</div> }
 );
 
 function ViewportSkeleton() {
@@ -236,6 +248,8 @@ export default function CreatePage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [profilerOpen, setProfilerOpen] = useState(false);
   const [shaderEditorOpen, setShaderEditorOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
 
   // Undo/Redo keyboard shortcuts
@@ -348,6 +362,15 @@ export default function CreatePage() {
             <AIPromptOverlay />
             <AssetDropOverlay />
 
+            {/* Template picker shortcut */}
+            <button
+              onClick={() => setTemplatePickerOpen(true)}
+              title="Browse scene templates"
+              className="absolute right-3 top-2 z-10 flex items-center gap-1 rounded-lg bg-studio-panel/80 px-2.5 py-1.5 text-[10px] text-studio-muted backdrop-blur hover:bg-studio-surface hover:text-studio-text transition"
+            >
+              <LayoutTemplate className="h-3.5 w-3.5" /> Templates
+            </button>
+
             {errors.length > 0 && (
               <div className="absolute left-3 bottom-3 max-w-sm rounded-lg border border-studio-error/30 bg-studio-panel/90 p-3 backdrop-blur">
                 <div className="mb-1 flex items-center gap-2 text-xs font-medium text-studio-error">
@@ -363,10 +386,12 @@ export default function CreatePage() {
             )}
           </div>
 
-          {/* Inspector (bottom strip) — or Shader Editor */}
-          <div className={`shrink-0 ${shaderEditorOpen ? 'h-96' : 'h-56'}`}>
+          {/* Inspector (bottom strip) — Shader Editor — Animation Timeline */}
+          <div className={`shrink-0 ${shaderEditorOpen || timelineOpen ? 'h-96' : 'h-56'}`}>
             {shaderEditorOpen ? (
               <ShaderEditorPanel onClose={() => setShaderEditorOpen(false)} />
+            ) : timelineOpen ? (
+              <AnimationTimeline onClose={() => setTimelineOpen(false)} />
             ) : (
               <TraitInspector
                 onOpenPalette={() => setPaletteOpen(true)}
@@ -414,6 +439,16 @@ export default function CreatePage() {
           >
             <History className="h-4 w-4" />
           </button>
+          {/* Timeline toggle */}
+          <button
+            onClick={() => { setTimelineOpen((v) => !v); setShaderEditorOpen(false); }}
+            title={timelineOpen ? 'Close Timeline' : 'Open Animation Timeline'}
+            className={`transition ${
+              timelineOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Film className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -422,6 +457,11 @@ export default function CreatePage() {
 
       {/* Gaussian Splat capture wizard */}
       <SplatCaptureWizard open={splatWizardOpen} onClose={() => setSplatWizardOpen(false)} />
+
+      {/* Template Picker modal */}
+      {templatePickerOpen && (
+        <TemplatePicker onClose={() => setTemplatePickerOpen(false)} />
+      )}
     </>
   );
 }

@@ -1,10 +1,20 @@
 // Brittney Avatar — Spatial AI agent with lip-sync, animations, and spatial audio
-// Phase 3: Defines Brittney's physical presence in VR
-// Used by brittney-workspace.holo and any scene that includes Brittney
+// Sprint J — Updated to current HoloScript composition syntax
+// v4.0: template → npc + object style, action → named handlers, moods → properties
 
 composition "Brittney Avatar" {
 
-  template "BrittneyAvatar" {
+  // ─── NPC definition — registers Brittney in the AI agent system ─────────────
+
+  npc "Brittney" {
+    npc_type: "ai_assistant"
+    model: "/models/brittney/brittney_v2.glb"
+    dialogue_tree: "brittney_greeting"
+  }
+
+  // ─── Avatar object — the 3D spatial presence ────────────────────────────────
+
+  object "BrittneyAvatar" {
     @animated
     @spatial_audio
     @tracked
@@ -21,7 +31,33 @@ composition "Brittney Avatar" {
       mood: "friendly"
       lipSyncLevel: 0
       blinkTimer: 0
-      gestureQueue: []
+
+      // Mood → emissive map (queried at runtime)
+      moodEmissive: {
+        friendly:  { color: "#00ffff", intensity: 0.2 }
+        thinking:  { color: "#ffaa00", intensity: 0.3 }
+        excited:   { color: "#ff6ec7", intensity: 0.4 }
+        focused:   { color: "#6e40c9", intensity: 0.25 }
+        error:     { color: "#ff4444", intensity: 0.35 }
+      }
+    }
+
+    // Voice TTS configuration
+    voice: {
+      provider: "elevenlabs"
+      voiceId: "nova"
+      rate: 1.0
+      pitch: 1.0
+    }
+
+    // Spatial audio cone profile
+    spatial_audio: {
+      refDistance: 1.5
+      maxDistance: 15
+      rolloffFactor: 1.2
+      coneInnerAngle: 120
+      coneOuterAngle: 240
+      coneOuterGain: 0.3
     }
 
     // ─── Idle Animations ───
@@ -47,8 +83,8 @@ composition "Brittney Avatar" {
     animation blink {
       property: "morph.blink"
       keyframes: [
-        { time: 0, value: 0 },
-        { time: 50, value: 1 },
+        { time: 0,   value: 0 }
+        { time: 50,  value: 1 }
         { time: 150, value: 0 }
       ]
       loop: false
@@ -59,9 +95,9 @@ composition "Brittney Avatar" {
     animation talk_gesture_left {
       property: "bone.leftArm.rotation.x"
       keyframes: [
-        { time: 0, value: 0 },
-        { time: 300, value: -25 },
-        { time: 600, value: -15 },
+        { time: 0,   value: 0 }
+        { time: 300, value: -25 }
+        { time: 600, value: -15 }
         { time: 900, value: 0 }
       ]
       easing: "easeInOut"
@@ -70,9 +106,9 @@ composition "Brittney Avatar" {
     animation talk_gesture_right {
       property: "bone.rightArm.rotation.x"
       keyframes: [
-        { time: 0, value: 0 },
-        { time: 400, value: -20 },
-        { time: 700, value: -30 },
+        { time: 0,    value: 0 }
+        { time: 400,  value: -20 }
+        { time: 700,  value: -30 }
         { time: 1000, value: 0 }
       ]
       easing: "easeInOut"
@@ -81,21 +117,21 @@ composition "Brittney Avatar" {
     animation nod {
       property: "bone.head.rotation.x"
       keyframes: [
-        { time: 0, value: 0 },
-        { time: 200, value: 8 },
+        { time: 0,   value: 0 }
+        { time: 200, value: 8 }
         { time: 400, value: 0 }
       ]
       easing: "easeOut"
     }
 
-    // ─── Thinking Animation ───
+    // ─── Thinking Animations ───
 
     animation think_tilt {
       property: "bone.head.rotation.z"
       keyframes: [
-        { time: 0, value: 0 },
-        { time: 500, value: 8 },
-        { time: 2000, value: 8 },
+        { time: 0,    value: 0 }
+        { time: 500,  value: 8 }
+        { time: 2000, value: 8 }
         { time: 2500, value: 0 }
       ]
       easing: "easeInOut"
@@ -104,76 +140,60 @@ composition "Brittney Avatar" {
     animation think_hand_chin {
       property: "bone.rightArm.rotation.x"
       keyframes: [
-        { time: 0, value: 0 },
-        { time: 400, value: -60 },
-        { time: 2000, value: -60 },
+        { time: 0,    value: 0 }
+        { time: 400,  value: -60 }
+        { time: 2000, value: -60 }
         { time: 2500, value: 0 }
       ]
       easing: "easeInOut"
     }
 
-    // ─── Mood-based Emissive ───
-
-    moods: {
-      friendly: { emissive: "#00ffff", emissiveIntensity: 0.2 },
-      thinking: { emissive: "#ffaa00", emissiveIntensity: 0.3 },
-      excited: { emissive: "#ff6ec7", emissiveIntensity: 0.4 },
-      focused: { emissive: "#6e40c9", emissiveIntensity: 0.25 },
-      error: { emissive: "#ff4444", emissiveIntensity: 0.35 }
-    }
-
-    // ─── Spatial Audio Profile ───
-
-    audio {
-      voice: {
-        provider: "elevenlabs"
-        voiceId: "nova"
-        rate: 1.0
-        pitch: 1.0
-      }
-      spatial: {
-        refDistance: 1.5
-        maxDistance: 15
-        rolloffFactor: 1.2
-        coneInnerAngle: 120
-        coneOuterAngle: 240
-        coneOuterGain: 0.3
-      }
-    }
-
-    // ─── Lip Sync System ───
+    // ─── Per-frame update — lip sync + blink timer ───────────────────────────
 
     on_update(delta) {
-      // Blink randomly every 3-6 seconds
+      // Random blink every 3–6 s
       state.blinkTimer += delta
       if (state.blinkTimer > 3000 + Math.random() * 3000) {
         play("blink")
         state.blinkTimer = 0
       }
 
-      // Lip sync when speaking
-      if (state.speaking) {
-        morph.jawOpen = state.lipSyncLevel * 0.4
-        morph.mouthOpen = state.lipSyncLevel * 0.6
-        morph.lipSync_aa = state.lipSyncLevel * 0.3
-      } else {
-        morph.jawOpen = 0
-        morph.mouthOpen = 0
-        morph.lipSync_aa = 0
+      // Lip sync morphs
+      morph.jawOpen    = state.speaking ? state.lipSyncLevel * 0.4 : 0
+      morph.mouthOpen  = state.speaking ? state.lipSyncLevel * 0.6 : 0
+      morph.lipSync_aa = state.speaking ? state.lipSyncLevel * 0.3 : 0
+
+      // Apply mood emissive color
+      const m = state.moodEmissive[state.mood]
+      if (m) {
+        material.emissive = m.color
+        material.emissiveIntensity = m.intensity
       }
     }
 
-    // ─── Actions ───
+    // ─── Event handlers ──────────────────────────────────────────────────────
 
-    action startSpeaking(text) {
+    on_init() {
+      play("idle_float")
+      play("idle_sway")
+    }
+
+    on_speech_audio_level(level) {
+      state.lipSyncLevel = level
+    }
+
+    on_speech_end() {
+      state.speaking = false
+      state.idle = true
+      state.lipSyncLevel = 0
+      play("nod")
+    }
+
+    on_event("startSpeaking", text) {
       state.speaking = true
       state.idle = false
       state.mood = "friendly"
-
-      // Start spatial audio TTS
-      speech.speak(text, audio.voice)
-
-      // Random gestures while talking
+      speech.speak(text, voice)
       if (text.length > 50) {
         play("talk_gesture_left")
         schedule(500, () -> play("talk_gesture_right"))
@@ -183,14 +203,14 @@ composition "Brittney Avatar" {
       }
     }
 
-    action stopSpeaking() {
+    on_event("stopSpeaking") {
       state.speaking = false
       state.idle = true
       state.lipSyncLevel = 0
       play("nod")
     }
 
-    action startThinking() {
+    on_event("startThinking") {
       state.thinking = true
       state.idle = false
       state.mood = "thinking"
@@ -198,13 +218,13 @@ composition "Brittney Avatar" {
       play("think_hand_chin")
     }
 
-    action stopThinking() {
+    on_event("stopThinking") {
       state.thinking = false
       state.idle = true
       state.mood = "friendly"
     }
 
-    action react(emotion) {
+    on_event("react", emotion) {
       state.mood = emotion
       if (emotion == "excited") {
         play("nod")
@@ -213,19 +233,9 @@ composition "Brittney Avatar" {
       }
     }
 
-    action lookAt(target) {
+    on_event("lookAt", target) {
       bone.head.lookAt(target.position)
       bone.eyes.lookAt(target.position)
-    }
-
-    // ─── Event Handlers ───
-
-    on_speech_audio_level(level) {
-      state.lipSyncLevel = level
-    }
-
-    on_speech_end() {
-      stopSpeaking()
     }
 
     onHoverEnter() {
@@ -236,9 +246,9 @@ composition "Brittney Avatar" {
     }
   }
 
-  // ─── Brittney's Thought Bubble (appears when thinking) ───
+  // ─── Thought Bubble (visible while thinking) ─────────────────────────────
 
-  template "ThoughtBubble" {
+  object "ThoughtBubble" {
     @billboard
     @glowing
     geometry: "plane"
@@ -255,17 +265,26 @@ composition "Brittney Avatar" {
     animation dots {
       property: "state.text"
       keyframes: [
-        { time: 0, value: "." },
-        { time: 300, value: ".." },
+        { time: 0,   value: "." }
+        { time: 300, value: ".." }
         { time: 600, value: "..." }
       ]
       loop: infinite
     }
+
+    on_event("startThinking") {
+      visible = true
+      play("dots")
+    }
+
+    on_event("stopThinking") {
+      visible = false
+    }
   }
 
-  // ─── Brittney's Name Tag ───
+  // ─── Name Tag ─────────────────────────────────────────────────────────────
 
-  template "NameTag" {
+  object "NameTag" {
     @billboard
     geometry: "plane"
     text: "Brittney"
@@ -273,5 +292,46 @@ composition "Brittney Avatar" {
     color: "#00ffff"
     opacity: 0.8
     scale: [0.3, 0.08, 0.01]
+  }
+
+  // ─── Greeting dialogue tree ───────────────────────────────────────────────
+
+  dialogue "brittney_greeting" {
+    character: "Brittney"
+    emotion: "friendly"
+    content: "Hey! I'm Brittney. Tell me what you want to build."
+    options: [
+      {
+        text: "Help me create a scene"
+        next: "brittney_create"
+      }
+      {
+        text: "What can you do?"
+        next: "brittney_capabilities"
+      }
+      {
+        text: "Nothing right now"
+        next: "end"
+      }
+    ]
+  }
+
+  dialogue "brittney_create" {
+    character: "Brittney"
+    emotion: "excited"
+    content: "Awesome! Describe it and I'll write the HoloScript for you."
+    options: []
+  }
+
+  dialogue "brittney_capabilities" {
+    character: "Brittney"
+    emotion: "friendly"
+    content: "I can write scenes, generate shaders, manage assets, and live-compile your code."
+    options: [
+      {
+        text: "Let's get started!"
+        next: "brittney_create"
+      }
+    ]
   }
 }
