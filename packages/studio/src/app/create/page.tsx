@@ -55,6 +55,9 @@ import {
   Music,
   X,
   History,
+  Network,
+  Timer,
+  SearchCode,
 } from 'lucide-react';
 import type { GizmoMode } from '@/lib/store';
 
@@ -205,6 +208,26 @@ const AudioTraitPanel = dynamic(
 
 const ExportPipelinePanel = dynamic(
   () => import('@/components/export/ExportPipelinePanel').then((m) => ({ default: m.ExportPipelinePanel })),
+  { ssr: false }
+);
+
+const NodeGraphPanel = dynamic(
+  () => import('@/components/node-graph/NodeGraphPanel').then((m) => ({ default: m.NodeGraphPanel })),
+  { ssr: false }
+);
+
+const KeyframeEditor = dynamic(
+  () => import('@/components/keyframes/KeyframeEditor').then((m) => ({ default: m.KeyframeEditor })),
+  { ssr: false }
+);
+
+const SceneSearchOverlay = dynamic(
+  () => import('@/components/search/SceneSearchOverlay').then((m) => ({ default: m.SceneSearchOverlay })),
+  { ssr: false }
+);
+
+const CollabCursorsV2 = dynamic(
+  () => import('@/components/collab/CollabCursorsV2').then((m) => ({ default: m.CollabCursorsV2 })),
   { ssr: false }
 );
 
@@ -408,6 +431,11 @@ export default function CreatePage() {
   const [minimapOpen, setMinimapOpen] = useState(true);
   const [audioOpen, setAudioOpen] = useState(false);
   const [exportV2Open, setExportV2Open] = useState(false);
+  // Sprint S
+  const [nodeGraphOpen, setNodeGraphOpen] = useState(false);
+  const [keyframesOpen, setKeyframesOpen] = useState(false);
+  const [sceneSearchOpen, setSceneSearchOpen] = useState(false);
+  const [collabV2Open, setCollabV2Open] = useState(false);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -703,6 +731,20 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Node Graph Editor */}
+        {nodeGraphOpen && (
+          <div className="flex w-96 shrink-0 flex-col border-l border-studio-border">
+            <NodeGraphPanel onClose={() => setNodeGraphOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Keyframe Editor */}
+        {keyframesOpen && (
+          <div className="flex w-[620px] shrink-0 flex-col border-l border-studio-border">
+            <KeyframeEditor onClose={() => setKeyframesOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -922,6 +964,30 @@ export default function CreatePage() {
           >
             <Map className="h-4 w-4" />
           </button>
+          {/* Node Graph toggle */}
+          <button
+            onClick={() => { setNodeGraphOpen((v) => !v); setKeyframesOpen(false); }}
+            title={nodeGraphOpen ? 'Close Node Graph' : 'Node Graph Editor'}
+            className={`transition ${nodeGraphOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Network className="h-4 w-4" />
+          </button>
+          {/* Keyframe Editor toggle */}
+          <button
+            onClick={() => { setKeyframesOpen((v) => !v); setNodeGraphOpen(false); }}
+            title={keyframesOpen ? 'Close Keyframes' : 'Animation Keyframes'}
+            className={`transition ${keyframesOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Timer className="h-4 w-4" />
+          </button>
+          {/* Scene Search toggle */}
+          <button
+            onClick={() => setSceneSearchOpen((v) => !v)}
+            title={sceneSearchOpen ? 'Close Scene Search' : 'Scene Search (Ctrl+F)'}
+            className={`transition ${sceneSearchOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <SearchCode className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -936,8 +1002,23 @@ export default function CreatePage() {
         <TemplatePicker onClose={() => setTemplatePickerOpen(false)} />
       )}
 
+      {/* Scene Search overlay (Sprint S) */}
+      <SceneSearchOverlay
+        open={sceneSearchOpen}
+        onClose={() => setSceneSearchOpen(false)}
+      />
+
       {/* Collaboration cursors (fixed overlay, pointer-events-none) */}
       <CollabCursors />
+
+      {/* Sprint S: named collaboration cursors v2 */}
+      {collabV2Open && (
+        <CollabCursorsV2
+          roomId="default-room"
+          userName={typeof window !== 'undefined' ? (window.localStorage.getItem('holoscript-name') ?? 'Guest') : 'Guest'}
+        />
+      )}
+
     </>
   );
 }
