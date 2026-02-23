@@ -1,105 +1,244 @@
 // Multiplayer VR Meeting Space
 // Collaborative workspace with voice chat
+// Platforms: Photon, Mirror, WebRTC
 
 composition "VR Meeting Room" {
 
-  // Meeting room floor
+  metadata {
+    name: 'Multiplayer VR'
+    description: 'Immersive multiplayer VR meeting room with real-time collaboration features including shared whiteboards, 3D model viewing, voice chat, and spatial audio. Supports up to 12 concurrent participants.'
+    version: '3.2.0'
+    author: 'HoloScript Enterprise Collaboration'
+    category: 'productivity'
+    tags: ['multiplayer', 'vr', 'collaboration', 'enterprise', 'meeting', 'voice-chat']
+    platforms: ['photon', 'mirror', 'webrtc']
+    minPlayers: 2
+    maxPlayers: 12
+    estimatedDuration: 3600
+  }
+
+  // ── Meeting Room Architecture ──────────────────────────────────────────────
+
   object "MeetingFloor" {
     @collidable
-
     geometry: "plane"
     position: [0, 0, 0]
     scale: [15, 1, 15]
     color: "#ecf0f1"
+    material: "office_carpet"
+    receiveShadows: true
   }
 
-  // Conference table
+  object "MeetingCeiling" {
+    geometry: "plane"
+    position: [0, 4, 0]
+    rotation: [180, 0, 0]
+    scale: [15, 1, 15]
+    color: "#f8f9fa"
+    material: "acoustic_tile"
+  }
+
+  object "WallNorth" {
+    @collidable
+    geometry: "cube"
+    position: [0, 2, -7.5]
+    scale: [15, 4, 0.2]
+    color: "#dfe6e9"
+    material: "office_wall"
+  }
+
+  object "WallSouth" {
+    @collidable
+    geometry: "cube"
+    position: [0, 2, 7.5]
+    scale: [15, 4, 0.2]
+    color: "#dfe6e9"
+    material: "office_wall"
+  }
+
+  object "WallEast" {
+    @collidable
+    geometry: "cube"
+    position: [7.5, 2, 0]
+    rotation: [0, 90, 0]
+    scale: [15, 4, 0.2]
+    color: "#dfe6e9"
+    material: "glass_partition"
+  }
+
+  object "WallWest" {
+    @collidable
+    geometry: "cube"
+    position: [-7.5, 2, 0]
+    rotation: [0, 90, 0]
+    scale: [15, 4, 0.2]
+    color: "#dfe6e9"
+  }
+
+  // ── Core Furniture ────────────────────────────────────────────────────────
+
   object "ConferenceTable" {
     @collidable
-
     geometry: "cube"
     position: [0, 0.75, 0]
     scale: [6, 1.5, 3]
     color: "#8b4513"
+    material: "dark_walnut"
   }
 
-  // Chair 1
+  object "ConferenceTableLeg1" {
+    @collidable
+    geometry: "cylinder"
+    position: [-2.8, 0.35, -1.3]
+    scale: [0.06, 0.7, 0.06]
+    color: "#5c3317"
+  }
+
+  object "ConferenceTableLeg2" {
+    @collidable
+    geometry: "cylinder"
+    position: [2.8, 0.35, -1.3]
+    scale: [0.06, 0.7, 0.06]
+    color: "#5c3317"
+  }
+
+  object "ConferenceTableLeg3" {
+    @collidable
+    geometry: "cylinder"
+    position: [-2.8, 0.35, 1.3]
+    scale: [0.06, 0.7, 0.06]
+    color: "#5c3317"
+  }
+
+  object "ConferenceTableLeg4" {
+    @collidable
+    geometry: "cylinder"
+    position: [2.8, 0.35, 1.3]
+    scale: [0.06, 0.7, 0.06]
+    color: "#5c3317"
+  }
+
+  // ── Seating ───────────────────────────────────────────────────────────────
+
   object "Chair1" {
     @collidable
-
     geometry: "cube"
     position: [-2, 0.5, 2]
     scale: [0.6, 1, 0.6]
     color: "#2c3e50"
+    material: "leather_office"
   }
 
-  // Chair 2
   object "Chair2" {
     @collidable
-
     geometry: "cube"
     position: [2, 0.5, 2]
     scale: [0.6, 1, 0.6]
     color: "#2c3e50"
+    material: "leather_office"
   }
 
-  // Chair 3
   object "Chair3" {
     @collidable
-
     geometry: "cube"
     position: [-2, 0.5, -2]
     scale: [0.6, 1, 0.6]
     color: "#2c3e50"
+    material: "leather_office"
   }
 
-  // Chair 4
   object "Chair4" {
     @collidable
-
     geometry: "cube"
     position: [2, 0.5, -2]
     scale: [0.6, 1, 0.6]
     color: "#2c3e50"
+    material: "leather_office"
   }
 
-  // Whiteboard
+  object "Chair5" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0.5, 2.2]
+    scale: [0.6, 1, 0.6]
+    color: "#2c3e50"
+    material: "leather_office"
+  }
+
+  object "Chair6" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0.5, -2.2]
+    scale: [0.6, 1, 0.6]
+    color: "#2c3e50"
+    material: "leather_office"
+  }
+
+  // ── Collaboration Tools ───────────────────────────────────────────────────
+
   object "Whiteboard" {
     @clickable
     @collidable
-
     geometry: "plane"
     position: [0, 2, -5]
     scale: [4, 2.5, 1]
     color: "#ffffff"
+    material: "whiteboard"
+    behavior "SharedWhiteboard" {
+      maxLayers: 10
+      supportedTools: ['pen', 'marker', 'eraser', 'shape', 'text', 'sticky']
+      collaborationMode: 'realtime'
+      saveToCloud: true
+      snapshotEnabled: true
+    }
   }
 
-  // Marker 1 (red)
+  object "WhiteboardFrame" {
+    @collidable
+    geometry: "cube"
+    position: [0, 2, -5.05]
+    scale: [4.1, 2.6, 0.06]
+    color: "#b0bec5"
+    material: "aluminum"
+  }
+
+  object "WhiteboardTray" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0.85, -4.92]
+    scale: [4, 0.1, 0.12]
+    color: "#b0bec5"
+  }
+
+  // Markers
   object "RedMarker" {
     @grabbable
-
     geometry: "cylinder"
     position: [-1.5, 1.5, -4.8]
     rotation: [0, 0, 90]
     scale: [0.05, 0.2, 0.05]
     color: "#e74c3c"
+    behavior "WhiteboardMarker" {
+      color: '#e74c3c'
+      thickness: 2
+    }
   }
 
-  // Marker 2 (blue)
   object "BlueMarker" {
     @grabbable
-
     geometry: "cylinder"
     position: [-1, 1.5, -4.8]
     rotation: [0, 0, 90]
     scale: [0.05, 0.2, 0.05]
     color: "#3498db"
+    behavior "WhiteboardMarker" {
+      color: '#3498db'
+      thickness: 2
+    }
   }
 
-  // Marker 3 (green)
   object "GreenMarker" {
     @grabbable
-
     geometry: "cylinder"
     position: [-0.5, 1.5, -4.8]
     rotation: [0, 0, 90]
@@ -107,77 +246,337 @@ composition "VR Meeting Room" {
     color: "#2ecc71"
   }
 
-  // Presentation screen
+  object "BlackMarker" {
+    @grabbable
+    geometry: "cylinder"
+    position: [0, 1.5, -4.8]
+    rotation: [0, 0, 90]
+    scale: [0.05, 0.2, 0.05]
+    color: "#222222"
+  }
+
+  object "Eraser" {
+    @grabbable
+    geometry: "cube"
+    position: [0.6, 1.5, -4.8]
+    scale: [0.1, 0.08, 0.06]
+    color: "#f5f5f5"
+    behavior "WhiteboardEraser" {
+      eraseRadius: 0.05
+    }
+  }
+
+  // ── Presentation Systems ──────────────────────────────────────────────────
+
   object "Screen" {
     @glowing
-
     geometry: "plane"
     position: [6, 2.5, 0]
     rotation: [0, -90, 0]
     scale: [3, 2, 1]
     color: "#000000"
+    emissionIntensity: 0.7
+    behavior "PresentationScreen" {
+      resolution: '4K'
+      sourceModes: ['screenshare', 'video', '3d-model', 'web']
+      touchEnabled: true
+      annotationsEnabled: true
+    }
   }
 
-  // Video camera
+  object "ScreenFrame" {
+    @collidable
+    geometry: "cube"
+    position: [7.45, 2.5, 0]
+    rotation: [0, -90, 0]
+    scale: [3.1, 2.1, 0.12]
+    color: "#263238"
+  }
+
+  object "SecondaryScreen" {
+    @glowing
+    geometry: "plane"
+    position: [-6, 2.5, 0]
+    rotation: [0, 90, 0]
+    scale: [2.5, 1.8, 1]
+    color: "#000000"
+    emissionIntensity: 0.6
+    behavior "PresentationScreen" {
+      resolution: '1080p'
+      sourceModes: ['participant-view', 'notes']
+    }
+  }
+
+  // ── Video Conferencing ────────────────────────────────────────────────────
+
   object "Camera" {
     @rotatable
-
     geometry: "cube"
     position: [0, 3, 4]
     scale: [0.3, 0.2, 0.2]
     color: "#34495e"
+    behavior "VideoCamera" {
+      fov: 90
+      resolution: '4K'
+      autoTrackingEnabled: true
+      trackingMode: 'speaker'
+    }
   }
 
-  // Shared document
+  object "CameraMount" {
+    geometry: "cylinder"
+    position: [0, 3, 3.9]
+    scale: [0.05, 0.4, 0.05]
+    color: "#555555"
+  }
+
+  object "SpeechBar" {
+    @clickable
+    @glowing
+    geometry: "cube"
+    position: [0, 0.82, 0]
+    rotation: [-90, 0, 0]
+    scale: [2, 0.12, 0.04]
+    color: "#1a1a1a"
+    behavior "SpeechBar" {
+      inputGain: 1.0
+      noiseSuppression: true
+      echoCancel: true
+      channels: 8
+    }
+  }
+
+  // ── Collaboration Objects ─────────────────────────────────────────────────
+
   object "SharedDoc" {
     @clickable
     @glowing
-
     geometry: "plane"
     position: [0, 1, 0]
     rotation: [-90, 0, 0]
     scale: [1.5, 1, 1]
     color: "#ffffff"
+    behavior "SharedDocument" {
+      format: 'PDF'
+      pages: 24
+      collaborativeEditing: false
+      annotations: true
+    }
   }
 
-  // Microphone indicator
+  object "3DModelViewer" {
+    @clickable
+    @grabbable
+    @scalable
+    @rotatable
+    geometry: "sphere"
+    position: [-1, 1.5, 0]
+    scale: 0.4
+    color: "#00aaff"
+    emissionIntensity: 0.3
+    behavior "ModelViewer" {
+      currentModel: 'product_design_v3.glb'
+      allowExplodeView: true
+      allowCrossSectionView: true
+      annotationsVisible: true
+    }
+  }
+
+  object "StickyNote1" {
+    @grabbable
+    @clickable
+    geometry: "plane"
+    position: [1, 1.5, 0]
+    rotation: [-90, 0, 0]
+    scale: [0.2, 0.2, 1]
+    color: "#ffeb3b"
+    behavior "VirtualStickyNote" {
+      text: 'Action item: review Q1 metrics'
+      author: 'Participant 1'
+    }
+  }
+
+  object "StickyNote2" {
+    @grabbable
+    @clickable
+    geometry: "plane"
+    position: [1.3, 1.5, 0.3]
+    rotation: [-90, 0, 20]
+    scale: [0.2, 0.2, 1]
+    color: "#b2ebf2"
+    behavior "VirtualStickyNote" {
+      text: 'Follow-up by Friday'
+      author: 'Participant 2'
+    }
+  }
+
+  // ── Voice & Spatial Audio ─────────────────────────────────────────────────
+
   object "MicIndicator" {
     @glowing
-
     geometry: "cylinder"
     position: [0, 1.8, 0]
     scale: [0.1, 0.3, 0.1]
     color: "#e74c3c"
+    behavior "MicStatusLight" {
+      activeColor: '#e74c3c'
+      mutedColor: '#888888'
+      speakingColor: '#2ecc71'
+    }
   }
 
-  // Avatar spawn point 1
+  object "SpatialAudioSource1" {
+    geometry: "sphere"
+    position: [-3, 2.5, 0]
+    scale: 0.1
+    color: "#9b59b6"
+    behavior "SpatialAudio" {
+      enabled: true
+      attenuation: 'inverse'
+      maxDistance: 10.0
+      rolloffFactor: 1.5
+    }
+  }
+
+  // ── Spawn & Avatar Points ─────────────────────────────────────────────────
+
   object "Spawn1" {
     @glowing
-
     geometry: "cylinder"
     position: [-3, 0.05, 3]
     scale: [0.5, 0.1, 0.5]
     color: "#27ae60"
+    emissionIntensity: 0.8
   }
 
-  // Avatar spawn point 2
   object "Spawn2" {
     @glowing
-
     geometry: "cylinder"
     position: [3, 0.05, 3]
     scale: [0.5, 0.1, 0.5]
     color: "#27ae60"
+    emissionIntensity: 0.8
   }
 
-  // Chat panel
+  object "Spawn3" {
+    @glowing
+    geometry: "cylinder"
+    position: [0, 0.05, 3.5]
+    scale: [0.5, 0.1, 0.5]
+    color: "#27ae60"
+    emissionIntensity: 0.8
+  }
+
+  object "Spawn4" {
+    @glowing
+    geometry: "cylinder"
+    position: [-3.5, 0.05, 0]
+    scale: [0.5, 0.1, 0.5]
+    color: "#27ae60"
+    emissionIntensity: 0.8
+  }
+
+  // ── Lighting ──────────────────────────────────────────────────────────────
+
+  object "CeilingLight1" {
+    @glowing
+    geometry: "cube"
+    position: [-3, 3.9, -3]
+    scale: [1, 0.05, 0.3]
+    color: "#ffffff"
+    emissionIntensity: 4.0
+    castShadows: true
+  }
+
+  object "CeilingLight2" {
+    @glowing
+    geometry: "cube"
+    position: [3, 3.9, -3]
+    scale: [1, 0.05, 0.3]
+    color: "#ffffff"
+    emissionIntensity: 4.0
+    castShadows: true
+  }
+
+  object "CeilingLight3" {
+    @glowing
+    geometry: "cube"
+    position: [-3, 3.9, 3]
+    scale: [1, 0.05, 0.3]
+    color: "#ffffff"
+    emissionIntensity: 4.0
+  }
+
+  object "CeilingLight4" {
+    @glowing
+    geometry: "cube"
+    position: [3, 3.9, 3]
+    scale: [1, 0.05, 0.3]
+    color: "#ffffff"
+    emissionIntensity: 4.0
+  }
+
+  // ── Chat & Communication ──────────────────────────────────────────────────
+
   object "ChatPanel" {
     @glowing
-
     geometry: "plane"
     position: [-6, 2, 0]
     rotation: [0, 90, 0]
     scale: [2, 1.5, 1]
     color: "#2c3e50"
+    emissionIntensity: 0.5
+    behavior "ChatOverlay" {
+      historyLines: 50
+      emojiReactions: true
+      threadingEnabled: true
+    }
+  }
+
+  object "ParticipantList" {
+    @glowing
+    geometry: "plane"
+    position: [0, 3.8, -7.4]
+    scale: [4, 0.4, 1]
+    color: "#1a1a2e"
+    emissionIntensity: 0.4
+  }
+
+  // ── Meeting Systems ───────────────────────────────────────────────────────
+
+  system "MeetingController" {
+    maxParticipants: 12
+    recordingEnabled: true
+    transcriptionEnabled: true
+    translationLanguages: ['en', 'es', 'fr', 'de', 'zh', 'ja']
+    breakoutRooms: 4
+
+    event "onParticipantJoin" {
+      assignSeat: true
+      playJoinSound: true
+      notifyAll: true
+    }
+
+    event "onHandRaised" {
+      notifyHost: true
+      showInParticipantList: true
+    }
+
+    event "onMeetingEnd" {
+      exportTranscript: true
+      sendSummary: true
+      saveRecording: true
+    }
+  }
+
+  system "NetworkingConfig" {
+    protocol: 'photon-realtime'
+    region: 'us-east'
+    voiceProtocol: 'webrtc'
+    syncRate: 20
+    peerToPeer: false
+    serverSideAuth: true
+    latencyCompensation: true
+    maxPacketSize: 1400
   }
 }

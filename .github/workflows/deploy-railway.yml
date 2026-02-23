@@ -1,0 +1,244 @@
+# Deploy HoloScript web applications to Railway
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/studio/**'
+      - 'packages/marketplace-web/**'
+      - 'packages/marketplace-api/**'
+      - 'services/render-service/**'
+      - 'services/llm-service/**'
+      - 'packages/core/**'
+      - '.github/workflows/deploy-railway.yml'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy (or "all")'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - studio
+          - marketplace-web
+          - marketplace-api
+          - render-service
+          - llm-service
+
+concurrency:
+  group: railway-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      studio: ${{ steps.filter.outputs.studio }}
+      marketplace-web: ${{ steps.filter.outputs.marketplace-web }}
+      marketplace-api: ${{ steps.filter.outputs.marketplace-api }}
+      render-service: ${{ steps.filter.outputs.render-service }}
+      llm-service: ${{ steps.filter.outputs.llm-service }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            studio:
+              - 'packages/studio/**'
+              - 'packages/core/**'
+            marketplace-web:
+              - 'packages/marketplace-web/**'
+              - 'packages/core/**'
+            marketplace-api:
+              - 'packages/marketplace-api/**'
+              - 'packages/core/**'
+            render-service:
+              - 'services/render-service/**'
+              - 'packages/core/**'
+            llm-service:
+              - 'services/llm-service/**'
+              - 'packages/core/**'
+
+  deploy-studio:
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.studio == 'true' ||
+      github.event.inputs.service == 'all' ||
+      github.event.inputs.service == 'studio'
+    runs-on: ubuntu-latest
+    environment:
+      name: production-studio
+      url: https://studio.holoscript.net
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy HoloScript Studio
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+          railway up --service studio --detach
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          curl -f https://studio.holoscript.net/api/health || exit 1
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ HoloScript Studio deployed successfully"
+          echo "URL: https://studio.holoscript.net"
+
+  deploy-marketplace-web:
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.marketplace-web == 'true' ||
+      github.event.inputs.service == 'all' ||
+      github.event.inputs.service == 'marketplace-web'
+    runs-on: ubuntu-latest
+    environment:
+      name: production-marketplace-web
+      url: https://marketplace.holoscript.net
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Marketplace Web
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+          railway up --service marketplace-web --detach
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          curl -f https://marketplace.holoscript.net || exit 1
+
+  deploy-marketplace-api:
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.marketplace-api == 'true' ||
+      github.event.inputs.service == 'all' ||
+      github.event.inputs.service == 'marketplace-api'
+    runs-on: ubuntu-latest
+    environment:
+      name: production-marketplace-api
+      url: https://marketplace-api.holoscript.net
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Marketplace API
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+          railway up --service marketplace-api --detach
+
+      - name: Run database migrations
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway run --service marketplace-api npm run migrate
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          curl -f https://marketplace-api.holoscript.net/health || exit 1
+
+  deploy-render-service:
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.render-service == 'true' ||
+      github.event.inputs.service == 'all' ||
+      github.event.inputs.service == 'render-service'
+    runs-on: ubuntu-latest
+    environment:
+      name: production-render-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Render Service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+          railway up --service render-service --detach
+
+      - name: Wait for deployment
+        run: sleep 30
+
+  deploy-llm-service:
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.llm-service == 'true' ||
+      github.event.inputs.service == 'all' ||
+      github.event.inputs.service == 'llm-service'
+    runs-on: ubuntu-latest
+    environment:
+      name: production-llm-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy LLM Service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+          railway up --service llm-service --detach
+
+      - name: Wait for deployment
+        run: sleep 30
+
+  notify-deployment:
+    needs:
+      - deploy-studio
+      - deploy-marketplace-web
+      - deploy-marketplace-api
+      - deploy-render-service
+      - deploy-llm-service
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment summary
+        run: |
+          echo "## Railway Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Studio | ${{ needs.deploy-studio.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Marketplace Web | ${{ needs.deploy-marketplace-web.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Marketplace API | ${{ needs.deploy-marketplace-api.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Render Service | ${{ needs.deploy-render-service.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| LLM Service | ${{ needs.deploy-llm-service.result }} |" >> $GITHUB_STEP_SUMMARY

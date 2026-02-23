@@ -1,149 +1,617 @@
 // Industrial Robot Arm Simulation
 // UR5-style 6-DOF robot for URDF/SDF/ROS2 export
+// Platforms: URDF, SDF, Gazebo, ROS2
 
 composition "UR5 Robot Arm" {
 
-  // Base platform
+  metadata {
+    name: 'Robotics Simulation'
+    description: 'High-fidelity simulation of a Universal Robots UR5 6-DOF industrial robot arm. Includes inverse kinematics, collision detection, path planning, and ROS2 integration for robotics research and training.'
+    version: '2.5.0'
+    author: 'HoloScript Robotics Lab'
+    category: 'industrial'
+    tags: ['robotics', 'simulation', 'urdf', 'ros2', 'industrial', 'automation']
+    platforms: ['urdf', 'sdf', 'gazebo', 'ros2']
+    minPlayers: 1
+    maxPlayers: 1
+  }
+
+  // ── Work Cell Environment ─────────────────────────────────────────────────
+
+  object "FactoryFloor" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [10, 1, 10]
+    color: "#808080"
+    material: "factory_concrete"
+    friction: 0.8
+  }
+
+  object "CellBoundary" {
+    @collidable
+    geometry: "cube"
+    position: [0, 1.5, -2.5]
+    scale: [4, 3, 0.1]
+    color: "#ffcc00"
+    material: "safety_cage_mesh"
+    transparency: 0.7
+  }
+
+  object "CellBoundarySide1" {
+    @collidable
+    geometry: "cube"
+    position: [-2, 1.5, -0.5]
+    rotation: [0, 90, 0]
+    scale: [4, 3, 0.1]
+    color: "#ffcc00"
+    material: "safety_cage_mesh"
+    transparency: 0.7
+  }
+
+  object "CellBoundarySide2" {
+    @collidable
+    geometry: "cube"
+    position: [2, 1.5, -0.5]
+    rotation: [0, 90, 0]
+    scale: [4, 3, 0.1]
+    color: "#ffcc00"
+    material: "safety_cage_mesh"
+    transparency: 0.7
+  }
+
+  // ── Robot Base ────────────────────────────────────────────────────────────
+
   object "BasePlatform" {
     @collidable
-
     geometry: "cylinder"
     position: [0, 0.1, 0]
     scale: [0.8, 0.2, 0.8]
     color: "#2c3e50"
+    material: "cast_iron"
+    mass: 50.0
+    fixed: true
   }
 
-  // Base link (shoulder base)
   object "BaseLink" {
     @collidable
-
     geometry: "cylinder"
     position: [0, 0.3, 0]
     scale: [0.15, 0.4, 0.15]
     color: "#34495e"
+    material: "aluminum_alloy"
+    mass: 7.1
   }
 
-  // Shoulder (rotating joint)
+  // ── Robot Arm Joints ──────────────────────────────────────────────────────
+
   object "Shoulder" {
     @rotatable
-
     geometry: "cube"
     position: [0, 0.6, 0]
     scale: [0.2, 0.3, 0.2]
     color: "#7f8c8d"
+    material: "aluminum_alloy"
+    mass: 10.5
+    behavior "RevoluteJoint" {
+      axis: [0, 1, 0]
+      lowerLimit: -3.14159
+      upperLimit: 3.14159
+      maxVelocity: 2.094
+      maxTorque: 150.0
+    }
   }
 
-  // Upper arm
   object "UpperArm" {
     @collidable
-
     geometry: "cube"
     position: [0, 0.8, 0.4]
     scale: [0.15, 0.15, 0.8]
     color: "#95a5a6"
+    material: "aluminum_alloy"
+    mass: 5.35
   }
 
-  // Elbow joint
   object "Elbow" {
     @rotatable
-
     geometry: "sphere"
     position: [0, 0.8, 0.8]
     scale: 0.15
     color: "#bdc3c7"
+    material: "aluminum_alloy"
+    mass: 3.7
+    behavior "RevoluteJoint" {
+      axis: [1, 0, 0]
+      lowerLimit: -3.14159
+      upperLimit: 0.0
+      maxVelocity: 2.094
+      maxTorque: 150.0
+    }
   }
 
-  // Forearm
   object "Forearm" {
     @collidable
-
     geometry: "cube"
     position: [0, 0.5, 1]
     scale: [0.12, 0.6, 0.12]
     color: "#95a5a6"
+    material: "aluminum_alloy"
+    mass: 3.7
   }
 
-  // Wrist joint
   object "Wrist" {
     @rotatable
-
     geometry: "sphere"
     position: [0, 0.2, 1]
     scale: 0.1
     color: "#bdc3c7"
+    material: "aluminum_alloy"
+    mass: 1.93
+    behavior "RevoluteJoint" {
+      axis: [1, 0, 0]
+      lowerLimit: -3.14159
+      upperLimit: 3.14159
+      maxVelocity: 3.14159
+      maxTorque: 28.0
+    }
   }
 
-  // End effector (gripper base)
+  object "Wrist2" {
+    @rotatable
+    geometry: "sphere"
+    position: [0, 0.1, 1]
+    scale: 0.09
+    color: "#bdc3c7"
+    mass: 1.93
+    behavior "RevoluteJoint" {
+      axis: [0, 1, 0]
+      lowerLimit: -3.14159
+      upperLimit: 3.14159
+      maxVelocity: 3.14159
+      maxTorque: 28.0
+    }
+  }
+
+  object "Wrist3" {
+    @rotatable
+    geometry: "sphere"
+    position: [0.0, 0.05, 1]
+    scale: 0.09
+    color: "#bdc3c7"
+    mass: 0.35
+    behavior "RevoluteJoint" {
+      axis: [0, 0, 1]
+      lowerLimit: -6.28318
+      upperLimit: 6.28318
+      maxVelocity: 3.14159
+      maxTorque: 28.0
+    }
+  }
+
+  // ── End Effector (Gripper) ────────────────────────────────────────────────
+
   object "GripperBase" {
     @collidable
-
     geometry: "cube"
     position: [0, 0.1, 1]
     scale: [0.15, 0.1, 0.08]
     color: "#34495e"
+    material: "aluminum_alloy"
+    mass: 0.8
   }
 
-  // Gripper finger 1
   object "GripperFinger1" {
     @grabbable
-
     geometry: "cube"
     position: [-0.08, 0.05, 1.05]
     scale: [0.02, 0.08, 0.04]
     color: "#7f8c8d"
+    material: "rubber_tip"
+    behavior "PrismaticJoint" {
+      axis: [1, 0, 0]
+      lowerLimit: -0.05
+      upperLimit: 0.05
+      maxForce: 140.0
+    }
   }
 
-  // Gripper finger 2
   object "GripperFinger2" {
     @grabbable
-
     geometry: "cube"
     position: [0.08, 0.05, 1.05]
     scale: [0.02, 0.08, 0.04]
     color: "#7f8c8d"
+    material: "rubber_tip"
+    behavior "PrismaticJoint" {
+      axis: [-1, 0, 0]
+      lowerLimit: -0.05
+      upperLimit: 0.05
+      maxForce: 140.0
+    }
   }
 
-  // Work surface
+  object "ForceGauge" {
+    @glowing
+    @clickable
+    geometry: "plane"
+    position: [0, 0.15, 1.08]
+    scale: [0.08, 0.05, 1]
+    color: "#00ff88"
+    behavior "GripForceDisplay" {
+      maxForce: 200
+      currentForce: 0
+      unit: 'N'
+    }
+  }
+
+  // ── Work Surface & Objects ────────────────────────────────────────────────
+
   object "WorkSurface" {
     @collidable
-
     geometry: "cube"
     position: [0.8, 0.4, 0.5]
     scale: [1, 0.8, 1]
     color: "#8b4513"
+    material: "mdf_surface"
   }
 
-  // Target object (for manipulation)
+  object "WorkSurfaceLeg1" {
+    @collidable
+    geometry: "cube"
+    position: [0.35, 0.2, 0.05]
+    scale: [0.05, 0.4, 0.05]
+    color: "#555555"
+    material: "steel_tube"
+  }
+
+  object "WorkSurfaceLeg2" {
+    @collidable
+    geometry: "cube"
+    position: [1.25, 0.2, 0.05]
+    scale: [0.05, 0.4, 0.05]
+    color: "#555555"
+    material: "steel_tube"
+  }
+
   object "TargetCube" {
     @grabbable
     @physics
     @collidable
-
     geometry: "cube"
     position: [0.8, 0.9, 0.5]
     scale: 0.1
     color: "#e74c3c"
+    material: "plastic"
+    mass: 0.5
+    behavior "ManipulationTarget" {
+      targetPosition: [0.8, 0.9, 0.8]
+      successThreshold: 0.05
+    }
   }
 
-  // Safety zone marker
+  object "TargetCylinder" {
+    @grabbable
+    @physics
+    @collidable
+    geometry: "cylinder"
+    position: [0.65, 0.9, 0.5]
+    scale: [0.06, 0.12, 0.06]
+    color: "#3498db"
+    mass: 0.3
+  }
+
+  object "AssemblyPeg" {
+    @collidable
+    geometry: "cylinder"
+    position: [0.8, 0.82, 0.7]
+    scale: [0.02, 0.04, 0.02]
+    color: "#bdc3c7"
+    material: "stainless_steel"
+  }
+
+  // ── Safety Zone ───────────────────────────────────────────────────────────
+
   object "SafetyZone" {
     @glowing
-
     geometry: "plane"
     position: [0, 0.01, 0]
     scale: [3, 1, 3]
     color: "#f39c12"
+    opacity: 0.3
+    behavior "SafetyZoneMonitor" {
+      maxSpeed: 0.25
+      reducedSpeedZone: true
+      alertOnEntry: true
+    }
   }
 
-  // Control panel
+  object "SafetyLightGreen" {
+    @glowing
+    geometry: "sphere"
+    position: [-1.8, 2.8, 0]
+    scale: 0.15
+    color: "#00ff00"
+    emissionIntensity: 3.0
+  }
+
+  object "SafetyLightRed" {
+    @glowing
+    geometry: "sphere"
+    position: [-1.8, 2.8, 0.4]
+    scale: 0.15
+    color: "#ff0000"
+    emissionIntensity: 3.0
+  }
+
+  // ── Control Panel ─────────────────────────────────────────────────────────
+
   object "ControlPanel" {
     @clickable
     @glowing
-
     geometry: "cube"
     position: [-1.5, 1, 0]
     rotation: [0, 30, 0]
     scale: [0.4, 0.6, 0.05]
     color: "#2980b9"
+    behavior "RobotController" {
+      modes: ['teach', 'auto', 'manual']
+      currentMode: 'teach'
+      speedOverride: 100
+      showJointAngles: true
+      showTCPPosition: true
+    }
+  }
+
+  object "EmergencyStop" {
+    @clickable
+    @glowing
+    geometry: "cylinder"
+    position: [-1.5, 1.3, 0.15]
+    rotation: [-30, 30, 0]
+    scale: [0.05, 0.03, 0.05]
+    color: "#ff0000"
+    emissionIntensity: 0.5
+    behavior "EmergencyStop" {
+      stopsAllMotion: true
+      requiresManualReset: true
+    }
+  }
+
+  object "TeachPendant" {
+    @grabbable
+    @clickable
+    geometry: "cube"
+    position: [-1.5, 0.9, 0.2]
+    scale: [0.2, 0.35, 0.05]
+    color: "#2c3e50"
+    behavior "TeachPendant" {
+      deadmanSwitch: true
+      showJointJog: true
+      showLinearJog: true
+    }
+  }
+
+  // ── Sensors ───────────────────────────────────────────────────────────────
+
+  object "VisionSensor" {
+    @glowing
+    geometry: "cube"
+    position: [0, 2, 0]
+    scale: [0.1, 0.07, 0.07]
+    color: "#222222"
+    behavior "RGBDCamera" {
+      fov: 60
+      resolution: [1280, 720]
+      frameRate: 30
+      depthRange: [0.1, 3.0]
+    }
+  }
+
+  object "ForceTorqueSensor" {
+    geometry: "cylinder"
+    position: [0, 0.06, 1]
+    scale: [0.09, 0.04, 0.09]
+    color: "#888833"
+    behavior "FTSensor" {
+      maxForce: 300
+      maxTorque: 30
+      samplingRate: 500
+    }
+  }
+
+  // ── ROS2 Integration ──────────────────────────────────────────────────────
+
+  system "ROS2Bridge" {
+    nodeName: '/ur5_simulation'
+    publishRate: 125
+    topics: {
+      jointStates: '/joint_states'
+      jointGoal: '/joint_group_position_controller/command'
+      tcpPose: '/tool_center_point'
+      gripperCmd: '/gripper/command'
+      ftData: '/ft_sensor/data'
+    }
+    services: ['/compute_ik', '/plan_trajectory', '/execute_trajectory']
+    actions: ['/follow_joint_trajectory', '/pick_and_place']
+  }
+
+  system "InverseKinematics" {
+    solver: 'KDL'
+    dofCount: 6
+    tolerancePosition: 0.001
+    toleranceOrientation: 0.01
+    maxIterations: 1000
+  }
+
+  system "CollisionDetection" {
+    algorithm: 'FCL'
+    selfCollision: true
+    environmentCollision: true
+    safetyMargin: 0.02
+    stopOnCollision: true
+  }
+
+  // ── Advanced Motion Programs ───────────────────────────────────────────────
+
+  system "PickAndPlaceProgram" {
+    name: 'Advanced Pick and Place'
+    targetTolerance: 0.001
+    motionProfiles: ['fast_approach', 'slow_contact', 'fast_retract']
+    pathPlanning: 'rrt_star'
+
+    sequence "GripObject" {
+      step1: { action: 'move_to', position: 'pre_grasp', speed: 0.8 }
+      step2: { action: 'open_gripper', width: 0.12 }
+      step3: { action: 'move_to', position: 'grasp', speed: 0.2 }
+      step4: { action: 'close_gripper', force: 40 }
+      step5: { action: 'check_grasp', sensor: 'force_sensor' }
+      step6: { action: 'move_to', position: 'lift', speed: 0.3 }
+    }
+
+    sequence "PlaceObject" {
+      step1: { action: 'move_to', position: 'pre_place', speed: 0.8 }
+      step2: { action: 'move_to', position: 'place', speed: 0.15 }
+      step3: { action: 'open_gripper', width: 0.12 }
+      step4: { action: 'move_to', position: 'retract', speed: 0.5 }
+    }
+  }
+
+  system "WeldingProgram" {
+    name: 'Robotic Welding'
+    weldType: 'MIG'
+    wireSpeed: 5.5
+    current: 200
+    voltage: 22
+    gasFlow: 18
+
+    sequence "WeldSeam" {
+      step1: { action: 'move_to', position: 'weld_start', speed: 0.1 }
+      step2: { action: 'start_welder', current: 200 }
+      step3: { action: 'move_along_seam', speed: 0.008 }
+      step4: { action: 'stop_welder' }
+      step5: { action: 'move_to', position: 'home', speed: 0.5 }
+    }
+  }
+
+  system "PaintingProgram" {
+    name: 'Spray Painting'
+    sprayPattern: 'horizontal_zigzag'
+    overlapPercent: 20
+    sprayDistance: 0.25
+    flowRate: 350
+
+    sequence "PaintSurface" {
+      step1: { action: 'move_to', position: 'paint_start', speed: 0.5 }
+      step2: { action: 'start_spray', flow: 350 }
+      step3: { action: 'sweep_horizontal', passes: 12, speed: 0.15 }
+      step4: { action: 'stop_spray' }
+      step5: { action: 'move_to', position: 'home', speed: 0.8 }
+    }
+  }
+
+  // ── Sensor Suite ──────────────────────────────────────────────────────────
+
+  object "ForceTorqueSensor" {
+    @sensor
+    position: [0, 0, 0.42]
+    sensorType: 'force_torque_6dof'
+    maxForce: 1000
+    maxTorque: 50
+    resolution: 0.1
+    sampleRate: 1000
+    behavior "SafetyMonitor" {
+      forceLimit: 500
+      torqueLimit: 30
+      onOverload: 'emergency_stop'
+    }
+  }
+
+  object "VisionSystem" {
+    @sensor
+    position: [0, 0.8, 0.6]
+    cameraType: 'stereo_depth'
+    resolution: [1920, 1080]
+    framerate: 60
+    depthRange: [0.1, 3.0]
+    fieldOfView: 90
+    colorSpace: 'RGB'
+    behavior "ObjectDetection" {
+      modelPath: 'models/detect_v3.onnx'
+      confidenceThreshold: 0.85
+      classFilter: ['box', 'bottle', 'part', 'tool']
+      maxDetections: 20
+    }
+  }
+
+  object "ProximitySensor" {
+    @sensor
+    position: [0, -0.5, 1.0]
+    sensorType: 'ultrasonic'
+    range: 2.0
+    resolution: 0.01
+    sampleRate: 100
+    behavior "SafetyZone" {
+      warningDistance: 0.8
+      stopDistance: 0.3
+      onWarning: 'slow_speed'
+      onStop: 'emergency_stop'
+    }
+  }
+
+  // ── Calibration Routines ──────────────────────────────────────────────────
+
+  system "CalibrationManager" {
+    autoCalibrate: true
+    calibrateOnStartup: true
+    calibrationInterval: 8
+
+    routine "HomeCalibration" {
+      steps: [
+        { joint: 'J1', method: 'zero_crossing', speed: 5 },
+        { joint: 'J2', method: 'zero_crossing', speed: 5 },
+        { joint: 'J3', method: 'zero_crossing', speed: 3 },
+        { joint: 'J4', method: 'zero_crossing', speed: 5 },
+        { joint: 'J5', method: 'zero_crossing', speed: 5 },
+        { joint: 'J6', method: 'zero_crossing', speed: 8 }
+      ]
+      verifyAfter: true
+      tolerance: 0.01
+    }
+
+    routine "ToolCalibration" {
+      method: 'four_point'
+      referencePoint: [0.4, 0, 0.6]
+      measurementPoses: 4
+      averagingPasses: 3
+      tcpTolerance: 0.005
+    }
+  }
+
+  system "MaintenanceScheduler" {
+    jointGreaseInterval: 500
+    ballscrewInspectInterval: 1000
+    encoderCheckInterval: 2000
+    filterReplaceInterval: 200
+    runHours: 0
+    nextMaintenanceAlert: true
+
+    event "onMaintenanceDue" {
+      pauseOperation: true
+      notifyOperator: true
+      logToHistory: true
+    }
+  }
+
+  system "DataLogger" {
+    logInterval: 10
+    logJointPositions: true
+    logJointTorques: true
+    logJointTemps: true
+    logForce: true
+    logCycleTime: true
+    storageFormat: 'csv'
+    retentionDays: 30
+    exportEnabled: true
   }
 }
+

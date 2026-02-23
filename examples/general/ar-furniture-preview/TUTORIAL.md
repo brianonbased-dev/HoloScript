@@ -658,6 +658,49 @@ Now that you understand AR furniture preview, try:
 
 ---
 
+## Key Concepts
+
+| Concept | Description |
+|---|---|
+| `ar_session` | Configures the AR tracking mode, plane detection, and lighting estimation |
+| `catalog` | Organized collection of products with categories, variants, and pricing |
+| `ar_placement` | Controls where and how virtual objects are placed in AR space |
+| `placement_reticle` | Visual indicator showing the valid placement location |
+| `on_screen_tap` | Event handler for mobile touch-to-place interactions |
+| `on_pinch_gesture` | Event handler for two-finger scale gesture |
+| `on_horizontal_swipe` | Event handler for single-finger rotation gesture |
+| `ar_lighting` | Matches virtual object lighting to the real-world environment |
+| `api_call` | Makes HTTP requests to external services (e-commerce APIs, etc.) |
+| `materials` | Color and texture variants with optional price modifiers |
+
+---
+
+## Best Practices
+
+### AR Performance
+- Keep GLB model poly count below 10,000 triangles per item
+- Use Basis Universal texture compression for mobile bandwidth
+- Cap concurrent placed objects at 20 to avoid frame rate drops
+- Enable `reduce_quality_on_low_battery: true` for sustained performance
+
+### User Experience
+- Always show a placement reticle with clear color feedback (green/red)
+- Provide haptic feedback on successful placement
+- Use bottom-sheet UI for catalogs — avoids occlusion of AR view
+- Show surface detection progress before allowing placement
+
+### E-Commerce Integration
+- Pass `session_id` with checkout calls for analytics attribution
+- Store `selected_material` persistently so users don't re-select after reload
+- Validate prices client-side and server-side to prevent manipulation
+
+### Cross-Platform
+- Test on both iOS Safari (WebXR) and Android Chrome before shipping
+- Provide a fallback 3D viewer for browsers without AR support
+- Use `HTTPS` — camera access is blocked on insecure origins
+
+---
+
 **Questions?** Join the HoloScript community on Discord or open an issue on GitHub.
 
 **Happy building!** 🚀

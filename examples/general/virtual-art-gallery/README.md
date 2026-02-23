@@ -2,7 +2,7 @@
 
 **Universal HoloScript example demonstrating immersive cultural experiences.**
 
-## 📋 Overview
+## Overview
 
 This example showcases HoloScript's capabilities for creating virtual museum and gallery experiences. Visitors can explore curated art exhibitions in VR or on their desktop, with interactive audio guides, detailed artwork information, and accessible navigation.
 
@@ -43,7 +43,7 @@ After completing this example, you'll learn how to:
 5. **Optimize lighting for art presentation** (spotlights, ambient light)
 6. **Build accessible cultural experiences** for diverse audiences
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Compile to Your Platform
 

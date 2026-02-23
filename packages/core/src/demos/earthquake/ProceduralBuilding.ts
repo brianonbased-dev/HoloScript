@@ -383,26 +383,28 @@ export class ProceduralBuilding {
   private identifyWeakPoints(elements: StructuralElement[], config: BuildingConfig): WeakPoint[] {
     const weakPoints: WeakPoint[] = [];
 
-    // Lower floors bear more load → more stress → lower failure threshold
+    // Lower floors bear more load → more stress → lower failure threshold (easier to fail)
     for (const element of elements) {
       if (element.type === 'foundation') continue;
 
-      // Calculate stress based on floor level
+      // floorFactor: 0 for bottom floor, 1 for top floor
+      // stressFactor: 1 for bottom floor (max stress), 0 for top floor (min stress)
       const floorFactor = element.floor / config.floors;
-      const baseFactor = 1 - floorFactor; // Lower floors = higher base factor
+      const stressFactor = 1 - floorFactor; // Lower floors bear more cumulative load
 
       // Columns have weak points at connections
+      // Lower floors → lower threshold (stressFactor high → subtract more)
       if (element.type === 'column') {
         weakPoints.push({
           elementId: element.id,
-          failureThreshold: 60 + baseFactor * 20, // 60-80%
+          failureThreshold: 80 - stressFactor * 20, // 60% (bottom) to 80% (top)
           failureMode: 'crush',
           position: 0.1, // Near bottom
         });
 
         weakPoints.push({
           elementId: element.id,
-          failureThreshold: 70 + baseFactor * 15,
+          failureThreshold: 85 - stressFactor * 15, // 70% (bottom) to 85% (top)
           failureMode: 'snap',
           position: 0.9, // Near top
         });
@@ -412,7 +414,7 @@ export class ProceduralBuilding {
       if (element.type === 'beam') {
         weakPoints.push({
           elementId: element.id,
-          failureThreshold: 50 + baseFactor * 30,
+          failureThreshold: 80 - stressFactor * 30, // 50% (bottom) to 80% (top)
           failureMode: 'bend',
           position: 0.5, // Middle
         });
@@ -422,7 +424,7 @@ export class ProceduralBuilding {
       if (element.type === 'floor') {
         weakPoints.push({
           elementId: element.id,
-          failureThreshold: 70 + baseFactor * 20,
+          failureThreshold: 90 - stressFactor * 20, // 70% (bottom) to 90% (top)
           failureMode: 'shear',
           position: 0.5,
         });
@@ -458,24 +460,28 @@ export class ProceduralBuilding {
     min: [number, number, number];
     max: [number, number, number];
   } {
-    let minX = Infinity,
-      minY = Infinity,
-      minZ = Infinity;
-    let maxX = -Infinity,
-      maxY = -Infinity,
-      maxZ = -Infinity;
+    // Use floor slabs for XZ (they represent the building footprint exactly)
+    // and all non-foundation elements for Y
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
 
     for (const element of elements) {
+      if (element.type === 'foundation') continue;
+
       const [x, y, z] = element.position;
       const [w, h, d] = element.dimensions;
 
-      minX = Math.min(minX, x - w / 2);
-      minY = Math.min(minY, y - h / 2);
-      minZ = Math.min(minZ, z - d / 2);
+      // Only floor slabs contribute to XZ bounds (exact building footprint)
+      if (element.type === 'floor') {
+        minX = Math.min(minX, x - w / 2);
+        minZ = Math.min(minZ, z - d / 2);
+        maxX = Math.max(maxX, x + w / 2);
+        maxZ = Math.max(maxZ, z + d / 2);
+      }
 
-      maxX = Math.max(maxX, x + w / 2);
+      // All structural elements contribute to Y bounds
+      minY = Math.min(minY, y - h / 2);
       maxY = Math.max(maxY, y + h / 2);
-      maxZ = Math.max(maxZ, z + d / 2);
     }
 
     return {

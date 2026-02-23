@@ -2,7 +2,7 @@
 
 **Universal HoloScript example demonstrating corporate training use cases.**
 
-## 📋 Overview
+## Overview
 
 This example showcases HoloScript's capabilities for creating professional VR training simulations. It demonstrates a complete workplace safety training program that can be deployed across multiple platforms without code changes.
 
@@ -40,7 +40,7 @@ After completing this example, you'll learn how to:
 5. **Add audio/visual effects** for immersive experiences
 6. **Export to multiple platforms** from a single HoloScript file
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Compile to Your Platform
 

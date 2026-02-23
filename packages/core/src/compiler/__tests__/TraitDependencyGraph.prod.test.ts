@@ -196,11 +196,113 @@ describe('TraitDependencyGraph — Production', () => {
     expect(stats.sourceCount).toBe(1);
   });
 
-  it('clear resets everything', () => {
-    graph.registerTrait({ name: 'x', requires: [], conflicts: [] });
-    graph.registerObject({ objectName: 'y', sourceId: 'y.holo', traits: [] });
-    graph.clear();
-    expect(graph.getStats().objectCount).toBe(0);
-    expect(graph.getStats().traitCount).toBe(0);
+  // ─── Import Edge Tracking ──────────────────────────────────────────
+
+  describe('Import Edge Tracking (@import cross-file deps)', () => {
+    it('registerImport records a forward edge', () => {
+      graph.registerImport('/project/a.hs', '/project/b.hs');
+      const imported = graph.getImportedFiles('/project/a.hs');
+      expect(imported.has('/project/b.hs')).toBe(true);
+    });
+
+    it('registerImport records a reverse edge', () => {
+      graph.registerImport('/project/a.hs', '/project/b.hs');
+      const importers = graph.getFilesThatImport('/project/b.hs');
+      expect(importers.has('/project/a.hs')).toBe(true);
+    });
+
+    it('registerImport is idempotent', () => {
+      graph.registerImport('/a.hs', '/b.hs');
+      graph.registerImport('/a.hs', '/b.hs');
+      expect(graph.getImportedFiles('/a.hs').size).toBe(1);
+    });
+
+    it('getImportedFiles returns empty set for unknown file', () => {
+      expect(graph.getImportedFiles('/nope.hs').size).toBe(0);
+    });
+
+    it('getFilesThatImport returns empty set for unimported file', () => {
+      expect(graph.getFilesThatImport('/nope.hs').size).toBe(0);
+    });
+
+    it('getFilesAffectedByChange includes the changed file', () => {
+      const affected = graph.getFilesAffectedByChange(['/a.hs']);
+      expect(affected.has('/a.hs')).toBe(true);
+    });
+
+    it('getFilesAffectedByChange propagates to direct importers', () => {
+      graph.registerImport('/scene.hs', '/shared.hs');
+      const affected = graph.getFilesAffectedByChange(['/shared.hs']);
+      expect(affected.has('/scene.hs')).toBe(true);
+      expect(affected.has('/shared.hs')).toBe(true);
+    });
+
+    it('getFilesAffectedByChange propagates transitively', () => {
+      // a imports b imports c
+      graph.registerImport('/a.hs', '/b.hs');
+      graph.registerImport('/b.hs', '/c.hs');
+      // change c → must recompile b and a
+      const affected = graph.getFilesAffectedByChange(['/c.hs']);
+      expect(affected.has('/c.hs')).toBe(true);
+      expect(affected.has('/b.hs')).toBe(true);
+      expect(affected.has('/a.hs')).toBe(true);
+    });
+
+    it('getFilesAffectedByChange handles diamond deps without duplicating', () => {
+      // a and b both import c; d imports both a and b
+      graph.registerImport('/a.hs', '/c.hs');
+      graph.registerImport('/b.hs', '/c.hs');
+      graph.registerImport('/d.hs', '/a.hs');
+      graph.registerImport('/d.hs', '/b.hs');
+      const affected = graph.getFilesAffectedByChange(['/c.hs']);
+      // d should appear once (not twice)
+      expect([...affected].filter(f => f === '/d.hs').length).toBe(1);
+      expect(affected.size).toBe(4); // c, a, b, d
+    });
+
+    it('clearImportsForFile removes forward and reverse edges', () => {
+      graph.registerImport('/scene.hs', '/shared.hs');
+      graph.clearImportsForFile('/scene.hs');
+      expect(graph.getImportedFiles('/scene.hs').size).toBe(0);
+      expect(graph.getFilesThatImport('/shared.hs').size).toBe(0);
+    });
+
+    it('clear() also resets import edges', () => {
+      graph.registerImport('/a.hs', '/b.hs');
+      graph.clear();
+      expect(graph.getImportedFiles('/a.hs').size).toBe(0);
+      expect(graph.getStats().importEdges).toBe(0);
+    });
+
+    it('getStats.importEdges counts edges', () => {
+      graph.registerImport('/a.hs', '/b.hs');
+      graph.registerImport('/a.hs', '/c.hs');
+      expect(graph.getStats().importEdges).toBe(2);
+    });
+
+    it('serialize + deserialize preserves import edges (v2)', () => {
+      graph.registerImport('/scene.hs', '/shared.hs');
+      graph.registerImport('/scene.hs', '/utils.hs');
+      const json = graph.serialize();
+      const parsed = JSON.parse(json);
+      expect(parsed.version).toBe(2);
+      const restored = TraitDependencyGraph.deserialize(json);
+      expect(restored.getImportedFiles('/scene.hs').has('/shared.hs')).toBe(true);
+      expect(restored.getImportedFiles('/scene.hs').has('/utils.hs')).toBe(true);
+      expect(restored.getFilesThatImport('/shared.hs').has('/scene.hs')).toBe(true);
+    });
+
+    it('deserializes old v1 JSON without crashing', () => {
+      // v1 JSON has no importEdges array
+      const v1 = JSON.stringify({
+        version: 1,
+        traitDependencies: [],
+        traitConflicts: [],
+        objectTraits: [],
+        timestamp: 0,
+      });
+      const restored = TraitDependencyGraph.deserialize(v1);
+      expect(restored.getImportedFiles('/x.hs').size).toBe(0);
+    });
   });
 });

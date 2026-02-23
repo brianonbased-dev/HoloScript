@@ -99,6 +99,18 @@ export interface HSPlusNode extends ASTNode {
     start: { line: number; column: number };
     end: { line: number; column: number };
   };
+  /**
+   * Per-node reactive state block.
+   * Populated by the parser when a `state { key = value }` block
+   * appears inside a node/object declaration.
+   * Keys are state variable names; values are initial values.
+   */
+  stateBlock?: Record<string, unknown>;
+  /**
+   * Type inferred by TypeInferencePass.
+   * Set during compilation; never present on freshly-parsed AST.
+   */
+  inferredType?: HSPlusType;
 }
 
 export interface HSPlusAST {
@@ -126,6 +138,21 @@ export interface StateDeclaration {
   reactive?: boolean;
   [key: string]: any;
 }
+
+/**
+ * Primitive type system for HoloScript+.
+ * Used by the TypeInferencePass to annotate AST nodes.
+ */
+export type HSPlusType =
+  | 'float'
+  | 'int'
+  | 'bool'
+  | 'string'
+  | 'vec2'
+  | 'vec3'
+  | 'vec4'
+  | 'color'
+  | 'unknown';
 
 export interface ReactiveState<T = any> {
   get<K extends keyof T>(key: K): T[K];

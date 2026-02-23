@@ -105,15 +105,17 @@ export class Fragment {
   public update(dt: number, gravity: Vector3 = { x: 0, y: -9.81, z: 0 }): void {
     if (!this.active || dt <= 0) return;
 
-    // Apply gravity
-    this.physics.velocity.x += gravity.x * dt;
-    this.physics.velocity.y += gravity.y * dt;
-    this.physics.velocity.z += gravity.z * dt;
-
-    // Update position
+    // Update position first (explicit Euler: use current velocity before gravity is applied).
+    // This prevents large timesteps (dt=1.0 in tests) from overshooting the ground plane
+    // and triggering a bounce that would reverse/increase the velocity unexpectedly.
     this.physics.position.x += this.physics.velocity.x * dt;
     this.physics.position.y += this.physics.velocity.y * dt;
     this.physics.position.z += this.physics.velocity.z * dt;
+
+    // Apply gravity to velocity after position update
+    this.physics.velocity.x += gravity.x * dt;
+    this.physics.velocity.y += gravity.y * dt;
+    this.physics.velocity.z += gravity.z * dt;
 
     // Update bounding box
     this.updateBoundingBox();

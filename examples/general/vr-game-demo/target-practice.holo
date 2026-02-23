@@ -1,49 +1,184 @@
 // VR Game Demo - Target Practice
 // Fast-paced VR shooter with physics
+// Platforms: Unity, Unreal, Godot
 
 composition "VR Target Practice" {
 
-  // Arena floor
+  metadata {
+    name: 'VR Game Demo'
+    description: 'High-intensity VR target shooting game with physics-based projectiles, dynamic target spawning, and competitive scoring. Designed for all VR headsets with roomscale and stationary support.'
+    version: '5.0.0'
+    author: 'HoloScript Game Studio'
+    category: 'game'
+    tags: ['game', 'shooter', 'vr', 'physics', 'multiplayer', 'competitive']
+    platforms: ['unity', 'unreal', 'godot']
+    minPlayers: 1
+    maxPlayers: 4
+    estimatedDuration: 300
+  }
+
+  // ── Arena Environment ─────────────────────────────────────────────────────
+
   object "ArenaFloor" {
     @collidable
-
     geometry: "plane"
     position: [0, 0, 0]
     scale: [20, 1, 20]
     color: "#2f4f4f"
+    material: "rubber_mat"
+    receiveShadows: true
   }
 
-  // Target 1
+  object "ArenaCeiling" {
+    geometry: "plane"
+    position: [0, 6, 0]
+    rotation: [180, 0, 0]
+    scale: [20, 1, 20]
+    color: "#1a1a2e"
+    material: "industrial_ceiling"
+  }
+
+  object "ArenaWallNorth" {
+    @collidable
+    geometry: "cube"
+    position: [0, 3, -10]
+    scale: [20, 6, 0.2]
+    color: "#333355"
+    material: "padded_wall"
+  }
+
+  object "ArenaWallSouth" {
+    @collidable
+    geometry: "cube"
+    position: [0, 3, 10]
+    scale: [20, 6, 0.2]
+    color: "#333355"
+    material: "padded_wall"
+  }
+
+  object "ArenaWallEast" {
+    @collidable
+    geometry: "cube"
+    position: [10, 3, 0]
+    rotation: [0, 90, 0]
+    scale: [20, 6, 0.2]
+    color: "#333355"
+    material: "padded_wall"
+  }
+
+  object "ArenaWallWest" {
+    @collidable
+    geometry: "cube"
+    position: [-10, 3, 0]
+    rotation: [0, 90, 0]
+    scale: [20, 6, 0.2]
+    color: "#333355"
+    material: "padded_wall"
+  }
+
+  // Ambient floor glow
+  object "FloorGrid" {
+    @glowing
+    geometry: "plane"
+    position: [0, 0.01, 0]
+    scale: [20, 1, 20]
+    color: "#003366"
+    emissionIntensity: 0.3
+  }
+
+  // ── Primary Targets ───────────────────────────────────────────────────────
+
   object "Target1" {
     @clickable
     @collidable
-
     geometry: "sphere"
     position: [-3, 1.5, -5]
     scale: 0.5
     color: "#ff0000"
+    material: "painted_metal"
+    behavior "TargetBehavior" {
+      pointValue: 100
+      respawnDelay: 2.0
+      knockbackForce: 5.0
+      playHitSound: 'sfx/target_hit.wav'
+      playMissSound: 'sfx/target_miss.wav'
+    }
   }
 
-  // Target 2
   object "Target2" {
     @clickable
     @collidable
-
     geometry: "sphere"
     position: [0, 2, -6]
     scale: 0.5
     color: "#ff0000"
+    material: "painted_metal"
+    behavior "TargetBehavior" {
+      pointValue: 100
+      respawnDelay: 2.0
+    }
   }
 
-  // Target 3
   object "Target3" {
     @clickable
     @collidable
-
     geometry: "sphere"
     position: [3, 1.5, -5]
     scale: 0.5
     color: "#ff0000"
+    material: "painted_metal"
+    behavior "TargetBehavior" {
+      pointValue: 100
+      respawnDelay: 2.0
+    }
+  }
+
+  object "Target4" {
+    @clickable
+    @collidable
+    geometry: "sphere"
+    position: [-5, 3, -7]
+    scale: 0.4
+    color: "#ff6600"
+    material: "painted_metal"
+    behavior "TargetBehavior" {
+      pointValue: 150
+      respawnDelay: 1.5
+      isMobile: true
+    }
+  }
+
+  object "Target5" {
+    @clickable
+    @collidable
+    geometry: "sphere"
+    position: [5, 3, -7]
+    scale: 0.4
+    color: "#ff6600"
+    material: "painted_metal"
+    behavior "TargetBehavior" {
+      pointValue: 150
+      respawnDelay: 1.5
+      isMobile: true
+    }
+  }
+
+  object "BonusTarget" {
+    @clickable
+    @collidable
+    @glowing
+    geometry: "sphere"
+    position: [0, 4, -8]
+    scale: 0.35
+    color: "#ffff00"
+    material: "painted_metal"
+    emissionIntensity: 0.5
+    behavior "TargetBehavior" {
+      pointValue: 500
+      respawnDelay: 10.0
+      appearChance: 0.2
+      isBonus: true
+    }
   }
 
   // Moving target
@@ -51,92 +186,455 @@ composition "VR Target Practice" {
     @clickable
     @physics
     @collidable
-
     geometry: "cube"
     position: [-5, 1, -7]
     scale: 0.6
     color: "#ffff00"
+    behavior "MovingTargetBehavior" {
+      patrolPath: [[-5, 1, -7], [5, 1, -7]]
+      speed: 2.5
+      pointValue: 200
+    }
   }
 
-  // Weapon pickup
+  object "SwingingTarget" {
+    @clickable
+    @collidable
+    geometry: "cylinder"
+    position: [0, 4, -9]
+    rotation: [0, 0, 0]
+    scale: [0.3, 0.8, 0.3]
+    color: "#ff3300"
+    behavior "PendulumBehavior" {
+      swingAmplitude: 3.0
+      swingPeriod: 3.0
+      pointValue: 300
+    }
+  }
+
+  // ── Weapon Systems ────────────────────────────────────────────────────────
+
   object "WeaponPickup" {
     @grabbable
     @glowing
-
     geometry: "cube"
     position: [0, 1, -2]
     scale: [0.3, 0.2, 0.6]
     color: "#808080"
+    material: "gunmetal"
+    behavior "WeaponController" {
+      type: 'pistol'
+      damage: 50
+      fireRate: 2.0
+      magazineSize: 12
+      projectileSpeed: 30
+      reloadTime: 2.0
+      sfxFire: 'sfx/pistol_fire.wav'
+      sfxReload: 'sfx/pistol_reload.wav'
+    }
   }
 
-  // Ammunition
+  object "WeaponPickup2" {
+    @grabbable
+    @glowing
+    geometry: "cube"
+    position: [-3, 1, -2]
+    scale: [0.25, 0.18, 0.8]
+    color: "#556677"
+    material: "polymer"
+    behavior "WeaponController" {
+      type: 'rifle'
+      damage: 80
+      fireRate: 1.2
+      magazineSize: 30
+      projectileSpeed: 50
+      reloadTime: 3.5
+    }
+  }
+
   object "AmmoBox" {
     @grabbable
     @clickable
-
     geometry: "cube"
     position: [2, 0.5, -2]
     scale: 0.4
     color: "#8b4513"
+    material: "wood_crate"
+    behavior "AmmoSupply" {
+      ammoType: 'universal'
+      ammoCount: 30
+      respawnAfterPickup: true
+      respawnDelay: 15.0
+    }
   }
 
-  // Cover wall 1
+  object "AmmoBox2" {
+    @grabbable
+    @clickable
+    geometry: "cube"
+    position: [3, 0.5, -2]
+    scale: 0.4
+    color: "#8b4513"
+    material: "metal_crate"
+    behavior "AmmoSupply" {
+      ammoCount: 30
+      respawnDelay: 15.0
+    }
+  }
+
+  object "GrenadePickup" {
+    @grabbable
+    @physics
+    @collidable
+    @throwable
+    geometry: "sphere"
+    position: [-2, 0.5, -2]
+    scale: 0.15
+    color: "#3a7a3a"
+    behavior "Explosive" {
+      fuseTime: 3.0
+      blastRadius: 4.0
+      damage: 200
+      useCount: 2
+    }
+  }
+
+  // ── Cover & Obstacles ─────────────────────────────────────────────────────
+
   object "CoverWall1" {
     @collidable
-
     geometry: "cube"
     position: [-6, 1, -4]
     scale: [2, 2, 0.3]
     color: "#696969"
+    material: "concrete_block"
   }
 
-  // Cover wall 2
   object "CoverWall2" {
     @collidable
-
     geometry: "cube"
     position: [6, 1, -4]
     scale: [2, 2, 0.3]
     color: "#696969"
+    material: "concrete_block"
   }
 
-  // Score panel
-  object "ScoreDisplay" {
-    @glowing
-
-    geometry: "plane"
-    position: [0, 3, -8]
-    scale: [2, 1, 1]
-    color: "#000000"
+  object "CoverBox1" {
+    @collidable
+    geometry: "cube"
+    position: [-3, 0.4, -3]
+    scale: [0.8, 0.8, 0.8]
+    color: "#7a6533"
+    material: "sand_bag"
   }
 
-  // Spawn point markers
-  object "SpawnMarker1" {
-    @glowing
+  object "CoverBox2" {
+    @collidable
+    geometry: "cube"
+    position: [3, 0.4, -3]
+    scale: [0.8, 0.8, 0.8]
+    color: "#7a6533"
+    material: "sand_bag"
+  }
 
+  object "CoverPillar1" {
+    @collidable
     geometry: "cylinder"
-    position: [-2, 0.1, 2]
-    scale: [0.5, 0.2, 0.5]
-    color: "#00ff00"
+    position: [-4, 1.5, -6]
+    scale: [0.3, 3, 0.3]
+    color: "#555555"
+    material: "steel"
   }
 
-  object "SpawnMarker2" {
-    @glowing
-
+  object "CoverPillar2" {
+    @collidable
     geometry: "cylinder"
-    position: [2, 0.1, 2]
-    scale: [0.5, 0.2, 0.5]
-    color: "#00ff00"
+    position: [4, 1.5, -6]
+    scale: [0.3, 3, 0.3]
+    color: "#555555"
+    material: "steel"
   }
 
-  // Barrier
   object "Barrier" {
     @collidable
-
     geometry: "cube"
     position: [0, 0.5, 0]
     rotation: [0, 45, 0]
     scale: [5, 1, 0.2]
     color: "#ff6600"
+    material: "plastic_barrier"
+  }
+
+  // ── Scoring & HUD ─────────────────────────────────────────────────────────
+
+  object "ScoreDisplay" {
+    @glowing
+    geometry: "plane"
+    position: [0, 3, -8]
+    scale: [2, 1, 1]
+    color: "#000000"
+    emissionIntensity: 0.8
+    behavior "ScoreBoard" {
+      showCurrentScore: true
+      showHighScore: true
+      showTimeRemaining: true
+      showCombo: true
+    }
+  }
+
+  object "ComboMultiplier" {
+    @glowing
+    geometry: "plane"
+    position: [-8, 3.5, 0]
+    rotation: [0, 90, 0]
+    scale: [1, 0.5, 1]
+    color: "#001122"
+    emissionIntensity: 0.6
+  }
+
+  object "TimerDisplay" {
+    @glowing
+    geometry: "plane"
+    position: [8, 3.5, 0]
+    rotation: [0, -90, 0]
+    scale: [1, 0.5, 1]
+    color: "#001122"
+    emissionIntensity: 0.6
+  }
+
+  // ── Spawn Points ──────────────────────────────────────────────────────────
+
+  object "SpawnMarker1" {
+    @glowing
+    geometry: "cylinder"
+    position: [-2, 0.1, 2]
+    scale: [0.5, 0.2, 0.5]
+    color: "#00ff00"
+    emissionIntensity: 1.0
+  }
+
+  object "SpawnMarker2" {
+    @glowing
+    geometry: "cylinder"
+    position: [2, 0.1, 2]
+    scale: [0.5, 0.2, 0.5]
+    color: "#00ff00"
+    emissionIntensity: 1.0
+  }
+
+  object "SpawnMarker3" {
+    @glowing
+    geometry: "cylinder"
+    position: [-2, 0.1, 4]
+    scale: [0.5, 0.2, 0.5]
+    color: "#00ff00"
+    emissionIntensity: 1.0
+  }
+
+  object "SpawnMarker4" {
+    @glowing
+    geometry: "cylinder"
+    position: [2, 0.1, 4]
+    scale: [0.5, 0.2, 0.5]
+    color: "#00ff00"
+    emissionIntensity: 1.0
+  }
+
+  // ── Lighting ──────────────────────────────────────────────────────────────
+
+  object "SpotLight1" {
+    @glowing
+    geometry: "sphere"
+    position: [-6, 5.5, -6]
+    scale: 0.2
+    color: "#ffffff"
+    emissionIntensity: 5.0
+    castShadows: true
+  }
+
+  object "SpotLight2" {
+    @glowing
+    geometry: "sphere"
+    position: [6, 5.5, -6]
+    scale: 0.2
+    color: "#ffffff"
+    emissionIntensity: 5.0
+    castShadows: true
+  }
+
+  object "AccentLight1" {
+    @glowing
+    geometry: "sphere"
+    position: [-8, 4, 0]
+    scale: 0.15
+    color: "#ff0040"
+    emissionIntensity: 2.0
+  }
+
+  object "AccentLight2" {
+    @glowing
+    geometry: "sphere"
+    position: [8, 4, 0]
+    scale: 0.15
+    color: "#0040ff"
+    emissionIntensity: 2.0
+  }
+
+  // ── Game Systems ──────────────────────────────────────────────────────────
+
+  system "GameManager" {
+    mode: 'time_attack'
+    roundDuration: 300
+    maxRounds: 3
+    scoringMultiplier: 1.0
+    comboWindow: 2.0
+    difficultyAdaptive: true
+
+    event "onRoundStart" {
+      spawnTargets: true
+      resetScore: false
+      playCountdown: true
+    }
+
+    event "onTargetHit" {
+      updateScore: true
+      incrementCombo: true
+      playHitEffect: true
+    }
+
+    event "onRoundEnd" {
+      showSummary: true
+      saveHighScore: true
+      offerRematch: true
+    }
+  }
+
+  system "MultiplayerSystem" {
+    maxPlayers: 4
+    syncRate: 30
+    pvpEnabled: false
+    cooperativeMode: true
+    sharedScore: false
+
+    event "onPlayerJoin" {
+      assignSpawnPoint: true
+      assignColor: true
+    }
+  }
+
+  // ── Power-Ups ─────────────────────────────────────────────────────────────
+
+  object "PowerUpRapidFire" {
+    @glowing
+    @clickable
+    geometry: "cube"
+    position: [2, 1, -4]
+    scale: 0.2
+    color: "#ff6d00"
+    emissionIntensity: 1.2
+    behavior "PowerUp" {
+      type: 'rapid_fire'
+      fireRateMultiplier: 3.0
+      duration: 15.0
+      respawnDelay: 45.0
+      spinSpeed: 90
+    }
+  }
+
+  object "PowerUpDamageBoost" {
+    @glowing
+    @clickable
+    geometry: "sphere"
+    position: [-2, 1, -4]
+    scale: 0.2
+    color: "#d50000"
+    emissionIntensity: 1.2
+    behavior "PowerUp" {
+      type: 'damage_boost'
+      damageMultiplier: 2.0
+      duration: 10.0
+      respawnDelay: 60.0
+    }
+  }
+
+  object "PowerUpShield" {
+    @glowing
+    @clickable
+    geometry: "sphere"
+    position: [0, 1, -3]
+    scale: 0.2
+    color: "#00bfa5"
+    emissionIntensity: 1.0
+    behavior "PowerUp" {
+      type: 'shield'
+      absorbsHits: 3
+      duration: 20.0
+    }
+  }
+
+  // ── Achievement System ────────────────────────────────────────────────────
+
+  system "Achievements" {
+    achievements: [
+      {
+        id: 'first_blood'
+        name: 'First Hit'
+        description: 'Hit your first target'
+        points: 10
+        icon: 'achievement_first.png'
+      },
+      {
+        id: 'sharpshooter'
+        name: 'Sharpshooter'
+        description: 'Hit 10 targets in a row without missing'
+        points: 50
+        icon: 'achievement_sharp.png'
+      },
+      {
+        id: 'bonus_hunter'
+        name: 'Bonus Hunter'
+        description: 'Hit the bonus target 3 times in one session'
+        points: 100
+        icon: 'achievement_bonus.png'
+      },
+      {
+        id: 'high_scorer'
+        name: 'High Scorer'
+        description: 'Reach 10,000 points in a single round'
+        points: 200
+        icon: 'achievement_score.png'
+      }
+    ]
+
+    event "onAchievementUnlocked" {
+      showNotification: true
+      playSound: 'sfx/achievement.wav'
+      saveToProfile: true
+    }
+  }
+
+  system "Leaderboard" {
+    maxEntries: 100
+    displayCount: 10
+    resetInterval: 'weekly'
+    categories: ['allTime', 'weekly', 'daily']
+    anonymizeGuests: true
+
+    event "onScoreSubmit" {
+      validateServerSide: true
+      checkForCheats: true
+    }
+  }
+
+  system "AudioManager" {
+    bgMusic: 'music/arena_electro.ogg'
+    bgMusicVolume: 0.4
+    sfxVolume: 0.8
+    spatialAudio: true
+    reverbZone: 'arena_medium'
+    dynamicMusicEnabled: true
+    intensityThreshold: 500
+    highIntensityTrack: 'music/arena_intense.ogg'
   }
 }
+

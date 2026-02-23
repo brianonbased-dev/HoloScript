@@ -1,204 +1,252 @@
-import { describe, it, expect, vi } from 'vitest';
+/**
+ * NPCAITrait — Production Test Suite
+ *
+ * Dependencies mocked:
+ * - getDefaultAIAdapter from '../../ai/AIAdapter' — provides chat() mock
+ *
+ * Key behaviours:
+ * 1. defaultConfig — 6 fields
+ * 2. onAttach — creates __npcAIState; emits npc_ai_initialized; initial state values
+ * 3. onDetach — removes state; no throw
+ * 4. onUpdate — no-op; does not throw
+ * 5. onEvent 'npc_ai_prompt' (adapter available):
+ *    - sets isThinking=true, appends to conversationHistory
+ *    - emits npc_ai_think_begin
+ *    - calls adapter.chat; on resolve → emits npc_ai_response
+ *    - on reject → clears isThinking + emits npc_ai_error
+ * 6. onEvent 'npc_ai_prompt' (no adapter):
+ *    - falls back to stub: emits npc_ai_response via setTimeout
+ * 7. onEvent 'npc_ai_response':
+ *    - isThinking=false; lastResponse set; history append role:assistant
+ *    - emits npc_ai_think_end
+ *    - action tag parsing: <action type="wave" /> → emits npc_behavior_wave + npc_action
+ *    - multiple actions parsed correctly
+ *    - always emits npc_ai_speak
+ * 8. onEvent 'npc_ai_set_goal' — updates goals array
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// ─── Mock AIAdapter ───────────────────────────────────────────────────────────
+let _mockAdapter: any = null;
+vi.mock('../../ai/AIAdapter', () => ({
+  getDefaultAIAdapter: () => _mockAdapter,
+}));
+
 import { npcAIHandler } from '../NPCAITrait';
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// ─── helpers ──────────────────────────────────────────────────────────────────
+let _nodeId = 0;
+function makeNode() { return { id: `npc_${++_nodeId}` }; }
+function makeCtx() { return { emit: vi.fn() }; }
+function makeConfig(o: any = {}) { return { ...npcAIHandler.defaultConfig!, ...o }; }
 
-type NPCConfig = NonNullable<Parameters<typeof npcAIHandler.onAttach>[1]>;
-
-function mkCfg(o: Partial<NPCConfig> = {}): NPCConfig {
-  return { ...npcAIHandler.defaultConfig!, ...o };
+function attach(o: any = {}) {
+  const node = makeNode(); const ctx = makeCtx(); const config = makeConfig(o);
+  npcAIHandler.onAttach!(node as any, config, ctx as any);
+  return { node, ctx, config };
 }
+function getState(node: any) { return (node as any).__npcAIState; }
 
-function mkNode(id = 'npc-node') {
-  return { id } as any;
-}
-
-function mkCtx() {
-  const emitted: any[] = [];
-  return {
-    emitted,
-    emit: vi.fn((t: string, p: any) => emitted.push({ type: t, payload: p })) as any,
-  };
-}
-
-function attach(cfg = mkCfg(), node = mkNode(), ctx = mkCtx()) {
-  npcAIHandler.onAttach!(node, cfg, ctx as any);
-  ctx.emitted.length = 0;
-  return { node, ctx, cfg };
-}
-
-// ─── tests ───────────────────────────────────────────────────────────────────
-
-describe('npcAIHandler — defaultConfig', () => {
-  it('model = hermes-3-70b', () => expect(npcAIHandler.defaultConfig?.model).toBe('hermes-3-70b'));
-  it('intelligence_tier = advanced', () => expect(npcAIHandler.defaultConfig?.intelligence_tier).toBe('advanced'));
-  it('perception_range = 10', () => expect(npcAIHandler.defaultConfig?.perception_range).toBe(10.0));
-  it('personality_profile = professional', () => expect(npcAIHandler.defaultConfig?.personality_profile).toBe('professional'));
+beforeEach(() => {
+  vi.clearAllMocks();
+  _mockAdapter = null;
 });
 
-describe('npcAIHandler — onAttach', () => {
+// ─── defaultConfig ────────────────────────────────────────────────────────────
+describe('npcAIHandler.defaultConfig', () => {
+  const d = npcAIHandler.defaultConfig!;
+  it('model = hermes-3-70b', () => expect(d.model).toBe('hermes-3-70b'));
+  it('systemPrompt = helpful holographic assistant', () => expect(d.systemPrompt).toContain('helpful holographic assistant'));
+  it('intelligence_tier = advanced', () => expect(d.intelligence_tier).toBe('advanced'));
+  it('perception_range = 10.0', () => expect(d.perception_range).toBe(10.0));
+  it('learning_rate = 0.1', () => expect(d.learning_rate).toBe(0.1));
+  it('personality_profile = professional', () => expect(d.personality_profile).toBe('professional'));
+});
+
+// ─── onAttach ─────────────────────────────────────────────────────────────────
+describe('npcAIHandler.onAttach', () => {
   it('creates __npcAIState', () => {
     const { node } = attach();
-    expect((node as any).__npcAIState).toBeDefined();
+    expect(getState(node)).toBeDefined();
   });
-  it('isThinking = false', () => {
-    const { node } = attach();
-    expect((node as any).__npcAIState.isThinking).toBe(false);
-  });
-  it('emotionalState = neutral', () => {
-    const { node } = attach();
-    expect((node as any).__npcAIState.emotionalState).toBe('neutral');
-  });
-  it('goals = [wait_for_interaction]', () => {
-    const { node } = attach();
-    expect((node as any).__npcAIState.goals).toEqual(['wait_for_interaction']);
-  });
-  it('conversationHistory is empty', () => {
-    const { node } = attach();
-    expect((node as any).__npcAIState.conversationHistory).toHaveLength(0);
-  });
+  it('isThinking = false', () => { const { node } = attach(); expect(getState(node).isThinking).toBe(false); });
+  it('lastResponse = ""', () => { const { node } = attach(); expect(getState(node).lastResponse).toBe(''); });
+  it('emotionalState = neutral', () => { const { node } = attach(); expect(getState(node).emotionalState).toBe('neutral'); });
+  it('goals = ["wait_for_interaction"]', () => { const { node } = attach(); expect(getState(node).goals).toEqual(['wait_for_interaction']); });
+  it('conversationHistory starts empty', () => { const { node } = attach(); expect(getState(node).conversationHistory).toEqual([]); });
   it('emits npc_ai_initialized', () => {
-    const node = mkNode(); const ctx = mkCtx();
-    npcAIHandler.onAttach!(node, mkCfg(), ctx as any);
-    expect(ctx.emitted.some((e: any) => e.type === 'npc_ai_initialized')).toBe(true);
+    const { ctx } = attach();
+    expect(ctx.emit).toHaveBeenCalledWith('npc_ai_initialized', expect.any(Object));
   });
 });
 
-describe('npcAIHandler — onDetach', () => {
+// ─── onDetach ─────────────────────────────────────────────────────────────────
+describe('npcAIHandler.onDetach', () => {
   it('removes __npcAIState', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onDetach!(node, cfg, ctx as any);
-    expect((node as any).__npcAIState).toBeUndefined();
+    const { node, ctx, config } = attach();
+    npcAIHandler.onDetach!(node as any, config, ctx as any);
+    expect(getState(node)).toBeUndefined();
+  });
+  it('does not throw', () => {
+    const { node, ctx, config } = attach();
+    expect(() => npcAIHandler.onDetach!(node as any, config, ctx as any)).not.toThrow();
   });
 });
 
-describe('npcAIHandler — onUpdate', () => {
+// ─── onUpdate ─────────────────────────────────────────────────────────────────
+describe('npcAIHandler.onUpdate', () => {
+  it('does not throw and emits nothing', () => {
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    expect(() => npcAIHandler.onUpdate!(node as any, config, ctx as any, 0.016)).not.toThrow();
+    expect(ctx.emit).not.toHaveBeenCalled();
+  });
+
   it('no-op when isThinking=true', () => {
-    const { node, ctx, cfg } = attach();
-    (node as any).__npcAIState.isThinking = true;
-    npcAIHandler.onUpdate!(node, cfg, ctx as any, 0.016);
-    expect(ctx.emitted).toHaveLength(0);
-  });
-  it('no-op when no state', () => {
-    const node = mkNode(); const ctx = mkCtx();
-    expect(() => npcAIHandler.onUpdate!(node, mkCfg(), ctx as any, 0.016)).not.toThrow();
-  });
-  it('runs without error when state exists and not thinking', () => {
-    const { node, ctx, cfg } = attach();
-    expect(() => npcAIHandler.onUpdate!(node, cfg, ctx as any, 0.016)).not.toThrow();
+    const { node, ctx, config } = attach();
+    getState(node).isThinking = true;
+    ctx.emit.mockClear();
+    expect(() => npcAIHandler.onUpdate!(node as any, config, ctx as any, 0.016)).not.toThrow();
+    expect(ctx.emit).not.toHaveBeenCalled();
   });
 });
 
-describe('npcAIHandler — onEvent: npc_ai_prompt', () => {
-  it('sets isThinking=true when prompt received', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_prompt', prompt: 'Hello NPC' } as any);
-    expect((node as any).__npcAIState.isThinking).toBe(true);
+// ─── onEvent 'npc_ai_prompt' — with adapter ───────────────────────────────────
+describe("onEvent 'npc_ai_prompt' (with adapter)", () => {
+  it('sets isThinking=true and appends to conversationHistory', () => {
+    _mockAdapter = { chat: vi.fn().mockResolvedValue('Hello!') };
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    npcAIHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_prompt', prompt: 'Hi NPC' });
+    const state = getState(node);
+    expect(state.isThinking).toBe(true);
+    expect(state.conversationHistory).toContainEqual({ role: 'user', content: 'Hi NPC' });
   });
-  it('adds prompt to conversationHistory as user role', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_prompt', prompt: 'Who are you?' } as any);
-    const history = (node as any).__npcAIState.conversationHistory;
-    expect(history[history.length - 1]).toEqual({ role: 'user', content: 'Who are you?' });
+
+  it('emits npc_ai_think_begin', () => {
+    _mockAdapter = { chat: vi.fn().mockResolvedValue('OK') };
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    npcAIHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_prompt', prompt: 'test' });
+    expect(ctx.emit).toHaveBeenCalledWith('npc_ai_think_begin', expect.objectContaining({ prompt: 'test' }));
   });
-  it('emits npc_ai_think_begin with prompt', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_prompt', prompt: 'test' } as any);
-    expect(ctx.emitted.some((e: any) => e.type === 'npc_ai_think_begin')).toBe(true);
-    expect(ctx.emitted.find((e: any) => e.type === 'npc_ai_think_begin')?.payload.prompt).toBe('test');
+
+  it('calls adapter.chat and then emits npc_ai_response on resolve', async () => {
+    _mockAdapter = { chat: vi.fn().mockResolvedValue('I am well.') };
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    npcAIHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_prompt', prompt: 'How are you?' });
+    await vi.waitFor(() => expect(ctx.emit).toHaveBeenCalledWith('npc_ai_response', expect.objectContaining({ text: 'I am well.' })));
   });
-  it('no-op when no state', () => {
-    const node = mkNode(); const ctx = mkCtx();
-    expect(() => npcAIHandler.onEvent!(node, mkCfg(), ctx as any, { type: 'npc_ai_prompt', prompt: 'test' } as any)).not.toThrow();
+
+  it('clears isThinking and emits npc_ai_error on rejection', async () => {
+    _mockAdapter = { chat: vi.fn().mockRejectedValue(new Error('adapter_down')) };
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    npcAIHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_prompt', prompt: 'Fail test' });
+    await vi.waitFor(() => expect(ctx.emit).toHaveBeenCalledWith('npc_ai_error', expect.objectContaining({ error: 'adapter_down' })));
+    expect(getState(node).isThinking).toBe(false);
   });
 });
 
-describe('npcAIHandler — onEvent: npc_ai_response', () => {
-  it('sets isThinking=false', () => {
-    const { node, ctx, cfg } = attach();
-    (node as any).__npcAIState.isThinking = true;
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_response', text: 'Hello there!' } as any);
-    expect((node as any).__npcAIState.isThinking).toBe(false);
-  });
-  it('stores response as lastResponse', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_response', text: 'I am the guardian.' } as any);
-    expect((node as any).__npcAIState.lastResponse).toBe('I am the guardian.');
-  });
-  it('appends response to conversationHistory as assistant role', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_response', text: 'Greetings traveller.' } as any);
-    const history = (node as any).__npcAIState.conversationHistory;
-    expect(history[history.length - 1]).toEqual({ role: 'assistant', content: 'Greetings traveller.' });
-  });
-  it('emits npc_ai_think_end with response', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_response', text: 'Done.' } as any);
-    expect(ctx.emitted.some((e: any) => e.type === 'npc_ai_think_end')).toBe(true);
-  });
-  it('emits npc_ai_speak with response text', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_response', text: 'I speak!' } as any);
-    const ev = ctx.emitted.find((e: any) => e.type === 'npc_ai_speak');
-    expect(ev?.payload.text).toBe('I speak!');
+// ─── onEvent 'npc_ai_prompt' — stub fallback (no adapter) ────────────────────
+describe("onEvent 'npc_ai_prompt' (no adapter — stub fallback)", () => {
+  it('emits stub npc_ai_response via setTimeout', async () => {
+    _mockAdapter = null;
+    vi.useFakeTimers();
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    npcAIHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_prompt', prompt: 'Hello' });
+    await vi.runAllTimersAsync();
+    expect(ctx.emit).toHaveBeenCalledWith('npc_ai_response',
+      expect.objectContaining({ text: expect.stringContaining('[STUB]') })
+    );
+    vi.useRealTimers();
   });
 });
 
-describe('npcAIHandler — action tag parsing', () => {
-  it('emits npc_behavior_<type> for each <action> tag', () => {
-    const { node, ctx, cfg } = attach();
-    const response = 'Sure! <action type="move" target="door" /> I will walk to the door.';
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_response', text: response } as any);
-    expect(ctx.emitted.some((e: any) => e.type === 'npc_behavior_move')).toBe(true);
+// ─── onEvent 'npc_ai_response' ────────────────────────────────────────────────
+describe("onEvent 'npc_ai_response'", () => {
+  function fireResponse(node: any, config: any, ctx: any, text: string) {
+    npcAIHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_response', text });
+  }
+
+  it('sets isThinking=false and lastResponse', () => {
+    const { node, ctx, config } = attach();
+    getState(node).isThinking = true;
+    fireResponse(node, config, ctx, 'Response text');
+    const state = getState(node);
+    expect(state.isThinking).toBe(false);
+    expect(state.lastResponse).toBe('Response text');
   });
-  it('emits npc_action for each <action> tag', () => {
-    const { node, ctx, cfg } = attach();
-    const response = '<action type="attack" damage="10" />';
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_response', text: response } as any);
-    const ev = ctx.emitted.find((e: any) => e.type === 'npc_action');
-    expect(ev?.payload.type).toBe('attack');
+
+  it('appends assistant message to conversationHistory', () => {
+    const { node, ctx, config } = attach();
+    fireResponse(node, config, ctx, 'My answer');
+    expect(getState(node).conversationHistory).toContainEqual({ role: 'assistant', content: 'My answer' });
   });
-  it('parses multiple action tags in one response', () => {
-    const { node, ctx, cfg } = attach();
-    const response = '<action type="draw_weapon" /><action type="taunt" />';
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_response', text: response } as any);
-    const actions = ctx.emitted.filter((e: any) => e.type === 'npc_action');
-    expect(actions).toHaveLength(2);
-    expect(actions.map((a: any) => a.payload.type)).toContain('draw_weapon');
-    expect(actions.map((a: any) => a.payload.type)).toContain('taunt');
+
+  it('emits npc_ai_think_end', () => {
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    fireResponse(node, config, ctx, 'Think end test');
+    expect(ctx.emit).toHaveBeenCalledWith('npc_ai_think_end', expect.objectContaining({ response: 'Think end test' }));
   });
-  it('parses action params correctly', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'npc_ai_response',
-      text: '<action type="give_item" item="sword" amount="1" />'
-    } as any);
-    const ev = ctx.emitted.find((e: any) => e.type === 'npc_behavior_give_item');
-    expect(ev?.payload.params.item).toBe('sword');
-    expect(ev?.payload.params.amount).toBe('1');
+
+  it('always emits npc_ai_speak', () => {
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    fireResponse(node, config, ctx, 'Hello world');
+    expect(ctx.emit).toHaveBeenCalledWith('npc_ai_speak', expect.objectContaining({ text: 'Hello world' }));
   });
-  it('emits npc_ai_speak even when no action tags present', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_response', text: 'Just talking.' } as any);
-    expect(ctx.emitted.some((e: any) => e.type === 'npc_ai_speak')).toBe(true);
-    expect(ctx.emitted.filter((e: any) => e.type === 'npc_action')).toHaveLength(0);
+
+  it('parses <action type="wave" /> and emits npc_behavior_wave + npc_action', () => {
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    fireResponse(node, config, ctx, 'I wave hello! <action type="wave" />');
+    expect(ctx.emit).toHaveBeenCalledWith('npc_behavior_wave', expect.objectContaining({ params: {}, source: 'ai_synthesis' }));
+    expect(ctx.emit).toHaveBeenCalledWith('npc_action', expect.objectContaining({ type: 'wave' }));
   });
-  it('no action emitted for malformed tag without type attr', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_response', text: '<action foo="bar" />' } as any);
-    expect(ctx.emitted.filter((e: any) => e.type === 'npc_action')).toHaveLength(0);
+
+  it('parses action with params: <action type="move" speed="fast" direction="north" />', () => {
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    fireResponse(node, config, ctx, '<action type="move" speed="fast" direction="north" />');
+    const behaviorCall = ctx.emit.mock.calls.find(([ev]) => ev === 'npc_behavior_move');
+    expect(behaviorCall).toBeDefined();
+    expect(behaviorCall![1].params).toEqual({ speed: 'fast', direction: 'north' });
+  });
+
+  it('parses multiple actions in a single response', () => {
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    fireResponse(node, config, ctx, '<action type="wave" /> then <action type="nod" />');
+    const actionCalls = ctx.emit.mock.calls.filter(([ev]) => ev === 'npc_action');
+    expect(actionCalls.length).toBe(2);
+    expect(actionCalls[0][1].type).toBe('wave');
+    expect(actionCalls[1][1].type).toBe('nod');
+  });
+
+  it('no action emit when no action tags in response', () => {
+    const { node, ctx, config } = attach();
+    ctx.emit.mockClear();
+    fireResponse(node, config, ctx, 'Just a normal response with no tags.');
+    const actionCalls = ctx.emit.mock.calls.filter(([ev]) => ev === 'npc_action');
+    expect(actionCalls.length).toBe(0);
   });
 });
 
-describe('npcAIHandler — onEvent: npc_ai_set_goal', () => {
+// ─── onEvent 'npc_ai_set_goal' ────────────────────────────────────────────────
+describe("onEvent 'npc_ai_set_goal'", () => {
   it('replaces goals array', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_set_goal', goals: ['attack', 'retreat'] } as any);
-    expect((node as any).__npcAIState.goals).toEqual(['attack', 'retreat']);
+    const { node, ctx, config } = attach();
+    npcAIHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_set_goal', goals: ['patrol', 'defend'] });
+    expect(getState(node).goals).toEqual(['patrol', 'defend']);
   });
-  it('keeps current goals when event.goals missing', () => {
-    const { node, ctx, cfg } = attach();
-    npcAIHandler.onEvent!(node, cfg, ctx as any, { type: 'npc_ai_set_goal' } as any);
-    expect((node as any).__npcAIState.goals).toEqual(['wait_for_interaction']);
+
+  it('keeps existing goals when undefined passed', () => {
+    const { node, ctx, config } = attach();
+    npcAIHandler.onEvent!(node as any, config, ctx as any, { type: 'npc_ai_set_goal', goals: undefined });
+    expect(getState(node).goals).toEqual(['wait_for_interaction']);
   });
 });

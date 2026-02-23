@@ -13,12 +13,19 @@ import type {
   HoloObjectDecl,
   HoloObjectProperty,
 } from '../parser/HoloCompositionTypes';
+import type { ReadFileFn } from '../parser/HoloCompositionTypes';
 import {
   TraitDependencyGraph,
   globalTraitGraph,
   type TraitUsage,
   type TraitChangeInfo,
 } from './TraitDependencyGraph';
+import {
+  ImportResolver,
+  resolveImportPath,
+  type ImportResolutionResult,
+  type ImportResolutionError,
+} from '../parser/ImportResolver';
 
 /**
  * Types of changes detected during AST diff
@@ -74,6 +81,30 @@ export interface IncrementalCompileOptions {
   preserveState?: boolean;
   forceRecompile?: string[];
   skipUnchanged?: boolean;
+  // ── Import resolution ──────────────────────────────────────────────────────
+  /**
+   * When `true`, the compiler will call `ImportResolver.resolve()` on the
+   * `HSPlusCompileResult` before handing off to the object compiler.
+   * Requires `baseDir` to be supplied.
+   * @default false
+   */
+  enableImports?: boolean;
+  /**
+   * Base directory for resolving relative `@import` paths.
+   * Required when `enableImports` is `true`.
+   */
+  baseDir?: string;
+  /**
+   * Canonical absolute path for the source file being compiled.
+   * Used as the cache key and as the starting point for path resolution.
+   */
+  sourceFile?: string;
+  /**
+   * Custom file-reader function.
+   * Falls back to Node.js `fs.promises.readFile` when omitted.
+   * @see ReadFileFn in HoloCompositionTypes.ts
+   */
+  readFile?: ReadFileFn;
 }
 
 /**
@@ -86,6 +117,15 @@ export interface IncrementalCompileResult {
   statePreserved: boolean;
   compiledCode: string;
   changes: DiffResult;
+  // ── Import resolution ──────────────────────────────────────────────────────
+  /**
+   * Merged scope returned by `ImportResolver.resolve()`.
+   * Only populated when `options.enableImports === true`.
+   * Keys are `alias.ExportName` (namespace) or bare export names (named imports).
+   */
+  importScope?: Map<string, unknown>;
+  /** Any import resolution errors (missing files, cycles, etc.) */
+  importErrors?: ImportResolutionError[];
 }
 
 /**
@@ -614,6 +654,64 @@ export class IncrementalCompiler {
    */
   getTraitGraph(): TraitDependencyGraph {
     return this.traitGraph;
+  }
+
+  // ===========================================================================
+  // IMPORT RESOLUTION (Asset Pipeline)
+  // ===========================================================================
+
+  /**
+   * Resolve all `@import` directives in a `HSPlusCompileResult`, merge the
+   * imported exports into a scope, and register cross-file edges in the
+   * `TraitDependencyGraph` for incremental recompilation.
+   *
+   * This method is **async** because it may read files from disk (or any
+   * injected async reader).
+   *
+   * ### Typical usage
+   * ```ts
+   * const parser = new HoloScriptPlusParser({ enableTypeScriptImports: true });
+   * const result = parser.parse(source);
+   *
+   * const compiler = new IncrementalCompiler();
+   * const { importScope, importErrors } = await compiler.resolveImports(
+   *   result,
+   *   { baseDir: '/project', sourceFile: '/project/scene.hs' }
+   * );
+   * ```
+   *
+   * @param result     Parse result that may contain `ast.imports`
+   * @param options    Must include `baseDir` (and optionally `sourceFile`, `readFile`)
+   * @returns          `{ scope, modules, errors }` from `ImportResolver.resolve()`
+   */
+  async resolveImports(
+    result: { ast?: { imports?: Array<{ path: string; alias: string; namedImports?: string[]; isWildcard?: boolean }> } },
+    options: Pick<IncrementalCompileOptions, 'baseDir' | 'sourceFile' | 'readFile'>
+  ): Promise<ImportResolutionResult> {
+    const baseDir = options.baseDir ?? '/';
+    const sourceFile = options.sourceFile ?? `${baseDir}/unknown.hs`;
+
+    const resolver = new ImportResolver();
+    const resolution = await resolver.resolve(
+      result as any,
+      sourceFile,
+      {
+        baseDir,
+        readFile: options.readFile,
+      }
+    );
+
+    // ── Register cross-file import edges in TraitDependencyGraph ─────────────
+    // This enables getFilesAffectedByChange() to propagate recompilation when
+    // an imported file changes.
+    const imports = (result.ast?.imports ?? []) as Array<{ path: string }>;
+    this.traitGraph.clearImportsForFile(sourceFile);
+    for (const imp of imports) {
+      const canonicalPath = resolveImportPath(imp.path, baseDir);
+      this.traitGraph.registerImport(sourceFile, canonicalPath);
+    }
+
+    return resolution;
   }
 
   /**

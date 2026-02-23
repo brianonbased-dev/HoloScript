@@ -612,9 +612,10 @@ export interface HoloBindExpression extends HoloNode {
 }
 
 // =============================================================================
-// IMPORTS
+// IMPORTS & EXPORTS (HoloComposition-level)
 // =============================================================================
 
+/** Legacy import node type used by HoloCompositionParser */
 export interface HoloImport extends HoloNode {
   type: 'Import';
   specifiers: HoloImportSpecifier[];
@@ -626,6 +627,49 @@ export interface HoloImportSpecifier extends HoloNode {
   imported: string;
   local?: string; // alias
 }
+
+// =============================================================================
+// IMPORT / EXPORT DIRECTIVE AST NODES (HoloScript+ parser)
+// =============================================================================
+
+/**
+ * AST node for @import directives produced by HoloScriptPlusParser.
+ *
+ * Supported syntax forms:
+ *   @import "./path.hs"
+ *   @import "./path.hs" as Alias
+ *   @import { A, B } from "./path.hs"
+ *   @import * as NS from "./path.hs"
+ */
+export interface ImportDirective extends HoloNode {
+  type: 'import';
+  /** Raw import path string as written in source */
+  path: string;
+  /** Derived or explicit alias (filename stem if not specified) */
+  alias: string;
+  /** Named exports to import. Undefined means "all under alias namespace". */
+  namedImports?: string[];
+  /** True for `@import * as NS from "./f.hs"` form */
+  isWildcard?: boolean;
+}
+
+/**
+ * AST node for @export directives produced by HoloScriptPlusParser.
+ *
+ * Supported syntax forms:
+ *   @export template "MyTemplate"
+ *   @export object "MyObject"
+ *   @export "NamedThing"
+ *   @export  (anonymous — exports the next node)
+ */
+export interface ExportDirective extends HoloNode {
+  type: 'export';
+  /** The kind of thing being exported: 'template' | 'object' | 'composition' | 'trait' | 'any' */
+  exportKind: 'template' | 'object' | 'composition' | 'trait' | 'group' | 'scene' | 'any';
+  /** The exported name, if specified explicitly */
+  exportName?: string;
+}
+
 
 // =============================================================================
 // PARSER RESULT
@@ -955,3 +999,92 @@ export interface HoloParserOptions {
   /** Source filename for error messages */
   filename?: string;
 }
+
+// =============================================================================
+// ASSET PIPELINE — @import / @export DIRECTIVE TYPES
+// =============================================================================
+
+/**
+ * Parsed @import directive AST node.
+ *
+ * Covers all three import forms:
+ * ```holoscript
+ * @import "./foo.hs"                     → path, alias (stem), no namedImports
+ * @import "./foo.hs" as F                → path, alias = 'F'
+ * @import { Button } from "./foo.hs"     → path, namedImports = ['Button']
+ * @import * as NS from "./foo.hs"        → path, alias = 'NS', isWildcard = true
+ * ```
+ */
+export interface ImportDirective {
+  readonly type: 'import';
+  /** Raw import path as written in source, e.g. `"./shared/ui.hs"` */
+  path: string;
+  /**
+   * Resolved namespace alias.
+   * - Defaults to the file stem (last path segment without extension)
+   * - Overridden by the `as Alias` clause
+   * - Used as the prefix for wildcard/namespace imports: `alias.ExportName`
+   */
+  alias: string;
+  /**
+   * List of explicitly imported names (`{ A, B }`).
+   * `undefined` for namespace / wildcard imports.
+   */
+  namedImports?: string[];
+  /**
+   * `true` for wildcard imports (`* as NS from "..."`)
+   * All exports are injected under `alias.ExportName`.
+   */
+  isWildcard?: boolean;
+  /** Source location (line/col of the `@import` token) */
+  loc?: { start: { line: number; column: number } };
+}
+
+/**
+ * Parsed @export directive AST node.
+ *
+ * Marks the immediately following node as publicly importable:
+ * ```holoscript
+ * @export template "GlowingOrb"    → exportKind = 'template'
+ * @export object   "Panel"         → exportKind = 'object'
+ * @export          "Thing"         → exportKind = 'any'
+ * ```
+ */
+export interface ExportDirective {
+  readonly type: 'export';
+  /**
+   * Category of the exported item.
+   * Inferred from the keyword following `@export`.
+   * Falls back to `'any'` when no kind keyword is present.
+   */
+  exportKind: 'template' | 'object' | 'composition' | 'logic' | 'any';
+  /**
+   * Name of the exported item.
+   * The consumer (e.g., `@import { Button }`) uses this name to look it up.
+   */
+  exportName?: string;
+  /** Source location (line/col of the `@export` token) */
+  loc?: { start: { line: number; column: number } };
+}
+
+/**
+ * Compact import record stored in `ASTProgram.imports`.
+ * Mirrors `ImportDirective` but is serialization-lightweight (no loc).
+ */
+export interface HSPlusImport {
+  path: string;
+  alias: string;
+  namedImports?: string[];
+  isWildcard?: boolean;
+}
+
+/**
+ * Async file-reader function injected by the host environment.
+ *
+ * - **Node.js**: `(p) => fs.promises.readFile(p, 'utf-8')`
+ * - **Browser / XR**: `(p) => fetch(p).then(r => r.text())`
+ * - **Tests**: in-memory `Map<string, string>` lookup
+ *
+ * The function receives the **canonical** (resolved absolute) path.
+ */
+export type ReadFileFn = (absolutePath: string) => Promise<string>;

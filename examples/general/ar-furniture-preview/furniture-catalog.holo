@@ -1,9 +1,44 @@
 // AR Furniture Preview
 // E-commerce AR experience for furniture visualization
+// Platform targets: ARKit, ARCore, WebXR
 
 composition "AR Furniture Catalog" {
 
-  // Sofa
+  metadata {
+    name: 'AR Furniture Preview'
+    description: 'Augmented reality furniture visualization tool for e-commerce. Customers place, scale, and customize furniture in their real-world spaces before purchasing.'
+    version: '3.0.0'
+    author: 'HoloScript AR Commerce Team'
+    category: 'e-commerce'
+    tags: ['ar', 'furniture', 'e-commerce', 'interior-design', 'retail']
+    platforms: ['arkit', 'arcore', 'webxr']
+    minPlayers: 1
+    maxPlayers: 1
+  }
+
+  // ── Surface Detection ─────────────────────────────────────────────────────
+
+  system "ARSurfaceDetector" {
+    scanRadius: 5.0
+    minSurfaceArea: 0.5
+    surfaceTypes: ['floor', 'table', 'wall']
+    visualizeSurfaces: true
+    surfaceColor: "#44aaff"
+    surfaceOpacity: 0.3
+
+    event "onSurfaceDetected" {
+      showPlacementGrid: true
+      hapticFeedback: true
+    }
+
+    event "onSurfaceLost" {
+      pausePlacement: true
+      showRescanUI: true
+    }
+  }
+
+  // ── Sofa Collection ───────────────────────────────────────────────────────
+
   object "ModernSofa" {
     @grabbable
     @scalable
@@ -13,9 +48,87 @@ composition "AR Furniture Catalog" {
     position: [0, 0.4, -2]
     scale: [2, 0.8, 1]
     color: "#8b4513"
+    material: "fabric_sofa"
+    receiveShadows: true
+    castShadows: true
+
+    behavior "FurniturePlacement" {
+      snapToFloor: true
+      allowWallPlacement: false
+      minScale: 0.5
+      maxScale: 2.0
+      showDimensions: true
+      dimensions: { width: 2.2, depth: 1.0, height: 0.85 }
+    }
+
+    behavior "ColorVariants" {
+      variants: ['#8b4513', '#2c3e50', '#c8a882', '#4a4a4a', '#b5651d']
+      currentVariant: 0
+      variantNames: ['Walnut Brown', 'Charcoal', 'Sand', 'Graphite', 'Chestnut']
+    }
+
+    behavior "ProductInfo" {
+      name: 'Moderno 3-Seater Sofa'
+      sku: 'SOF-MOD-001'
+      price: 899.99
+      currency: 'USD'
+      inStock: true
+      deliveryDays: 7
+      materialComposition: '60% Polyester, 40% Cotton'
+      weightKg: 45
+    }
   }
 
-  // Coffee table
+  object "SofaCushion1" {
+    @grabbable
+
+    geometry: "cube"
+    position: [-0.65, 0.87, -2]
+    scale: [0.6, 0.15, 0.5]
+    color: "#c8a882"
+    material: "cushion"
+  }
+
+  object "SofaCushion2" {
+    @grabbable
+
+    geometry: "cube"
+    position: [0, 0.87, -2]
+    scale: [0.6, 0.15, 0.5]
+    color: "#c8a882"
+    material: "cushion"
+  }
+
+  object "SofaCushion3" {
+    @grabbable
+
+    geometry: "cube"
+    position: [0.65, 0.87, -2]
+    scale: [0.6, 0.15, 0.5]
+    color: "#c8a882"
+    material: "cushion"
+  }
+
+  // Sofa left armrest
+  object "SofaArmLeft" {
+    geometry: "cube"
+    position: [-1.1, 0.65, -2]
+    scale: [0.2, 0.5, 1]
+    color: "#8b4513"
+    material: "fabric_sofa"
+  }
+
+  // Sofa right armrest
+  object "SofaArmRight" {
+    geometry: "cube"
+    position: [1.1, 0.65, -2]
+    scale: [0.2, 0.5, 1]
+    color: "#8b4513"
+    material: "fabric_sofa"
+  }
+
+  // ── Coffee Table Collection ────────────────────────────────────────────────
+
   object "CoffeeTable" {
     @grabbable
     @scalable
@@ -25,9 +138,66 @@ composition "AR Furniture Catalog" {
     position: [0, 0.3, -3.5]
     scale: [1.2, 0.6, 0.8]
     color: "#daa520"
+    material: "oak_wood"
+
+    behavior "FurniturePlacement" {
+      snapToFloor: true
+      minScale: 0.5
+      maxScale: 1.5
+      showDimensions: true
+      dimensions: { width: 1.2, depth: 0.8, height: 0.45 }
+    }
+
+    behavior "ColorVariants" {
+      variants: ['#daa520', '#8b4513', '#2c2c2c', '#f5f5f5', '#5c4033']
+      variantNames: ['Golden Oak', 'Walnut', 'Ebony', 'Marble White', 'Dark Espresso']
+    }
+
+    behavior "ProductInfo" {
+      name: 'Nordic Coffee Table'
+      sku: 'TAB-NOR-002'
+      price: 349.99
+      currency: 'USD'
+      inStock: true
+      deliveryDays: 5
+    }
   }
 
-  // Floor lamp
+  // Coffee table legs
+  object "CoffeeTableLeg1" {
+    geometry: "cylinder"
+    position: [-0.5, 0.1, -3.1]
+    scale: [0.05, 0.2, 0.05]
+    color: "#daa520"
+    material: "oak_wood"
+  }
+
+  object "CoffeeTableLeg2" {
+    geometry: "cylinder"
+    position: [0.5, 0.1, -3.1]
+    scale: [0.05, 0.2, 0.05]
+    color: "#daa520"
+    material: "oak_wood"
+  }
+
+  object "CoffeeTableLeg3" {
+    geometry: "cylinder"
+    position: [-0.5, 0.1, -3.9]
+    scale: [0.05, 0.2, 0.05]
+    color: "#daa520"
+    material: "oak_wood"
+  }
+
+  object "CoffeeTableLeg4" {
+    geometry: "cylinder"
+    position: [0.5, 0.1, -3.9]
+    scale: [0.05, 0.2, 0.05]
+    color: "#daa520"
+    material: "oak_wood"
+  }
+
+  // ── Lighting Collection ────────────────────────────────────────────────────
+
   object "FloorLamp" {
     @grabbable
     @scalable
@@ -36,6 +206,15 @@ composition "AR Furniture Catalog" {
     position: [2, 0.9, -2]
     scale: [0.1, 1.8, 0.1]
     color: "#c0c0c0"
+    material: "brushed_steel"
+
+    behavior "ProductInfo" {
+      name: 'Arc Floor Lamp'
+      sku: 'LGT-ARC-003'
+      price: 229.99
+      currency: 'USD'
+      inStock: true
+    }
   }
 
   object "LampShade" {
@@ -43,9 +222,38 @@ composition "AR Furniture Catalog" {
     position: [2, 1.8, -2]
     scale: [0.3, 0.3, 0.3]
     color: "#f5f5dc"
+    material: "linen"
   }
 
-  // Bookshelf
+  object "LampBase" {
+    @collidable
+
+    geometry: "cylinder"
+    position: [2, 0.1, -2]
+    scale: [0.2, 0.15, 0.2]
+    color: "#808080"
+    material: "cast_iron"
+  }
+
+  object "PendantLight1" {
+    @glowing
+
+    geometry: "sphere"
+    position: [-3, 2.2, -2]
+    scale: 0.25
+    color: "#fff8e7"
+    emissionIntensity: 1.5
+
+    behavior "ProductInfo" {
+      name: 'Globe Pendant Light'
+      sku: 'LGT-PND-007'
+      price: 89.99
+      currency: 'USD'
+    }
+  }
+
+  // ── Bookshelf Collection ───────────────────────────────────────────────────
+
   object "Bookshelf" {
     @grabbable
     @scalable
@@ -55,9 +263,71 @@ composition "AR Furniture Catalog" {
     position: [-2, 1, -2]
     scale: [0.4, 2, 1.2]
     color: "#8b4513"
+    material: "oak_wood"
+
+    behavior "FurniturePlacement" {
+      snapToFloor: true
+      allowWallSnap: true
+      dimensions: { width: 1.2, depth: 0.4, height: 2.0 }
+    }
+
+    behavior "ProductInfo" {
+      name: 'Scandinavian Bookshelf'
+      sku: 'STG-SCA-004'
+      price: 449.99
+      currency: 'USD'
+      inStock: false
+      restockDate: '2026-03-15'
+    }
   }
 
-  // Rug
+  // Shelf panels
+  object "ShelfBoard1" {
+    geometry: "cube"
+    position: [-2, 0.5, -2]
+    scale: [0.38, 0.03, 1.18]
+    color: "#a0522d"
+  }
+
+  object "ShelfBoard2" {
+    geometry: "cube"
+    position: [-2, 1.0, -2]
+    scale: [0.38, 0.03, 1.18]
+    color: "#a0522d"
+  }
+
+  object "ShelfBoard3" {
+    geometry: "cube"
+    position: [-2, 1.5, -2]
+    scale: [0.38, 0.03, 1.18]
+    color: "#a0522d"
+  }
+
+  object "ShelfBook1" {
+    geometry: "cube"
+    position: [-2, 0.7, -1.7]
+    scale: [0.35, 0.3, 0.08]
+    color: "#cc2222"
+  }
+
+  object "ShelfBook2" {
+    geometry: "cube"
+    position: [-2, 0.7, -1.55]
+    scale: [0.35, 0.3, 0.06]
+    color: "#2244cc"
+  }
+
+  object "ShelfPlant" {
+    @glowing
+
+    geometry: "sphere"
+    position: [-2, 1.2, -1.5]
+    scale: [0.15, 0.2, 0.15]
+    color: "#22aa44"
+  }
+
+  // ── Rug Collection ─────────────────────────────────────────────────────────
+
   object "Rug" {
     @scalable
     @rotatable
@@ -66,9 +336,29 @@ composition "AR Furniture Catalog" {
     position: [0, 0.01, -2.5]
     scale: [3, 1, 2]
     color: "#dc143c"
+    material: "wool_rug"
+
+    behavior "FurniturePlacement" {
+      snapToFloor: true
+      allowOverlap: false
+      dimensions: { width: 3.0, depth: 2.0 }
+    }
+
+    behavior "ColorVariants" {
+      variants: ['#dc143c', '#1a3a6b', '#2d5a1b', '#8b6914', '#3d3d3d']
+      variantNames: ['Crimson', 'Navy', 'Forest', 'Caramel', 'Charcoal']
+    }
+
+    behavior "ProductInfo" {
+      name: 'Artisan Wool Area Rug 3x2'
+      sku: 'RUG-ART-005'
+      price: 299.99
+      currency: 'USD'
+    }
   }
 
-  // Chair
+  // ── Dining Chairs Collection ───────────────────────────────────────────────
+
   object "DiningChair" {
     @grabbable
     @scalable
@@ -78,5 +368,465 @@ composition "AR Furniture Catalog" {
     position: [3, 0.5, -3]
     scale: [0.5, 1, 0.5]
     color: "#696969"
+    material: "molded_plastic"
+
+    behavior "ProductInfo" {
+      name: 'Eames-Style Dining Chair'
+      sku: 'CHR-EAM-006'
+      price: 149.99
+      currency: 'USD'
+      inStock: true
+      packQuantity: 4
+    }
+  }
+
+  object "DiningChair2" {
+    @grabbable
+    @scalable
+    @rotatable
+
+    geometry: "cube"
+    position: [3.7, 0.5, -3]
+    scale: [0.5, 1, 0.5]
+    color: "#696969"
+    material: "molded_plastic"
+  }
+
+  object "DiningChairBack" {
+    geometry: "cube"
+    position: [3, 1.0, -3.3]
+    scale: [0.48, 0.5, 0.05]
+    color: "#696969"
+    material: "molded_plastic"
+  }
+
+  // ── TV Stand ──────────────────────────────────────────────────────────────
+
+  object "TVStand" {
+    @grabbable
+    @scalable
+    @rotatable
+
+    geometry: "cube"
+    position: [0, 0.4, -4.5]
+    scale: [1.8, 0.8, 0.4]
+    color: "#2c2c2c"
+    material: "mdf_black"
+
+    behavior "ProductInfo" {
+      name: 'Floating TV Console 180cm'
+      sku: 'TVS-FLT-008'
+      price: 599.99
+      currency: 'USD'
+    }
+  }
+
+  object "TVScreen" {
+    @glowing
+
+    geometry: "plane"
+    position: [0, 1.3, -4.45]
+    scale: [1.6, 0.9, 1]
+    color: "#111111"
+    emissionIntensity: 0.5
+  }
+
+  // ── Placement Guides ──────────────────────────────────────────────────────
+
+  object "PlacementGrid" {
+    geometry: "plane"
+    position: [0, 0.001, 0]
+    scale: [5, 1, 5]
+    color: "#44aaff"
+    opacity: 0.2
+
+    behavior "ARPlacementGuide" {
+      visible: true
+      cellSize: 0.5
+      snapToGrid: true
+    }
+  }
+
+  // ── UI Overlays ───────────────────────────────────────────────────────────
+
+  system "FurnitureSelector" {
+    catalogItems: 12
+    showPriceOverlay: true
+    showDimensionOverlay: true
+    showMaterialOverlay: true
+    undoSteps: 10
+
+    event "onItemSelected" {
+      highlightItem: true
+      showInfoPanel: true
+      playSelectSound: true
+    }
+
+    event "onItemPlaced" {
+      logPlacement: true
+      checkCompatibility: true
+    }
+
+    event "onAddToCart" {
+      syncWithBackend: true
+      showConfirmation: true
+    }
+  }
+
+  system "RoomMeasurement" {
+    autoDimensions: true
+    showRuler: true
+    unit: "metric"
+    snapIncrement: 0.1
+
+    event "onMeasurementComplete" {
+      suggestFurnitureSizes: true
+    }
+  }
+
+  // ── Bedroom Furniture ─────────────────────────────────────────────────────
+
+  object "QueenBed" {
+    @grabbable
+    @scalable
+    @collidable
+    geometry: "cube"
+    position: [0, 0.3, 0]
+    scale: [1.6, 0.6, 2.1]
+    color: "#5d4037"
+    material: "upholstered_wood"
+    behavior "FurnitureItem" {
+      id: 'BED-001'
+      name: 'Queen Platform Bed'
+      category: 'bedroom'
+      price: 899.99
+      dimensions: { width: 1.6, depth: 2.1, height: 1.2 }
+      materials: ['gray_linen', 'navy_velvet', 'cognac_leather']
+    }
+  }
+
+  object "NightstandLeft" {
+    @grabbable
+    @scalable
+    @collidable
+    geometry: "cube"
+    position: [-1.0, 0.3, 0]
+    scale: [0.5, 0.6, 0.5]
+    color: "#8d6e63"
+    material: "walnut"
+    behavior "FurnitureItem" {
+      id: 'NS-001'
+      name: 'Walnut Nightstand'
+      price: 249.99
+    }
+  }
+
+  object "NightstandRight" {
+    @grabbable
+    @scalable
+    @collidable
+    geometry: "cube"
+    position: [1.0, 0.3, 0]
+    scale: [0.5, 0.6, 0.5]
+    color: "#8d6e63"
+    material: "walnut"
+    behavior "FurnitureItem" {
+      id: 'NS-002'
+      name: 'Walnut Nightstand'
+      price: 249.99
+    }
+  }
+
+  object "Dresser" {
+    @grabbable
+    @scalable
+    @collidable
+    geometry: "cube"
+    position: [2, 0.5, -3]
+    scale: [1.2, 1.0, 0.5]
+    color: "#795548"
+    material: "oak_lacquered"
+    behavior "FurnitureItem" {
+      id: 'DR-001'
+      name: 'Mid-Century Dresser'
+      price: 599.99
+    }
+  }
+
+  // ── Dining Room Furniture ──────────────────────────────────────────────────
+
+  object "DiningTable" {
+    @grabbable
+    @scalable
+    @collidable
+    geometry: "cube"
+    position: [0, 0.4, -8]
+    scale: [2, 0.8, 1]
+    color: "#4e342e"
+    material: "reclaimed_wood"
+    behavior "FurnitureItem" {
+      id: 'DT-001'
+      name: 'Farmhouse Dining Table'
+      category: 'dining'
+      price: 1099.99
+      seats: 6
+    }
+  }
+
+  object "DiningChair1" {
+    @grabbable
+    @scalable
+    @collidable
+    geometry: "cube"
+    position: [-0.8, 0.4, -7.3]
+    rotation: [0, 0, 0]
+    scale: [0.45, 0.85, 0.5]
+    color: "#37474f"
+    material: "linen_seat"
+    behavior "FurnitureItem" {
+      id: 'DC-001'
+      name: 'Windsor Dining Chair'
+      price: 199.99
+    }
+  }
+
+  object "DiningChair2" {
+    @grabbable
+    @scalable
+    @collidable
+    geometry: "cube"
+    position: [0.8, 0.4, -7.3]
+    scale: [0.45, 0.85, 0.5]
+    color: "#37474f"
+    material: "linen_seat"
+    behavior "FurnitureItem" {
+      id: 'DC-002'
+      name: 'Windsor Dining Chair'
+      price: 199.99
+    }
+  }
+
+  object "DiningChair3" {
+    @grabbable
+    @scalable
+    @collidable
+    geometry: "cube"
+    position: [-0.8, 0.4, -8.7]
+    rotation: [0, 180, 0]
+    scale: [0.45, 0.85, 0.5]
+    color: "#37474f"
+    behavior "FurnitureItem" {
+      id: 'DC-003'
+      name: 'Windsor Dining Chair'
+      price: 199.99
+    }
+  }
+
+  object "DiningChair4" {
+    @grabbable
+    @scalable
+    @collidable
+    geometry: "cube"
+    position: [0.8, 0.4, -8.7]
+    rotation: [0, 180, 0]
+    scale: [0.45, 0.85, 0.5]
+    color: "#37474f"
+    behavior "FurnitureItem" {
+      id: 'DC-004'
+      name: 'Windsor Dining Chair'
+      price: 199.99
+    }
+  }
+
+  object "Sideboard" {
+    @grabbable
+    @scalable
+    @collidable
+    geometry: "cube"
+    position: [3, 0.4, -8]
+    scale: [1.5, 0.8, 0.5]
+    color: "#5d4037"
+    material: "painted_mdf"
+    behavior "FurnitureItem" {
+      id: 'SB-001'
+      name: 'Mid-Century Sideboard'
+      price: 749.99
+    }
+  }
+
+  // ── Lighting Fixtures ─────────────────────────────────────────────────────
+
+  object "PendantLight" {
+    @grabbable
+    @glowing
+    geometry: "sphere"
+    position: [0, 2.8, 0]
+    scale: 0.3
+    color: "#ffecb3"
+    emissionIntensity: 2.0
+    behavior "FurnitureItem" {
+      id: 'PL-001'
+      name: 'Rattan Pendant Light'
+      category: 'lighting'
+      price: 179.99
+    }
+  }
+
+  object "FloorLamp" {
+    @grabbable
+    @glowing
+    geometry: "cylinder"
+    position: [3, 1, -2]
+    scale: [0.05, 2, 0.05]
+    color: "#b0bec5"
+    behavior "FurnitureItem" {
+      id: 'FL-001'
+      name: 'Arc Floor Lamp'
+      category: 'lighting'
+      price: 299.99
+    }
+  }
+
+  object "FloorLampShade" {
+    @glowing
+    geometry: "sphere"
+    position: [3, 2.1, -2]
+    scale: [0.3, 0.25, 0.3]
+    color: "#fff8e1"
+    emissionIntensity: 2.5
+  }
+
+  object "TableLamp" {
+    @grabbable
+    @glowing
+    geometry: "cylinder"
+    position: [1.2, 0.7, -0.1]
+    scale: [0.1, 0.5, 0.1]
+    color: "#78909c"
+    behavior "FurnitureItem" {
+      id: 'TL-001'
+      name: 'Ceramic Table Lamp'
+      category: 'lighting'
+      price: 129.99
+    }
+  }
+
+  // ── Home Decor ────────────────────────────────────────────────────────────
+
+  object "AreaRug" {
+    @grabbable
+    @scalable
+    geometry: "plane"
+    position: [0, 0.01, 0]
+    scale: [3, 1, 2]
+    color: "#6d4c41"
+    material: "persian_rug"
+    behavior "FurnitureItem" {
+      id: 'RUG-001'
+      name: 'Persian Area Rug 3x2m'
+      price: 449.99
+    }
+  }
+
+  object "PlantPot" {
+    @grabbable
+    @scalable
+    geometry: "cylinder"
+    position: [4, 0.5, -4]
+    scale: [0.3, 0.9, 0.3]
+    color: "#4caf50"
+    material: "ceramic"
+    behavior "FurnitureItem" {
+      id: 'PL-001'
+      name: 'Monstera Plant (XL)'
+      category: 'decor'
+      price: 89.99
+    }
+  }
+
+  object "WallArt" {
+    @grabbable
+    geometry: "plane"
+    position: [-3, 1.5, -5]
+    scale: [1.2, 0.9, 1]
+    color: "#eceff1"
+    material: "canvas_print"
+    behavior "FurnitureItem" {
+      id: 'WA-001'
+      name: 'Abstract Canvas Print'
+      category: 'decor'
+      price: 199.99
+    }
+  }
+
+  // ── Room Measurement System ────────────────────────────────────────────────
+
+  object "MeasureTape" {
+    @clickable
+    @glowing
+    geometry: "cube"
+    position: [0, 1, 3]
+    scale: [0.15, 0.3, 0.08]
+    color: "#fdd835"
+    behavior "MeasurementTool" {
+      unit: 'm'
+      snapToWalls: true
+      showDimensions: true
+      color: '#ff9800'
+    }
+  }
+
+  object "GridOverlay" {
+    @glowing
+    geometry: "plane"
+    position: [0, 0.005, 0]
+    scale: [8, 1, 8]
+    color: "#90caf9"
+    opacity: 0.2
+    behavior "FloorGrid" {
+      cellSizeMeters: 0.5
+      showLabels: false
+    }
+  }
+
+  // ── Analytics System ──────────────────────────────────────────────────────
+
+  system "ProductAnalytics" {
+    trackProductViews: true
+    trackPlacementEvents: true
+    trackCartEvents: true
+    trackSessionDuration: true
+    trackMaterialSelections: true
+    trackGestures: ['tap', 'pinch', 'swipe', 'drag']
+
+    event "onProductViewed" {
+      logProductId: true
+      logCategory: true
+      logTimeViewed: true
+    }
+
+    event "onAddedToCart" {
+      logProductId: true
+      logMaterial: true
+      logPrice: true
+      logPosition: true
+    }
+
+    event "onPurchaseComplete" {
+      logOrderTotal: true
+      logItemCount: true
+      logARSessionDuration: true
+    }
+  }
+
+  system "SavedLayouts" {
+    maxSavedLayouts: 10
+    autoSaveInterval: 60
+    exportFormat: 'JSON'
+    includeProductIds: true
+    includePositions: true
+    includeMaterials: true
+    shareEnabled: true
+    shareFormat: 'AR-link'
   }
 }

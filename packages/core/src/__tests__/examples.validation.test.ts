@@ -91,7 +91,7 @@ const EXAMPLES: ExampleMetadata[] = [
     path: 'specialized/unity-quest',
     holoFile: 'quest-obstacle-course.holo',
     expectedLines: 800,
-    platforms: ['unity-quest', 'unity-pcvr'],
+    platforms: ['unity-quest', 'unity-pcvr', 'photon'],
   },
   {
     name: 'VRChat World',

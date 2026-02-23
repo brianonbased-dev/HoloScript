@@ -1,160 +1,232 @@
 /**
  * SpatialPersonaTrait Production Tests
  *
- * VisionOS spatial persona: activate/deactivate, position updates,
- * expression sync, participant visibility, and detach.
+ * V43 Tier 2 — Manages a user's persistent spatial persona in visionOS.
+ * Covers: defaultConfig, onAttach (setState + persona:init emit),
+ * onDetach (isActive guard), and all 6 onEvent types.
+ *
+ * Uses context.setState/getState pattern.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { spatialPersonaHandler } from '../SpatialPersonaTrait';
 
-function makeNode(id = 'sp-node') { return { id } as any; }
-function makeConfig(o: any = {}) { return { ...spatialPersonaHandler.defaultConfig, ...o }; }
-function makeContext() {
-  const store: Record<string, any> = {};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function makeNode() { return { id: 'sp_test' } as any; }
+
+function makeCtx() {
+  let _state: Record<string, unknown> = {};
   return {
     emit: vi.fn(),
-    setState: (s: Record<string, any>) => Object.assign(store, s),
-    getState: () => store,
+    setState: vi.fn((s: Record<string, unknown>) => { _state = { ..._state, ...s }; }),
+    getState: () => _state,
   };
 }
-function getState(ctx: ReturnType<typeof makeContext>) { return ctx.getState().spatialPersona; }
 
-describe('SpatialPersonaTrait — Production', () => {
-  let node: any, config: any, ctx: ReturnType<typeof makeContext>;
+function attach(node: any, overrides: Record<string, unknown> = {}) {
+  const cfg = { ...spatialPersonaHandler.defaultConfig!, ...overrides } as any;
+  const ctx = makeCtx();
+  spatialPersonaHandler.onAttach!(node, cfg, ctx as any);
+  return { cfg, ctx };
+}
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    node = makeNode();
-    config = makeConfig();
-    ctx = makeContext();
-    spatialPersonaHandler.onAttach(node, config, ctx);
+function st(ctx: ReturnType<typeof makeCtx>) {
+  return ctx.getState().spatialPersona as any;
+}
+
+function fire(node: any, cfg: any, ctx: any, type: string, payload?: Record<string, unknown>) {
+  spatialPersonaHandler.onEvent!(node, cfg, ctx as any, { type, payload } as any);
+}
+
+// ─── defaultConfig ────────────────────────────────────────────────────────────
+
+describe('SpatialPersonaTrait — defaultConfig', () => {
+  it('has 7 fields with correct defaults', () => {
+    const d = spatialPersonaHandler.defaultConfig!;
+    expect(d.persona_style).toBe('realistic');
+    expect(d.visibility).toBe('always');
+    expect(d.spatial_audio).toBe(true);
+    expect(d.gesture_mirroring).toBe(true);
+    expect(d.expression_sync).toBe(true);
+    expect(d.proximity_radius).toBeCloseTo(3.0);
+    expect(d.render_quality).toBe('high');
+  });
+});
+
+// ─── onAttach ─────────────────────────────────────────────────────────────────
+
+describe('SpatialPersonaTrait — onAttach', () => {
+  it('initialises state with correct defaults via setState', () => {
+    const node = makeNode();
+    const { ctx } = attach(node);
+    const s = st(ctx);
+    expect(s.isActive).toBe(false);
+    expect(s.personaId).toBeNull();
+    expect(s.position).toBeNull();
+    expect(s.orientation).toBeNull();
+    expect(s.expressionState).toBe('neutral');
+    expect(s.isSpeaking).toBe(false);
+    expect(s.visibleTo).toBeInstanceOf(Set);
+    expect(s.visibleTo.size).toBe(0);
   });
 
-  describe('construction', () => {
-    it('initializes inactive state', () => {
-      const s = getState(ctx);
-      expect(s.isActive).toBe(false);
-      expect(s.personaId).toBeNull();
-      expect(s.expressionState).toBe('neutral');
-      expect(s.isSpeaking).toBe(false);
-      expect(s.visibleTo.size).toBe(0);
-    });
-
-    it('emits persona:init', () => {
-      expect(ctx.emit).toHaveBeenCalledWith('persona:init', { style: 'realistic', visibility: 'always' });
-    });
-
-    it('has correct defaults', () => {
-      expect(spatialPersonaHandler.defaultConfig.proximity_radius).toBe(3.0);
-      expect(spatialPersonaHandler.defaultConfig.render_quality).toBe('high');
+  it('emits persona:init with style and visibility', () => {
+    const node = makeNode();
+    const { ctx } = attach(node, { persona_style: 'stylized', visibility: 'when_speaking' });
+    expect(ctx.emit).toHaveBeenCalledWith('persona:init', {
+      style: 'stylized', visibility: 'when_speaking',
     });
   });
+});
 
-  describe('activate/deactivate', () => {
-    it('activates persona', () => {
-      ctx.emit.mockClear();
-      spatialPersonaHandler.onEvent!(node, config, ctx, {
-        type: 'persona:activate',
-        payload: { personaId: 'user_42' },
-      });
+// ─── onDetach ─────────────────────────────────────────────────────────────────
 
-      const s = getState(ctx);
-      expect(s.isActive).toBe(true);
-      expect(s.personaId).toBe('user_42');
-      expect(ctx.emit).toHaveBeenCalledWith('persona:activated', { personaId: 'user_42' });
-    });
-
-    it('deactivates persona', () => {
-      spatialPersonaHandler.onEvent!(node, config, ctx, { type: 'persona:activate', payload: {} });
-      ctx.emit.mockClear();
-
-      spatialPersonaHandler.onEvent!(node, config, ctx, { type: 'persona:deactivate' });
-
-      expect(getState(ctx).isActive).toBe(false);
-      expect(ctx.emit).toHaveBeenCalledWith('persona:deactivated', expect.anything());
-    });
+describe('SpatialPersonaTrait — onDetach', () => {
+  it('emits persona:deactivated with personaId when isActive=true', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    st(ctx).isActive = true;
+    st(ctx).personaId = 'persona_abc';
+    ctx.emit.mockClear();
+    spatialPersonaHandler.onDetach!(node, cfg, ctx as any);
+    expect(ctx.emit).toHaveBeenCalledWith('persona:deactivated', { personaId: 'persona_abc' });
   });
 
-  describe('position and expression', () => {
-    it('updates position and orientation', () => {
-      spatialPersonaHandler.onEvent!(node, config, ctx, { type: 'persona:activate', payload: {} });
-      ctx.emit.mockClear();
+  it('does NOT emit persona:deactivated when isActive=false', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    ctx.emit.mockClear();
+    spatialPersonaHandler.onDetach!(node, cfg, ctx as any);
+    expect(ctx.emit).not.toHaveBeenCalledWith('persona:deactivated', expect.any(Object));
+  });
+});
 
-      spatialPersonaHandler.onEvent!(node, config, ctx, {
-        type: 'persona:position_update',
-        payload: { position: [1, 2, 3], orientation: [0, 0, 0, 1] },
-      });
+// ─── onEvent — persona:activate ───────────────────────────────────────────────
 
-      expect(getState(ctx).position).toEqual([1, 2, 3]);
-      expect(getState(ctx).orientation).toEqual([0, 0, 0, 1]);
-      expect(ctx.emit).toHaveBeenCalledWith('persona:moved', expect.objectContaining({ position: [1, 2, 3] }));
-    });
-
-    it('updates expression and sets isSpeaking', () => {
-      spatialPersonaHandler.onEvent!(node, config, ctx, { type: 'persona:activate', payload: {} });
-      ctx.emit.mockClear();
-
-      spatialPersonaHandler.onEvent!(node, config, ctx, {
-        type: 'persona:expression',
-        payload: { expression: 'talking' },
-      });
-
-      expect(getState(ctx).expressionState).toBe('talking');
-      expect(getState(ctx).isSpeaking).toBe(true);
-      expect(ctx.emit).toHaveBeenCalledWith('persona:expression_changed', expect.objectContaining({ expression: 'talking' }));
-    });
-
-    it('sets isSpeaking to false for non-talking expressions', () => {
-      spatialPersonaHandler.onEvent!(node, config, ctx, { type: 'persona:activate', payload: {} });
-      spatialPersonaHandler.onEvent!(node, config, ctx, { type: 'persona:expression', payload: { expression: 'talking' } });
-
-      spatialPersonaHandler.onEvent!(node, config, ctx, { type: 'persona:expression', payload: { expression: 'listening' } });
-
-      expect(getState(ctx).isSpeaking).toBe(false);
-    });
+describe('SpatialPersonaTrait — onEvent: persona:activate', () => {
+  it('sets isActive=true and stores explicit personaId', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, 'persona:activate', { personaId: 'p42' });
+    expect(st(ctx).isActive).toBe(true);
+    expect(st(ctx).personaId).toBe('p42');
+    expect(ctx.emit).toHaveBeenCalledWith('persona:activated', { personaId: 'p42' });
   });
 
-  describe('participant visibility', () => {
-    it('adds visible participant', () => {
-      spatialPersonaHandler.onEvent!(node, config, ctx, {
-        type: 'persona:participant_visible',
-        payload: { participantId: 'p1' },
-      });
+  it('generates personaId from node.id when not provided', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, 'persona:activate');
+    expect(st(ctx).personaId).toBe(`persona_${node.id}`);
+    expect(st(ctx).isActive).toBe(true);
+  });
+});
 
-      expect(getState(ctx).visibleTo.has('p1')).toBe(true);
-    });
+// ─── onEvent — persona:deactivate ─────────────────────────────────────────────
 
-    it('removes hidden participant', () => {
-      spatialPersonaHandler.onEvent!(node, config, ctx, { type: 'persona:participant_visible', payload: { participantId: 'p1' } });
+describe('SpatialPersonaTrait — onEvent: persona:deactivate', () => {
+  it('sets isActive=false and emits persona:deactivated', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    st(ctx).isActive = true;
+    st(ctx).personaId = 'pid1';
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, 'persona:deactivate');
+    expect(st(ctx).isActive).toBe(false);
+    expect(ctx.emit).toHaveBeenCalledWith('persona:deactivated', { personaId: 'pid1' });
+  });
+});
 
-      spatialPersonaHandler.onEvent!(node, config, ctx, { type: 'persona:participant_hidden', payload: { participantId: 'p1' } });
+// ─── onEvent — persona:position_update ───────────────────────────────────────
 
-      expect(getState(ctx).visibleTo.has('p1')).toBe(false);
-    });
+describe('SpatialPersonaTrait — onEvent: persona:position_update', () => {
+  it('updates position and orientation, emits persona:moved', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    st(ctx).personaId = 'pid1';
+    ctx.emit.mockClear();
+    const pos = [1, 2, 3] as [number, number, number];
+    const ori = [0, 0, 0, 1] as [number, number, number, number];
+    fire(node, cfg, ctx, 'persona:position_update', { position: pos, orientation: ori });
+    expect(st(ctx).position).toEqual([1, 2, 3]);
+    expect(st(ctx).orientation).toEqual([0, 0, 0, 1]);
+    expect(ctx.emit).toHaveBeenCalledWith('persona:moved', expect.objectContaining({ personaId: 'pid1', position: pos }));
   });
 
-  describe('detach', () => {
-    it('emits deactivated when active', () => {
-      spatialPersonaHandler.onEvent!(node, config, ctx, { type: 'persona:activate', payload: { personaId: 'x' } });
-      ctx.emit.mockClear();
+  it('updates only position when orientation not in payload', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    const initOri = [0, 1, 0, 0] as [number, number, number, number];
+    st(ctx).orientation = initOri;
+    fire(node, cfg, ctx, 'persona:position_update', { position: [5, 5, 5] });
+    expect(st(ctx).position).toEqual([5, 5, 5]);
+    expect(st(ctx).orientation).toEqual(initOri); // unchanged
+  });
+});
 
-      spatialPersonaHandler.onDetach!(node, config, ctx);
-      expect(ctx.emit).toHaveBeenCalledWith('persona:deactivated', { personaId: 'x' });
-    });
+// ─── onEvent — persona:expression ────────────────────────────────────────────
 
-    it('no-op detach when inactive', () => {
-      ctx.emit.mockClear();
-      spatialPersonaHandler.onDetach!(node, config, ctx);
-      expect(ctx.emit).not.toHaveBeenCalledWith('persona:deactivated', expect.anything());
-    });
+describe('SpatialPersonaTrait — onEvent: persona:expression', () => {
+  it('updates expressionState and sets isSpeaking=true when talking', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    st(ctx).personaId = 'pid1';
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, 'persona:expression', { expression: 'talking' });
+    expect(st(ctx).expressionState).toBe('talking');
+    expect(st(ctx).isSpeaking).toBe(true);
+    expect(ctx.emit).toHaveBeenCalledWith('persona:expression_changed', expect.objectContaining({ expression: 'talking' }));
   });
 
-  describe('edge cases', () => {
-    it('event with no state is a no-op', () => {
-      const noCtx = { emit: vi.fn(), setState: vi.fn(), getState: () => ({}) };
-      spatialPersonaHandler.onEvent!(node, config, noCtx, { type: 'persona:activate', payload: {} });
-      expect(noCtx.emit).not.toHaveBeenCalled();
-    });
+  it('sets isSpeaking=false for non-talking expressions', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    st(ctx).isSpeaking = true; // was talking
+    fire(node, cfg, ctx, 'persona:expression', { expression: 'listening' });
+    expect(st(ctx).expressionState).toBe('listening');
+    expect(st(ctx).isSpeaking).toBe(false);
+  });
+
+  it('no-op when expression not in payload', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    st(ctx).expressionState = 'neutral';
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, 'persona:expression');
+    expect(st(ctx).expressionState).toBe('neutral');
+    expect(ctx.emit).not.toHaveBeenCalledWith('persona:expression_changed', expect.any(Object));
+  });
+});
+
+// ─── onEvent — persona:participant_visible / persona:participant_hidden ────────
+
+describe('SpatialPersonaTrait — onEvent: participant visibility', () => {
+  it('persona:participant_visible adds to visibleTo set', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    fire(node, cfg, ctx, 'persona:participant_visible', { participantId: 'u1' });
+    fire(node, cfg, ctx, 'persona:participant_visible', { participantId: 'u2' });
+    expect(st(ctx).visibleTo.size).toBe(2);
+    expect(st(ctx).visibleTo.has('u1')).toBe(true);
+    expect(st(ctx).visibleTo.has('u2')).toBe(true);
+  });
+
+  it('persona:participant_hidden removes from visibleTo set', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    fire(node, cfg, ctx, 'persona:participant_visible', { participantId: 'u1' });
+    fire(node, cfg, ctx, 'persona:participant_hidden', { participantId: 'u1' });
+    expect(st(ctx).visibleTo.size).toBe(0);
+  });
+
+  it('no-op for participant_visible/hidden without participantId', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    fire(node, cfg, ctx, 'persona:participant_visible');
+    fire(node, cfg, ctx, 'persona:participant_hidden');
+    expect(st(ctx).visibleTo.size).toBe(0);
   });
 });

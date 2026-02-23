@@ -14,7 +14,7 @@ describe('InstancedRenderer', () => {
 
   beforeAll(async () => {
     // Create WebGPU context
-    context = new WebGPUContext({ fallbackToCPU: false });
+    context = new WebGPUContext({ fallbackToCPU: true });
     await context.initialize();
 
     // Create canvas

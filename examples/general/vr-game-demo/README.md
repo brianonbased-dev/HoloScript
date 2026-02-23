@@ -2,7 +2,7 @@
 
 **Universal HoloScript example demonstrating VR game development.**
 
-## 📋 Overview
+## Overview
 
 This example showcases HoloScript's gaming capabilities with a fast-paced VR shooter. Players shoot moving targets in a desert firing range, earning points and power-ups while managing ammo and health.
 
@@ -40,7 +40,7 @@ After completing this example, you'll learn how to:
 4. **Build scoring mechanics** with combos and bonuses
 5. **Optimize VR games** for 90+ FPS performance
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Compile to Your Platform
 

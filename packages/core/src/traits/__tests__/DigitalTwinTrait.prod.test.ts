@@ -1,519 +1,371 @@
 /**
  * DigitalTwinTrait Production Tests
  *
- * Comprehensive coverage for IoT digital twin: construction, simulation mode,
- * connection, state sync (in/out/bidirectional), polling, divergence calculation,
- * history buffer, pending updates, and edge cases.
+ * Maps a physical IoT device to a virtual XR representation.
+ * Covers: defaultConfig, onAttach (simulation_mode + model_source guards),
+ * onDetach, onUpdate (polling + pendingUpdates flush + history pruning),
+ * and all 8 onEvent types including calculateDivergence behavior.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { digitalTwinHandler } from '../DigitalTwinTrait';
 
-// =============================================================================
-// HELPERS
-// =============================================================================
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode(id = 'twin-node') {
-  return { id } as any;
+function makeNode() { return { id: 'dt_test' } as any; }
+function makeCtx() { return { emit: vi.fn() }; }
+
+function attach(node: any, overrides: Record<string, unknown> = {}) {
+  const cfg = { ...digitalTwinHandler.defaultConfig!, ...overrides } as any;
+  const ctx = makeCtx();
+  digitalTwinHandler.onAttach!(node, cfg, ctx as any);
+  return { cfg, ctx };
 }
 
-function makeConfig(overrides: Partial<Parameters<typeof digitalTwinHandler.onAttach>[1]> = {}) {
-  return { ...digitalTwinHandler.defaultConfig, ...overrides };
+function st(node: any) { return node.__digitalTwinState as any; }
+function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
+  digitalTwinHandler.onEvent!(node, cfg, ctx as any, evt as any);
+}
+function update(node: any, cfg: any, ctx: any, delta = 0.016) {
+  digitalTwinHandler.onUpdate!(node, cfg, ctx as any, delta);
 }
 
-function makeContext() {
-  return { emit: vi.fn() };
-}
+// ─── defaultConfig ────────────────────────────────────────────────────────────
 
-function getState(node: any) {
-  return (node as any).__digitalTwinState;
-}
+describe('DigitalTwinTrait — defaultConfig', () => {
+  it('has 8 fields with correct defaults', () => {
+    const d = digitalTwinHandler.defaultConfig!;
+    expect(d.physical_id).toBe('');
+    expect(d.model_source).toBe('');
+    expect(d.sync_properties).toEqual([]);
+    expect(d.update_mode).toBe('polling');
+    expect(d.poll_interval).toBe(5000);
+    expect(d.history_retention).toBe(3600);
+    expect(d.simulation_mode).toBe(false);
+    expect(d.connection_string).toBe('');
+  });
+});
 
-const SYNC_PROPS = [
-  { physical_key: 'temp', virtual_property: 'temperature', direction: 'in' as const },
-  { physical_key: 'power', virtual_property: 'powerLevel', direction: 'out' as const },
-  { physical_key: 'rpm', virtual_property: 'rotationSpeed', direction: 'bidirectional' as const },
-];
+// ─── onAttach ─────────────────────────────────────────────────────────────────
 
-// =============================================================================
-// TESTS
-// =============================================================================
-
-describe('DigitalTwinTrait — Production', () => {
-  let node: any;
-  let ctx: ReturnType<typeof makeContext>;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    node = makeNode();
-    ctx = makeContext();
+describe('DigitalTwinTrait — onAttach', () => {
+  it('initialises state with correct defaults', () => {
+    const node = makeNode();
+    attach(node, { simulation_mode: true }); // skip connectToPhysical
+    const s = st(node);
+    expect(s.divergence).toBe(0);
+    expect(s.physicalState).toEqual({});
+    expect(s.pendingUpdates).toEqual([]);
+    expect(s.connectionHandle).toBeNull();
+    expect(s.historyBuffer).toEqual([]);
   });
 
-  afterEach(() => {
-    delete (node as any).__digitalTwinState;
-    delete (digitalTwinHandler as any).gateway;
+  it('simulation_mode: sets isSynced=true and emits on_twin_connected with mode=simulation', () => {
+    const node = makeNode();
+    const { ctx } = attach(node, { simulation_mode: true });
+    expect(st(node).isSynced).toBe(true);
+    expect(ctx.emit).toHaveBeenCalledWith('on_twin_connected', expect.objectContaining({ mode: 'simulation' }));
   });
 
-  // ======== CONSTRUCTION & DEFAULTS ========
-
-  describe('construction & defaults', () => {
-    it('initializes empty state on attach', () => {
-      digitalTwinHandler.onAttach(node, makeConfig(), ctx);
-      const s = getState(node);
-      expect(s.isSynced).toBe(false);
-      expect(s.lastSyncTime).toBe(0);
-      expect(s.divergence).toBe(0);
-      expect(s.physicalState).toEqual({});
-      expect(s.pendingUpdates).toEqual([]);
-      expect(s.connectionHandle).toBeNull();
-      expect(s.historyBuffer).toEqual([]);
-    });
-
-    it('has sensible default config', () => {
-      const d = digitalTwinHandler.defaultConfig;
-      expect(d.physical_id).toBe('');
-      expect(d.update_mode).toBe('polling');
-      expect(d.poll_interval).toBe(5000);
-      expect(d.history_retention).toBe(3600);
-      expect(d.simulation_mode).toBe(false);
-    });
-
-    it('handler name is digital_twin', () => {
-      expect(digitalTwinHandler.name).toBe('digital_twin');
-    });
-
-    it('loads model when model_source provided', () => {
-      digitalTwinHandler.onAttach(node, makeConfig({ model_source: 'https://cdn.io/pump.glb' }), ctx);
-      expect(ctx.emit).toHaveBeenCalledWith('twin_load_model', {
-        node,
-        source: 'https://cdn.io/pump.glb',
-      });
-    });
-
-    it('does NOT load model when model_source empty', () => {
-      digitalTwinHandler.onAttach(node, makeConfig(), ctx);
-      expect(ctx.emit).not.toHaveBeenCalledWith('twin_load_model', expect.anything());
-    });
+  it('emits twin_load_model when model_source is set', () => {
+    const node = makeNode();
+    const { ctx } = attach(node, { simulation_mode: true, model_source: 'model.glb' });
+    expect(ctx.emit).toHaveBeenCalledWith('twin_load_model', expect.objectContaining({ source: 'model.glb' }));
   });
 
-  // ======== SIMULATION MODE ========
+  it('does NOT emit twin_load_model when model_source is empty', () => {
+    const node = makeNode();
+    const { ctx } = attach(node, { simulation_mode: true, model_source: '' });
+    const calls = (ctx.emit as any).mock.calls.map((c: any[]) => c[0]);
+    expect(calls).not.toContain('twin_load_model');
+  });
+});
 
-  describe('simulation mode', () => {
-    it('auto-syncs in simulation mode', () => {
-      digitalTwinHandler.onAttach(node, makeConfig({ simulation_mode: true }), ctx);
-      const s = getState(node);
-      expect(s.isSynced).toBe(true);
-      expect(ctx.emit).toHaveBeenCalledWith('on_twin_connected', { node, mode: 'simulation' });
-    });
+// ─── onDetach ─────────────────────────────────────────────────────────────────
 
-    it('applies simulated state via twin_simulate', () => {
-      const cfg = makeConfig({ simulation_mode: true, sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_simulate',
-        changes: { temp: 85, rpm: 1200 },
-      });
-
-      const s = getState(node);
-      expect(s.physicalState.temp).toBe(85);
-      expect(s.physicalState.rpm).toBe(1200);
-      // Inbound property applied to node
-      expect(node.temperature).toBe(85);
-      // Bidirectional also applied
-      expect(node.rotationSpeed).toBe(1200);
-    });
-
-    it('does NOT apply simulated out-only property to node', () => {
-      const cfg = makeConfig({ simulation_mode: true, sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_simulate',
-        changes: { power: 100 },
-      });
-
-      // 'power' is direction 'out' — should NOT apply to virtual
-      expect(node.powerLevel).toBeUndefined();
-    });
+describe('DigitalTwinTrait — onDetach', () => {
+  it('emits twin_disconnect when connectionHandle set', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true });
+    st(node).connectionHandle = { h: 1 };
+    ctx.emit.mockClear();
+    digitalTwinHandler.onDetach!(node, cfg, ctx as any);
+    expect(ctx.emit).toHaveBeenCalledWith('twin_disconnect', expect.any(Object));
   });
 
-  // ======== CONNECTION ========
-
-  describe('connection', () => {
-    it('emits connected and stores handle via twin_connected event', () => {
-      digitalTwinHandler.onAttach(node, makeConfig({ physical_id: 'dev_1' }), ctx);
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onEvent!(node, makeConfig({ physical_id: 'dev_1' }), ctx, {
-        type: 'twin_connected',
-        handle: { type: 'mqtt' },
-      });
-
-      const s = getState(node);
-      expect(s.isSynced).toBe(true);
-      expect(s.connectionHandle).toEqual({ type: 'mqtt' });
-      expect(ctx.emit).toHaveBeenCalledWith('on_twin_connected', {
-        node,
-        physicalId: 'dev_1',
-      });
-    });
-
-    it('disconnects and clears handle', () => {
-      digitalTwinHandler.onAttach(node, makeConfig(), ctx);
-      const s = getState(node);
-      s.isSynced = true;
-      s.connectionHandle = { active: true };
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onEvent!(node, makeConfig(), ctx, { type: 'twin_disconnect' });
-
-      expect(s.isSynced).toBe(false);
-      expect(s.connectionHandle).toBeNull();
-      expect(ctx.emit).toHaveBeenCalledWith('on_twin_disconnected', { node });
-    });
-
-    it('emits error on connection failure', () => {
-      digitalTwinHandler.onAttach(node, makeConfig(), ctx);
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onEvent!(node, makeConfig(), ctx, {
-        type: 'twin_connection_error',
-        error: 'MQTT broker unreachable',
-      });
-
-      expect(ctx.emit).toHaveBeenCalledWith('on_twin_error', {
-        node,
-        error: 'MQTT broker unreachable',
-      });
-    });
+  it('does NOT emit twin_disconnect when connectionHandle is null', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true });
+    ctx.emit.mockClear();
+    digitalTwinHandler.onDetach!(node, cfg, ctx as any);
+    expect(ctx.emit).not.toHaveBeenCalledWith('twin_disconnect', expect.any(Object));
   });
 
-  // ======== STATE SYNC (IN/OUT/BIDIRECTIONAL) ========
+  it('removes __digitalTwinState', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true });
+    digitalTwinHandler.onDetach!(node, cfg, ctx as any);
+    expect(node.__digitalTwinState).toBeUndefined();
+  });
+});
 
-  describe('state sync', () => {
-    it('applies inbound properties to node on twin_state_update', () => {
-      const cfg = makeConfig({ sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-      ctx.emit.mockClear();
+// ─── onUpdate — polling ───────────────────────────────────────────────────────
 
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_state_update',
-        state: { temp: 72.5, rpm: 3000, power: 80 },
-      });
-
-      expect(node.temperature).toBe(72.5); // in → applied
-      expect(node.rotationSpeed).toBe(3000); // bidirectional → applied
-      expect(node.powerLevel).toBeUndefined(); // out → NOT applied
-
-      expect(ctx.emit).toHaveBeenCalledWith('on_twin_sync', expect.objectContaining({
-        node,
-        state: { temp: 72.5, rpm: 3000, power: 80 },
-      }));
-    });
-
-    it('queues outbound property change', () => {
-      const cfg = makeConfig({ sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_property_changed',
-        property: 'powerLevel',
-        value: 95,
-      });
-
-      const s = getState(node);
-      expect(s.pendingUpdates).toHaveLength(1);
-      expect(s.pendingUpdates[0].property).toBe('power');
-      expect(s.pendingUpdates[0].value).toBe(95);
-    });
-
-    it('queues bidirectional outbound change', () => {
-      const cfg = makeConfig({ sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_property_changed',
-        property: 'rotationSpeed',
-        value: 1500,
-      });
-
-      const s = getState(node);
-      expect(s.pendingUpdates).toHaveLength(1);
-      expect(s.pendingUpdates[0].property).toBe('rpm');
-    });
-
-    it('ignores property change for in-only property', () => {
-      const cfg = makeConfig({ sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_property_changed',
-        property: 'temperature',
-        value: 99,
-      });
-
-      expect(getState(node).pendingUpdates).toHaveLength(0);
-    });
+describe('DigitalTwinTrait — onUpdate: polling', () => {
+  it('no-op when not synced', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: false, physical_id: '' });
+    // isSynced defaults false
+    ctx.emit.mockClear();
+    update(node, cfg, ctx);
+    expect(ctx.emit).not.toHaveBeenCalledWith('twin_fetch_state', expect.any(Object));
   });
 
-  // ======== POLLING & ONUPDATE ========
-
-  describe('polling & onUpdate', () => {
-    it('fetches state when poll interval elapsed', () => {
-      const cfg = makeConfig({ physical_id: 'dev', poll_interval: 1000, sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-      const s = getState(node);
-      s.isSynced = true;
-      s.lastSyncTime = Date.now() - 2000;
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onUpdate!(node, cfg, ctx, 16);
-
-      expect(ctx.emit).toHaveBeenCalledWith('twin_fetch_state', expect.objectContaining({
-        physicalId: 'dev',
-      }));
-    });
-
-    it('does NOT fetch before poll interval', () => {
-      const cfg = makeConfig({ physical_id: 'dev', poll_interval: 5000, sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-      const s = getState(node);
-      s.isSynced = true;
-      s.lastSyncTime = Date.now();
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onUpdate!(node, cfg, ctx, 16);
-
-      expect(ctx.emit).not.toHaveBeenCalledWith('twin_fetch_state', expect.anything());
-    });
-
-    it('does NOT poll in push mode', () => {
-      const cfg = makeConfig({ update_mode: 'push', poll_interval: 1 });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-      const s = getState(node);
-      s.isSynced = true;
-      s.lastSyncTime = 0;
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onUpdate!(node, cfg, ctx, 16);
-
-      expect(ctx.emit).not.toHaveBeenCalledWith('twin_fetch_state', expect.anything());
-    });
-
-    it('flushes pending updates on update tick', () => {
-      const cfg = makeConfig({ physical_id: 'dev', update_mode: 'push' });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-      const s = getState(node);
-      s.pendingUpdates.push({ property: 'rpm', value: 500, timestamp: Date.now() });
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onUpdate!(node, cfg, ctx, 16);
-
-      expect(ctx.emit).toHaveBeenCalledWith('twin_send_update', expect.objectContaining({
-        property: 'rpm',
-        value: 500,
-      }));
-      expect(s.pendingUpdates).toHaveLength(0);
-    });
-
-    it('only fetches non-out properties on poll', () => {
-      const cfg = makeConfig({ physical_id: 'dev', poll_interval: 100, sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-      const s = getState(node);
-      s.isSynced = true;
-      s.lastSyncTime = Date.now() - 200;
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onUpdate!(node, cfg, ctx, 16);
-
-      const fetchCall = ctx.emit.mock.calls.find((c: any) => c[0] === 'twin_fetch_state');
-      expect(fetchCall).toBeDefined();
-      const props = fetchCall![1].properties;
-      // 'power' (out) should be excluded; temp (in) and rpm (bidirectional) included
-      expect(props).toHaveLength(2);
-      expect(props.map((p: any) => p.physical_key)).toContain('temp');
-      expect(props.map((p: any) => p.physical_key)).toContain('rpm');
-    });
+  it('no-op when update_mode=push (even if synced)', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true, update_mode: 'push' });
+    ctx.emit.mockClear();
+    update(node, cfg, ctx);
+    expect(ctx.emit).not.toHaveBeenCalledWith('twin_fetch_state', expect.any(Object));
   });
 
-  // ======== DIVERGENCE ========
-
-  describe('divergence', () => {
-    it('calculates 0 divergence when values match', () => {
-      const cfg = makeConfig({ sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-      node.temperature = 72;
-      node.rotationSpeed = 3000;
-
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_state_update',
-        state: { temp: 72, rpm: 3000 },
-      });
-
-      expect(getState(node).divergence).toBe(0);
-    });
-
-    it('calculates non-zero divergence when values differ', () => {
-      const cfg = makeConfig({ sync_properties: SYNC_PROPS });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-
-      // After sync, physical=100 virtual=100 (auto-applied), then change virtual
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_state_update',
-        state: { temp: 100 },
-      });
-      // Now manually change the virtual value to create divergence
-      node.temperature = 50;
-
-      // Trigger another sync to recalculate
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_state_update',
-        state: { temp: 100 },
-      });
-
-      // divergence should be > 0 since node.temp is written by sync (100) — but...
-      // Actually sync re-applies so temp goes back to 100. Let's verify:
-      expect(getState(node).divergence).toBe(0);
-    });
-
-    it('returns 0 divergence with no sync properties', () => {
-      const cfg = makeConfig({ sync_properties: [] });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_state_update',
-        state: { temp: 99 },
-      });
-
-      expect(getState(node).divergence).toBe(0);
-    });
+  it('does NOT poll before poll_interval elapsed', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true, update_mode: 'polling', poll_interval: 5000 });
+    st(node).lastSyncTime = Date.now(); // just polled
+    ctx.emit.mockClear();
+    update(node, cfg, ctx);
+    expect(ctx.emit).not.toHaveBeenCalledWith('twin_fetch_state', expect.any(Object));
   });
 
-  // ======== HISTORY BUFFER ========
-
-  describe('history buffer', () => {
-    it('records state in history on sync', () => {
-      const cfg = makeConfig({ sync_properties: [] });
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_state_update',
-        state: { temp: 50 },
-      });
-
-      const s = getState(node);
-      expect(s.historyBuffer).toHaveLength(1);
-      expect(s.historyBuffer[0].state).toEqual({ temp: 50 });
+  it('emits twin_fetch_state when poll_interval elapsed', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, {
+      simulation_mode: true,
+      update_mode: 'polling',
+      poll_interval: 100,
+      physical_id: 'iot_device_1',
+      sync_properties: [{ physical_key: 'temp', virtual_property: 'temperature', direction: 'in' }],
     });
-
-    it('prunes history older than retention', () => {
-      const cfg = makeConfig({ history_retention: 60, update_mode: 'push' }); // 60 seconds
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-      const s = getState(node);
-
-      // Insert old entry (2 min ago)
-      s.historyBuffer.push({ timestamp: Date.now() - 120000, state: { old: true } });
-      // Insert recent entry
-      s.historyBuffer.push({ timestamp: Date.now(), state: { new: true } });
-
-      digitalTwinHandler.onUpdate!(node, cfg, ctx, 16);
-
-      expect(s.historyBuffer).toHaveLength(1);
-      expect(s.historyBuffer[0].state).toEqual({ new: true });
-    });
-
-    it('retrieves history by time range', () => {
-      const cfg = makeConfig();
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-      const s = getState(node);
-      const now = Date.now();
-
-      s.historyBuffer = [
-        { timestamp: now - 5000, state: { v: 1 } },
-        { timestamp: now - 3000, state: { v: 2 } },
-        { timestamp: now - 1000, state: { v: 3 } },
-      ];
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_get_history',
-        startTime: now - 4000,
-        endTime: now,
-        callbackId: 'cb1',
-      });
-
-      const result = ctx.emit.mock.calls.find((c: any) => c[0] === 'twin_history_result');
-      expect(result).toBeDefined();
-      expect(result![1].history).toHaveLength(2);
-      expect(result![1].callbackId).toBe('cb1');
-    });
+    st(node).lastSyncTime = Date.now() - 200; // 200ms ago, past interval
+    ctx.emit.mockClear();
+    update(node, cfg, ctx);
+    expect(ctx.emit).toHaveBeenCalledWith('twin_fetch_state', expect.objectContaining({
+      physicalId: 'iot_device_1',
+    }));
   });
 
-  // ======== QUERY ========
-
-  describe('query', () => {
-    it('responds with full twin state', () => {
-      const cfg = makeConfig();
-      digitalTwinHandler.onAttach(node, cfg, ctx);
-      const s = getState(node);
-      s.isSynced = true;
-      s.divergence = 0.15;
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onEvent!(node, cfg, ctx, {
-        type: 'twin_query',
-        queryId: 'tq1',
-      });
-
-      expect(ctx.emit).toHaveBeenCalledWith('twin_info', expect.objectContaining({
-        queryId: 'tq1',
-        isSynced: true,
-        divergence: 0.15,
-      }));
+  it('filters out "out" direction props from twin_fetch_state', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, {
+      simulation_mode: true,
+      update_mode: 'polling',
+      poll_interval: 0,
+      sync_properties: [
+        { physical_key: 'temp', virtual_property: 'temperature', direction: 'in' },
+        { physical_key: 'cmd', virtual_property: 'command', direction: 'out' },
+      ],
     });
+    st(node).lastSyncTime = 0;
+    ctx.emit.mockClear();
+    update(node, cfg, ctx);
+    const call = (ctx.emit as any).mock.calls.find((c: any[]) => c[0] === 'twin_fetch_state');
+    // Only 'in' direction filtered through
+    expect(call![1].properties).toHaveLength(1);
+    expect(call![1].properties[0].physical_key).toBe('temp');
+  });
+});
+
+// ─── onUpdate — pendingUpdates flush ──────────────────────────────────────────
+
+describe('DigitalTwinTrait — onUpdate: pending updates flush', () => {
+  it('flushes pendingUpdates and emits twin_send_update per item', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true, physical_id: 'dev1' });
+    st(node).pendingUpdates = [
+      { property: 'brightness', value: 100, timestamp: Date.now() },
+      { property: 'color', value: 'red', timestamp: Date.now() },
+    ];
+    ctx.emit.mockClear();
+    update(node, cfg, ctx);
+    const sends = (ctx.emit as any).mock.calls.filter((c: any[]) => c[0] === 'twin_send_update');
+    expect(sends.length).toBe(2);
+    expect(sends[0][1]).toMatchObject({ property: 'brightness', value: 100 });
+    expect(sends[1][1]).toMatchObject({ property: 'color', value: 'red' });
+    expect(st(node).pendingUpdates).toEqual([]);
+  });
+});
+
+// ─── onUpdate — history pruning ───────────────────────────────────────────────
+
+describe('DigitalTwinTrait — onUpdate: history pruning', () => {
+  it('prunes old history entries beyond history_retention', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true, history_retention: 10 }); // 10 seconds
+    const past = Date.now() - 20000; // 20 seconds ago
+    const recent = Date.now() - 5000; // 5 seconds ago
+    st(node).historyBuffer = [
+      { timestamp: past, state: { temp: 10 } },
+      { timestamp: recent, state: { temp: 20 } },
+    ];
+    update(node, cfg, ctx);
+    expect(st(node).historyBuffer).toHaveLength(1);
+    expect(st(node).historyBuffer[0].state.temp).toBe(20);
+  });
+});
+
+// ─── onEvent — twin_connected ─────────────────────────────────────────────────
+
+describe('DigitalTwinTrait — onEvent: twin_connected', () => {
+  it('sets isSynced=true, stores handle, emits on_twin_connected', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true, physical_id: 'dev1' });
+    st(node).isSynced = false;
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, { type: 'twin_connected', handle: { socket: true } });
+    expect(st(node).isSynced).toBe(true);
+    expect(st(node).connectionHandle).toEqual({ socket: true });
+    expect(ctx.emit).toHaveBeenCalledWith('on_twin_connected', expect.objectContaining({ physicalId: 'dev1' }));
+  });
+});
+
+// ─── onEvent — twin_state_update ─────────────────────────────────────────────
+
+describe('DigitalTwinTrait — onEvent: twin_state_update', () => {
+  it('updates physicalState, applies inbound props to node, records history, emits on_twin_sync', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, {
+      simulation_mode: true,
+      sync_properties: [
+        { physical_key: 'temp', virtual_property: 'temperature', direction: 'in' },
+        { physical_key: 'cmd', virtual_property: 'command', direction: 'out' }, // should NOT apply
+      ],
+    });
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, { type: 'twin_state_update', state: { temp: 98.6, cmd: 'ON' } });
+
+    expect(st(node).physicalState).toEqual({ temp: 98.6, cmd: 'ON' });
+    expect((node as any).temperature).toBe(98.6);
+    expect((node as any).command).toBeUndefined(); // direction=out, not applied
+    expect(st(node).historyBuffer.length).toBe(1);
+    expect(ctx.emit).toHaveBeenCalledWith('on_twin_sync', expect.objectContaining({ divergence: expect.any(Number) }));
+  });
+});
+
+// ─── onEvent — twin_property_changed ─────────────────────────────────────────
+
+describe('DigitalTwinTrait — onEvent: twin_property_changed', () => {
+  it('queues pendingUpdate for out/bidirectional properties', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, {
+      simulation_mode: true,
+      sync_properties: [{ physical_key: 'brightness', virtual_property: 'bright', direction: 'out' }],
+    });
+    fire(node, cfg, ctx, { type: 'twin_property_changed', property: 'bright', value: 75 });
+    expect(st(node).pendingUpdates.length).toBe(1);
+    expect(st(node).pendingUpdates[0]).toMatchObject({ property: 'brightness', value: 75 });
   });
 
-  // ======== DETACH ========
-
-  describe('detach', () => {
-    it('emits disconnect when connection handle exists', () => {
-      digitalTwinHandler.onAttach(node, makeConfig(), ctx);
-      getState(node).connectionHandle = { active: true };
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onDetach!(node, makeConfig(), ctx);
-
-      expect(ctx.emit).toHaveBeenCalledWith('twin_disconnect', { node });
-      expect(getState(node)).toBeUndefined();
+  it('does NOT queue for in-direction properties', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, {
+      simulation_mode: true,
+      sync_properties: [{ physical_key: 'temp', virtual_property: 'temperature', direction: 'in' }],
     });
-
-    it('does NOT emit disconnect without handle', () => {
-      digitalTwinHandler.onAttach(node, makeConfig(), ctx);
-      ctx.emit.mockClear();
-
-      digitalTwinHandler.onDetach!(node, makeConfig(), ctx);
-
-      expect(ctx.emit).not.toHaveBeenCalledWith('twin_disconnect', expect.anything());
-    });
+    fire(node, cfg, ctx, { type: 'twin_property_changed', property: 'temperature', value: 100 });
+    expect(st(node).pendingUpdates.length).toBe(0);
   });
 
-  // ======== EDGE CASES ========
+  it('no-op for unknown virtual_property', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true, sync_properties: [] });
+    fire(node, cfg, ctx, { type: 'twin_property_changed', property: 'UNKNOWN', value: 0 });
+    expect(st(node).pendingUpdates.length).toBe(0);
+  });
+});
 
-  describe('edge cases', () => {
-    it('event with no state is a no-op', () => {
-      const bare = makeNode('bare');
-      digitalTwinHandler.onEvent!(bare, makeConfig(), ctx, {
-        type: 'twin_connected',
-        handle: {},
-      });
-      expect(ctx.emit).not.toHaveBeenCalled();
-    });
+// ─── onEvent — twin_disconnect ────────────────────────────────────────────────
 
-    it('update with no state is a no-op', () => {
-      const bare = makeNode('bare');
-      digitalTwinHandler.onUpdate!(bare, makeConfig(), ctx, 16);
-      // No crash
+describe('DigitalTwinTrait — onEvent: twin_disconnect', () => {
+  it('sets isSynced=false, clears handle, emits on_twin_disconnected', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true });
+    st(node).connectionHandle = { h: 1 };
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, { type: 'twin_disconnect' });
+    expect(st(node).isSynced).toBe(false);
+    expect(st(node).connectionHandle).toBeNull();
+    expect(ctx.emit).toHaveBeenCalledWith('on_twin_disconnected', expect.any(Object));
+  });
+});
+
+// ─── onEvent — twin_connection_error ──────────────────────────────────────────
+
+describe('DigitalTwinTrait — onEvent: twin_connection_error', () => {
+  it('emits on_twin_error with error', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true });
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, { type: 'twin_connection_error', error: 'TIMEOUT' });
+    expect(ctx.emit).toHaveBeenCalledWith('on_twin_error', expect.objectContaining({ error: 'TIMEOUT' }));
+  });
+});
+
+// ─── onEvent — twin_get_history ───────────────────────────────────────────────
+
+describe('DigitalTwinTrait — onEvent: twin_get_history', () => {
+  it('returns filtered history within [startTime, endTime] and emits twin_history_result', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true });
+    const now = Date.now();
+    st(node).historyBuffer = [
+      { timestamp: now - 100, state: { temp: 1 } },
+      { timestamp: now - 50, state: { temp: 2 } },
+      { timestamp: now - 10, state: { temp: 3 } },
+    ];
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, { type: 'twin_get_history', startTime: now - 80, endTime: now - 20, callbackId: 'cb1' });
+    const call = (ctx.emit as any).mock.calls.find((c: any[]) => c[0] === 'twin_history_result');
+    expect(call![1].history).toHaveLength(1);
+    expect(call![1].history[0].state.temp).toBe(2);
+    expect(call![1].callbackId).toBe('cb1');
+  });
+});
+
+// ─── onEvent — twin_simulate ──────────────────────────────────────────────────
+
+describe('DigitalTwinTrait — onEvent: twin_simulate', () => {
+  it('merges changes into physicalState and applies inbound props to node', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, {
+      simulation_mode: true,
+      sync_properties: [{ physical_key: 'temp', virtual_property: 'temperature', direction: 'in' }],
     });
+    fire(node, cfg, ctx, { type: 'twin_simulate', changes: { temp: 42, extra: 'x' } });
+    expect(st(node).physicalState).toMatchObject({ temp: 42, extra: 'x' });
+    expect((node as any).temperature).toBe(42);
+  });
+});
+
+// ─── onEvent — twin_query ─────────────────────────────────────────────────────
+
+describe('DigitalTwinTrait — onEvent: twin_query', () => {
+  it('emits twin_info with full snapshot', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node, { simulation_mode: true });
+    st(node).isSynced = true;
+    st(node).divergence = 0.5;
+    st(node).historyBuffer = [{ timestamp: 1, state: {} }];
+    st(node).physicalState = { temp: 20 };
+    st(node).pendingUpdates = [{ property: 'p', value: 1, timestamp: 1 }];
+    ctx.emit.mockClear();
+    fire(node, cfg, ctx, { type: 'twin_query', queryId: 'dq1' });
+    expect(ctx.emit).toHaveBeenCalledWith('twin_info', expect.objectContaining({
+      queryId: 'dq1',
+      isSynced: true,
+      divergence: 0.5,
+      historySize: 1,
+      pendingUpdates: 1,
+    }));
   });
 });

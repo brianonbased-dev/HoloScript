@@ -2,7 +2,7 @@
 
 **Universal HoloScript example demonstrating mobile AR for e-commerce.**
 
-## 📋 Overview
+## Overview
 
 This example showcases HoloScript's AR capabilities for creating "try before you buy" experiences. Users can preview furniture in their real spaces using their phone camera, with realistic lighting, scaling, and material options.
 
@@ -43,7 +43,7 @@ After completing this example, you'll learn how to:
 5. **Create AR UI overlays** that follow 3D objects
 6. **Export to mobile platforms** (WebXR AR, ARKit, ARCore)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Compile to Your Platform
 

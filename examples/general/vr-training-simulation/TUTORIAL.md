@@ -558,6 +558,46 @@ Now that you understand the core concepts, try:
 
 ---
 
+## Key Concepts
+
+| Concept | Description |
+|---|---|
+| `composition` | Top-level container for an entire HoloScript experience |
+| `metadata` | Declares name, author, version, platforms, and tags |
+| `object` | A 3D entity with geometry, material, position, and behaviors |
+| `behavior` | A named script block attached to an object or system |
+| `system` | A global controller that manages scene-wide logic |
+| `@interactive` | Trait making an object respond to player input |
+| `@physics` | Trait enabling gravity, collision, and rigid-body dynamics |
+| `on_interact` | Event handler fired when player interacts with an object |
+| `mark_complete` | Flags a task as finished for progress tracking |
+
+---
+
+## Best Practices
+
+### Code Organization
+- Group related objects inside named `zone` blocks for clarity
+- Use descriptive IDs (`hazard_station`, `lifting_area`) not generic ones (`zone1`)
+- Comment your `.holo` files — future maintainers will thank you
+
+### Performance
+- Keep texture resolutions at or below 2K for mobile VR
+- Use LOD distances for objects farther than 15 metres
+- Limit physics-enabled objects to under 50 simultaneously active
+
+### Reusability
+- Extract shared behaviors into named templates
+- Store localized strings in a `settings` block, not inline
+- Version your `.holo` files using `metadata { version: '...' }`
+
+### Multiplayer Safety
+- Validate all completion logic server-side when possible
+- Use `syncToHost: true` for score-critical behaviors
+- Test with two simultaneous players before releasing
+
+---
+
 **Questions?** Join the HoloScript community on Discord or open an issue on GitHub.
 
 **Happy building!** 🚀

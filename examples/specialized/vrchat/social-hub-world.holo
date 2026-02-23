@@ -1,141 +1,386 @@
 // VRChat Social Hub
 // Social VR world with interactive features
+// Platforms: VRChat, Udon
 
 composition "Social Hub World" {
 
-  // Hub floor
+  metadata {
+    name: 'VRChat World'
+    description: 'A premium VRChat social hub world featuring interactive zones, avatar pedestals, mini-games, media players, and an ambient outdoor aesthetic. Designed for 50+ concurrent users with full Udon scripting integration.'
+    version: '6.1.0'
+    author: 'HoloScript VRChat Studio'
+    category: 'social'
+    tags: ['vrchat', 'social', 'udon', 'hub', 'interactive', 'avatar', 'community']
+    platforms: ['vrchat', 'udon']
+    minPlayers: 1
+    maxPlayers: 80
+    estimatedDuration: 0
+  }
+
+  // ── Environment ───────────────────────────────────────────────────────────
+
   object "HubFloor" {
     @collidable
-
     geometry: "plane"
     position: [0, 0, 0]
     scale: [40, 1, 40]
     color: "#607d8b"
+    material: "polished_stone"
+    receiveShadows: true
   }
 
-  // Central fountain
+  object "HubCeiling" {
+    geometry: "plane"
+    position: [0, 12, 0]
+    rotation: [180, 0, 0]
+    scale: [40, 1, 40]
+    color: "#4a5568"
+    material: "modernist_ceiling"
+  }
+
+  object "WallNorth" {
+    @collidable
+    geometry: "cube"
+    position: [0, 6, -20]
+    scale: [40, 12, 0.3]
+    color: "#546e7a"
+  }
+
+  object "WallSouth" {
+    @collidable
+    geometry: "cube"
+    position: [0, 6, 20]
+    scale: [40, 12, 0.3]
+    color: "#546e7a"
+  }
+
+  object "WallEast" {
+    @collidable
+    geometry: "cube"
+    position: [20, 6, 0]
+    rotation: [0, 90, 0]
+    scale: [40, 12, 0.3]
+    color: "#546e7a"
+  }
+
+  object "WallWest" {
+    @collidable
+    geometry: "cube"
+    position: [-20, 6, 0]
+    rotation: [0, 90, 0]
+    scale: [40, 12, 0.3]
+    color: "#546e7a"
+  }
+
+  // ── Central Fountain ──────────────────────────────────────────────────────
+
   object "FountainBase" {
     @collidable
-
     geometry: "cylinder"
     position: [0, 0.5, 0]
     scale: [2, 1, 2]
     color: "#78909c"
+    material: "marble"
+  }
+
+  object "FountainRim" {
+    @collidable
+    geometry: "cylinder"
+    position: [0, 0.95, 0]
+    scale: [2.2, 0.08, 2.2]
+    color: "#90a4ae"
+    material: "marble"
   }
 
   object "FountainWater" {
     @glowing
-
     geometry: "cylinder"
     position: [0, 1.2, 0]
     scale: [1.5, 0.8, 1.5]
     color: "#00bcd4"
+    material: "water"
+    transparency: 0.5
+    emissionIntensity: 0.3
   }
 
-  // Mirror wall
+  object "FountainCenterPillar" {
+    @collidable
+    geometry: "cylinder"
+    position: [0, 1.5, 0]
+    scale: [0.2, 1.5, 0.2]
+    color: "#b0bec5"
+    material: "marble"
+  }
+
+  object "FountainTopBowl" {
+    @collidable
+    geometry: "cylinder"
+    position: [0, 2.4, 0]
+    scale: [0.8, 0.3, 0.8]
+    color: "#90a4ae"
+    material: "marble"
+  }
+
+  object "FountainTopWater" {
+    @glowing
+    geometry: "sphere"
+    position: [0, 2.7, 0]
+    scale: [0.5, 0.5, 0.5]
+    color: "#4dd0e1"
+    emissionIntensity: 0.5
+  }
+
+  // ── Mirror Wall & Avatar Area ─────────────────────────────────────────────
+
   object "MirrorWall" {
     @collidable
-
     geometry: "cube"
     position: [0, 2.5, -10]
     scale: [8, 5, 0.2]
     color: "#b0bec5"
+    material: "mirror"
+    behavior "VRCMirror" {
+      optimized: true
+      maxPlayers: 10
+      updateRate: 30
+    }
   }
 
-  // Mirror frame
   object "MirrorFrame" {
     @collidable
-
     geometry: "cube"
-    position: [0, 2.5, -10]
+    position: [0, 2.5, -10.1]
     scale: [8.5, 5.5, 0.1]
     color: "#37474f"
+    material: "dark_wood"
   }
 
-  // Video screen wall
-  object "VideoScreen" {
-    @clickable
+  object "MirrorLight1" {
     @glowing
-
-    geometry: "plane"
-    position: [10, 3, 0]
-    rotation: [0, -90, 0]
-    scale: [6, 4, 1]
-    color: "#000000"
+    geometry: "sphere"
+    position: [-4.5, 5.5, -9.5]
+    scale: 0.15
+    color: "#fff9c4"
+    emissionIntensity: 3.0
+    castShadows: true
   }
 
-  // Screen frame
-  object "ScreenFrame" {
-    @collidable
-
-    geometry: "cube"
-    position: [10.1, 3, 0]
-    rotation: [0, -90, 0]
-    scale: [6.5, 4.5, 0.2]
-    color: "#263238"
+  object "MirrorLight2" {
+    @glowing
+    geometry: "sphere"
+    position: [4.5, 5.5, -9.5]
+    scale: 0.15
+    color: "#fff9c4"
+    emissionIntensity: 3.0
+    castShadows: true
   }
 
   // Avatar pedestals
   object "Pedestal1" {
     @collidable
     @clickable
-
     geometry: "cylinder"
     position: [-8, 0.5, -8]
     scale: [0.8, 1, 0.8]
     color: "#673ab7"
+    material: "lit_pedestal"
+    emissionIntensity: 0.2
+    behavior "AvatarPedestal" {
+      avatarId: ''
+      pcOnly: false
+      showAuthor: true
+    }
   }
 
   object "Pedestal2" {
     @collidable
     @clickable
-
     geometry: "cylinder"
     position: [-6, 0.5, -8]
     scale: [0.8, 1, 0.8]
     color: "#673ab7"
+    material: "lit_pedestal"
+    emissionIntensity: 0.2
+    behavior "AvatarPedestal" {
+      pcOnly: false
+      showAuthor: true
+    }
   }
 
   object "Pedestal3" {
     @collidable
     @clickable
-
     geometry: "cylinder"
     position: [-4, 0.5, -8]
     scale: [0.8, 1, 0.8]
     color: "#673ab7"
+    material: "lit_pedestal"
+    emissionIntensity: 0.2
+    behavior "AvatarPedestal" {
+      pcOnly: false
+    }
   }
 
-  // Sitting area - Benches
+  object "Pedestal4" {
+    @collidable
+    @clickable
+    geometry: "cylinder"
+    position: [4, 0.5, -8]
+    scale: [0.8, 1, 0.8]
+    color: "#673ab7"
+    material: "lit_pedestal"
+    emissionIntensity: 0.2
+    behavior "AvatarPedestal" {
+      pcOnly: false
+    }
+  }
+
+  object "Pedestal5" {
+    @collidable
+    @clickable
+    geometry: "cylinder"
+    position: [6, 0.5, -8]
+    scale: [0.8, 1, 0.8]
+    color: "#673ab7"
+    material: "lit_pedestal"
+    emissionIntensity: 0.2
+    behavior "AvatarPedestal" {
+      pcOnly: false
+    }
+  }
+
+  object "Pedestal6" {
+    @collidable
+    @clickable
+    geometry: "cylinder"
+    position: [8, 0.5, -8]
+    scale: [0.8, 1, 0.8]
+    color: "#673ab7"
+    material: "lit_pedestal"
+    emissionIntensity: 0.2
+    behavior "AvatarPedestal" {
+      pcOnly: false
+    }
+  }
+
+  // ── Video Screen Wall ─────────────────────────────────────────────────────
+
+  object "VideoScreen" {
+    @clickable
+    @glowing
+    geometry: "plane"
+    position: [10, 3, 0]
+    rotation: [0, -90, 0]
+    scale: [6, 4, 1]
+    color: "#000000"
+    emissionIntensity: 0.8
+    behavior "VideoPlayer" {
+      type: 'AVPro'
+      url: ''
+      loop: true
+      volume: 0.8
+      syncToAll: true
+      ownerPriority: 'master'
+    }
+  }
+
+  object "ScreenFrame" {
+    @collidable
+    geometry: "cube"
+    position: [10.1, 3, 0]
+    rotation: [0, -90, 0]
+    scale: [6.5, 4.5, 0.2]
+    color: "#263238"
+    material: "matte_black"
+  }
+
+  object "ScreenSpeakerLeft" {
+    @glowing
+    geometry: "cube"
+    position: [10.2, 3, -3.5]
+    rotation: [0, -90, 0]
+    scale: [0.4, 0.8, 0.3]
+    color: "#1a1a1a"
+  }
+
+  object "ScreenSpeakerRight" {
+    @glowing
+    geometry: "cube"
+    position: [10.2, 3, 3.5]
+    rotation: [0, -90, 0]
+    scale: [0.4, 0.8, 0.3]
+    color: "#1a1a1a"
+  }
+
+  // ── Sitting Area ──────────────────────────────────────────────────────────
+
   object "Bench1" {
     @collidable
-
     geometry: "cube"
     position: [5, 0.4, 5]
     scale: [3, 0.8, 0.6]
     color: "#8d6e63"
+    material: "teak"
+    behavior "VRCChair" {
+      seats: 3
+      enterFromAbove: false
+    }
   }
 
   object "Bench2" {
     @collidable
-
     geometry: "cube"
     position: [-5, 0.4, 5]
     scale: [3, 0.8, 0.6]
     color: "#8d6e63"
+    material: "teak"
+    behavior "VRCChair" {
+      seats: 3
+    }
   }
 
-  // Interactive props
+  object "Bench3" {
+    @collidable
+    geometry: "cube"
+    position: [0, 0.4, 8]
+    scale: [4, 0.8, 0.6]
+    color: "#795548"
+    material: "teak"
+    behavior "VRCChair" {
+      seats: 4
+    }
+  }
+
+  object "CuddleCouch" {
+    @collidable
+    geometry: "cube"
+    position: [-12, 0.5, 5]
+    scale: [3, 1, 1.5]
+    color: "#880e4f"
+    material: "velvet"
+    behavior "VRCChair" {
+      seats: 4
+    }
+  }
+
+  // ── Interactive Props ─────────────────────────────────────────────────────
+
   object "Ball1" {
     @grabbable
     @physics
     @collidable
     @throwable
-
     geometry: "sphere"
     position: [3, 0.3, 3]
     scale: 0.3
     color: "#f44336"
+    material: "rubber_ball"
+    mass: 0.5
+    bounciness: 0.8
+    behavior "PhysicsBall" {
+      resetPosition: [3, 0.3, 3]
+      resetDelay: 30
+    }
   }
 
   object "Ball2" {
@@ -143,11 +388,17 @@ composition "Social Hub World" {
     @physics
     @collidable
     @throwable
-
     geometry: "sphere"
     position: [-3, 0.3, 3]
     scale: 0.3
     color: "#4caf50"
+    material: "rubber_ball"
+    mass: 0.5
+    bounciness: 0.8
+    behavior "PhysicsBall" {
+      resetPosition: [-3, 0.3, 3]
+      resetDelay: 30
+    }
   }
 
   object "Ball3" {
@@ -155,87 +406,301 @@ composition "Social Hub World" {
     @physics
     @collidable
     @throwable
-
     geometry: "sphere"
     position: [0, 0.3, 4]
     scale: 0.3
     color: "#2196f3"
+    material: "rubber_ball"
+    mass: 0.5
+    bounciness: 0.8
   }
 
-  // Portal
+  object "Cube1" {
+    @grabbable
+    @physics
+    @collidable
+    @throwable
+    geometry: "cube"
+    position: [6, 0.3, 3]
+    scale: 0.35
+    color: "#ff9800"
+    mass: 1.0
+    bounciness: 0.3
+  }
+
+  object "Cube2" {
+    @grabbable
+    @physics
+    @collidable
+    @throwable
+    geometry: "cube"
+    position: [6.5, 0.3, 3.5]
+    scale: 0.35
+    color: "#9c27b0"
+    mass: 1.0
+    bounciness: 0.3
+  }
+
+  // ── Mini Game Zone ─────────────────────────────────────────────────────────
+
+  object "BasketballHoop" {
+    @collidable
+    geometry: "cylinder"
+    position: [15, 3, 5]
+    rotation: [90, 0, 0]
+    scale: [0.6, 0.05, 0.6]
+    color: "#ff6600"
+    behavior "BasketHoop" {
+      pointsPerScore: 2
+      showScoreDisplay: true
+    }
+  }
+
+  object "BasketballBackboard" {
+    @collidable
+    geometry: "plane"
+    position: [15.5, 3, 5]
+    rotation: [0, -90, 0]
+    scale: [1.5, 1.2, 1]
+    color: "#b3e5fc"
+  }
+
+  object "BasketballPole" {
+    @collidable
+    geometry: "cylinder"
+    position: [15.5, 1.5, 5]
+    scale: [0.1, 3, 0.1]
+    color: "#555555"
+  }
+
+  // Ring toss game
+  object "RingTossStand" {
+    @collidable
+    geometry: "cylinder"
+    position: [-15, 1.5, -5]
+    scale: [0.1, 3, 0.1]
+    color: "#ff5722"
+  }
+
+  object "RingTossRing1" {
+    @grabbable
+    @physics
+    @collidable
+    geometry: "cylinder"
+    position: [-12, 0.3, -5]
+    scale: [0.25, 0.05, 0.25]
+    color: "#ffeb3b"
+    mass: 0.3
+  }
+
+  object "RingTossRing2" {
+    @grabbable
+    @physics
+    @collidable
+    geometry: "cylinder"
+    position: [-11.5, 0.3, -5]
+    scale: [0.25, 0.05, 0.25]
+    color: "#f44336"
+    mass: 0.3
+  }
+
+  // ── Portal System ─────────────────────────────────────────────────────────
+
   object "Portal" {
     @clickable
     @glowing
-
     geometry: "plane"
     position: [-10, 2.5, 0]
     rotation: [0, 90, 0]
     scale: [3, 4, 1]
     color: "#9c27b0"
+    emissionIntensity: 1.5
+    behavior "WorldPortal" {
+      destinationWorld: ''
+      destinationInstance: 'public'
+      showThumbnail: true
+      requireConfirmation: false
+    }
   }
 
-  // Ambient lights
+  object "PortalFrame" {
+    @collidable
+    geometry: "cube"
+    position: [-10.15, 2.5, 0]
+    rotation: [0, 90, 0]
+    scale: [3.3, 4.3, 0.2]
+    color: "#4a148c"
+    material: "arcane_metal"
+  }
+
+  object "PortalGlow1" {
+    @glowing
+    geometry: "sphere"
+    position: [-10, 4.6, 0.4]
+    scale: 0.2
+    color: "#e040fb"
+    emissionIntensity: 3.0
+  }
+
+  object "PortalGlow2" {
+    @glowing
+    geometry: "sphere"
+    position: [-10, 0.4, 0.4]
+    scale: 0.2
+    color: "#e040fb"
+    emissionIntensity: 3.0
+  }
+
+  // ── Ambient Lights ────────────────────────────────────────────────────────
+
   object "Light1" {
     @glowing
-
     geometry: "sphere"
     position: [8, 4, 8]
     scale: 0.5
     color: "#ffeb3b"
+    emissionIntensity: 2.5
+    castShadows: true
   }
 
   object "Light2" {
     @glowing
-
     geometry: "sphere"
     position: [-8, 4, 8]
     scale: 0.5
     color: "#ffeb3b"
+    emissionIntensity: 2.5
+    castShadows: true
   }
 
   object "Light3" {
     @glowing
-
     geometry: "sphere"
     position: [8, 4, -8]
     scale: 0.5
     color: "#ffeb3b"
+    emissionIntensity: 2.5
   }
 
   object "Light4" {
     @glowing
-
     geometry: "sphere"
     position: [-8, 4, -8]
     scale: 0.5
     color: "#ffeb3b"
+    emissionIntensity: 2.5
   }
 
-  // Spawn points
+  object "CenterLight" {
+    @glowing
+    geometry: "sphere"
+    position: [0, 10, 0]
+    scale: 0.8
+    color: "#e3f2fd"
+    emissionIntensity: 4.0
+    castShadows: true
+  }
+
+  object "AccentLight1" {
+    @glowing
+    geometry: "sphere"
+    position: [-10, 3, 10]
+    scale: 0.3
+    color: "#f48fb1"
+    emissionIntensity: 1.5
+  }
+
+  object "AccentLight2" {
+    @glowing
+    geometry: "sphere"
+    position: [10, 3, 10]
+    scale: 0.3
+    color: "#80cbc4"
+    emissionIntensity: 1.5
+  }
+
+  // ── Spawn Points ──────────────────────────────────────────────────────────
+
   object "SpawnPoint1" {
     @glowing
-
     geometry: "cylinder"
     position: [0, 0.05, 10]
     scale: [0.8, 0.1, 0.8]
     color: "#4caf50"
+    emissionIntensity: 0.8
   }
 
   object "SpawnPoint2" {
     @glowing
-
     geometry: "cylinder"
     position: [3, 0.05, 10]
     scale: [0.8, 0.1, 0.8]
     color: "#4caf50"
+    emissionIntensity: 0.8
   }
 
   object "SpawnPoint3" {
     @glowing
-
     geometry: "cylinder"
     position: [-3, 0.05, 10]
     scale: [0.8, 0.1, 0.8]
     color: "#4caf50"
+    emissionIntensity: 0.8
+  }
+
+  object "SpawnPoint4" {
+    @glowing
+    geometry: "cylinder"
+    position: [6, 0.05, 10]
+    scale: [0.8, 0.1, 0.8]
+    color: "#4caf50"
+    emissionIntensity: 0.8
+  }
+
+  object "SpawnPoint5" {
+    @glowing
+    geometry: "cylinder"
+    position: [-6, 0.05, 10]
+    scale: [0.8, 0.1, 0.8]
+    color: "#4caf50"
+    emissionIntensity: 0.8
+  }
+
+  // ── VRChat Systems ────────────────────────────────────────────────────────
+
+  system "UdonManagers" {
+    worldCapacity: 80
+    softCapacity: 60
+    notifyOnFull: true
+    regionLock: 'none'
+
+    scripts: [
+      'ObjectPoolManager',
+      'PhysicsResetManager',
+      'AvatarScaleManager',
+      'JoinLeaveLogger',
+      'PlayerModManager',
+      'WorldMusicManager'
+    ]
+  }
+
+  system "WorldMusicPlayer" {
+    tracks: [
+      'music/ambient_lounge.ogg',
+      'music/chill_jazz.ogg',
+      'music/electronic_calm.ogg'
+    ]
+    volume: 0.5
+    shuffle: true
+    loop: true
+    spatialBlend: 0
+    syncAcrossPlayers: true
+  }
+
+  system "TrustSystem" {
+    requireTrustedUser: false
+    allowFriendInstances: true
+    allowPublicInstances: true
+    masterMigration: true
   }
 }

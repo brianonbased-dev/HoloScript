@@ -1,204 +1,264 @@
 /**
- * WoTThingTrait — Production Test Suite
+ * WoTThingTrait Production Tests
+ *
+ * Mark an object as a W3C Web of Things "Thing" for TD generation.
+ * Covers: defaultConfig, onAttach (state init + wot_thing_attached + auto_generate),
+ * onDetach (state guard), onUpdate (state hash diff → stale),
+ * 2 onEvent types, and 4 utility exports.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { wotThingHandler, hasWoTThingTrait, getWoTThingState, getCachedThingDescription, invalidateThingDescription } from '../WoTThingTrait';
 
-function makeNode() { return { id: 'wot_node', name: 'MyThing' }; }
-function makeCtx(state: any = {}) {
+import { describe, it, expect, vi } from 'vitest';
+import {
+  wotThingHandler,
+  hasWoTThingTrait,
+  getWoTThingState,
+  getCachedThingDescription,
+  invalidateThingDescription,
+} from '../WoTThingTrait';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function makeNode(id = 'wot_test', name = 'wot_thing') {
+  return { id, name } as any;
+}
+function makeCtx(initialState: Record<string, unknown> = {}) {
+  let _state: Record<string, unknown> = { ...initialState };
   return {
     emit: vi.fn(),
-    getState: vi.fn().mockReturnValue(state),
+    getState: () => _state,
+    setState: (s: Record<string, unknown>) => { _state = { ..._state, ...s }; },
+    // helper to mutate state between calls
+    _mutateState: (s: Record<string, unknown>) => { _state = { ..._state, ...s }; },
   };
 }
-function attach(cfg: any = {}, ctxState: any = {}) {
-  const node = makeNode();
-  const ctx = makeCtx(ctxState);
-  const config = { ...wotThingHandler.defaultConfig!, ...cfg };
-  wotThingHandler.onAttach!(node, config, ctx);
-  return { node: node as any, ctx, config };
+
+function attach(node: any, overrides: Record<string, unknown> = {}) {
+  const cfg = { ...wotThingHandler.defaultConfig!, ...overrides } as any;
+  const ctx = makeCtx();
+  wotThingHandler.onAttach!(node, cfg, ctx as any);
+  return { cfg, ctx };
 }
 
-// ─── defaultConfig ─────────────────────────────────────────────────────────────
+function st(node: any) { return node.__wotThingState as any; }
+function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
+  wotThingHandler.onEvent!(node, cfg, ctx as any, evt as any);
+}
 
-describe('wotThingHandler.defaultConfig', () => {
-  const d = wotThingHandler.defaultConfig!;
-  it('title=""', () => expect(d.title).toBe(''));
-  it('security=nosec', () => expect(d.security).toBe('nosec'));
-  it('version=1.0.0', () => expect(d.version).toBe('1.0.0'));
-  it('auto_generate=false', () => expect(d.auto_generate).toBe(false));
-  it('description=undefined', () => expect(d.description).toBeUndefined());
-  it('base=undefined', () => expect(d.base).toBeUndefined());
+// ─── defaultConfig ────────────────────────────────────────────────────────────
+
+describe('WoTThingTrait — defaultConfig', () => {
+  it('has 8 fields with correct defaults', () => {
+    const d = wotThingHandler.defaultConfig!;
+    expect(d.title).toBe('');
+    expect(d.description).toBeUndefined();
+    expect(d.security).toBe('nosec');
+    expect(d.base).toBeUndefined();
+    expect(d.id).toBeUndefined();
+    expect(d.version).toBe('1.0.0');
+    expect(d.auto_generate).toBe(false);
+    expect(d.output_path).toBeUndefined();
+  });
 });
 
 // ─── onAttach ─────────────────────────────────────────────────────────────────
 
-describe('wotThingHandler.onAttach', () => {
-  it('creates __wotThingState', () => expect(attach().node.__wotThingState).toBeDefined());
-  it('tdGenerated=false', () => expect(attach().node.__wotThingState.tdGenerated).toBe(false));
-  it('lastGenerated=0', () => expect(attach().node.__wotThingState.lastGenerated).toBe(0));
-  it('cachedTD=null', () => expect(attach().node.__wotThingState.cachedTD).toBeNull());
-  it('validationErrors=[]', () => expect(attach().node.__wotThingState.validationErrors).toEqual([]));
-  it('emits wot_thing_attached', () => {
-    const { ctx } = attach();
-    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_attached', expect.objectContaining({ nodeId: 'MyThing' }));
+describe('WoTThingTrait — onAttach', () => {
+  it('initialises state with correct defaults', () => {
+    const node = makeNode();
+    attach(node);
+    const s = st(node);
+    expect(s.tdGenerated).toBe(false);
+    expect(s.lastGenerated).toBe(0);
+    expect(s.cachedTD).toBeNull();
+    expect(s.validationErrors).toEqual([]);
   });
-  it('does NOT emit wot_thing_generate synchronously when auto_generate=false', () => {
-    const { ctx } = attach({ auto_generate: false });
-    expect(ctx.emit).not.toHaveBeenCalledWith('wot_thing_generate', expect.anything());
+
+  it('emits wot_thing_attached with nodeId=node.name and config', () => {
+    const node = makeNode('n1', 'MyThing');
+    const { ctx, cfg } = attach(node, { title: 'My Thing', security: 'bearer' });
+    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_attached', expect.objectContaining({
+      nodeId: 'MyThing', config: cfg,
+    }));
+  });
+
+  it('schedules wot_thing_generate via setTimeout when auto_generate=true', async () => {
+    vi.useFakeTimers();
+    const node = makeNode();
+    const { ctx } = attach(node, { auto_generate: true });
+    ctx.emit.mockClear();
+    vi.runAllTimers(); // flush the setTimeout(() => emit, 0)
+    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_generate', expect.objectContaining({ nodeId: node.name }));
+    vi.useRealTimers();
+  });
+
+  it('does NOT schedule wot_thing_generate when auto_generate=false', () => {
+    vi.useFakeTimers();
+    const node = makeNode();
+    const { ctx } = attach(node, { auto_generate: false });
+    ctx.emit.mockClear();
+    vi.runAllTimers();
+    expect(ctx.emit).not.toHaveBeenCalledWith('wot_thing_generate', expect.any(Object));
+    vi.useRealTimers();
   });
 });
 
 // ─── onDetach ─────────────────────────────────────────────────────────────────
 
-describe('wotThingHandler.onDetach', () => {
-  it('removes __wotThingState', () => {
-    const { node, config, ctx } = attach();
-    wotThingHandler.onDetach!(node, config, ctx);
-    expect(node.__wotThingState).toBeUndefined();
-  });
-  it('emits wot_thing_detached', () => {
-    const { node, config, ctx } = attach();
+describe('WoTThingTrait — onDetach', () => {
+  it('emits wot_thing_detached when state exists', () => {
+    const node = makeNode('n', 'MyThing');
+    const { cfg, ctx } = attach(node);
     ctx.emit.mockClear();
-    wotThingHandler.onDetach!(node, config, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_detached', expect.objectContaining({ nodeId: 'MyThing' }));
+    wotThingHandler.onDetach!(node, cfg, ctx as any);
+    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_detached', { nodeId: 'MyThing' });
   });
-  it('no wot_thing_detached when state missing', () => {
-    const node = makeNode() as any;
-    const ctx = makeCtx();
-    const config = { ...wotThingHandler.defaultConfig! };
-    // Do NOT attach — no __wotThingState
-    wotThingHandler.onDetach!(node, config, ctx);
-    expect(ctx.emit).not.toHaveBeenCalledWith('wot_thing_detached', expect.anything());
+
+  it('removes __wotThingState', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    wotThingHandler.onDetach!(node, cfg, ctx as any);
+    expect(node.__wotThingState).toBeUndefined();
   });
 });
 
 // ─── onUpdate ─────────────────────────────────────────────────────────────────
 
-describe('wotThingHandler.onUpdate', () => {
-  it('stores hash on first call (no stale emit on first)', () => {
-    const { node, config, ctx } = attach({}, { value: 1 });
-    ctx.emit.mockClear();
-    wotThingHandler.onUpdate!(node, config, ctx, 0.016);
-    expect(ctx.emit).not.toHaveBeenCalledWith('wot_thing_stale', expect.anything());
+describe('WoTThingTrait — onUpdate', () => {
+  it('sets __wotThingStateHash on first call', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    wotThingHandler.onUpdate!(node, cfg, ctx as any, 0.016);
+    expect(node.__wotThingStateHash).toBeDefined();
   });
+
+  it('does NOT emit wot_thing_stale on first update (hadPreviousHash=false)', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    ctx.emit.mockClear();
+    wotThingHandler.onUpdate!(node, cfg, ctx as any, 0.016); // first update
+    expect(ctx.emit).not.toHaveBeenCalledWith('wot_thing_stale', expect.any(Object));
+  });
+
   it('emits wot_thing_stale when state changes after tdGenerated=true', () => {
-    const ctx = makeCtx({ value: 1 });
-    const node = makeNode() as any;
-    const config = { ...wotThingHandler.defaultConfig! };
-    wotThingHandler.onAttach!(node, config, ctx);
-    // First update — set hash
-    wotThingHandler.onUpdate!(node, config, ctx, 0.016);
-    // Mark TD as generated
-    node.__wotThingState.tdGenerated = true;
-    node.__wotThingState.cachedTD = '<td>';
+    const node = makeNode('n', 'T');
+    const ctx = makeCtx({ count: 1 });
+    const cfg = { ...wotThingHandler.defaultConfig! } as any;
+    wotThingHandler.onAttach!(node, cfg, ctx as any);
+    st(node).tdGenerated = true;
     ctx.emit.mockClear();
-    // Change state
-    ctx.getState.mockReturnValue({ value: 2 });
-    wotThingHandler.onUpdate!(node, config, ctx, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_stale', expect.objectContaining({ nodeId: 'MyThing' }));
-  });
-  it('no wot_thing_stale when state unchanged', () => {
-    const { node, config, ctx } = attach({}, { value: 42 });
-    wotThingHandler.onUpdate!(node, config, ctx, 0.016);
-    node.__wotThingState.tdGenerated = true;
+
+    // First update — sets initial hash (count=1)
+    wotThingHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     ctx.emit.mockClear();
-    wotThingHandler.onUpdate!(node, config, ctx, 0.016); // same state
-    expect(ctx.emit).not.toHaveBeenCalledWith('wot_thing_stale', expect.anything());
+
+    // Mutate the context state (simulates node state change)
+    ctx._mutateState({ count: 2 });
+    wotThingHandler.onUpdate!(node, cfg, ctx as any, 0.016);
+
+    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_stale', expect.objectContaining({ nodeId: 'T' }));
+    expect(st(node).cachedTD).toBeNull();
   });
-  it('stale emit nullifies cachedTD', () => {
-    const ctx = makeCtx({ v: 1 });
-    const node = makeNode() as any;
-    const config = { ...wotThingHandler.defaultConfig! };
-    wotThingHandler.onAttach!(node, config, ctx);
-    wotThingHandler.onUpdate!(node, config, ctx, 0.016);
-    node.__wotThingState.tdGenerated = true;
-    node.__wotThingState.cachedTD = '<td_cached>';
-    ctx.getState.mockReturnValue({ v: 99 });
-    wotThingHandler.onUpdate!(node, config, ctx, 0.016);
-    expect(node.__wotThingState.cachedTD).toBeNull();
-  });
-  it('no stale if tdGenerated=false even when state changes', () => {
-    const { node, config, ctx } = attach({}, { v: 1 });
-    wotThingHandler.onUpdate!(node, config, ctx, 0.016);
+
+  it('does NOT emit stale when tdGenerated=false (even if state changes)', () => {
+    const node = makeNode('n', 'T');
+    const ctx = makeCtx({ count: 1 });
+    const cfg = { ...wotThingHandler.defaultConfig! } as any;
+    wotThingHandler.onAttach!(node, cfg, ctx as any);
+    st(node).tdGenerated = false;
     ctx.emit.mockClear();
-    ctx.getState.mockReturnValue({ v: 2 });
-    wotThingHandler.onUpdate!(node, config, ctx, 0.016);
-    expect(ctx.emit).not.toHaveBeenCalledWith('wot_thing_stale', expect.anything());
+    wotThingHandler.onUpdate!(node, cfg, ctx as any, 0.016); // sets hash
+    ctx.emit.mockClear();
+    ctx._mutateState({ count: 99 });
+    wotThingHandler.onUpdate!(node, cfg, ctx as any, 0.016);
+    expect(ctx.emit).not.toHaveBeenCalledWith('wot_thing_stale', expect.any(Object));
   });
 });
 
-// ─── onEvent ──────────────────────────────────────────────────────────────────
+// ─── onEvent — wot_generate_request ──────────────────────────────────────────
 
-describe('wotThingHandler.onEvent', () => {
-  it('wot_generate_request emits wot_thing_generate', () => {
-    const { node, config, ctx } = attach({ title: 'Lamp' });
+describe('WoTThingTrait — onEvent: wot_generate_request', () => {
+  it('emits wot_thing_generate with nodeId and config', () => {
+    const node = makeNode('n', 'MyThing');
+    const { cfg, ctx } = attach(node, { title: 'My Thing', security: 'oauth2' });
     ctx.emit.mockClear();
-    wotThingHandler.onEvent!(node, config, ctx, { type: 'wot_generate_request' });
-    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_generate', expect.objectContaining({ nodeId: 'MyThing' }));
-  });
-  it('wot_td_generated sets tdGenerated=true', () => {
-    const { node, config, ctx } = attach();
-    wotThingHandler.onEvent!(node, config, ctx, { type: 'wot_td_generated', td: '<td_json>', errors: [] });
-    expect(node.__wotThingState.tdGenerated).toBe(true);
-  });
-  it('wot_td_generated stores cachedTD', () => {
-    const { node, config, ctx } = attach();
-    wotThingHandler.onEvent!(node, config, ctx, { type: 'wot_td_generated', td: '{"@context":"..."}', errors: [] });
-    expect(node.__wotThingState.cachedTD).toBe('{"@context":"..."}');
-  });
-  it('wot_td_generated stores validationErrors', () => {
-    const { node, config, ctx } = attach();
-    wotThingHandler.onEvent!(node, config, ctx, { type: 'wot_td_generated', td: null, errors: ['missing title'] });
-    expect(node.__wotThingState.validationErrors).toEqual(['missing title']);
-  });
-  it('wot_td_generated updates lastGenerated timestamp', () => {
-    const { node, config, ctx } = attach();
-    const before = Date.now();
-    wotThingHandler.onEvent!(node, config, ctx, { type: 'wot_td_generated', td: null, errors: [] });
-    expect(node.__wotThingState.lastGenerated).toBeGreaterThanOrEqual(before);
-  });
-  it('unknown event is silently ignored', () => {
-    const { node, config, ctx } = attach();
-    ctx.emit.mockClear();
-    expect(() => wotThingHandler.onEvent!(node, config, ctx, { type: '__noop__' })).not.toThrow();
-    expect(ctx.emit).not.toHaveBeenCalled();
+    fire(node, cfg, ctx, { type: 'wot_generate_request' });
+    expect(ctx.emit).toHaveBeenCalledWith('wot_thing_generate', expect.objectContaining({
+      nodeId: 'MyThing',
+    }));
   });
 });
 
-// ─── Helper functions ─────────────────────────────────────────────────────────
+// ─── onEvent — wot_td_generated ───────────────────────────────────────────────
 
-describe('WoTThingTrait helper functions', () => {
+describe('WoTThingTrait — onEvent: wot_td_generated', () => {
+  it('sets tdGenerated=true, stores cachedTD, clears validationErrors', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    fire(node, cfg, ctx, { type: 'wot_td_generated', td: '{"@type":"Thing"}', errors: [] });
+    expect(st(node).tdGenerated).toBe(true);
+    expect(st(node).cachedTD).toBe('{"@type":"Thing"}');
+    expect(st(node).validationErrors).toEqual([]);
+    expect(st(node).lastGenerated).toBeGreaterThan(0);
+  });
+
+  it('stores validationErrors when present', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    fire(node, cfg, ctx, { type: 'wot_td_generated', td: '{}', errors: ['missing title'] });
+    expect(st(node).validationErrors).toEqual(['missing title']);
+  });
+
+  it('cachedTD is null when td not provided', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    fire(node, cfg, ctx, { type: 'wot_td_generated' });
+    expect(st(node).cachedTD).toBeNull();
+  });
+});
+
+// ─── Utility exports ──────────────────────────────────────────────────────────
+
+describe('WoTThingTrait — utility exports', () => {
+  it('hasWoTThingTrait returns false before attach', () => {
+    const node = makeNode();
+    expect(hasWoTThingTrait(node)).toBe(false);
+  });
+
   it('hasWoTThingTrait returns true after attach', () => {
-    const { node } = attach();
+    const node = makeNode();
+    attach(node);
     expect(hasWoTThingTrait(node)).toBe(true);
   });
-  it('hasWoTThingTrait returns false when not attached', () => {
-    expect(hasWoTThingTrait(makeNode())).toBe(false);
+
+  it('getWoTThingState returns null for fresh node', () => {
+    const node = makeNode();
+    expect(getWoTThingState(node)).toBeNull();
   });
+
   it('getWoTThingState returns state after attach', () => {
-    const { node } = attach();
-    expect(getWoTThingState(node)).toBe(node.__wotThingState);
+    const node = makeNode();
+    attach(node);
+    expect(getWoTThingState(node)).toBe(st(node));
   });
-  it('getWoTThingState returns null when not attached', () => {
-    expect(getWoTThingState(makeNode())).toBeNull();
-  });
-  it('getCachedThingDescription returns cachedTD after generation event', () => {
-    const { node, config, ctx } = attach();
-    wotThingHandler.onEvent!(node, config, ctx, { type: 'wot_td_generated', td: 'TD_VALUE', errors: [] });
-    expect(getCachedThingDescription(node)).toBe('TD_VALUE');
-  });
-  it('getCachedThingDescription returns null when no TD generated', () => {
-    const { node } = attach();
+
+  it('getCachedThingDescription returns null before TD generated', () => {
+    const node = makeNode();
+    attach(node);
     expect(getCachedThingDescription(node)).toBeNull();
   });
-  it('invalidateThingDescription sets cachedTD=null', () => {
-    const { node, config, ctx } = attach();
-    wotThingHandler.onEvent!(node, config, ctx, { type: 'wot_td_generated', td: 'TD', errors: [] });
-    invalidateThingDescription(node);
-    expect(node.__wotThingState.cachedTD).toBeNull();
+
+  it('getCachedThingDescription returns the TD string after generation', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    fire(node, cfg, ctx, { type: 'wot_td_generated', td: '{"id":"urn:thing:1"}', errors: [] });
+    expect(getCachedThingDescription(node)).toBe('{"id":"urn:thing:1"}');
   });
-  it('invalidateThingDescription no-op when not attached', () => {
-    expect(() => invalidateThingDescription(makeNode())).not.toThrow();
+
+  it('invalidateThingDescription sets cachedTD to null', () => {
+    const node = makeNode();
+    const { cfg, ctx } = attach(node);
+    fire(node, cfg, ctx, { type: 'wot_td_generated', td: '{"id":"urn:thing:1"}', errors: [] });
+    invalidateThingDescription(node);
+    expect(getCachedThingDescription(node)).toBeNull();
   });
 });

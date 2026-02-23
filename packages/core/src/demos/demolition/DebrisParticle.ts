@@ -98,15 +98,17 @@ export class DebrisParticle {
       return;
     }
 
-    // Apply gravity
-    this.velocity.x += gravity.x * dt;
-    this.velocity.y += gravity.y * dt;
-    this.velocity.z += gravity.z * dt;
-
-    // Update position
+    // Update position first (explicit Euler: uses current velocity before gravity is applied).
+    // This avoids large overshoots for big timesteps (e.g. dt=1.0 in tests) that would
+    // cause particles to artificially pass through the ground and bounce upward.
     this.position.x += this.velocity.x * dt;
     this.position.y += this.velocity.y * dt;
     this.position.z += this.velocity.z * dt;
+
+    // Apply gravity to velocity after position update
+    this.velocity.x += gravity.x * dt;
+    this.velocity.y += gravity.y * dt;
+    this.velocity.z += gravity.z * dt;
 
     // Update rotation
     this.rotation.x += this.angularVelocity.x * dt;

@@ -146,4 +146,105 @@ describe('IncrementalCompiler — Production', () => {
     expect(result.recompiledObjects.sort()).toEqual(['A', 'B']);
     expect(result.compiledCode).toContain('code_A');
   });
+
+  // ─── resolveImports (Asset Pipeline) ────────────────────────────────
+
+  describe('resolveImports()', () => {
+    // Helper: build a minimal HSPlusCompileResult-like object
+    function makeParseResult(imports: Array<{ path: string; alias: string; namedImports?: string[]; isWildcard?: boolean }> = []) {
+      return {
+        ast: { imports },
+        errors: [],
+      };
+    }
+
+    // In-memory file system for tests
+    function makeReadFile(fs: Record<string, string>): (p: string) => Promise<string> {
+      return async (p) => {
+        const content = fs[p];
+        if (content === undefined) throw new Error(`File not found: ${p}`);
+        return content;
+      };
+    }
+
+    it('returns empty scope when there are no imports', async () => {
+      const ic = new IncrementalCompiler();
+      const result = makeParseResult();
+      const resolution = await ic.resolveImports(result, {
+        baseDir: '/project',
+        sourceFile: '/project/scene.hs',
+      });
+      expect(resolution.scope.size).toBe(0);
+      expect(resolution.errors).toHaveLength(0);
+    });
+
+    it('registers import edges in TraitDependencyGraph', async () => {
+      const ic = new IncrementalCompiler();
+      const sharedSrc = `@export
+trait GlowOrb { color: "gold" }`;
+      const readFile = makeReadFile({ '/project/shared.hs': sharedSrc });
+      const result = makeParseResult([{ path: './shared.hs', alias: 'shared' }]);
+      await ic.resolveImports(result, {
+        baseDir: '/project',
+        sourceFile: '/project/scene.hs',
+        readFile,
+      });
+      // scene.hs should now import /project/shared.hs in the trait graph
+      const graph = ic.getTraitGraph();
+      const imported = graph.getImportedFiles('/project/scene.hs');
+      expect(imported.has('/project/shared.hs')).toBe(true);
+    });
+
+    it('propagates file-changed recompilation via TraitDependencyGraph', async () => {
+      const ic = new IncrementalCompiler();
+      const sharedSrc = `@export
+trait Orb {}`;
+      const readFile = makeReadFile({ '/project/shared.hs': sharedSrc });
+      const result = makeParseResult([{ path: './shared.hs', alias: 'shared' }]);
+      await ic.resolveImports(result, {
+        baseDir: '/project',
+        sourceFile: '/project/scene.hs',
+        readFile,
+      });
+      const graph = ic.getTraitGraph();
+      const affected = graph.getFilesAffectedByChange(['/project/shared.hs']);
+      expect(affected.has('/project/scene.hs')).toBe(true);
+    });
+
+    it('clears previous import edges on re-resolve', async () => {
+      const ic = new IncrementalCompiler();
+      const readFile = makeReadFile({
+        '/project/a.hs': '@export\ntrait A {}',
+        '/project/b.hs': '@export\ntrait B {}',
+      });
+      // First resolve: scene imports a
+      await ic.resolveImports(
+        makeParseResult([{ path: './a.hs', alias: 'a' }]),
+        { baseDir: '/project', sourceFile: '/project/scene.hs', readFile }
+      );
+      // Second resolve: scene now imports b instead
+      await ic.resolveImports(
+        makeParseResult([{ path: './b.hs', alias: 'b' }]),
+        { baseDir: '/project', sourceFile: '/project/scene.hs', readFile }
+      );
+      const graph = ic.getTraitGraph();
+      // old edge to a.hs should be gone
+      expect(graph.getImportedFiles('/project/scene.hs').has('/project/a.hs')).toBe(false);
+      // new edge to b.hs should be present
+      expect(graph.getImportedFiles('/project/scene.hs').has('/project/b.hs')).toBe(true);
+    });
+
+    it('reports error for missing import file', async () => {
+      const ic = new IncrementalCompiler();
+      const readFile = makeReadFile({}); // empty filesystem
+      const result = makeParseResult([{ path: './missing.hs', alias: 'missing' }]);
+      const resolution = await ic.resolveImports(result, {
+        baseDir: '/project',
+        sourceFile: '/project/scene.hs',
+        readFile,
+      });
+      expect(resolution.errors.length).toBeGreaterThan(0);
+      expect(resolution.errors[0].code).toBe('not_found');
+    });
+  });
 });

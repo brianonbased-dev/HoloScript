@@ -117,6 +117,24 @@ export class TraitDependencyGraph {
   /** Previous state for diff comparison */
   private previousObjectTraits: Map<string, ObjectTraitInfo> = new Map();
 
+  // ---------------------------------------------------------------------------
+  // IMPORT GRAPH — cross-file dependency edges
+  // ---------------------------------------------------------------------------
+
+  /**
+   * File → set of files it directly imports.
+   * Edge: `importer → importee`
+   * e.g., 'a.hs' → { 'b.hs', 'c.hs' }
+   */
+  private importEdges: Map<string, Set<string>> = new Map();
+
+  /**
+   * Reverse map: file → set of files that import it.
+   * Edge: `importee → importers`
+   * e.g., 'b.hs' → { 'a.hs', 'd.hs' }
+   */
+  private reverseImportEdges: Map<string, Set<string>> = new Map();
+
   // ===========================================================================
   // TRAIT REGISTRATION
   // ===========================================================================
@@ -210,6 +228,90 @@ export class TraitDependencyGraph {
       requires: ['audio'],
       conflicts: [],
     });
+  }
+
+  // ===========================================================================
+  // IMPORT EDGE TRACKING (@import cross-file dependencies)
+  // ===========================================================================
+
+  /**
+   * Register a cross-file @import relationship.
+   *
+   * Call this once per `@import` directive after parsing.
+   * Idempotent — registering the same edge twice is safe.
+   *
+   * @param importingFile  Canonical path of the file that contains `@import`
+   * @param importedFile   Canonical path of the file being imported
+   */
+  registerImport(importingFile: string, importedFile: string): void {
+    // Forward edge: importer → importee
+    if (!this.importEdges.has(importingFile)) {
+      this.importEdges.set(importingFile, new Set());
+    }
+    this.importEdges.get(importingFile)!.add(importedFile);
+
+    // Reverse edge: importee → importers
+    if (!this.reverseImportEdges.has(importedFile)) {
+      this.reverseImportEdges.set(importedFile, new Set());
+    }
+    this.reverseImportEdges.get(importedFile)!.add(importingFile);
+  }
+
+  /**
+   * Remove all import edges for a file (call before re-registering after a parse).
+   * Cleans both the forward edge and the corresponding reverse entries.
+   */
+  clearImportsForFile(importingFile: string): void {
+    const imported = this.importEdges.get(importingFile);
+    if (!imported) return;
+
+    for (const dep of imported) {
+      this.reverseImportEdges.get(dep)?.delete(importingFile);
+    }
+    this.importEdges.delete(importingFile);
+  }
+
+  /**
+   * Return the set of files that `sourceFile` directly imports.
+   */
+  getImportedFiles(sourceFile: string): Set<string> {
+    return new Set(this.importEdges.get(sourceFile) ?? []);
+  }
+
+  /**
+   * Return the set of files that directly import `sourceFile`.
+   */
+  getFilesThatImport(sourceFile: string): Set<string> {
+    return new Set(this.reverseImportEdges.get(sourceFile) ?? []);
+  }
+
+  /**
+   * Walk the reverse-import graph (BFS) to compute the full set of files that
+   * need to be recompiled when `changedFiles` are modified.
+   *
+   * Includes the changed files themselves and all direct/transitive importers.
+   *
+   * @param changedFiles Canonical paths of the files that changed on disk
+   * @returns Set of canonical paths that need recompilation
+   */
+  getFilesAffectedByChange(changedFiles: string[]): Set<string> {
+    const affected = new Set<string>(changedFiles);
+    const queue = [...changedFiles];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const importers = this.reverseImportEdges.get(current);
+      if (!importers) continue;
+
+      for (const importer of importers) {
+        if (!affected.has(importer)) {
+          affected.add(importer);
+          queue.push(importer);
+        }
+      }
+    }
+
+    return affected;
   }
 
   // ===========================================================================
@@ -475,13 +577,14 @@ export class TraitDependencyGraph {
    */
   serialize(): string {
     const data = {
-      version: 1,
+      version: 2,
       traitDependencies: Array.from(this.traitDependencies.entries()).map(([k, v]) => [
         k,
         Array.from(v),
       ]),
       traitConflicts: Array.from(this.traitConflicts.entries()).map(([k, v]) => [k, Array.from(v)]),
       objectTraits: Array.from(this.objectTraits.entries()),
+      importEdges: Array.from(this.importEdges.entries()).map(([k, v]) => [k, Array.from(v)]),
       timestamp: Date.now(),
     };
 
@@ -495,7 +598,7 @@ export class TraitDependencyGraph {
     const graph = new TraitDependencyGraph();
     const data = JSON.parse(json);
 
-    if (data.version !== 1) {
+    if (data.version !== 1 && data.version !== 2) {
       throw new Error(`Unsupported trait graph version: ${data.version}`);
     }
 
@@ -514,6 +617,15 @@ export class TraitDependencyGraph {
       graph.registerObject(info);
     }
 
+    // Restore import edges (v2+)
+    if (data.importEdges) {
+      for (const [importer, imported] of data.importEdges as [string, string[]][]) {
+        for (const dep of imported) {
+          graph.registerImport(importer, dep);
+        }
+      }
+    }
+
     return graph;
   }
 
@@ -529,10 +641,16 @@ export class TraitDependencyGraph {
     objectCount: number;
     sourceCount: number;
     dependencyEdges: number;
+    importEdges: number;
   } {
     let dependencyEdges = 0;
     for (const deps of this.traitDependencies.values()) {
       dependencyEdges += deps.size;
+    }
+
+    let importEdges = 0;
+    for (const deps of this.importEdges.values()) {
+      importEdges += deps.size;
     }
 
     return {
@@ -540,6 +658,7 @@ export class TraitDependencyGraph {
       objectCount: this.objectTraits.size,
       sourceCount: this.sourceToObjects.size,
       dependencyEdges,
+      importEdges,
     };
   }
 
@@ -554,6 +673,8 @@ export class TraitDependencyGraph {
     this.sourceToObjects.clear();
     this.templateToObjects.clear();
     this.previousObjectTraits.clear();
+    this.importEdges.clear();
+    this.reverseImportEdges.clear();
   }
 }
 

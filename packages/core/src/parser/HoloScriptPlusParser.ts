@@ -1074,8 +1074,12 @@ export class HoloScriptPlusParser {
           const directive = this.parseDirective();
           if (directive) {
             const type = (directive as any).type;
-            if (type === 'version' || type === 'migrate' || type === 'import') {
+            if (type === 'version' || type === 'migrate' || type === 'import' || type === 'export') {
               globalDirectives.push(directive);
+              // @export also goes to currentDirectives so it's attached to the following node
+              if (type === 'export') {
+                currentDirectives.push(directive);
+              }
             } else {
               currentDirectives.push(directive);
             }
@@ -1806,25 +1810,107 @@ export class HoloScriptPlusParser {
     }
 
     // =========================================================================
-    // Import
+    // Import  (@import "./path.hs" | @import "./path.hs" as Alias |
+    //          @import { A, B } from "./path.hs" | @import * as NS from "./path.hs")
     // =========================================================================
     if (name === 'import') {
       if (!this.options.enableTypeScriptImports) {
         this.warn('@import is disabled');
         return null;
       }
-      const path = this.expect('STRING', 'Expected import path').value;
+
+
+      let namedImports: string[] | undefined;
+      let isWildcard = false;
+
+      // Named-import form: @import { A, B } from "./path.hs"
+      if (this.check('LBRACE')) {
+        this.advance(); // {
+        namedImports = [];
+        while (!this.check('RBRACE') && !this.check('EOF')) {
+          if (this.check('IDENTIFIER')) {
+            namedImports.push(this.advance().value);
+          }
+          if (this.check('COMMA')) this.advance();
+        }
+        this.expect('RBRACE', 'Expected } in named import list');
+        // consume 'from' keyword (appears as IDENTIFIER)
+        if (this.check('IDENTIFIER') && this.current().value === 'from') {
+          this.advance();
+        } else {
+          this.warn("Expected 'from' after named import specifiers");
+        }
+      }
+
+      // Wildcard form: @import * as Namespace from "./path.hs"
+      if (this.check('ASTERISK') || (this.check('IDENTIFIER') && this.current().value === '*')) {
+        this.advance(); // *
+        isWildcard = true;
+        if (this.check('IDENTIFIER') && this.current().value === 'as') {
+          this.advance(); // as
+        }
+      }
+
+      const path = this.expect('STRING', 'Expected import path string').value;
+
+      // Derive default alias from filename
       let alias =
         path
           .split('/')
           .pop()
           ?.replace(/\.[^.]+$/, '') || 'import';
-      if (this.check('IDENTIFIER') && this.current().value === 'as') {
+
+      // Handle trailing 'as Alias' on non-named-import forms
+      if (!namedImports && this.check('IDENTIFIER') && this.current().value === 'as') {
         this.advance();
-        alias = this.expect('IDENTIFIER', 'Expected alias').value;
+        alias = this.expect('IDENTIFIER', 'Expected alias after as').value;
       }
-      this.imports.push({ path, alias });
-      return { type: 'import' as const, path, alias } as any;
+
+      // For wildcard with 'as' already consumed above, grab the alias token
+      if (isWildcard && this.check('IDENTIFIER') && this.current().value !== 'from') {
+        alias = this.advance().value;
+        if (this.check('IDENTIFIER') && this.current().value === 'from') {
+          this.advance(); // consume trailing 'from'
+        }
+      }
+
+      this.imports.push({ path, alias, namedImports, isWildcard });
+      return {
+        type: 'import' as const,
+        path,
+        alias,
+        namedImports,
+        isWildcard,
+      } as any;
+    }
+
+    // =========================================================================
+    // Export  (@export template "Name" | @export object "Name" | @export "Name")
+    // =========================================================================
+    if (name === 'export') {
+      // Optional kind specifier: template | object | composition | trait
+      let exportKind = 'any';
+      if (this.check('IDENTIFIER')) {
+        const kindToken = this.current();
+        const knownKinds = ['template', 'object', 'composition', 'trait', 'group', 'scene'];
+        if (knownKinds.includes(kindToken.value)) {
+          exportKind = this.advance().value;
+        }
+      }
+
+      // Optional quoted name — the name of what is being exported
+      let exportName: string | undefined;
+      if (this.check('STRING')) {
+        exportName = this.advance().value;
+      } else if (this.check('IDENTIFIER')) {
+        exportName = this.advance().value;
+      }
+
+      return {
+        type: 'export' as const,
+        exportKind,
+        exportName,
+      } as any;
     }
 
     // =========================================================================

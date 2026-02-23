@@ -741,8 +741,52 @@ Now that you understand virtual gallery creation, try:
 - [Audio System](../../../docs/AUDIO.md) - Spatial and non-spatial audio
 - [Museum Lighting Standards](https://www.iesna.org/) - Professional gallery lighting
 
+## Key Concepts
+
+| Concept | Description |
+|---|---|
+| `environment` | Defines scene-wide atmosphere: skybox, lighting, fog, and ambient audio |
+| `zone` | A navigable region of the gallery, grouping related objects |
+| `artwork` | A special object type for paintings, sculptures, and digital art |
+| `metadata` | Structured data attached to artworks: artist, year, medium, description |
+| `audio_guide` | Narrated content triggered when a visitor interacts with an artwork |
+| `spatial_group` | Repeats objects at regular intervals (e.g., ceiling lights) |
+| `on_approach` | Event triggered when player enters a proximity radius |
+| `localize()` | Returns translated text based on the visitor's selected language |
+| `lod` | Level of Detail — switches model complexity based on viewing distance |
+| `occlusion_culling` | Skips rendering of objects behind walls for better performance |
+
+---
+
+## Best Practices
+
+### Gallery Design
+- Keep ceiling heights between 4–6 metres for a realistic museum feel
+- Use narrow spot lights (15–30° angle) aimed at individual artworks
+- Place paintings at eye level — `y: 2.5` (eye height 1.7m + 0.8m offset)
+- Maintain neutral white walls so art remains the visual focus
+
+### Performance
+- Use LOD for all 3D sculptures with at least 2 detail levels
+- Enable `occlusion_culling: true` on every gallery room/zone
+- Compress artwork textures with Basis Universal
+- Limit shadow casters to primary spot lights only
+
+### Localization
+- Use the `localize()` function for all user-facing strings
+- Store translations in per-language JSON files under `lang/`
+- Include at minimum English, Spanish, and French for broad coverage
+- Test all audio guide filenames in all supported languages before release
+
+### Accessibility
+- Always provide subtitles when audio guide is available
+- Include a high contrast mode for visitors with visual impairments
+- Support both teleportation and smooth locomotion for different comfort levels
+- Test with and without a VR headset (desktop/mobile fallback)
+
 ---
 
 **Questions?** Join the HoloScript community on Discord or open an issue on GitHub.
 
 **Happy building!** 🚀
+

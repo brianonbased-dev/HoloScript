@@ -6,10 +6,10 @@ A comprehensive Unity + Quest example demonstrating platform-specific optimizati
 
 This example shows how to build performant VR experiences for Meta Quest with HoloScript, automatically handling platform-specific optimizations like ASTC texture compression, mobile shaders, and foveated rendering.
 
-**Platforms:**
+**Platforms:** `unity-quest`, `unity-pcvr`
 - Meta Quest 2 (72-90 FPS)
 - Meta Quest 3 (90-120 FPS with eye tracking)
-- PCVR (SteamVR, 90-120 FPS)
+- PCVR / SteamVR (90-120 FPS)
 
 ## Features
 

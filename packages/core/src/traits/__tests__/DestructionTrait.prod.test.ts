@@ -223,6 +223,9 @@ describe('destructionHandler.onUpdate — fragment physics', () => {
     const { node, ctx, config } = attach({ fragment_count: 1 });
     destructionHandler.onEvent!(node, config, ctx, { type: 'destroy' });
     const frag = node.__destructionState.fragments[0];
+    // Set y high enough to avoid ground bounce (semi-implicit Euler moves y by vy*dt AFTER
+    // applying gravity, so a fragment near y=0 can drop below ground in the same step)
+    frag.position.y = 10;
     frag.velocity.y = 0;
     const delta = 0.1;
     destructionHandler.onUpdate!(node, config, ctx, delta);
