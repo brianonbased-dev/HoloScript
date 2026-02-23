@@ -1,0 +1,184 @@
+name: HoloScript Studio CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'packages/studio/**'
+      - 'packages/core/**'
+      - 'packages/visual/**'
+      - 'pnpm-lock.yaml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/studio/**'
+      - 'packages/core/**'
+      - 'packages/visual/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  # ─── Type check + Lint ───────────────────────────────────────────────────────
+  typecheck:
+    name: TypeScript & ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check (core)
+        run: pnpm --filter @holoscript/core exec tsc --noEmit
+
+      - name: Type check (studio)
+        run: pnpm --filter @holoscript/studio exec tsc --noEmit
+
+      - name: Lint (studio)
+        run: pnpm --filter @holoscript/studio exec next lint --max-warnings 0
+        continue-on-error: true  # lint warnings are advisory
+
+  # ─── Unit tests ──────────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests (core)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run core tests
+        run: pnpm --filter @holoscript/core test --reporter=verbose --passWithNoTests
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-test-results
+          path: packages/core/test-results/
+          retention-days: 7
+
+  # ─── E2E tests ───────────────────────────────────────────────────────────────
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    needs: [typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @holoscript/studio exec playwright install --with-deps chromium
+
+      - name: Build studio
+        run: pnpm --filter @holoscript/studio build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Run Playwright tests
+        run: pnpm --filter @holoscript/studio exec playwright test
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: packages/studio/playwright-report/
+          retention-days: 14
+
+      - name: Upload test results (JUnit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-junit
+          path: packages/studio/playwright-results.xml
+          retention-days: 14
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots
+          path: packages/studio/test-results/
+          retention-days: 7
+
+  # ─── Build check ─────────────────────────────────────────────────────────────
+  build:
+    name: Production Build
+    runs-on: ubuntu-latest
+    needs: [typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build core
+        run: pnpm --filter @holoscript/core build
+
+      - name: Build studio
+        run: pnpm --filter @holoscript/studio build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Check build output size
+        run: |
+          echo "=== Studio build size ==="
+          du -sh packages/studio/.next/ 2>/dev/null || echo "No .next directory"

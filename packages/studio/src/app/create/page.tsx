@@ -32,6 +32,7 @@ import {
   Layers,
   List,
   Code2,
+  GitGraph,
   X,
   History,
 } from 'lucide-react';
@@ -50,6 +51,11 @@ const HoloScriptEditor = dynamic(
 const ShaderEditorPanel = dynamic(
   () => import('@/components/shader-editor/ShaderEditorPanel').then((m) => ({ default: m.ShaderEditorPanel })),
   { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-studio-muted">Loading shader editor…</div> }
+);
+
+const NodeGraphEditor = dynamic(
+  () => import('@/components/node-graph/NodeGraphEditor').then((m) => ({ default: m.NodeGraphEditor })),
+  { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">Loading node graph…</div> }
 );
 
 function ViewportSkeleton() {
@@ -230,7 +236,7 @@ export default function CreatePage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [profilerOpen, setProfilerOpen] = useState(false);
   const [shaderEditorOpen, setShaderEditorOpen] = useState(false);
-  const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code'>('scene');
+  const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -306,6 +312,17 @@ export default function CreatePage() {
               <Code2 className="h-3.5 w-3.5" />
               Code
             </button>
+            <button
+              onClick={() => setLeftTab('graph')}
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
+                leftTab === 'graph'
+                  ? 'border-b-2 border-studio-accent text-studio-accent'
+                  : 'text-studio-muted hover:text-studio-text'
+              }`}
+            >
+              <GitGraph className="h-3.5 w-3.5" />
+              Graph
+            </button>
           </div>
 
           {/* Panel content */}
@@ -314,6 +331,8 @@ export default function CreatePage() {
               <SceneGraphPanel />
             ) : leftTab === 'assets' ? (
               <AssetLibrary onOpenSplatWizard={() => setSplatWizardOpen(true)} />
+            ) : leftTab === 'graph' ? (
+              <NodeGraphEditor onCompile={(glsl) => { setShaderEditorOpen(true); console.log('[NodeGraph] compiled GLSL', glsl.slice(0, 60)); }} />
             ) : (
               <HoloScriptEditor height="100%" />
             )}

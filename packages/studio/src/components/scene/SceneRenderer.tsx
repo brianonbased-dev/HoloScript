@@ -11,6 +11,9 @@ import { ASSET_DRAG_TYPE } from '@/components/assets/AssetLibrary';
 import type { Asset } from '@/components/assets/useAssetStore';
 import { VREditSession, xrStore } from '@/components/vr/VREditSession';
 import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
+import { PhysicsProvider } from '@/components/physics/PhysicsProvider';
+import { PhysicsDebugOverlay } from '@/components/physics/PhysicsDebugOverlay';
+import { usePhysicsStore } from '@/lib/physicsStore';
 
 interface SceneRendererProps {
   r3fTree: R3FNode | null;
@@ -77,6 +80,19 @@ function assetToTrait(asset: Asset): { name: string; properties: Record<string, 
     default:
       return null;
   }
+}
+
+// ─── Physics wrapper (only mounts Rapier when physics enabled) ───────────────
+
+function PhysicsProviderWrapper() {
+  const physicsEnabled = usePhysicsStore((s) => s.physicsEnabled);
+  if (!physicsEnabled) return null;
+  return (
+    <>
+      <PhysicsProvider />
+      <PhysicsDebugOverlay />
+    </>
+  );
 }
 
 // ─── Main renderer with drop zone ────────────────────────────────────────────
@@ -186,6 +202,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
 
         {/* VR edit session — active when XR is running */}
         <VREditSession />
+
+        {/* Physics world + debug wireframes */}
+        <PhysicsProviderWrapper />
 
         {/* Performance profiler overlay */}
         <PerformanceOverlay open={profilerOpen} />
