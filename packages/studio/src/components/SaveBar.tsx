@@ -11,9 +11,10 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Save, FolderOpen, Share2, Package, Check, Loader2 } from 'lucide-react';
+import { Save, FolderOpen, Share2, Package, Globe, Check, Loader2 } from 'lucide-react';
 import { useSceneStore, useSceneGraphStore } from '@/lib/store';
 import { useAssetStore } from '@/components/assets/useAssetStore';
+import { PublishModal } from '@/components/PublishModal';
 import {
   serializeScene,
   downloadHoloFile,
@@ -38,6 +39,7 @@ export function SaveBar() {
   const [toast, setToast] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
 
   // Store accessors
   const metadata = useSceneStore((s) => s.metadata);
@@ -207,12 +209,22 @@ export function SaveBar() {
         Share
       </button>
 
+      {/* Publish */}
+      <button
+        onClick={() => setPublishOpen(true)}
+        title="Publish scene to a public URL"
+        className={btnAccent}
+      >
+        <Globe className="h-3.5 w-3.5" />
+        Publish
+      </button>
+
       {/* Export glTF */}
       <button
         onClick={handleExportGltf}
         disabled={exporting}
         title="Export scene as glTF binary (.glb)"
-        className={btnAccent}
+        className={btnGhost}
       >
         {exporting ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -224,6 +236,9 @@ export function SaveBar() {
 
       {/* Toast */}
       {toast && <Toast message={toast} />}
+
+      {/* Publish modal */}
+      {publishOpen && <PublishModal onClose={() => setPublishOpen(false)} />}
     </div>
   );
 }

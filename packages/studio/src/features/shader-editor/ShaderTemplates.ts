@@ -62,7 +62,7 @@ export class ShaderTemplateLibrary {
       this.createWaterWaves(),
       this.createDissolveEffect(),
       this.createHolographicScanLines(),
-      this.createProcedural Marble(),
+      this.createProceduralMarble(),
       this.createCaustics(),
       this.createScreenSpaceReflection(),
       this.createVolumetricFog(),

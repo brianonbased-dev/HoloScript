@@ -18,6 +18,7 @@ import { useOllamaStatus } from '@/hooks/useOllamaStatus';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTemporalStore } from '@/lib/historyStore';
+import { AssetDropOverlay } from '@/components/assets/AssetDropProcessor';
 import {
   AlertTriangle,
   BarChart2,
@@ -44,6 +45,11 @@ const SceneRenderer = dynamic(
 const HoloScriptEditor = dynamic(
   () => import('@/components/editor/HoloScriptEditor').then((m) => ({ default: m.HoloScriptEditor })),
   { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">Loading editor…</div> }
+);
+
+const ShaderEditorPanel = dynamic(
+  () => import('@/components/shader-editor/ShaderEditorPanel').then((m) => ({ default: m.ShaderEditorPanel })),
+  { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-studio-muted">Loading shader editor…</div> }
 );
 
 function ViewportSkeleton() {
@@ -223,6 +229,7 @@ export default function CreatePage() {
   const [chatOpen, setChatOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [profilerOpen, setProfilerOpen] = useState(false);
+  const [shaderEditorOpen, setShaderEditorOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code'>('scene');
 
   // Undo/Redo keyboard shortcuts
@@ -320,6 +327,7 @@ export default function CreatePage() {
             <SceneRenderer r3fTree={r3fTree} profilerOpen={profilerOpen} />
             <ViewportToolbar profilerOpen={profilerOpen} onToggleProfiler={() => setProfilerOpen((v) => !v)} />
             <AIPromptOverlay />
+            <AssetDropOverlay />
 
             {errors.length > 0 && (
               <div className="absolute left-3 bottom-3 max-w-sm rounded-lg border border-studio-error/30 bg-studio-panel/90 p-3 backdrop-blur">
@@ -336,9 +344,16 @@ export default function CreatePage() {
             )}
           </div>
 
-          {/* Inspector (bottom strip) */}
-          <div className="h-56 shrink-0">
-            <TraitInspector onOpenPalette={() => setPaletteOpen(true)} />
+          {/* Inspector (bottom strip) — or Shader Editor */}
+          <div className={`shrink-0 ${shaderEditorOpen ? 'h-96' : 'h-56'}`}>
+            {shaderEditorOpen ? (
+              <ShaderEditorPanel onClose={() => setShaderEditorOpen(false)} />
+            ) : (
+              <TraitInspector
+                onOpenPalette={() => setPaletteOpen(true)}
+                onOpenShaderEditor={() => setShaderEditorOpen(true)}
+              />
+            )}
           </div>
         </div>
 

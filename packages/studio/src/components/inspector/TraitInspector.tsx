@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { ChevronDown, ChevronRight, Plus, X, Grip } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, X, Grip, Code2 } from 'lucide-react';
 import { useEditorStore, useSceneGraphStore } from '@/lib/store';
 import type { TraitConfig } from '@/lib/store';
 
@@ -101,15 +101,18 @@ function PropertyField({
 function TraitCard({
   trait,
   nodeId,
+  onOpenShaderEditor,
 }: {
   trait: TraitConfig;
   nodeId: string;
+  onOpenShaderEditor?: () => void;
 }) {
   const [open, setOpen] = useState(true);
   const removeTrait = useSceneGraphStore((s) => s.removeTrait);
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
 
   const propEntries = Object.entries(trait.properties);
+  const isMaterial = trait.name === 'material';
 
   return (
     <div className="rounded-lg border border-studio-border bg-studio-surface overflow-hidden">
@@ -125,6 +128,15 @@ function TraitCard({
           <ChevronRight className="h-3.5 w-3.5 text-studio-muted shrink-0" />
         )}
         <span className="flex-1 text-xs font-semibold text-studio-accent">@{trait.name}</span>
+        {isMaterial && onOpenShaderEditor && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onOpenShaderEditor(); }}
+            className="rounded p-0.5 text-studio-muted hover:bg-studio-accent/20 hover:text-studio-accent mr-1"
+            title="Open GLSL Shader Editor"
+          >
+            <Code2 className="h-3 w-3" />
+          </button>
+        )}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -164,9 +176,10 @@ function TraitCard({
 
 interface TraitInspectorProps {
   onOpenPalette: () => void;
+  onOpenShaderEditor?: () => void;
 }
 
-export function TraitInspector({ onOpenPalette }: TraitInspectorProps) {
+export function TraitInspector({ onOpenPalette, onOpenShaderEditor }: TraitInspectorProps) {
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const nodes = useSceneGraphStore((s) => s.nodes);
 
@@ -241,7 +254,12 @@ export function TraitInspector({ onOpenPalette }: TraitInspectorProps) {
           </div>
         ) : (
           selectedNode.traits.map((trait) => (
-            <TraitCard key={trait.name} trait={trait} nodeId={selectedNode.id} />
+            <TraitCard
+              key={trait.name}
+              trait={trait}
+              nodeId={selectedNode.id}
+              onOpenShaderEditor={onOpenShaderEditor}
+            />
           ))
         )}
       </div>
