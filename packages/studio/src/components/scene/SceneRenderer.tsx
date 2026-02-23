@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState, useCallback, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Stars, Environment } from '@react-three/drei';
 import type { R3FNode } from '@holoscript/core';
@@ -9,6 +9,7 @@ import { useEditorStore, useSceneGraphStore } from '@/lib/store';
 import type { SceneNode } from '@/lib/store';
 import { ASSET_DRAG_TYPE } from '@/components/assets/AssetLibrary';
 import type { Asset } from '@/components/assets/useAssetStore';
+import { VREditSession, xrStore } from '@/components/vr/VREditSession';
 
 interface SceneRendererProps {
   r3fTree: R3FNode | null;
@@ -83,6 +84,19 @@ export function SceneRenderer({ r3fTree }: SceneRendererProps) {
   const addNode = useSceneGraphStore((s) => s.addNode);
   const addTrait = useSceneGraphStore((s) => s.addTrait);
 
+  // ─── XR support detection ──────────────────────────────────────────────────
+  const [xrSupport, setXrSupport] = useState<{ vr: boolean; ar: boolean }>({ vr: false, ar: false });
+
+  useEffect(() => {
+    if (!navigator.xr) return;
+    Promise.all([
+      navigator.xr.isSessionSupported('immersive-vr').catch(() => false),
+      navigator.xr.isSessionSupported('immersive-ar').catch(() => false),
+    ]).then(([vr, ar]) => setXrSupport({ vr, ar }));
+  }, []);
+
+  // ─── Asset drag/drop ────────────────────────────────────────────────────────
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     if (e.dataTransfer.types.includes(ASSET_DRAG_TYPE)) {
       e.preventDefault();
@@ -92,7 +106,6 @@ export function SceneRenderer({ r3fTree }: SceneRendererProps) {
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
-    // Only clear if leaving the container entirely (not entering a child)
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragOver(false);
     }
@@ -168,6 +181,9 @@ export function SceneRenderer({ r3fTree }: SceneRendererProps) {
         />
 
         <Stars radius={80} depth={50} count={2000} factor={3} saturation={0.1} fade speed={0.5} />
+
+        {/* VR edit session — active when XR is running */}
+        <VREditSession />
       </Canvas>
 
       {/* Drop overlay */}
@@ -180,6 +196,34 @@ export function SceneRenderer({ r3fTree }: SceneRendererProps) {
         </div>
       )}
 
+      {/* Enter VR / AR buttons */}
+      {(xrSupport.vr || xrSupport.ar) && (
+        <div className="absolute bottom-3 right-3 flex items-center gap-2">
+          {xrSupport.ar && (
+            <button
+              onClick={() => xrStore.enterAR()}
+              className="flex items-center gap-1.5 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 text-xs font-medium text-studio-muted backdrop-blur transition hover:border-studio-accent hover:text-studio-accent"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+              Enter AR
+            </button>
+          )}
+          {xrSupport.vr && (
+            <button
+              onClick={() => xrStore.enterVR()}
+              className="flex items-center gap-1.5 rounded-lg border border-studio-accent/60 bg-studio-accent/10 px-3 py-1.5 text-xs font-medium text-studio-accent backdrop-blur transition hover:bg-studio-accent hover:text-white"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.5 7h-17A1.5 1.5 0 002 8.5v7A1.5 1.5 0 003.5 17h3.17a2 2 0 001.66-.9L10.17 14h3.66l1.84 2.1a2 2 0 001.66.9H20.5A1.5 1.5 0 0022 15.5v-7A1.5 1.5 0 0020.5 7zM8.5 13a2 2 0 110-4 2 2 0 010 4zm7 0a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+              Enter VR
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Scene info overlay */}
       {r3fTree && r3fTree.children && (
         <div className="absolute bottom-3 left-3 rounded-md bg-studio-panel/80 px-3 py-1.5 text-xs text-studio-muted backdrop-blur">
@@ -189,5 +233,4 @@ export function SceneRenderer({ r3fTree }: SceneRendererProps) {
     </div>
   );
 }
-
 

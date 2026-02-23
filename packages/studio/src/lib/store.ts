@@ -114,6 +114,8 @@ interface SceneGraphState {
   removeNode: (id: string) => void;
   moveNode: (id: string, parentId: string | null) => void;
   updateNodeTransform: (id: string, transform: Partial<Pick<SceneNode, 'position' | 'rotation' | 'scale'>>) => void;
+  /** Convenience: update any subset of node fields */
+  updateNode: (id: string, patch: Partial<SceneNode>) => void;
   addTrait: (nodeId: string, trait: TraitConfig) => void;
   removeTrait: (nodeId: string, traitName: string) => void;
   setTraitProperty: (nodeId: string, traitName: string, key: string, value: unknown) => void;
@@ -132,6 +134,10 @@ export const useSceneGraphStore = create<SceneGraphState>()(
       updateNodeTransform: (id, transform) =>
         set((s) => ({
           nodes: s.nodes.map((n) => (n.id === id ? { ...n, ...transform } : n)),
+        })),
+      updateNode: (id, patch) =>
+        set((s) => ({
+          nodes: s.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)),
         })),
       addTrait: (nodeId, trait) =>
         set((s) => ({
