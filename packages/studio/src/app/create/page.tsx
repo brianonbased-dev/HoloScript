@@ -35,6 +35,9 @@ import {
   GitGraph,
   Film,
   LayoutTemplate,
+  Sparkles,
+  Share2,
+  Users,
   X,
   History,
 } from 'lucide-react';
@@ -68,6 +71,26 @@ const TemplatePicker = dynamic(
 const AnimationTimeline = dynamic(
   () => import('@/components/timeline/AnimationTimeline').then((m) => ({ default: m.AnimationTimeline })),
   { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">Loading timeline…</div> }
+);
+
+const AIMaterialPanel = dynamic(
+  () => import('@/components/ai/AIMaterialPanel').then((m) => ({ default: m.AIMaterialPanel })),
+  { ssr: false }
+);
+
+const SharePanel = dynamic(
+  () => import('@/components/share/SharePanel').then((m) => ({ default: m.SharePanel })),
+  { ssr: false }
+);
+
+const CollabCursors = dynamic(
+  () => import('@/components/collab/CollabCursors').then((m) => ({ default: m.CollabCursors })),
+  { ssr: false }
+);
+
+const CollabStatusDot = dynamic(
+  () => import('@/components/collab/CollabCursors').then((m) => ({ default: m.CollabStatusDot })),
+  { ssr: false }
 );
 
 function ViewportSkeleton() {
@@ -250,6 +273,8 @@ export default function CreatePage() {
   const [shaderEditorOpen, setShaderEditorOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [aiMaterialOpen, setAiMaterialOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
 
   // Undo/Redo keyboard shortcuts
@@ -408,6 +433,20 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: AI Material Generator */}
+        {aiMaterialOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <AIMaterialPanel onClose={() => setAiMaterialOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Share Panel */}
+        {shareOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <SharePanel onClose={() => setShareOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -449,6 +488,30 @@ export default function CreatePage() {
           >
             <Film className="h-4 w-4" />
           </button>
+          {/* AI Material toggle */}
+          <button
+            onClick={() => { setAiMaterialOpen((v) => !v); setShareOpen(false); }}
+            title={aiMaterialOpen ? 'Close AI Materials' : 'AI Material Generator'}
+            className={`transition ${
+              aiMaterialOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Sparkles className="h-4 w-4" />
+          </button>
+          {/* Share toggle */}
+          <button
+            onClick={() => { setShareOpen((v) => !v); setAiMaterialOpen(false); }}
+            title={shareOpen ? 'Close Share' : 'Share Scene'}
+            className={`transition ${
+              shareOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+          {/* Collab status */}
+          <div className="mt-1 flex justify-center">
+            <CollabStatusDot />
+          </div>
         </div>
       </div>
 
@@ -462,6 +525,9 @@ export default function CreatePage() {
       {templatePickerOpen && (
         <TemplatePicker onClose={() => setTemplatePickerOpen(false)} />
       )}
+
+      {/* Collaboration cursors (fixed overlay, pointer-events-none) */}
+      <CollabCursors />
     </>
   );
 }
