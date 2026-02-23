@@ -36,7 +36,6 @@ import {
   GitGraph,
   Film,
   LayoutTemplate,
-  Sparkles,
   Share2,
   Users,
   Lightbulb,
@@ -52,6 +51,8 @@ import {
   Bug,
   Camera,
   Library,
+  Map,
+  Music,
   X,
   History,
 } from 'lucide-react';
@@ -184,6 +185,26 @@ const SnapshotGallery = dynamic(
 
 const AssetLibraryPanel = dynamic(
   () => import('@/components/assets/AssetLibraryPanel').then((m) => ({ default: m.AssetLibraryPanel })),
+  { ssr: false }
+);
+
+const TemplateGallery = dynamic(
+  () => import('@/components/templates/TemplateGallery').then((m) => ({ default: m.TemplateGallery })),
+  { ssr: false }
+);
+
+const MinimapOverlay = dynamic(
+  () => import('@/components/minimap/MinimapOverlay').then((m) => ({ default: m.MinimapOverlay })),
+  { ssr: false }
+);
+
+const AudioTraitPanel = dynamic(
+  () => import('@/components/audio/AudioTraitPanel').then((m) => ({ default: m.AudioTraitPanel })),
+  { ssr: false }
+);
+
+const ExportPipelinePanel = dynamic(
+  () => import('@/components/export/ExportPipelinePanel').then((m) => ({ default: m.ExportPipelinePanel })),
   { ssr: false }
 );
 
@@ -382,6 +403,11 @@ export default function CreatePage() {
   const [debuggerOpen, setDebuggerOpen] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [assetLibOpen, setAssetLibOpen] = useState(false);
+  // Sprint R
+  const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
+  const [minimapOpen, setMinimapOpen] = useState(true);
+  const [audioOpen, setAudioOpen] = useState(false);
+  const [exportV2Open, setExportV2Open] = useState(false);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -503,6 +529,7 @@ export default function CreatePage() {
             <AIPromptOverlay />
             <ProfilerOverlay active={profilerOpen} />
             <AssetDropOverlay />
+            <MinimapOverlay active={minimapOpen} onClose={() => setMinimapOpen(false)} />
 
             {/* Template picker shortcut */}
             <button
@@ -652,6 +679,27 @@ export default function CreatePage() {
         {assetLibOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
             <AssetLibraryPanel onClose={() => setAssetLibOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Template Gallery */}
+        {templateGalleryOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <TemplateGallery onClose={() => setTemplateGalleryOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Audio Traits */}
+        {audioOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <AudioTraitPanel onClose={() => setAudioOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Export Pipeline v2 */}
+        {exportV2Open && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <ExportPipelinePanel onClose={() => setExportV2Open(false)} />
           </div>
         )}
 
@@ -841,6 +889,38 @@ export default function CreatePage() {
             className={`transition ${assetLibOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
             <Library className="h-4 w-4" />
+          </button>
+          {/* Templates gallery toggle */}
+          <button
+            onClick={() => { setTemplateGalleryOpen((v) => !v); setAudioOpen(false); setExportV2Open(false); }}
+            title={templateGalleryOpen ? 'Close Templates' : 'Scene Templates v2'}
+            className={`transition ${templateGalleryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <LayoutTemplate className="h-4 w-4" />
+          </button>
+          {/* Audio Traits toggle */}
+          <button
+            onClick={() => { setAudioOpen((v) => !v); setTemplateGalleryOpen(false); setExportV2Open(false); }}
+            title={audioOpen ? 'Close Audio' : 'Audio Traits'}
+            className={`transition ${audioOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Music className="h-4 w-4" />
+          </button>
+          {/* Export Pipeline v2 toggle */}
+          <button
+            onClick={() => { setExportV2Open((v) => !v); setTemplateGalleryOpen(false); setAudioOpen(false); }}
+            title={exportV2Open ? 'Close Export v2' : 'Export Pipeline v2'}
+            className={`transition ${exportV2Open ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Package className="h-4 w-4" />
+          </button>
+          {/* Minimap toggle */}
+          <button
+            onClick={() => setMinimapOpen((v) => !v)}
+            title={minimapOpen ? 'Hide Minimap' : 'Show Minimap'}
+            className={`transition ${minimapOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Map className="h-4 w-4" />
           </button>
         </div>
       </div>
