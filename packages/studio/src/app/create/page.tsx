@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { StudioHeader } from '@/components/StudioHeader';
 import { SceneGraphPanel } from '@/components/scene/SceneGraphPanel';
@@ -9,7 +10,9 @@ import { TraitPalette } from '@/components/inspector/TraitPalette';
 import { BrittneyChatPanel } from '@/components/ai/BrittneyChatPanel';
 import { AssetLibrary } from '@/components/assets/AssetLibrary';
 import { SplatCaptureWizard } from '@/components/assets/SplatCaptureWizard';
-import { useSceneStore, useEditorStore } from '@/lib/store';
+import { useSceneStore, useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useAssetStore } from '@/components/assets/useAssetStore';
+import { decodeSceneFromURL } from '@/lib/serializer';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
 import {
@@ -151,9 +154,15 @@ function AIPromptOverlay() {
 
 export default function CreatePage() {
   const code = useSceneStore((s) => s.code);
+  const setCode = useSceneStore((s) => s.setCode);
   const setR3FTree = useSceneStore((s) => s.setR3FTree);
   const setErrors = useSceneStore((s) => s.setErrors);
+  const setMetadata = useSceneStore((s) => s.setMetadata);
+  const markClean = useSceneStore((s) => s.markClean);
   const errors = useSceneStore((s) => s.errors);
+
+  const addNode = useSceneGraphStore((s) => s.addNode);
+  const addAsset = useAssetStore((s) => s.addAsset);
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
@@ -161,6 +170,24 @@ export default function CreatePage() {
   const [splatWizardOpen, setSplatWizardOpen] = useState(false);
 
   useOllamaStatus();
+
+  // ── URL scene restore (?scene= parameter) ──────────────────────────────────
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const encoded = searchParams.get('scene');
+    if (!encoded) return;
+    decodeSceneFromURL(encoded).then((result) => {
+      if (!result.ok || !result.scene) return;
+      const s = result.scene;
+      if (s.code) setCode(s.code);
+      setMetadata({ id: s.metadata.id, name: s.metadata.name });
+      for (const node of s.nodes ?? []) addNode(node);
+      for (const asset of s.assets ?? []) addAsset(asset);
+      markClean();
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { r3fTree, errors: pipelineErrors } = useScenePipeline(code);
 
   useEffect(() => {
