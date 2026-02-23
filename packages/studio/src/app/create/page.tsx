@@ -38,6 +38,8 @@ import {
   Sparkles,
   Share2,
   Users,
+  Lightbulb,
+  Package,
   X,
   History,
 } from 'lucide-react';
@@ -90,6 +92,16 @@ const CollabCursors = dynamic(
 
 const CollabStatusDot = dynamic(
   () => import('@/components/collab/CollabCursors').then((m) => ({ default: m.CollabStatusDot })),
+  { ssr: false }
+);
+
+const SceneCritiquePanel = dynamic(
+  () => import('@/components/ai/SceneCritiquePanel').then((m) => ({ default: m.SceneCritiquePanel })),
+  { ssr: false }
+);
+
+const AssetPackPanel = dynamic(
+  () => import('@/components/assets/AssetPackPanel').then((m) => ({ default: m.AssetPackPanel })),
   { ssr: false }
 );
 
@@ -275,6 +287,8 @@ export default function CreatePage() {
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [aiMaterialOpen, setAiMaterialOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [critiqueOpen, setCritiqueOpen] = useState(false);
+  const [assetPackOpen, setAssetPackOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
 
   // Undo/Redo keyboard shortcuts
@@ -447,6 +461,20 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Scene Critique */}
+        {critiqueOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <SceneCritiquePanel onClose={() => setCritiqueOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Asset Pack Importer */}
+        {assetPackOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <AssetPackPanel onClose={() => setAssetPackOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -512,6 +540,26 @@ export default function CreatePage() {
           <div className="mt-1 flex justify-center">
             <CollabStatusDot />
           </div>
+          {/* AI Critique toggle */}
+          <button
+            onClick={() => { setCritiqueOpen((v) => !v); setAssetPackOpen(false); }}
+            title={critiqueOpen ? 'Close Critique' : 'Scene Critique (AI)'}
+            className={`transition ${
+              critiqueOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Lightbulb className="h-4 w-4" />
+          </button>
+          {/* Asset Pack toggle */}
+          <button
+            onClick={() => { setAssetPackOpen((v) => !v); setCritiqueOpen(false); }}
+            title={assetPackOpen ? 'Close Asset Pack' : 'Import Asset Pack'}
+            className={`transition ${
+              assetPackOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Package className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
