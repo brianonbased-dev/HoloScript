@@ -295,10 +295,25 @@ export class InstancedRenderer {
     const THREE = (window as any).THREE;
 
     const geometryMap: Record<string, any> = {
+      // ===== CORE PRIMITIVES =====
       box: () => new THREE.BoxGeometry(1, 1, 1),
       sphere: () => new THREE.SphereGeometry(0.5, 16, 16),
       cylinder: () => new THREE.CylinderGeometry(0.5, 0.5, 1, 16),
       cone: () => new THREE.ConeGeometry(0.5, 1, 16),
+      plane: () => new THREE.PlaneGeometry(1, 1),
+      torus: () => new THREE.TorusGeometry(0.5, 0.2, 16, 50),
+      ring: () => new THREE.RingGeometry(0.25, 0.5, 16),
+      circle: () => new THREE.CircleGeometry(0.5, 16),
+
+      // ===== ADVANCED GEOMETRIES =====
+      capsule: () => new THREE.CapsuleGeometry(0.25, 0.5, 4, 8),
+      torusknot: () => new THREE.TorusKnotGeometry(0.5, 0.15, 64, 8, 2, 3),
+
+      // ===== POLYHEDRONS =====
+      dodecahedron: () => new THREE.DodecahedronGeometry(0.5, 0),
+      icosahedron: () => new THREE.IcosahedronGeometry(0.5, 0),
+      octahedron: () => new THREE.OctahedronGeometry(0.5, 0),
+      tetrahedron: () => new THREE.TetrahedronGeometry(0.5, 0),
     };
 
     return geometryMap[type]?.() || new THREE.BoxGeometry(1, 1, 1);

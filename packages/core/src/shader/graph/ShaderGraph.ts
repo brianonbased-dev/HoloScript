@@ -489,4 +489,18 @@ export class ShaderGraph implements IShaderGraph {
 
     return graph;
   }
+
+  /**
+   * Serialize to JSON string
+   */
+  serialize(): string {
+    return JSON.stringify(this.toJSON(), null, 2);
+  }
+
+  /**
+   * Deserialize from JSON string
+   */
+  static deserialize(json: string): ShaderGraph {
+    return ShaderGraph.fromJSON(JSON.parse(json));
+  }
 }

@@ -16,6 +16,9 @@
   "dependencies": {
     "@holoscript/core": "workspace:*",
     "@holoscript/registry": "workspace:*",
+    "@zoralabs/protocol-sdk": "^0.13.18",
+    "@zoralabs/protocol-deployments": "^0.7.2",
+    "viem": "^2.21.0",
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "helmet": "^7.1.0",

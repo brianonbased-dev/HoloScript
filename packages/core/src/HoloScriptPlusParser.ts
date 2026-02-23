@@ -898,6 +898,233 @@ export class HoloScriptPlusParser {
 
     return errors;
   }
+  // ==========================================================================
+  // Module System — @import / @export
+  // ==========================================================================
+
+  /**
+   * Parse HoloScript+ code and also extract module-level @import / @export
+   * declarations from the source header.
+   *
+   * Returns both the enhanced AST and a structured module header so callers
+   * (e.g. ModuleResolver, SceneRunner) can understand the file's dependencies
+   * without running a separate pass.
+   */
+  parseWithModules(
+    code: string,
+    fromFile = '<inline>',
+  ): {
+    ast: ASTNode[];
+    imports: Array<{ specifiers: string[]; source: string; alias?: string }>;
+    exports: string[];
+  } {
+    const ast = this.parse(code);
+    const { imports, exports } = this.parseModuleHeader(code, fromFile);
+    return { ast, imports, exports };
+  }
+
+  /**
+   * Scan the top of a source string and return all @import / @export
+   * declarations before the first non-directive, non-comment line.
+   */
+  parseModuleHeader(
+    code: string,
+    _fromFile = '<inline>',
+  ): {
+    imports: Array<{ specifiers: string[]; source: string; alias?: string }>;
+    exports: string[];
+  } {
+    const imports: Array<{ specifiers: string[]; source: string; alias?: string }> = [];
+    const exports: string[] = [];
+
+    for (const rawLine of code.split('\n')) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith('//') || line.startsWith('#')) continue;
+
+      const imp = this.parseImportDirective(line);
+      if (imp) { imports.push(imp); continue; }
+
+      const exp = this.parseExportDirective(line);
+      if (exp) { exports.push(...exp); continue; }
+
+      // First non-import/export/comment line ends the header
+      break;
+    }
+
+    return { imports, exports };
+  }
+
+  /**
+   * Parse a single @import directive line.
+   *
+   * Accepted forms:
+   *   @import @physics, @ai_npc from "./physics.hs"
+   *   @import * from "./shared.hs"
+   *   @import @physics as @p from "./physics.hs"
+   *
+   * Returns null if the line is not an @import.
+   */
+  parseImportDirective(
+    line: string,
+  ): { specifiers: string[]; source: string; alias?: string } | null {
+    const m = line.match(
+      /^@import\s+([\w@*,\s]+?)(?:\s+as\s+(@\w+))?\s+from\s+["']([^"']+)["']/,
+    );
+    if (!m) return null;
+
+    const specifiersPart = m[1].trim();
+    const alias = m[2]?.replace('@', '');
+    const source = m[3];
+
+    const specifiers =
+      specifiersPart === '*'
+        ? ['*']
+        : specifiersPart
+            .split(',')
+            .map((s) => s.trim().replace('@', ''))
+            .filter(Boolean);
+
+    return { specifiers, source, ...(alias ? { alias } : {}) };
+  }
+
+  /**
+   * Parse a single @export directive line.
+   *
+   *   @export @turret, @enemy
+   *
+   * Returns null if the line is not an @export.
+   */
+  parseExportDirective(line: string): string[] | null {
+    const m = line.match(/^@export\s+([\w@,\s]+)/);
+    if (!m) return null;
+    return m[1]
+      .split(',')
+      .map((s) => s.trim().replace('@', ''))
+      .filter(Boolean);
+  }
+
+  /**
+   * Parse a single trait composition assignment line.
+   *
+   *   @turret = @physics + @ai_npc + @targeting
+   *
+   * This can appear anywhere in a HoloScript+ file body.
+   * Returns null if the line is not a composition assignment.
+   *
+   * The returned AST node type is `'trait_composition'` and can be
+   * emitted by callers into the broader AST to register composed traits.
+   */
+  parseCompositionDirective(
+    line: string,
+  ): { type: 'trait_composition'; name: string; sources: string[] } | null {
+    // Same regex as TraitComposer.parseCompositionLine — inlined to avoid
+    // circular dependency between HoloScriptPlusParser and the compiler folder.
+    const m = line.trim().match(/^@(\w+)\s*=\s*((?:@\w+\s*\+\s*)*@\w+)/);
+    if (!m) return null;
+    const name = m[1];
+    const sources = m[2]
+      .split('+')
+      .map((s) => s.trim().replace('@', ''))
+      .filter(Boolean);
+    return { type: 'trait_composition', name, sources };
+  }
+
+  /**
+   * Scan an entire source string for trait composition assignments and return
+   * all found definitions in document order.
+   *
+   * @param code  Full HoloScript+ source
+   * @returns     Array of composition definitions ready for TraitBinder registration
+   */
+  parseCompositionBlock(
+    code: string,
+  ): Array<{ type: 'trait_composition'; name: string; sources: string[] }> {
+    const results: Array<{ type: 'trait_composition'; name: string; sources: string[] }> = [];
+    for (const rawLine of code.split('\n')) {
+      const node = this.parseCompositionDirective(rawLine.trim());
+      if (node) results.push(node);
+    }
+    return results;
+  }
+
+  // ==========================================================================
+  // Reactive State — state { } / on event { }  (Sprint 3)
+  // ==========================================================================
+
+  /**
+   * Parse a `state { ... }` block from HoloScript+ source.
+   *
+   * Accepted syntax:
+   *   state {
+   *     hp = 100
+   *     speed = 5.5
+   *     alive = true
+   *     name = "hero"
+   *   }
+   *
+   * The block may appear inline or multi-line. Values are coerced to their
+   * inferred JS types (number, boolean, string). The returned list is ordered
+   * by declaration order and is suitable for `new ReactiveState(entries)`.
+   *
+   * Returns null if no `state {` opener is found in the source.
+   */
+  parseStateBlock(
+    code: string,
+  ): Array<{ name: string; value: unknown }> | null {
+    // Find state { ... } — handles both single-line and multi-line forms
+    const m = code.match(/\bstate\s*\{([^}]*)\}/s);
+    if (!m) return null;
+
+    const body = m[1];
+    const vars: Array<{ name: string; value: unknown }> = [];
+
+    for (const rawLine of body.split('\n')) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith('//')) continue;
+
+      // name = value  (strip trailing comma/semicolon)
+      const pair = line.match(/^(\w+)\s*=\s*(.+?)[\s;,]*$/);
+      if (!pair) continue;
+
+      const [, varName, rawVal] = pair;
+      let value: unknown = rawVal.trim();
+
+      if (rawVal === 'true')  value = true;
+      else if (rawVal === 'false') value = false;
+      else if (!isNaN(Number(rawVal))) value = Number(rawVal);
+      else if (/^["'](.*)["']$/.test(rawVal)) value = rawVal.slice(1, -1);
+
+      vars.push({ name: varName, value });
+    }
+
+    return vars;
+  }
+
+  /**
+   * Parse all `on <event> { ... }` handler blocks from HoloScript+ source.
+   *
+   * Accepted syntax:
+   *   on collide { hp = hp - 10 }
+   *   on death   { alive = false }
+   *
+   * Returns an array of `{ event, body }` records ordered by appearance.
+   * The `body` string is the raw block content suitable for ExpressionEvaluator.
+   * Returns an empty array if no `on` blocks are found.
+   */
+  parseOnBlock(
+    code: string,
+  ): Array<{ event: string; body: string }> {
+    const results: Array<{ event: string; body: string }> = [];
+    // Match: on <eventName> { ... } — greedy enough to handle multi-line
+    const pattern = /\bon\s+(\w+)\s*\{([^}]*)\}/gs;
+    let m: RegExpExecArray | null;
+    while ((m = pattern.exec(code)) !== null) {
+      const event = m[1];
+      const body = m[2].trim();
+      results.push({ event, body });
+    }
+    return results;
+  }
 }
 
 export default HoloScriptPlusParser;

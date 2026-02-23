@@ -2,6 +2,9 @@
 
 > Production-ready plugins extending HoloScript into drug discovery, protein science, medical imaging, and robotics.
 
+> [!NOTE]
+> The earlier plugin system design document has been archived at [`docs/_archive/PLUGIN_SYSTEM_V2_DESIGN.md`](./_archive/PLUGIN_SYSTEM_V2_DESIGN.md). This document (`PLUGIN_STATUS.md`) is the authoritative, current reference.
+
 ## Overview
 
 Four domain plugins are built and tested, adding specialized traits and code generators to HoloScript. These plugins compile to the same multi-target outputs (Web, VR, AR, Unity) while enabling domain-specific workflows.

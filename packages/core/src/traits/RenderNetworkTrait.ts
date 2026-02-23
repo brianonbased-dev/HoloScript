@@ -18,6 +18,7 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
+import { JobQueuePersistence } from './RenderJobPersistence';
 
 // =============================================================================
 // TYPES
@@ -80,6 +81,12 @@ interface RenderNetworkState {
   networkStatus: 'online' | 'degraded' | 'offline';
   availableNodes: number;
   estimatedWaitTime: number; // ms
+  totalCost: number;
+  costByQuality: Record<RenderQuality, number>;
+  monthlyCost: number;
+  uploadSessions: Map<string, string>; // sceneId -> sessionId
+  selectedRegion: string;
+  persistence: JobQueuePersistence | null;
 }
 
 interface RenderNetworkConfig {
@@ -163,17 +170,36 @@ export const renderNetworkHandler: TraitHandler<RenderNetworkConfig> = {
     cache_ttl: 86400000, // 24 hours
   },
 
-  onAttach(node, config, context) {
+  async onAttach(node, config, context) {
+    const persistence = new JobQueuePersistence();
+    await persistence.init();
+
+    // Load persisted state
+    const persistedState = await persistence.loadState();
+    const activeJobs = await persistence.loadActiveJobs();
+    const completedJobs = await persistence.loadCompletedJobs();
+
     const state: RenderNetworkState = {
       isConnected: false,
       apiKey: config.api_key || null,
       credits: null,
-      activeJobs: [],
-      completedJobs: [],
+      activeJobs,
+      completedJobs,
       queuePosition: 0,
       networkStatus: 'offline',
       availableNodes: 0,
       estimatedWaitTime: 0,
+      totalCost: persistedState?.totalCost ?? 0,
+      costByQuality: persistedState?.costByQuality ?? {
+        preview: 0,
+        draft: 0,
+        production: 0,
+        film: 0,
+      },
+      monthlyCost: persistedState?.monthlyCost ?? 0,
+      uploadSessions: new Map(),
+      selectedRegion: persistedState?.selectedRegion ?? 'us-west',
+      persistence,
     };
     (node as any).__renderNetworkState = state;
 
@@ -186,6 +212,9 @@ export const renderNetworkHandler: TraitHandler<RenderNetworkConfig> = {
     const state = (node as any).__renderNetworkState as RenderNetworkState;
     if (state?.isConnected) {
       context.emit?.('render_network_disconnect', { node });
+    }
+    if (state?.persistence) {
+      state.persistence.close();
     }
     delete (node as any).__renderNetworkState;
   },
@@ -318,6 +347,9 @@ async function connectToRenderNetwork(
   context: any
 ): Promise<void> {
   try {
+    // Select optimal region
+    state.selectedRegion = await selectOptimalRegion(config.api_key);
+
     const response = await callRenderNetworkAPI(
       `${RENDER_NETWORK_API}/auth/validate`,
       config.api_key,
@@ -348,6 +380,7 @@ async function connectToRenderNetwork(
       node,
       credits: state.credits,
       availableNodes: state.availableNodes,
+      selectedRegion: state.selectedRegion,
     });
   } catch (error) {
     state.networkStatus = 'offline';
@@ -406,15 +439,35 @@ async function submitRenderJob(
 
   state.activeJobs.push(job);
 
+  // Persist job
+  if (state.persistence) {
+    state.persistence.saveJob(job, true).catch(() => {
+      // Non-critical error
+    });
+  }
+
   context.emit?.('render_job_submitted', {
     node,
     job,
     estimatedWait: state.estimatedWaitTime,
   });
 
-  // Submit to Render Network API, fall back to simulation if unavailable
-  submitJobToAPI(job, state, config, context, node).catch(() => {
-    simulateJobProgress(job, state, context, node);
+  // Submit to Render Network API with retry logic
+  submitJobToAPI(job, state, config, context, node).catch(async (error) => {
+    job.status = 'failed';
+    job.error = `Failed to submit job: ${String(error)}`;
+    const idx = state.activeJobs.indexOf(job);
+    if (idx !== -1) {
+      state.activeJobs.splice(idx, 1);
+      state.completedJobs.push(job);
+    }
+
+    // Persist state change
+    if (state.persistence) {
+      await state.persistence.moveToCompleted(job).catch(() => {});
+    }
+
+    context.emit?.('render_job_failed', { node, job, error: job.error });
   });
 }
 
@@ -491,19 +544,49 @@ async function submitJobToAPI(
   context: any,
   node: any
 ): Promise<void> {
-  const response = await callRenderNetworkAPI(`${RENDER_NETWORK_API}/jobs`, config.api_key, {
-    scene: job.id,
-    quality: job.quality,
-    engine: job.engine,
-    priority: job.priority,
-    frames: job.frames,
-    node_count: job.nodeCount,
-  });
-  if (!response.ok) throw new Error(`Submit failed: ${response.status}`);
-  const data = await response.json();
-  job.id = data.job_id ?? job.id;
-  job.status = 'queued';
-  pollJobStatus(job, state, config, context, node);
+  const maxRetries = 3;
+  const backoffMs = [1000, 2000, 4000]; // Exponential backoff
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await callRenderNetworkAPI(
+        `${RENDER_NETWORK_API}/jobs`,
+        config.api_key,
+        {
+          scene: job.id,
+          quality: job.quality,
+          engine: job.engine,
+          priority: job.priority,
+          frames: job.frames,
+          node_count: job.nodeCount,
+        },
+        'POST'
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        job.id = data.job_id ?? job.id;
+        job.status = 'queued';
+        pollJobStatus(job, state, config, context, node);
+        return;
+      }
+
+      // Check if it's a retryable error
+      if (response.status >= 500 || response.status === 429) {
+        if (attempt < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, backoffMs[attempt]));
+          continue;
+        }
+      }
+
+      throw new Error(`Submit failed: HTTP ${response.status}`);
+    } catch (error) {
+      if (attempt === maxRetries - 1) {
+        throw new Error(`Failed after ${maxRetries} retries: ${String(error)}`);
+      }
+      await new Promise(resolve => setTimeout(resolve, backoffMs[attempt]));
+    }
+  }
 }
 
 function pollJobStatus(
@@ -564,6 +647,29 @@ function pollJobStatus(
           state.completedJobs.push(job);
         }
 
+        // Update cost tracking
+        state.totalCost += job.actualCredits;
+        state.costByQuality[job.quality] += job.actualCredits;
+
+        // Persist state changes
+        if (state.persistence) {
+          state.persistence.moveToCompleted(job).catch(() => {});
+          state.persistence.saveState(state).catch(() => {});
+        }
+
+        // Send webhook notification if configured
+        if (config.webhook_url) {
+          sendWebhookNotification(config.webhook_url, {
+            event: 'job_complete',
+            jobId: job.id,
+            outputs: job.outputs,
+            cost: job.actualCredits,
+            completedAt: job.completedAt,
+          }).catch(() => {
+            // Webhook failure is non-critical
+          });
+        }
+
         context.emit?.('render_job_complete', { node, job });
         clearInterval(interval);
       } else if (data.status === 'failed') {
@@ -573,6 +679,12 @@ function pollJobStatus(
           state.activeJobs.splice(idx, 1);
           state.completedJobs.push(job);
         }
+
+        // Persist state changes
+        if (state.persistence) {
+          state.persistence.moveToCompleted(job).catch(() => {});
+        }
+
         context.emit?.('render_job_failed', { node, job, error: job.error });
         clearInterval(interval);
       } else {
@@ -628,54 +740,114 @@ async function refreshCredits(
   }
 }
 
-function simulateJobProgress(
-  job: RenderJob,
-  state: RenderNetworkState,
-  context: any,
-  node: any
-): void {
-  const interval = setInterval(() => {
-    if (job.status === 'failed') {
-      clearInterval(interval);
-      return;
-    }
-
-    job.progress += 10;
-    job.frames.completed = Math.floor((job.progress / 100) * job.frames.total);
-
-    if (job.progress >= 100) {
-      job.status = 'complete';
-      job.completedAt = Date.now();
-      job.actualCredits = job.estimatedCredits * 0.95; // 5% variance
-      job.outputs.push({
-        type: 'sequence',
-        url: `https://render.network/outputs/${job.id}.zip`,
-        format: 'png',
-        resolution: { width: 1920, height: 1080 },
-        size: 1024 * 1024 * 50,
-        checksum: 'sha256:...',
-      });
-
-      // Move to completed
-      const idx = state.activeJobs.indexOf(job);
-      if (idx !== -1) {
-        state.activeJobs.splice(idx, 1);
-        state.completedJobs.push(job);
-      }
-
-      context.emit?.('render_job_complete', { node, job });
-      clearInterval(interval);
-    } else {
-      job.status = 'rendering';
-      context.emit?.('render_job_progress', {
-        node,
-        job,
-        progress: job.progress,
-        framesCompleted: job.frames.completed,
-      });
-    }
-  }, 500);
+async function sendWebhookNotification(
+  webhookUrl: string,
+  payload: {
+    event: string;
+    jobId: string;
+    outputs?: RenderOutput[];
+    cost?: number;
+    completedAt?: number;
+    error?: string;
+  }
+): Promise<void> {
+  await fetch(webhookUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
 }
+
+async function selectOptimalRegion(apiKey: string): Promise<string> {
+  const regions = ['us-west', 'us-east', 'eu-west', 'ap-south'];
+  const latencies: number[] = [];
+
+  for (const region of regions) {
+    try {
+      const start = Date.now();
+      const response = await fetch(`${RENDER_NETWORK_API}/regions/${region}/ping`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      });
+      const latency = response.ok ? Date.now() - start : Infinity;
+      latencies.push(latency);
+    } catch {
+      latencies.push(Infinity);
+    }
+  }
+
+  const minLatency = Math.min(...latencies);
+  const fastestIndex = latencies.indexOf(minLatency);
+  return regions[fastestIndex];
+}
+
+async function uploadSceneAssets(
+  scene: any,
+  state: RenderNetworkState,
+  apiKey: string
+): Promise<string> {
+  const chunkSize = 1024 * 1024; // 1MB chunks
+  const totalSize = scene.size || 0;
+  let uploadedBytes = 0;
+
+  // Check for previous upload session
+  let sessionId = state.uploadSessions.get(scene.id);
+  if (sessionId) {
+    try {
+      const response = await callRenderNetworkAPI(
+        `${RENDER_NETWORK_API}/uploads/${sessionId}/progress`,
+        apiKey,
+        null,
+        'GET'
+      );
+      if (response.ok) {
+        const data = await response.json();
+        uploadedBytes = data.uploaded_bytes ?? 0;
+      }
+    } catch {
+      // Create new session if progress check fails
+      sessionId = undefined;
+    }
+  }
+
+  // Create new session if needed
+  if (!sessionId) {
+    const response = await callRenderNetworkAPI(
+      `${RENDER_NETWORK_API}/uploads`,
+      apiKey,
+      { size: totalSize, scene_id: scene.id },
+      'POST'
+    );
+    if (!response.ok) throw new Error('Failed to create upload session');
+    const data = await response.json();
+    sessionId = data.session_id;
+    state.uploadSessions.set(scene.id, sessionId);
+  }
+
+  // Upload remaining chunks
+  while (uploadedBytes < totalSize) {
+    const chunk = scene.slice(uploadedBytes, uploadedBytes + chunkSize);
+    const formData = new FormData();
+    formData.append('chunk', chunk);
+    formData.append('offset', String(uploadedBytes));
+
+    const response = await fetch(`${RENDER_NETWORK_API}/uploads/${sessionId}/chunk`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error('Chunk upload failed');
+    uploadedBytes += chunk.size;
+  }
+
+  return sessionId;
+}
+
 
 // =============================================================================
 // EXPORTS

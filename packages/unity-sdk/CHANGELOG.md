@@ -5,7 +5,22 @@ All notable changes to the HoloScript Unity SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-02-20
+
+### Added
+
+- ✨ Support for HoloScript v3.4+ trait system (1,800+ traits)
+- ✨ Hot-reload integration for `.hsplus` and `.holo` files in Play Mode
+- ✨ OpenXR HAL trait binding for Meta Quest 3 / Apple Vision Pro device profiles
+
+### Fixed
+
+- Assembly definition reference ordering for `HoloScript.Editor` and `HoloScript.Runtime`
+
+---
+
 ## [3.0.0] - 2026-02-12
+
 
 ### Added
 

@@ -1,5 +1,21 @@
 ## [Unreleased]
 
+### In Progress — v3.5.0 Hololand Bootstrap
+
+#### Runtime Integration (Phase B)
+- `GameEngine` facade composing `GameLoop`, `AssetPipeline`, `HotReloadManager`
+- `SceneRunner` + `AssetPipeline` integration: `preloadAssets()`, `runWithAssets()`
+- `HotReloadBridge`: `HotReloadManager.triggerReload()` → `ModuleResolver.invalidate()`
+- 27 new tests (`SceneRunnerAssets.test.ts`, `HotReloadBridge.test.ts`)
+
+#### Trait Test Coverage Push (Phase A — 67 new tests)
+- `AvatarEmbodimentTrait`: 5 → 17 tests
+- `NeuralLinkTrait`: 4 → 19 tests
+- `ZKPrivateTrait`: 5 → 20 tests
+- `VoiceMeshTrait`: 5 → 18 tests
+- `VoiceInputTrait`: 9 → 21 tests
+
+
 ## [3.42.0] - 2026-02-21
 
 ### 🌟 Runtime Integration Complete — Production-Grade Rendering & Simulation

@@ -36,6 +36,11 @@
       "import": "./dist/debugger.js",
       "require": "./dist/debugger.cjs"
     },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "import": "./dist/storage/index.js",
+      "require": "./dist/storage/index.cjs"
+    },
     "./wot": {
       "types": "./dist/wot/index.d.ts",
       "import": "./dist/wot/index.js",
@@ -68,7 +73,13 @@
     "directory": "packages/core"
   },
   "dependencies": {
+    "@gltf-transform/core": "^3.7.0",
+    "@gltf-transform/extensions": "^3.7.0",
+    "@gltf-transform/functions": "^3.7.0",
     "@zoralabs/protocol-deployments": "^0.7.2",
+    "basis_universal": "^1.0.0",
+    "draco3d": "^1.5.6",
+    "ipfs-http-client": "^60.0.1",
     "pixelmatch": "^5.3.0",
     "pngjs": "^7.0.0",
     "three": "^0.182.0",

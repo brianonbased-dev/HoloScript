@@ -1210,6 +1210,53 @@ export class HoloScriptTypeChecker {
   getAllUnionTypes(): Map<string, UnionType> {
     return new Map(this.unionTypes);
   }
+
+  /**
+   * Sprint 5 — String-based type inference.
+   *
+   * Infers a simplified HoloScript type name from an expression string.
+   * This is a lightweight syntactic analysis that does NOT require the AST:
+   *
+   * | Expression                | Inferred type |
+   * |---------------------------|---------------|
+   * | `[0, 1, 0]`               | `'vec3'`      |
+   * | `[0, 1]`                  | `'vec2'`      |
+   * | `3.14`                    | `'float'`     |
+   * | `42`, `0`                 | `'int'`       |
+   * | `true` / `false`          | `'bool'`      |
+   * | `"hello"` / `'world'`     | `'string'`    |
+   * | anything else             | `'any'`       |
+   *
+   * @param expr  Raw expression string (trimmed)
+   */
+  inferTypeExpression(expr: string): 'vec2' | 'vec3' | 'float' | 'int' | 'bool' | 'string' | 'any' {
+    const s = expr.trim();
+    if (!s) return 'any';
+
+    // Boolean literals
+    if (s === 'true' || s === 'false') return 'bool';
+
+    // String literals
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) return 'string';
+
+    // Numeric literals: float vs int
+    if (/^-?\d+$/.test(s)) return 'int';
+    if (/^-?\d+\.\d+$/.test(s)) return 'float';
+
+    // Array literal: [n, n] or [n, n, n]
+    if (s.startsWith('[') && s.endsWith(']')) {
+      const inner = s.slice(1, -1).trim();
+      if (!inner) return 'any';
+      const parts = inner.split(',').map((p) => p.trim());
+      const allNumeric = parts.every((p) => /^-?\d+(\.\d+)?$/.test(p));
+      if (allNumeric) {
+        if (parts.length === 2) return 'vec2';
+        if (parts.length === 3) return 'vec3';
+      }
+    }
+
+    return 'any';
+  }
 }
 
 /**

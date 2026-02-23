@@ -13,7 +13,7 @@
  * - Creator rewards and royalties
  * - Collection management
  * - Secondary market integration
- * - Film3 creator economy support
+ * - Film3D creator economy support
  *
  * @version 3.2.0
  * @milestone v3.2 (June 2026)

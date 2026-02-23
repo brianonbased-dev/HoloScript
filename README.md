@@ -1,4 +1,4 @@
-# HoloScript v3.4.0
+# HoloScript v3.42.0
 
 ## The Commons-Based Meta-Framework for Spatial Computing
 
@@ -10,7 +10,7 @@ HoloScript is a complete spatial computing stack: **declarative language + runti
 
 Perfect for VR/AR platforms, corporate training, robotics, games, digital twins, and more.
 
-![version-badge](https://img.shields.io/badge/version-v3.4.0-green?style=for-the-badge)
+![version-badge](https://img.shields.io/badge/version-v3.42.0-green?style=for-the-badge)
 ![Quickstart Badge](https://img.shields.io/badge/Quickstart-5_min-blue?style=for-the-badge)
 ![Traits Badge](https://img.shields.io/badge/traits-1800+-orange?style=for-the-badge)
 [![codecov](https://codecov.io/gh/brianonbased-dev/HoloScript/branch/main/graph/badge.svg?style=for-the-badge)](https://codecov.io/gh/brianonbased-dev/HoloScript)
@@ -158,13 +158,47 @@ Write **one** HoloScript file. Compile to:
 
 - 📗 **[Quickstart](./docs/getting-started/quickstart.md)** - Start building in minutes.
 - 📄 **[File Types Guide](./docs/FILE_TYPES.md)** - Understanding `.holo`, `.hs`, `.hsplus`, and `.ts` files.
+- 🚀 **[Installation Guide](./docs/INSTALLATION_GUIDE.md)** - Full install options (CLI, SDK, Unity, npm).
+
+### Agents & AI
+
+- 🤖 **[Agent API Reference](./docs/AGENT_API_REFERENCE.md)** - Complete public API for `LLMAgentTrait`, `MultiAgentTrait`, `ChoreographyEngine`, and `AgentRegistry`.
+- 🔌 **[MCP Server Guide](./docs/MCP_SERVER_GUIDE.md)** - Configure Claude, Cursor, or any MCP-compatible agent to build HoloScript scenes.
+- 🐦 **[Grok/X Integration](./docs/GROK_X_INTEGRATION_ROADMAP.md)** - Native X/Twitter AI tools: `explain_code`, scene generation from posts, real-time agent triggers.
 
 ### Reference & Advanced
 
 - 📘 **[Traits Reference](./docs/TRAITS_REFERENCE.md)** - Explore the massive library of 1,800+ VR traits.
 - 📙 **[Academy](./docs/academy/README.md)** - Master HoloScript through interactive lessons.
+- 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 18+ compile targets.
 - 📕 **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues.
 - 🔘 **[Architecture](./docs/architecture/README.md)** - Deep dive into the engine and compiler.
+
+---
+
+## ⚡ Protocols
+
+### x402 Protocol — Machine Payments
+HoloScript implements the **x402 Protocol**: HTTP-native micropayments for agent-to-agent and agent-to-service interactions.
+- An AI agent can **pay per API call** to access premium HoloScript tools, spatial layers, or gated assets
+- Payments are settled on-chain with no human in the loop
+- Works with any MCP-capable agent out of the box
+
+### StoryWeaver Protocol — Narrative Spatial Computing
+**StoryWeaver Protocol** is HoloScript's declarative narrative layer — structured scene progression, branching dialogue, and quest/objective tracking as first-class spatial primitives:
+```holo
+narrative "Tutorial" {
+  @storyweaver
+  chapter "Arrival" {
+    trigger: player_enters("SpawnZone")
+    dialogue: brittney.say("Welcome to Hololand.")
+    on_complete: chapter("Exploration")
+  }
+}
+```
+- Powers Brittney's in-world guidance system
+- Replaces ad-hoc scripting with declarative, testable narrative graphs
+- Exports to VRChat triggers, Unity Timeline, and Godot Cutscene nodes
 
 ---
 
@@ -173,7 +207,7 @@ Write **one** HoloScript file. Compile to:
 - **HoloScript Studio** - AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
 - **Plugin System** - Sandboxed plugin API with PluginLoader, ModRegistry, and permission-based asset/event access.
 - **VS Code Extension** - Syntax highlighting and trait IntelliSense.
-- **MCP Server** - Give your AI agents the power to build spatial worlds.
+- **MCP Server** - Give your AI agents the power to build spatial worlds. **[Full guide →](./docs/MCP_SERVER_GUIDE.md)**
 - **HoloScript CLI** - Parse, validate, and compile from your terminal.
 
 ### Companion Repositories

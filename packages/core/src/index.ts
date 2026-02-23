@@ -2059,6 +2059,30 @@ export {
 } from './audit';
 
 // =============================================================================
+// IPFS Storage (NFT Asset Uploads)
+// =============================================================================
+
+export {
+  IPFSService,
+  PinataProvider,
+  NFTStorageProvider,
+  InfuraProvider,
+  IPFSUploadError,
+  IPFSPinError,
+  FileSizeExceededError,
+  type IPFSProvider,
+  type IPFSServiceOptions,
+  type FallbackProvider,
+  type IPFSFile,
+  type UploadProgress,
+  type UploadOptions,
+  type UploadResult,
+  type PinStatus,
+  type PinInfo,
+  type IIPFSProvider,
+} from './storage';
+
+// =============================================================================
 // V43 Trait Handlers (Tier 2: AI Generation & visionOS)
 // =============================================================================
 

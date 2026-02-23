@@ -97,7 +97,7 @@ Each version delivers a non-negotiable building block.
 | Version | Quarter | Theme | v5.0 Dependency |
 |---|---|---|---|
 | **v3.1** | Q2 2026 | Foundation & Safety | OpenXR HAL (unblocks 8+ haptic traits); HITL governance (required for autonomous agents); MCP MAS (cross-agent coordination) |
-| **v3.2** | Q3 2026 | Creator Economy | Zora Coins real minting; Film3 royalty stack; TokenGated access — economic primitives foundation |
+| **v3.2** | Q3 2026 | Creator Economy | Zora Coins real minting; Film3D royalty stack; TokenGated access — economic primitives foundation |
 | **v3.3** | Q4 2026 | Spatial Export | Real Render Network API + RNDR tokens; USD-Z pipeline — distributed compute layer |
 | **v4.0** | Q1 2027 | Privacy & AI | `@zkPrivate` (selective disclosure for agent state); enhanced LLMAgent (long-horizon planning, memory); HITL v2.0 (ML confidence calibration) |
 | **v4.1** | Q2 2027 | Volumetric Media | Gaussian Splatting v2 (Levy flight optimization); volumetric video streaming |

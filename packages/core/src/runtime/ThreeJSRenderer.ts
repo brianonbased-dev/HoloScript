@@ -358,6 +358,7 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
     const size = Array.isArray(spec.size) ? spec.size : [spec.size || 1, spec.size || 1, spec.size || 1];
 
     const geometryMap: Record<string, any> = {
+      // ===== CORE PRIMITIVES (7) =====
       box: () => new THREE.BoxGeometry(...size),
       sphere: () => new THREE.SphereGeometry(spec.radius || size[0], 32, 32),
       cylinder: () => new THREE.CylinderGeometry(spec.radius || size[0], spec.radius || size[0], spec.height || size[1], 32),
@@ -365,6 +366,155 @@ export class ThreeJSRenderer extends BaseRuntimeRenderer {
       plane: () => new THREE.PlaneGeometry(size[0], size[1]),
       torus: () => new THREE.TorusGeometry(spec.radius || size[0], (spec.tube || size[0]) * 0.4, 32, 100),
       ring: () => new THREE.RingGeometry(spec.innerRadius || size[0] * 0.5, spec.outerRadius || size[0], 32),
+
+      // ===== ADDITIONAL CORE GEOMETRIES (4) =====
+      circle: () => new THREE.CircleGeometry(spec.radius || size[0], 32),
+      capsule: () => new THREE.CapsuleGeometry(spec.radius || size[0] * 0.5, spec.length || size[1], spec.capSegments || 4, spec.radialSegments || 8),
+      torusknot: () => new THREE.TorusKnotGeometry(
+        spec.radius || size[0],
+        spec.tube || size[0] * 0.3,
+        spec.tubularSegments || 64,
+        spec.radialSegments || 8,
+        spec.p || 2,
+        spec.q || 3
+      ),
+
+      // ===== POLYHEDRONS (4) =====
+      dodecahedron: () => new THREE.DodecahedronGeometry(spec.radius || size[0], spec.detail || 0),
+      icosahedron: () => new THREE.IcosahedronGeometry(spec.radius || size[0], spec.detail || 0),
+      octahedron: () => new THREE.OctahedronGeometry(spec.radius || size[0], spec.detail || 0),
+      tetrahedron: () => new THREE.TetrahedronGeometry(spec.radius || size[0], spec.detail || 0),
+
+      // ===== ADVANCED SHAPES (2) =====
+      tube: () => {
+        // Curved tube along a path
+        const path = spec.path || new THREE.CatmullRomCurve3([
+          new THREE.Vector3(-size[0], 0, 0),
+          new THREE.Vector3(0, size[1] || size[0], 0),
+          new THREE.Vector3(size[0], 0, 0)
+        ]);
+        return new THREE.TubeGeometry(path, spec.segments || 20, spec.radius || 0.2, spec.radialSegments || 8);
+      },
+
+      // ===== PROCEDURAL SHAPES (6) =====
+      heart: () => {
+        const shape = new THREE.Shape();
+        const x = 0, y = 0;
+        const scale = (spec.radius || size[0]) * 0.1;
+        shape.moveTo(x + 5 * scale, y + 5 * scale);
+        shape.bezierCurveTo(x + 5 * scale, y + 5 * scale, x + 4 * scale, y, x, y);
+        shape.bezierCurveTo(x - 6 * scale, y, x - 6 * scale, y + 7 * scale, x - 6 * scale, y + 7 * scale);
+        shape.bezierCurveTo(x - 6 * scale, y + 11 * scale, x - 3 * scale, y + 15.4 * scale, x + 5 * scale, y + 19 * scale);
+        shape.bezierCurveTo(x + 12 * scale, y + 15.4 * scale, x + 16 * scale, y + 11 * scale, x + 16 * scale, y + 7 * scale);
+        shape.bezierCurveTo(x + 16 * scale, y + 7 * scale, x + 16 * scale, y, x + 10 * scale, y);
+        shape.bezierCurveTo(x + 7 * scale, y, x + 5 * scale, y + 5 * scale, x + 5 * scale, y + 5 * scale);
+        return new THREE.ExtrudeGeometry(shape, {
+          depth: spec.depth || size[2] || 1,
+          bevelEnabled: true,
+          bevelThickness: 0.2 * scale,
+          bevelSize: 0.1 * scale,
+          bevelSegments: 2
+        });
+      },
+
+      star: () => {
+        const points = spec.points || 5;
+        const outerRadius = spec.outerRadius || size[0];
+        const innerRadius = spec.innerRadius || size[0] * 0.5;
+        const shape = new THREE.Shape();
+
+        for (let i = 0; i < points * 2; i++) {
+          const radius = i % 2 === 0 ? outerRadius : innerRadius;
+          const angle = (i * Math.PI) / points;
+          const x = radius * Math.cos(angle);
+          const y = radius * Math.sin(angle);
+          if (i === 0) shape.moveTo(x, y);
+          else shape.lineTo(x, y);
+        }
+        shape.closePath();
+
+        return new THREE.ExtrudeGeometry(shape, {
+          depth: spec.depth || size[2] || 0.5,
+          bevelEnabled: false
+        });
+      },
+
+      crystal: () => {
+        // Multi-faceted crystal (modified icosahedron)
+        const geometry = new THREE.IcosahedronGeometry(spec.radius || size[0], spec.detail || 1);
+        // Randomly displace vertices for crystal facets
+        const positions = geometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+          const factor = 0.8 + Math.random() * 0.4; // Random scale per vertex
+          positions[i] *= factor;
+          positions[i + 1] *= factor;
+          positions[i + 2] *= factor;
+        }
+        geometry.computeVertexNormals();
+        return geometry;
+      },
+
+      gear: () => {
+        const teeth = spec.teeth || 12;
+        const toothDepth = spec.toothDepth || 0.3;
+        const shape = new THREE.Shape();
+
+        for (let i = 0; i < teeth; i++) {
+          const angle1 = (i * 2 * Math.PI) / teeth;
+          const angle2 = ((i + 0.5) * 2 * Math.PI) / teeth;
+          const angle3 = ((i + 1) * 2 * Math.PI) / teeth;
+
+          const innerRadius = spec.radius || size[0];
+          const outerRadius = innerRadius + toothDepth;
+
+          if (i === 0) {
+            shape.moveTo(innerRadius * Math.cos(angle1), innerRadius * Math.sin(angle1));
+          }
+          shape.lineTo(outerRadius * Math.cos(angle1), outerRadius * Math.sin(angle1));
+          shape.lineTo(outerRadius * Math.cos(angle2), outerRadius * Math.sin(angle2));
+          shape.lineTo(innerRadius * Math.cos(angle2), innerRadius * Math.sin(angle2));
+          shape.lineTo(innerRadius * Math.cos(angle3), innerRadius * Math.sin(angle3));
+        }
+        shape.closePath();
+
+        return new THREE.ExtrudeGeometry(shape, {
+          depth: spec.depth || size[2] || 0.5,
+          bevelEnabled: false
+        });
+      },
+
+      lightning: () => {
+        // Jagged lightning bolt
+        const points = [];
+        let y = size[1] || 2;
+        let x = 0;
+
+        while (y > -(size[1] || 2)) {
+          points.push(new THREE.Vector3(x, y, 0));
+          x += (Math.random() - 0.5) * 0.5;
+          y -= 0.3;
+        }
+
+        return new THREE.TubeGeometry(
+          new THREE.CatmullRomCurve3(points),
+          points.length * 2,
+          spec.radius || 0.05,
+          8
+        );
+      },
+
+      diamond: () => {
+        // Diamond shape (octahedron with stretched top)
+        const geometry = new THREE.OctahedronGeometry(spec.radius || size[0]);
+        const positions = geometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+          if (positions[i + 1] > 0) {
+            positions[i + 1] *= 1.5; // Stretch top
+          }
+        }
+        geometry.computeVertexNormals();
+        return geometry;
+      }
     };
 
     return geometryMap[type]?.() || new THREE.BoxGeometry(...size);

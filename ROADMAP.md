@@ -6,6 +6,9 @@ A declarative language with tooling that compiles to multiple platforms. This ro
 
 > 📦 HoloScript includes its own full runtime engine (50+ subsystems). [Hololand](https://github.com/brianonbased-dev/Hololand) is an optional deployment platform that provides hosting, Brittney AI assistant, and additional platform adapters.
 
+> 🎯 **Current version: v3.42.0** — see [CHANGELOG.md](./CHANGELOG.md) for full release history.  
+> 🚀 **Active sprint: v3.5.0 Hololand Bootstrap** → [Jump to current work ↓](#-v350---hololand-bootstrap-build-in-vr-with-brittney-marchmay-2026)
+
 ---
 
 ## 🚀 v3.5.0 - Hololand Bootstrap: Build in VR with Brittney (March–May 2026)
@@ -146,6 +149,38 @@ Massive single-session sprint covering plugins, training data, and infrastructur
 
 ---
 
+## 🔮 v4.0 — Protocols & Narrative Layer (Q3 2026)
+
+### x402 Protocol — Machine-to-Machine Payments
+
+HTTP-native micropayments built into the HoloScript runtime, so agents can pay per API call with no human intermediary.
+
+| Deliverable | Status |
+| --- | --- |
+| `x402` request/response header implementation in `@holoscript/mcp-server` | 🔲 Planned |
+| `PaymentGatedTrait` — declare per-asset or per-tool payment requirements in `.holo` | 🔲 Planned |
+| On-chain settlement adapter (EVM-compatible) | 🔲 Planned |
+| Agent wallet provisioning via `AgentRegistry` | 🔲 Planned |
+| Testnet sandbox (`x402.testnet`) for local development | 🔲 Planned |
+
+**Use case**: An AI agent autonomously purchases access to a premium physics simulation trait, a proprietary spatial dataset, or a gated API endpoint — settled in milliseconds, logged on-chain.
+
+### StoryWeaver Protocol — Declarative Narrative Spatial Computing
+
+First-class narrative primitives: chapters, dialogue, triggers, and branching objectives as spatial scene graph nodes.
+
+| Deliverable | Status |
+| --- | --- |
+| `narrative` keyword in HoloScript+ parser | 🔲 Planned |
+| `@storyweaver` trait — chapter sequencing, branching, objective tracking | 🔲 Planned |
+| Brittney narrator integration (chapter → voice line → avatar animation) | 🔲 Planned |
+| Export targets: VRChat triggers, Unity Timeline, Godot Cutscene | 🔲 Planned |
+| `StoryWeaverTrait` test suite (target: 30 tests) | 🔲 Planned |
+
+**Use case**: A tutorial that reacts to player choices, a branching VR escape room, or an AI-driven NPC quest giver — all declared in `.holo`, no spaghetti scripting required.
+
+---
+
 ## ✅ v3.4.0 - Full Runtime Engine & Scientific Computing (February 2026)
 
 **Status:** ✅ **COMPLETE** (February 15, 2026)
@@ -273,14 +308,7 @@ See [IMPLEMENTATION_AUDIT_2026.md](./IMPLEMENTATION_AUDIT_2026.md) for detailed 
 
 ---
 
-## ✅ Sprint 9: Enterprise Production Readiness - Complete
-
-**Target Version:** 3.6.0  
-**Timeline:** February 2026  
-**Status:** ✅ **COMPLETE** (February 9, 2026)  
-**Full Plan:** [SPRINT_9_PLAN.md](./docs/planning/SPRINT_9_PLAN.md)
-
-### Priority Stack
+## ✅ [ARCHIVED] Sprint 9: Enterprise Production Readiness (v3.6.0)
 
 | #   | Priority                   | Focus                          | Status      |
 | --- | -------------------------- | ------------------------------ | ----------- |
@@ -310,10 +338,8 @@ See [IMPLEMENTATION_AUDIT_2026.md](./IMPLEMENTATION_AUDIT_2026.md) for detailed 
 
 ---
 
-## ✅ Sprint 11: Ecosystem Growth due (v3.2) - Complete
+## ✅ [ARCHIVED] Sprint 11: Ecosystem Growth (v3.6.2)
 
-**Target Version:** 3.6.2
-**Timeline:** February 2026
 **Status:** ✅ **COMPLETE** (February 10, 2026)
 
 ### Key Deliverables
@@ -338,7 +364,7 @@ See [IMPLEMENTATION_AUDIT_2026.md](./IMPLEMENTATION_AUDIT_2026.md) for detailed 
 
 ---
 
-## 🚀 Sprint 2: Core Stability & Developer Experience (February 2026)
+## ✅ [ARCHIVED] Sprint 2: Core Stability & Developer Experience (v2.2.0)
 
 **Target Version:** 2.2.0
 **Full Plan:** [SPRINT_2_IMPLEMENTATION_PLAN.md](./docs/planning/SPRINT_2_IMPLEMENTATION_PLAN.md)

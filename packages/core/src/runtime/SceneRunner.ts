@@ -15,11 +15,19 @@ import type { HSPlusNode } from '../types/HoloScriptPlus';
 import { World, Entity } from '../ecs/World';
 import { TraitBinder } from './TraitBinder';
 import { EventBus } from '../events/EventBus';
+import { AssetPipeline } from './AssetPipeline';
+
+export interface AssetManifestEntry {
+    type: string;
+    path: string;
+}
 
 export interface SceneRunnerConfig {
     world: World;
     traitBinder: TraitBinder;
     eventBus: EventBus;
+    /** Optional asset pipeline for preloading scene assets. */
+    assetPipeline?: AssetPipeline;
 }
 
 export interface SpawnedEntity {
@@ -36,11 +44,36 @@ export class SceneRunner {
     private eventBus: EventBus;
     private spawnedEntities: Map<string, SpawnedEntity> = new Map();
     private nodeToEntity: Map<string, Entity> = new Map();
+    /** Optional asset pipeline — set via config.assetPipeline */
+    readonly assetPipeline?: AssetPipeline;
 
     constructor(config: SceneRunnerConfig) {
         this.world = config.world;
         this.traitBinder = config.traitBinder;
         this.eventBus = config.eventBus;
+        this.assetPipeline = config.assetPipeline;
+    }
+
+    /**
+     * Preload a list of typed assets via the AssetPipeline.
+     * All assets load in parallel; rejects if any single load fails.
+     * No-op if no AssetPipeline was provided in config.
+     */
+    async preloadAssets(manifest: AssetManifestEntry[]): Promise<void> {
+        if (!this.assetPipeline || manifest.length === 0) return;
+        await Promise.all(
+            manifest.map(({ type, path }) => this.assetPipeline!.load(type, path)),
+        );
+    }
+
+    /**
+     * Convenience: preload assets then run the AST.
+     * Emits 'scene:assets_loaded' on the EventBus after preloading.
+     */
+    async runWithAssets(root: HSPlusNode, manifest: AssetManifestEntry[]): Promise<Entity> {
+        await this.preloadAssets(manifest);
+        this.eventBus.emit('scene:assets_loaded', { count: manifest.length });
+        return this.run(root);
     }
 
     /**

@@ -1,7 +1,8 @@
 {
   "name": "visualizer-client",
+  "description": "Internal Three.js/R3F visualizer client for HoloScript scene debugging and preview",
   "private": true,
-  "version": "0.0.0",
+  "version": "3.42.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

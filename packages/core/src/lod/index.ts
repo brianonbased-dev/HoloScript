@@ -124,3 +124,47 @@ export {
   createTestCube,
   createTestSphere,
 } from './LODGenerator';
+
+// ============================================================================
+// v3.5 Performance Optimizations
+// ============================================================================
+
+export {
+  // Transition types and classes
+  type TransitionMode,
+  type LODTransitionConfig,
+  type TransitionState,
+  type TransitionBudget,
+  type ScheduledTransition,
+  LODTransition,
+  TransitionScheduler,
+} from './LODTransition';
+
+export {
+  // Memory pool types
+  type PooledBuffer,
+  type PoolStatistics,
+  type MemoryPoolOptions,
+
+  // Memory pool class
+  LODMemoryPool,
+
+  // Factory functions
+  createLODMemoryPool,
+  createVRMemoryPool,
+  createMobileMemoryPool,
+} from './LODMemoryPool';
+
+export {
+  // Metrics types
+  type LODLevelHistogram,
+  type TransitionCostAnalysis,
+  type PerformanceSnapshot,
+  type ProfilingData,
+
+  // Metrics class
+  LODPerformanceMetrics,
+
+  // Factory functions
+  createLODPerformanceMetrics,
+} from './LODMetrics';

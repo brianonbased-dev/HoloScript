@@ -50,6 +50,9 @@ import {
   validateGLTFDocument,
 } from './GLTFTypes';
 
+import { AdvancedCompression } from '../compression/AdvancedCompression';
+import type { CompressionStats } from '../compression/CompressionTypes';
+
 export class GLTFExporter {
   private options: Required<IGLTFExportOptions>;
   private document!: IGLTFDocument;
@@ -62,6 +65,7 @@ export class GLTFExporter {
   private imageIndexMap = new Map<string, number>();
   private accessorIndexMap = new Map<string, number>();
   private bufferViewIndexMap = new Map<string, number>();
+  private compressionStats?: CompressionStats;
 
   private static readonly DEFAULT_OPTIONS: Required<IGLTFExportOptions> = {
     binary: true,
@@ -102,6 +106,11 @@ export class GLTFExporter {
     this.finalizeBuffers();
     this.cleanupDocument();
     if (this.options.extensions.length > 0) this.document.extensionsUsed = this.options.extensions;
+
+    // Apply advanced compression if enabled
+    if (this.options.compression !== 'none') {
+      await this.applyCompression();
+    }
 
     const errors = validateGLTFDocument(this.document);
     if (errors.length > 0) console.warn('GLTF validation warnings:', errors);
@@ -795,5 +804,62 @@ export class GLTFExporter {
       case 'MAT4':
         return 16;
     }
+  }
+
+  /**
+   * Apply advanced compression to the GLTF document
+   */
+  private async applyCompression(): Promise<void> {
+    const compressionType = this.options.compression;
+
+    // Create compression options based on export options
+    const compressor = new AdvancedCompression({
+      compressTextures: true,
+      textureFormat: 'ktx2',
+      textureQuality: 75,
+      qualityPreset: 'balanced',
+      compressMeshes: compressionType === 'draco' || compressionType === 'meshopt',
+      dracoLevel: 7,
+      positionBits: 14,
+      normalBits: 10,
+      uvBits: 12,
+      colorBits: 10,
+      generateMipmaps: true,
+    });
+
+    // Compress the document
+    this.document = await compressor.compress(this.document);
+
+    // Store compression stats
+    this.compressionStats = compressor.getStats();
+
+    // Log compression report in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(compressor.getCompressionReport());
+    }
+  }
+
+  /**
+   * Get compression statistics
+   */
+  getCompressionStats(): CompressionStats | undefined {
+    return this.compressionStats;
+  }
+
+  /**
+   * Export scene graph to USDZ format for Apple Vision Pro
+   * Converts to GLTF first, then to USD
+   */
+  async exportToUSDZ(
+    sceneGraph: ISceneGraph,
+    options?: import('../usdz/USDZExporter').IUSDZExportOptions
+  ): Promise<import('../usdz/USDZExporter').IUSDZExportResult> {
+    const { USDZExporter } = await import('../usdz/USDZExporter');
+
+    // Create USDZ exporter with options
+    const usdzExporter = new USDZExporter(options);
+
+    // Export directly from scene graph
+    return usdzExporter.export(sceneGraph);
   }
 }
