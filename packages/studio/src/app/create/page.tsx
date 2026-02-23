@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { StudioHeader } from '@/components/StudioHeader';
 import { SceneGraphPanel } from '@/components/scene/SceneGraphPanel';
 import { TraitInspector } from '@/components/inspector/TraitInspector';
 import { TraitPalette } from '@/components/inspector/TraitPalette';
-import { useSceneStore, useAIStore, useEditorStore } from '@/lib/store';
+import { BrittneyChatPanel } from '@/components/ai/BrittneyChatPanel';
+import { useSceneStore, useEditorStore } from '@/lib/store';
+
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import { useOllamaStatus } from '@/hooks/useOllamaStatus';
 import {
@@ -15,7 +17,6 @@ import {
   RotateCw,
   Maximize2,
   Sparkles,
-  Send,
   Loader2,
   MessageCircle,
   X,
@@ -78,141 +79,7 @@ function ViewportToolbar() {
   );
 }
 
-// ─── Brittney Chat Panel ───────────────────────────────────────────────────────
-// Sprint A: placeholder chat panel — wired in Sprint B with real LLM calls.
-
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'brittney';
-  text: string;
-}
-
-const BRITTNEY_SUGGESTIONS = [
-  'Add a hovering drone with AI patrol',
-  'Give this object a glowing outline',
-  'Create a Gaussian splat from a forest',
-  'Make it react to physics collisions',
-];
-
-function BrittneyChatPanel() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '0',
-      role: 'brittney',
-      text: "Hi! I'm Brittney. Tell me what you want to build — I'll add traits, compose behaviors, and shape the scene for you.",
-    },
-  ]);
-  const [input, setInput] = useState('');
-  const [thinking, setThinking] = useState(false);
-
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
-    if (!text || thinking) return;
-    setInput('');
-    setMessages((m) => [...m, { id: Date.now().toString(), role: 'user', text }]);
-    setThinking(true);
-    // Sprint B: replace with real LLM call + tool dispatch
-    await new Promise((r) => setTimeout(r, 1200));
-    setMessages((m) => [
-      ...m,
-      {
-        id: (Date.now() + 1).toString(),
-        role: 'brittney',
-        text: `Got it! That's a great idea — I'll work on that. (Full Brittney integration arrives in Sprint B — stay tuned!)`,
-      },
-    ]);
-    setThinking(false);
-  }, [input, thinking]);
-
-  const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  return (
-    <div className="flex h-full flex-col border-l border-studio-border bg-studio-panel">
-      {/* Header */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-4 py-3">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-studio-accent text-white text-xs font-bold">
-          B
-        </div>
-        <div>
-          <div className="text-sm font-semibold text-studio-text">Brittney</div>
-          <div className="text-[10px] text-studio-muted">AI Scene Director</div>
-        </div>
-        <div className={`ml-auto h-2 w-2 rounded-full ${thinking ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`} />
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-3 p-4">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-studio-accent text-white'
-                  : 'bg-studio-surface text-studio-text border border-studio-border/50'
-              }`}
-            >
-              {msg.text}
-            </div>
-          </div>
-        ))}
-        {thinking && (
-          <div className="flex justify-start">
-            <div className="flex items-center gap-1.5 rounded-xl border border-studio-border/50 bg-studio-surface px-3 py-2 text-xs text-studio-muted">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Thinking…
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Suggestions (when no user messages yet) */}
-      {messages.filter((m) => m.role === 'user').length === 0 && (
-        <div className="shrink-0 border-t border-studio-border/50 p-3 space-y-1.5">
-          <p className="text-[10px] text-studio-muted uppercase tracking-widest">Suggestions</p>
-          {BRITTNEY_SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setInput(s)}
-              className="w-full rounded-lg border border-studio-border/60 bg-studio-surface/50 px-3 py-1.5 text-left text-xs text-studio-muted transition hover:border-studio-accent/40 hover:text-studio-text"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Input */}
-      <div className="shrink-0 border-t border-studio-border p-3">
-        <div className="relative">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="Ask Brittney to modify your scene…"
-            disabled={thinking}
-            rows={2}
-            className="w-full resize-none rounded-xl border border-studio-border bg-studio-surface px-3 py-2 pr-10 text-xs text-studio-text placeholder-studio-muted outline-none transition focus:border-studio-accent disabled:opacity-50"
-          />
-          <button
-            onClick={handleSend}
-            disabled={thinking || !input.trim()}
-            className="absolute bottom-2.5 right-2 rounded-lg bg-studio-accent p-1.5 text-white transition hover:bg-studio-accent/80 disabled:opacity-30"
-          >
-            {thinking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// ─── Brittney Chat Panel — see src/components/ai/BrittneyChatPanel.tsx ─────────
 
 // ─── Scene AI Prompt (compact, moved to viewport overlay) ─────────────────────
 
