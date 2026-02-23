@@ -58,6 +58,10 @@ import {
   Network,
   Timer,
   SearchCode,
+  Flame,
+  Eye,
+  Terminal as TerminalIcon,
+  Clock as ClockIcon,
 } from 'lucide-react';
 import type { GizmoMode } from '@/lib/store';
 
@@ -228,6 +232,26 @@ const SceneSearchOverlay = dynamic(
 
 const CollabCursorsV2 = dynamic(
   () => import('@/components/collab/CollabCursorsV2').then((m) => ({ default: m.CollabCursorsV2 })),
+  { ssr: false }
+);
+
+const ParticlePanel = dynamic(
+  () => import('@/components/particles/ParticlePanel').then((m) => ({ default: m.ParticlePanel })),
+  { ssr: false }
+);
+
+const LodPanel = dynamic(
+  () => import('@/components/lod/LodPanel').then((m) => ({ default: m.LodPanel })),
+  { ssr: false }
+);
+
+const ScriptConsole = dynamic(
+  () => import('@/components/console/ScriptConsole').then((m) => ({ default: m.ScriptConsole })),
+  { ssr: false }
+);
+
+const UndoHistorySidebar = dynamic(
+  () => import('@/components/history/UndoHistorySidebar').then((m) => ({ default: m.UndoHistorySidebar })),
   { ssr: false }
 );
 
@@ -436,6 +460,11 @@ export default function CreatePage() {
   const [keyframesOpen, setKeyframesOpen] = useState(false);
   const [sceneSearchOpen, setSceneSearchOpen] = useState(false);
   const [collabV2Open, setCollabV2Open] = useState(false);
+  // Sprint T
+  const [particlesOpen, setParticlesOpen] = useState(false);
+  const [lodOpen, setLodOpen] = useState(false);
+  const [consoleOpen, setConsoleOpen] = useState(false);
+  const [undoHistoryOpen, setUndoHistoryOpen] = useState(false);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -745,6 +774,27 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Particle Traits */}
+        {particlesOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <ParticlePanel onClose={() => setParticlesOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: LOD / Camera Culling */}
+        {lodOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <LodPanel onClose={() => setLodOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Undo History */}
+        {undoHistoryOpen && (
+          <div className="flex w-64 shrink-0 flex-col border-l border-studio-border">
+            <UndoHistorySidebar onClose={() => setUndoHistoryOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -988,6 +1038,38 @@ export default function CreatePage() {
           >
             <SearchCode className="h-4 w-4" />
           </button>
+          {/* Particle Traits toggle */}
+          <button
+            onClick={() => setParticlesOpen((v) => !v)}
+            title={particlesOpen ? 'Close Particles' : 'Particle Traits'}
+            className={`transition ${particlesOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Flame className="h-4 w-4" />
+          </button>
+          {/* LOD / Camera Culling toggle */}
+          <button
+            onClick={() => setLodOpen((v) => !v)}
+            title={lodOpen ? 'Close LOD' : 'LOD / Camera Culling'}
+            className={`transition ${lodOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          {/* Script Console toggle */}
+          <button
+            onClick={() => setConsoleOpen((v) => !v)}
+            title={consoleOpen ? 'Close Console' : 'Script Console'}
+            className={`transition ${consoleOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <TerminalIcon className="h-4 w-4" />
+          </button>
+          {/* Undo History toggle */}
+          <button
+            onClick={() => setUndoHistoryOpen((v) => !v)}
+            title={undoHistoryOpen ? 'Close History' : 'Undo History'}
+            className={`transition ${undoHistoryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <ClockIcon className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -1007,6 +1089,13 @@ export default function CreatePage() {
         open={sceneSearchOpen}
         onClose={() => setSceneSearchOpen(false)}
       />
+
+      {/* Sprint T: Script Console (fixed bottom panel) */}
+      {consoleOpen && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 h-[280px] border-t border-studio-border shadow-2xl">
+          <ScriptConsole onClose={() => setConsoleOpen(false)} />
+        </div>
+      )}
 
       {/* Collaboration cursors (fixed overlay, pointer-events-none) */}
       <CollabCursors />
