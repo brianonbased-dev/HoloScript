@@ -10,13 +10,13 @@
 
     <title>HoloScript</title>
     <authors>Brian X Base Team</authors>
-    <projectUrl>https://holoscript.dev</projectUrl>
-    <iconUrl>https://holoscript.dev/logo.png</iconUrl>
+    <projectUrl>https://holoscript.net</projectUrl>
+    <iconUrl>https://holoscript.net/logo.png</iconUrl>
     <copyright>2024-2026 HoloScript Team</copyright>
     <licenseUrl>https://github.com/brianonbased-dev/HoloScript/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <projectSourceUrl>https://github.com/brianonbased-dev/HoloScript</projectSourceUrl>
-    <docsUrl>https://holoscript.dev/docs</docsUrl>
+    <docsUrl>https://holoscript.net/docs</docsUrl>
     <bugTrackerUrl>https://github.com/brianonbased-dev/HoloScript/issues</bugTrackerUrl>
     <tags>holoscript vr ar xr webxr programming-language compiler spatial-computing</tags>
 
@@ -43,7 +43,7 @@ holoscript format scene.hs
 ```
 
 ## Documentation
-Visit https://holoscript.dev/docs for full documentation.
+Visit https://holoscript.net/docs for full documentation.
     </description>
     <releaseNotes>https://github.com/brianonbased-dev/HoloScript/releases/tag/v3.0.0</releaseNotes>
   </metadata>

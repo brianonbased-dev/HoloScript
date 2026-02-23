@@ -96,12 +96,12 @@ describe('SecurityPolicy', () => {
       const base = createDefaultPolicy();
       const merged = mergePolicy(base, {
         network: {
-          allowedHosts: ['api.holoscript.dev'],
+          allowedHosts: ['api.holoscript.net'],
           maxConnections: 5,
         },
       });
 
-      expect(merged.network.allowedHosts).toEqual(['api.holoscript.dev']);
+      expect(merged.network.allowedHosts).toEqual(['api.holoscript.net']);
       expect(merged.network.maxConnections).toBe(5);
       expect(merged.network.rateLimitPerSecond).toBe(100); // Unchanged
     });
@@ -372,11 +372,11 @@ describe('validateImports', () => {
 
   it('should block imports from disallowed hosts', () => {
     const policy = mergePolicy(createDefaultPolicy(), {
-      network: { allowedHosts: ['api.holoscript.dev', 'cdn.holoscript.dev'] },
+      network: { allowedHosts: ['api.holoscript.net', 'cdn.holoscript.net'] },
     });
 
     const imports: ImportDeclaration[] = [
-      { source: 'https://api.holoscript.dev/v1/lib.js' },
+      { source: 'https://api.holoscript.net/v1/lib.js' },
       { source: 'https://evil.com/malware.js' },
     ];
 
@@ -387,10 +387,10 @@ describe('validateImports', () => {
 
   it('should allow imports from permitted hosts', () => {
     const policy = mergePolicy(createDefaultPolicy(), {
-      network: { allowedHosts: ['api.holoscript.dev'] },
+      network: { allowedHosts: ['api.holoscript.net'] },
     });
 
-    const imports: ImportDeclaration[] = [{ source: 'https://api.holoscript.dev/v1/lib.js' }];
+    const imports: ImportDeclaration[] = [{ source: 'https://api.holoscript.net/v1/lib.js' }];
 
     const result = validateImports(imports, policy);
     expect(result.passed).toBe(true);

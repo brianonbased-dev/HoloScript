@@ -207,7 +207,7 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for details.
 ## 🌐 Community Examples
 
 Find more examples from the community:
-- [HoloScript Gallery](https://holoscript.dev/gallery)
+- [HoloScript Gallery](https://holoscript.net/gallery)
 - [Community Showcase](https://github.com/holoscript/awesome-holoscript)
 - [Discord Examples Channel](https://discord.gg/holoscript)
 

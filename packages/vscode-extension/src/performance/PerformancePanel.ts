@@ -536,7 +536,7 @@ export class PerformancePanel implements vscode.WebviewViewProvider {
         category: 'code',
         message: `Compile time averaging ${compileAvg.toFixed(1)}ms - consider using Rust/WASM parser`,
         action: 'Switch to high-performance parser',
-        documentation: 'https://holoscript.dev/docs/performance/rust-parser',
+        documentation: 'https://holoscript.net/docs/performance/rust-parser',
       });
     }
 

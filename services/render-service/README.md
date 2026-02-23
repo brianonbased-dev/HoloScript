@@ -47,10 +47,10 @@ Response:
 ```json
 {
   "id": "abc12345",
-  "playground": "https://play.holoscript.dev?scene=abc12345",
-  "embed": "https://api.holoscript.dev/embed/abc12345",
-  "preview": "https://api.holoscript.dev/preview/abc12345",
-  "qr": "https://api.holoscript.dev/qr/abc12345"
+  "playground": "https://play.holoscript.net?scene=abc12345",
+  "embed": "https://api.holoscript.net/embed/abc12345",
+  "preview": "https://api.holoscript.net/preview/abc12345",
+  "qr": "https://api.holoscript.net/qr/abc12345"
 }
 ```
 
@@ -84,7 +84,7 @@ Interactive HoloScript editor and preview.
 
 ```bash
 docker build -t holoscript-render .
-docker run -p 3000:3000 -e BASE_URL=https://api.holoscript.dev holoscript-render
+docker run -p 3000:3000 -e BASE_URL=https://api.holoscript.net holoscript-render
 ```
 
 ### Environment Variables
@@ -92,8 +92,8 @@ docker run -p 3000:3000 -e BASE_URL=https://api.holoscript.dev holoscript-render
 | Variable         | Default                     | Description          |
 | ---------------- | --------------------------- | -------------------- |
 | `PORT`           | 3000                        | HTTP port            |
-| `BASE_URL`       | https://api.holoscript.dev  | Public URL for links |
-| `PLAYGROUND_URL` | https://play.holoscript.dev | Playground URL       |
+| `BASE_URL`       | https://api.holoscript.net  | Public URL for links |
+| `PLAYGROUND_URL` | https://play.holoscript.net | Playground URL       |
 
 ### Cloud Deployment
 
@@ -123,7 +123,7 @@ The embed pages include proper Twitter Card meta tags:
 
 ```html
 <meta name="twitter:card" content="player" />
-<meta name="twitter:player" content="https://api.holoscript.dev/render/abc123" />
+<meta name="twitter:player" content="https://api.holoscript.net/render/abc123" />
 <meta name="twitter:player:width" content="480" />
 <meta name="twitter:player:height" content="480" />
 ```

@@ -304,6 +304,6 @@ HoloScript is governed by the **HoloScript Foundation** (community-driven, neutr
 
 ---
 
-[Website](https://holoscript.dev) | [Discord](https://discord.gg/holoscript) | [Twitter](https://twitter.com/holoscript) | [Hololand](https://github.com/brianonbased-dev/Hololand)
+[Website](https://holoscript.net) | [Discord](https://discord.gg/holoscript) | [Twitter](https://twitter.com/holoscript) | [Hololand](https://github.com/brianonbased-dev/Hololand)
 
 © 2026 HoloScript Foundation.

@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.holoscript.intellij</id>
     <name>HoloScript</name>
-    <vendor email="support@holoscript.dev" url="https://holoscript.dev">HoloScript Team</vendor>
+    <vendor email="support@holoscript.net" url="https://holoscript.net">HoloScript Team</vendor>
 
     <description><![CDATA[
     <p>HoloScript language support for IntelliJ IDEA and other JetBrains IDEs.</p>

@@ -437,7 +437,7 @@ export class PackageRegistry {
   private packages: Map<string, PackageMetadata> = new Map();
   private packageVersions: Map<string, Map<string, PackageManifest>> = new Map();
 
-  constructor(private baseUrl = 'https://registry.holoscript.dev') {}
+  constructor(private baseUrl = 'https://registry.holoscript.net') {}
 
   /**
    * Publish a package

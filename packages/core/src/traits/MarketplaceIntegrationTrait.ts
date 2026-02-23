@@ -121,7 +121,7 @@ export const marketplaceIntegrationHandler: TraitHandler<MarketplaceIntegrationC
   name: 'marketplace_integration' as any,
 
   defaultConfig: {
-    marketplace_url: 'https://marketplace.holoscript.dev',
+    marketplace_url: 'https://marketplace.holoscript.net',
     publisher_id: '',
     publisher_name: '',
     default_category: 'utility',

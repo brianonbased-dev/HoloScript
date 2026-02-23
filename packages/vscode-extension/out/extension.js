@@ -35479,7 +35479,7 @@ var CollaborationSession = class {
     this.documentSyncDisposable = changeListener;
   }
   parseSessionUrl(url) {
-    const defaultServer = 'wss://collab.holoscript.dev';
+    const defaultServer = 'wss://collab.holoscript.net';
     if (url.startsWith('holoscript://collaborate/')) {
       return {
         serverUrl: defaultServer,
@@ -35601,7 +35601,7 @@ function registerCollaborationCommands(context) {
       try {
         const serverUrl =
           vscode12.workspace.getConfiguration('holoscript.collaboration').get('serverUrl') ||
-          'wss://collab.holoscript.dev';
+          'wss://collab.holoscript.net';
         const sessionInfo = await session.startSession({
           serverUrl,
           roomId,

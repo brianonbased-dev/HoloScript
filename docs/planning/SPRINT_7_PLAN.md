@@ -421,7 +421,7 @@ export interface ICollaborationServer {
 ```holoscript
 @collaboration(
   enabled: true,
-  server: "wss://collab.holoscript.dev",
+  server: "wss://collab.holoscript.net",
   permissions: "edit" | "view" | "comment"
 )
 

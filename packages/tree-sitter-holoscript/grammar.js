@@ -4,7 +4,7 @@
  * Tree-sitter grammar for HoloScript - VR scene description language.
  * Supports .hs, .hsplus, and .holo file formats.
  *
- * @see https://holoscript.dev/docs
+ * @see https://holoscript.net/docs
  * @see https://tree-sitter.github.io/tree-sitter/
  */
 

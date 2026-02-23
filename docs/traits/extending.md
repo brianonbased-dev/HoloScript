@@ -565,7 +565,7 @@ registerTrait(MQTTTrait);
 ```
 
 ### 3. HoloScript Trait Registry
-Submit your traits to the [HoloScript Trait Registry](https://holoscript.dev/registry) to:
+Submit your traits to the [HoloScript Trait Registry](https://holoscript.net/registry) to:
 - Make traits discoverable by the community
 - Get featured in MCP server suggestions
 - Receive compatibility testing

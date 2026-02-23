@@ -212,7 +212,7 @@ export class Analyzer {
         title: 'Slow parsing detected',
         message: `Parse time of ${summary.categoryBreakdown.parse.toFixed(2)}ms exceeds critical threshold of ${THRESHOLDS.parseTime.critical}ms.`,
         action: 'Consider using incremental parsing or breaking large files into smaller modules.',
-        documentation: 'https://holoscript.dev/docs/performance/parsing',
+        documentation: 'https://holoscript.net/docs/performance/parsing',
         metric: {
           name: 'Parse Time',
           value: summary.categoryBreakdown.parse,
@@ -246,7 +246,7 @@ export class Analyzer {
         title: 'Slow compilation detected',
         message: `Compile time of ${summary.categoryBreakdown.compile.toFixed(2)}ms exceeds critical threshold.`,
         action: 'Enable incremental compilation or use the Rust/WASM parser for 10x speedup.',
-        documentation: 'https://holoscript.dev/docs/performance/compilation',
+        documentation: 'https://holoscript.net/docs/performance/compilation',
         metric: {
           name: 'Compile Time',
           value: summary.categoryBreakdown.compile,
@@ -265,7 +265,7 @@ export class Analyzer {
         title: 'Memory leak suspected',
         message: `Memory grew by ${(summary.memoryDelta / 1024 / 1024).toFixed(2)}MB during profiling.`,
         action: 'Check for retained references in traits and dispose resources properly.',
-        documentation: 'https://holoscript.dev/docs/performance/memory',
+        documentation: 'https://holoscript.net/docs/performance/memory',
         metric: {
           name: 'Memory Growth',
           value: summary.memoryDelta,

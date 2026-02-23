@@ -218,7 +218,7 @@ Connect to `@holoscript/mcp-server` via stdio:
 ### 3. REST API (Public Endpoint)
 
 ```
-Base: https://api.holoscript.dev
+Base: https://api.holoscript.net
 
 POST /generate  - Generate scene from description
 POST /validate  - Validate code
@@ -287,7 +287,7 @@ composition "Treasure Discovery" {
 }
 ```
 
-**Try it now:** https://play.holoscript.dev/abc123
+**Try it now:** https://play.holoscript.net/abc123
 
 📱 [Scan for mobile VR]
 
@@ -318,12 +318,12 @@ npx @holoscript/mcp-server
 Check if the render service is available:
 
 ```python
-hs = HoloScript(api_url="https://api.holoscript.dev")
+hs = HoloScript(api_url="https://api.holoscript.net")
 ```
 
 ## Resources
 
-- [HoloScript Documentation](https://holoscript.dev)
+- [HoloScript Documentation](https://holoscript.net)
 - [MCP Server Guide](../MCP_SERVER_GUIDE.md)
 - [AI Generation Examples](../../examples/ai-generation)
 - [Browser Templates](../../examples/browser-templates)

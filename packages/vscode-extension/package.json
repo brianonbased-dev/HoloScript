@@ -89,7 +89,7 @@
         },
         "holoscript.collaboration.serverUrl": {
           "type": "string",
-          "default": "wss://collab.holoscript.dev",
+          "default": "wss://collab.holoscript.net",
           "description": "WebSocket URL for collaboration server."
         },
         "holoscript.collaboration.autoJoin": {

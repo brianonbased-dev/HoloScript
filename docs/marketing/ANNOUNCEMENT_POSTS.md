@@ -66,7 +66,7 @@ holoscript compile gallery.holo --target threejs
 **Status:** v3.3 just released, MIT licensed
 
 GitHub: https://github.com/brianonbased-dev/Holoscript
-Docs: https://holoscript.dev
+Docs: https://holoscript.net
 
 Would love feedback from anyone building VR/AR experiences!
 
@@ -143,7 +143,7 @@ HoloScript abstracts this away. Write once, compile everywhere.
 ## Links
 
 - GitHub: https://github.com/brianonbased-dev/Holoscript
-- Docs: https://holoscript.dev
+- Docs: https://holoscript.net
 - npm: `npm install -g @holoscript/cli`
 
 MIT licensed. Feedback welcome!
@@ -327,7 +327,7 @@ holoscript compile scene.holo --target threejs
 ## Links
 
 📦 GitHub: https://github.com/brianonbased-dev/Holoscript
-📖 Docs: https://holoscript.dev
+📖 Docs: https://holoscript.net
 📝 Release Notes: https://github.com/brianonbased-dev/Holoscript/releases/tag/v3.3.0
 
 Let us know what you build! 🎮

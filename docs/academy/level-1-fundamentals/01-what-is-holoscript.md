@@ -148,7 +148,7 @@ HoloScript isn't just a language - it's an ecosystem:
 
 ## Exercise: Explore HoloScript
 
-1. Visit the [HoloScript Playground](https://play.holoscript.dev)
+1. Visit the [HoloScript Playground](https://play.holoscript.net)
 2. Try modifying the example scene
 3. Change the orb's color and position
 4. Add a second composition to the scene

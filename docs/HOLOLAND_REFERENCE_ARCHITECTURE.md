@@ -392,7 +392,7 @@ We're looking for platforms built on HoloScript:
 - **VR Social**: [Your platform here]
 - **Robotics Sim**: [Your platform here]
 
-**Built a platform on HoloScript?** [Submit your story →](mailto:community@holoscript.dev)
+**Built a platform on HoloScript?** [Submit your story →](mailto:community@holoscript.net)
 
 ---
 

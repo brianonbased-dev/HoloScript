@@ -101,7 +101,7 @@ const tools = {
   async share(code: string, title: string): Promise<ShareResult> {
     // Encode code for URL
     const encoded = Buffer.from(code).toString('base64');
-    const playgroundUrl = `https://play.holoscript.dev?code=${encodeURIComponent(encoded)}`;
+    const playgroundUrl = `https://play.holoscript.net?code=${encodeURIComponent(encoded)}`;
 
     // Generate tweet text
     const hashtags = '#HoloScript #VR #XR #Metaverse #3D';

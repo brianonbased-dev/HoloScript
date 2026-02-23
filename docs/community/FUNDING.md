@@ -204,7 +204,7 @@ Not ready for recurring sponsorship? Make a one-time contribution:
 
 - **GitHub Sponsors**: [github.com/sponsors/brianonbased-dev](https://github.com/sponsors/brianonbased-dev)
 - **Open Collective**: [opencollective.com/holoscript](https://opencollective.com/holoscript) (coming soon)
-- **Direct Donation**: [foundation@holoscript.dev](mailto:foundation@holoscript.dev)
+- **Direct Donation**: [foundation@holoscript.net](mailto:foundation@holoscript.net)
 
 ---
 
@@ -212,7 +212,7 @@ Not ready for recurring sponsorship? Make a one-time contribution:
 
 Interested in Gold/Platinum tier sponsorship?
 
-**Contact**: [sponsorship@holoscript.dev](mailto:sponsorship@holoscript.dev)
+**Contact**: [sponsorship@holoscript.net](mailto:sponsorship@holoscript.net)
 
 **Include**:
 - Company name and size
@@ -280,7 +280,7 @@ HoloScript exists because of our community and sponsors. Every contribution—co
 - [Your company here] (Silver)
 - ...and 150+ individual backers
 
-**Ready to sponsor?** [sponsorship@holoscript.dev](mailto:sponsorship@holoscript.dev)
+**Ready to sponsor?** [sponsorship@holoscript.net](mailto:sponsorship@holoscript.net)
 
 ---
 

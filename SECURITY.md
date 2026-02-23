@@ -24,7 +24,7 @@ Use GitHub's private vulnerability reporting feature:
 
 ### Email
 
-For sensitive security issues, you may email: **security@holoscript.dev**
+For sensitive security issues, you may email: **security@holoscript.net**
 
 ### What to Include
 

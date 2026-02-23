@@ -195,13 +195,13 @@ MIT © Brian X Base Team
 
 ## Links
 
-- [HoloScript Documentation](https://holoscript.dev)
+- [HoloScript Documentation](https://holoscript.net)
 - [GitHub Repository](https://github.com/brianonbased-dev/Holoscript)
 - [NPM Package](https://www.npmjs.com/package/@holoscript/core)
 - [Discord Community](https://discord.gg/holoscript)
 
 ---
 
-**Try it now**: [https://holoscript.dev/playground](https://holoscript.dev/playground)
+**Try it now**: [https://holoscript.net/playground](https://holoscript.net/playground)
 
 Built with ❤️ by the HoloScript community

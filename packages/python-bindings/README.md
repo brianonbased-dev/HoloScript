@@ -77,4 +77,4 @@ if hs.validate(scene.code).valid:
 
 ## API Reference
 
-See [full documentation](https://holoscript.dev/python) for complete API reference.
+See [full documentation](https://holoscript.net/python) for complete API reference.

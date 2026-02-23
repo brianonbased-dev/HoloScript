@@ -246,7 +246,7 @@ holoscript build --target wasm --optimize performance
 ## Getting Help
 
 - **Discord**: `discord.gg/holoscript` — `#unity-migration` channel
-- **Docs**: `docs.holoscript.dev/migration/unity`
+- **Docs**: `docs.holoscript.net/migration/unity`
 - **HoloLand Founders**: One-on-one migration support for Founders program members
 - **Issues**: `github.com/holoscript/core/issues` — tag `unity-migration`
 

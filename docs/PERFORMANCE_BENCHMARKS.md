@@ -375,7 +375,7 @@ jobs:
 
 ### Live Benchmarks
 
-**URL**: [benchmarks.holoscript.dev](https://benchmarks.holoscript.dev)
+**URL**: [benchmarks.holoscript.net](https://benchmarks.holoscript.net)
 
 **Features**:
 - Historical performance trends
@@ -423,7 +423,7 @@ Built a platform on HoloScript? Share your performance data:
 }
 ```
 
-**Submit**: [benchmarks@holoscript.dev](mailto:benchmarks@holoscript.dev)
+**Submit**: [benchmarks@holoscript.net](mailto:benchmarks@holoscript.net)
 
 ---
 
@@ -463,7 +463,7 @@ npm run benchmarks
 - [ ] **Q2 2026**: Implement basic benchmarks (Scenarios 1-2)
 - [ ] **Q2 2026**: Automate Unity/Unreal profiling
 - [ ] **Q3 2026**: Add advanced benchmarks (Scenarios 3-4)
-- [ ] **Q3 2026**: Public dashboard (benchmarks.holoscript.dev)
+- [ ] **Q3 2026**: Public dashboard (benchmarks.holoscript.net)
 - [ ] **Q4 2026**: Community benchmark submissions
 - [ ] **2027**: Per-platform optimization sprints (Unity, Unreal, WebXR)
 

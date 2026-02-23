@@ -10,7 +10,7 @@ export interface HoloCDNConfig {
 }
 
 export const defaultCDNConfig: HoloCDNConfig = {
-  cdnBase: "https://cdn.holoscript.dev",
+  cdnBase: "https://cdn.holoscript.net",
   defaultTarget: "threejs",
   debug: false,
   loadTimeoutMs: 10000,

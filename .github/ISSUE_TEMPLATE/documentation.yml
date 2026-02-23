@@ -22,7 +22,7 @@ body:
     attributes:
       label: Documentation Location
       description: Where is this documentation located? (URL, file path, or section name)
-      placeholder: "https://holoscript.dev/docs/traits or README.md section 3"
+      placeholder: "https://holoscript.net/docs/traits or README.md section 3"
     validations:
       required: true
 

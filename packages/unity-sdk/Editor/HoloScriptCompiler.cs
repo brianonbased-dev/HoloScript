@@ -76,7 +76,7 @@ namespace HoloScript.Editor
         [MenuItem("HoloScript/Documentation")]
         public static void OpenDocumentation()
         {
-            Application.OpenURL("https://holoscript.dev/docs/unity");
+            Application.OpenURL("https://holoscript.net/docs/unity");
         }
 
         [MenuItem("HoloScript/Report Issue")]

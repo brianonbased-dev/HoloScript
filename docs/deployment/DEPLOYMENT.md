@@ -518,13 +518,13 @@ node packages/vscode-extension/scripts/package-vsix.js
 ### Phase 5: Cloud Services (Q4 2026)
 
 - [ ] Railway deployment (compile-as-a-service API)
-- [ ] CDN distribution (`cdn.holoscript.dev`)
-- [ ] Web playground (`play.holoscript.dev`)
+- [ ] CDN distribution (`cdn.holoscript.net`)
+- [ ] Web playground (`play.holoscript.net`)
 - [ ] Docker Hub images
 
 ### Future Enhancements
 
-- [ ] Plugin marketplace (`plugins.holoscript.dev`)
+- [ ] Plugin marketplace (`plugins.holoscript.net`)
 - [ ] Beta/nightly channels (npm dist-tags, cargo features)
 - [ ] Telemetry system (opt-in, GDPR-compliant)
 - [ ] MCP server deployment (compile via MCP tools)
@@ -563,7 +563,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for deployment contribution guidelines.
 
 - **Deployment Issues**: https://github.com/brianonbased-dev/HoloScript/issues
 - **Discord**: https://discord.gg/holoscript
-- **Email**: deploy@holoscript.dev
+- **Email**: deploy@holoscript.net
 
 ---
 

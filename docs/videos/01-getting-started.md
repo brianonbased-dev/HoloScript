@@ -123,7 +123,7 @@ holoscript preview
 Or try the playground without installing anything:
 
 ```
-https://holoscript.dev/playground
+https://holoscript.net/playground
 ```
 
 ---

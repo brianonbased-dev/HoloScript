@@ -66,8 +66,8 @@ describe('Feature 1A: CDN defaultCDNConfig', () => {
     expect(defaultCDNConfig.cdnBase.length).toBeGreaterThan(0);
   });
 
-  it('cdnBase contains holoscript.dev', () => {
-    expect(defaultCDNConfig.cdnBase).toContain('holoscript.dev');
+  it('cdnBase contains holoscript.net', () => {
+    expect(defaultCDNConfig.cdnBase).toContain('holoscript.net');
   });
 
   it('defaultTarget is "threejs"', () => {

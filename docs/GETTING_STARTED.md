@@ -390,7 +390,7 @@ Avoid platform-specific features unless necessary.
 
 ## Getting Help
 
-- **Documentation**: [https://holoscript.dev/docs](https://holoscript.dev/docs)
+- **Documentation**: [https://holoscript.net/docs](https://holoscript.net/docs)
 - **Discord**: [https://discord.gg/holoscript](https://discord.gg/holoscript)
 - **GitHub**: [https://github.com/holoscript/holoscript](https://github.com/holoscript/holoscript)
 - **Examples**: `examples/` directory in this repo

@@ -48,7 +48,7 @@ export interface Certificate {
 const SIGNING_KEY = process.env.HOLOSCRIPT_CERT_KEY || 'holoscript-registry-default-signing-key';
 
 export class BadgeGenerator {
-  private readonly baseUrl = 'https://registry.holoscript.dev';
+  private readonly baseUrl = 'https://registry.holoscript.net';
 
   /**
    * Generate a badge for a certification result

@@ -22,7 +22,7 @@ HoloScript's marketplace infrastructure (`marketplace-api`, `marketplace-web`, `
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
 │  Plugin Registry                                         │
-│  (plugins.holoscript.dev)                                │
+│  (plugins.holoscript.net)                                │
 │      │                                                   │
 │      ├─ @holoscript/optimizer-webgpu@1.0.0 (official)   │
 │      ├─ @community/lint-vr-practices@2.1.0              │
@@ -370,7 +370,7 @@ holoscript plugin publish \
 
 ```bash
 holoscript plugin install @holoscript/optimizer-webgpu
-# Downloads from plugins.holoscript.dev
+# Downloads from plugins.holoscript.net
 # Stores in ~/.holoscript/plugins/
 ```
 
@@ -436,7 +436,7 @@ pluginManager.on('call', (event) => {
 ### Plugin Discovery UI
 
 ```
-plugins.holoscript.dev
+plugins.holoscript.net
 ├── Featured
 │   ├── @holoscript/optimizer-webgpu (Official)
 │   ├── @holoscript/lint-accessibility (Official)

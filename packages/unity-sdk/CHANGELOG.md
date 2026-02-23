@@ -76,5 +76,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Migration Guides:**
 
-- [Upgrading from 2.5.x to 3.0.0](https://holoscript.dev/docs/unity/migration-2.5-to-3.0)
-- [Unity 2021 to 2022 Migration](https://holoscript.dev/docs/unity/migration-unity-versions)
+- [Upgrading from 2.5.x to 3.0.0](https://holoscript.net/docs/unity/migration-2.5-to-3.0)
+- [Unity 2021 to 2022 Migration](https://holoscript.net/docs/unity/migration-unity-versions)

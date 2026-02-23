@@ -10,7 +10,7 @@
 
 Deploy HoloScript compiler as a **serverless API** on Railway with comprehensive security: sandboxing, rate limiting, and abuse detection. This enables browser-based compilation without compromising security.
 
-**Target**: `https://api.holoscript.dev/compile`
+**Target**: `https://api.holoscript.net/compile`
 
 ---
 

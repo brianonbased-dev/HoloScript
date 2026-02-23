@@ -3055,13 +3055,13 @@ Building package...
   ✓ Generated type definitions
   ✓ Created tarball (45 KB)
 
-Publishing to registry.holoscript.dev...
+Publishing to registry.holoscript.net...
   ✓ Authenticated as @studio
   ✓ Package uploaded
   ✓ Version 1.0.0 published
 
 🎉 Successfully published @studio/vr-buttons@1.0.0
-   https://registry.holoscript.dev/packages/@studio/vr-buttons
+   https://registry.holoscript.net/packages/@studio/vr-buttons
 ```
 
 **Pre-publish validations:**

@@ -171,6 +171,6 @@ export function generateCertificate(progress: TourProgress): Certificate | null 
     recipientId: id,
     completedAt: progress.completedAt!,
     lessonCount: LESSONS.length,
-    badgeUrl: `https://holoscript.dev/badges/tour-complete?id=${id}`,
+    badgeUrl: `https://holoscript.net/badges/tour-complete?id=${id}`,
   };
 }

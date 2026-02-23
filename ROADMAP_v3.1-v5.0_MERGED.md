@@ -559,7 +559,7 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 - [ ] Publish **Immutability Manifesto** (MIT, 90/10, no runtime fees) ✅
 - [ ] MVP creation tools: HoloScript editor + one-click preview URL
 - [ ] Unity→HoloScript converter CLI (`holoscript convert unity-scene`) ✅
-- [ ] Open `holoscript.dev` landing page with benchmark results
+- [ ] Open `holoscript.net` landing page with benchmark results
 
 #### Month 4–6: Alpha (100 Founders, Closed)
 - [ ] **HoloLand Founders Program** — 100 curated creators

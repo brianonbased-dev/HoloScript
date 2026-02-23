@@ -84,7 +84,7 @@ Create `holoscript.config.json`:
 
 ```json
 {
-  "$schema": "https://holoscript.dev/schemas/config.v3.json",
+  "$schema": "https://holoscript.net/schemas/config.v3.json",
   "version": 3,
   "compiler": {
     "target": "web",

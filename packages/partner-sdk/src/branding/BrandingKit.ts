@@ -119,24 +119,24 @@ export const LOGO_ASSETS: BrandAsset[] = [
     name: 'HoloScript Logo',
     description: 'Primary logo for HoloScript branding',
     formats: [
-      { type: 'svg', url: 'https://cdn.holoscript.dev/brand/logo.svg' },
+      { type: 'svg', url: 'https://cdn.holoscript.net/brand/logo.svg' },
       {
         type: 'png',
         size: { width: 512, height: 512 },
-        url: 'https://cdn.holoscript.dev/brand/logo-512.png',
+        url: 'https://cdn.holoscript.net/brand/logo-512.png',
       },
       {
         type: 'png',
         size: { width: 256, height: 256 },
-        url: 'https://cdn.holoscript.dev/brand/logo-256.png',
+        url: 'https://cdn.holoscript.net/brand/logo-256.png',
       },
       {
         type: 'png',
         size: { width: 128, height: 128 },
-        url: 'https://cdn.holoscript.dev/brand/logo-128.png',
+        url: 'https://cdn.holoscript.net/brand/logo-128.png',
       },
     ],
-    url: 'https://cdn.holoscript.dev/brand/logo.svg',
+    url: 'https://cdn.holoscript.net/brand/logo.svg',
     usage: {
       allowed: [
         'Partner documentation',
@@ -158,14 +158,14 @@ export const LOGO_ASSETS: BrandAsset[] = [
     name: 'HoloScript Wordmark',
     description: 'Text-based logo for inline usage',
     formats: [
-      { type: 'svg', url: 'https://cdn.holoscript.dev/brand/wordmark.svg' },
+      { type: 'svg', url: 'https://cdn.holoscript.net/brand/wordmark.svg' },
       {
         type: 'png',
         size: { width: 400, height: 80 },
-        url: 'https://cdn.holoscript.dev/brand/wordmark.png',
+        url: 'https://cdn.holoscript.net/brand/wordmark.png',
       },
     ],
-    url: 'https://cdn.holoscript.dev/brand/wordmark.svg',
+    url: 'https://cdn.holoscript.net/brand/wordmark.svg',
     usage: {
       allowed: ['Headers', 'Documentation', 'Partner pages'],
       prohibited: ['Modifying typography', 'Changing letter spacing'],
@@ -177,15 +177,15 @@ export const LOGO_ASSETS: BrandAsset[] = [
     name: 'HoloScript Icon',
     description: 'Simplified icon for small spaces',
     formats: [
-      { type: 'svg', url: 'https://cdn.holoscript.dev/brand/icon.svg' },
+      { type: 'svg', url: 'https://cdn.holoscript.net/brand/icon.svg' },
       {
         type: 'png',
         size: { width: 64, height: 64 },
-        url: 'https://cdn.holoscript.dev/brand/icon-64.png',
+        url: 'https://cdn.holoscript.net/brand/icon-64.png',
       },
-      { type: 'ico', url: 'https://cdn.holoscript.dev/brand/favicon.ico' },
+      { type: 'ico', url: 'https://cdn.holoscript.net/brand/favicon.ico' },
     ],
-    url: 'https://cdn.holoscript.dev/brand/icon.svg',
+    url: 'https://cdn.holoscript.net/brand/icon.svg',
     usage: {
       allowed: ['Favicons', 'App icons', 'Small UI elements'],
       prohibited: ['Using at sizes below 16px'],
@@ -200,7 +200,7 @@ export const LOGO_ASSETS: BrandAsset[] = [
 // ============================================================================
 
 export class BrandingKit {
-  private baseUrl = 'https://cdn.holoscript.dev/brand';
+  private baseUrl = 'https://cdn.holoscript.net/brand';
 
   /**
    * Get brand color palette
@@ -233,7 +233,7 @@ export class BrandingKit {
     const sizes = { small: 80, medium: 120, large: 160 };
     const width = sizes[size];
 
-    return `<a href="https://holoscript.dev/partners" target="_blank" rel="noopener">
+    return `<a href="https://holoscript.net/partners" target="_blank" rel="noopener">
   <img 
     src="${badgeUrl}" 
     alt="HoloScript ${tier} Partner" 
@@ -257,7 +257,7 @@ export class BrandingKit {
 
 export const HoloScriptBadge: React.FC = () => (
   <a 
-    href="https://holoscript.dev/partners" 
+    href="https://holoscript.net/partners" 
     target="_blank" 
     rel="noopener noreferrer"
   >

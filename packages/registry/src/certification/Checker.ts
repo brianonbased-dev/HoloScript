@@ -582,7 +582,7 @@ export function generateBadge(
     certifiedAt: result.certifiedAt!,
     expiresAt: result.expiresAt!,
     score: Math.round((result.score / result.maxScore) * 100),
-    badgeUrl: `https://registry.holoscript.dev/badge/${encodeURIComponent(packageName)}/${result.level}.svg`,
+    badgeUrl: `https://registry.holoscript.net/badge/${encodeURIComponent(packageName)}/${result.level}.svg`,
   };
 }
 

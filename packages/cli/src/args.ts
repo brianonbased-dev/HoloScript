@@ -499,7 +499,7 @@ Usage: holoscript <command> [options] [input]
   \x1b[2m# Package Publishing Options\x1b[0m
   --dry-run           Preview publish without uploading
   -f, --force         Publish even with warnings
-  --registry <url>    Registry URL (default: https://registry.holoscript.dev)
+  --registry <url>    Registry URL (default: https://registry.holoscript.net)
   --token <token>     Authentication token
   --tag <tag>         Version tag (default: "latest")
   --access <level>    Access level: public or restricted

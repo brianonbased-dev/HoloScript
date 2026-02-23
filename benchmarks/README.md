@@ -161,7 +161,7 @@ benchmarks/
 - [ ] Scenario 4: Multiplayer
 
 ### Phase 5: Public Dashboard ⏳
-- [ ] benchmarks.holoscript.dev
+- [ ] benchmarks.holoscript.net
 - [ ] Historical trends
 - [ ] Community submissions
 
@@ -169,7 +169,7 @@ benchmarks/
 
 See [PERFORMANCE_BENCHMARKS.md](../docs/PERFORMANCE_BENCHMARKS.md) for full specification.
 
-**Questions?** Open an issue or email [benchmarks@holoscript.dev](mailto:benchmarks@holoscript.dev)
+**Questions?** Open an issue or email [benchmarks@holoscript.net](mailto:benchmarks@holoscript.net)
 
 ---
 

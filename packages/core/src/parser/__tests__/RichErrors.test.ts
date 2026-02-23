@@ -341,7 +341,7 @@ describe('formatRichError', () => {
 
   it('includes documentation link', () => {
     const result = formatRichError(baseError);
-    expect(result).toContain('https://holoscript.dev/errors/HSP001');
+    expect(result).toContain('https://holoscript.net/errors/HSP001');
   });
 
   it('includes context when present', () => {

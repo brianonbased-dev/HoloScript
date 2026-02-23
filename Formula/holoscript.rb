@@ -3,7 +3,7 @@
 
 class Holoscript < Formula
   desc "Open source VR scene description language and compiler"
-  homepage "https://holoscript.dev"
+  homepage "https://holoscript.net"
   url "https://github.com/brianonbased-dev/HoloScript/archive/refs/tags/v3.0.0.tar.gz"
   sha256 "TODO_CALCULATE_SHA256"
   license "MIT"

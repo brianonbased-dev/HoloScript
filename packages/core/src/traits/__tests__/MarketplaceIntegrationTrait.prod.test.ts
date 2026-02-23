@@ -18,7 +18,7 @@ function makeCtx() { const emit = vi.fn(); return { emit }; }
 
 function makeConfig(overrides: Record<string, unknown> = {}) {
   return {
-    marketplace_url: 'https://marketplace.holoscript.dev',
+    marketplace_url: 'https://marketplace.holoscript.net',
     publisher_id: 'pub_123',
     publisher_name: 'TestPublisher',
     default_category: 'utility',
@@ -132,7 +132,7 @@ describe('MarketplaceIntegrationTrait — onAttach', () => {
   it('emits marketplace_integration_initialized', () => {
     const { ctx } = attach();
     expect(ctx.emit).toHaveBeenCalledWith('marketplace_integration_initialized', expect.objectContaining({
-      marketplaceUrl: 'https://marketplace.holoscript.dev',
+      marketplaceUrl: 'https://marketplace.holoscript.net',
     }));
   });
 });

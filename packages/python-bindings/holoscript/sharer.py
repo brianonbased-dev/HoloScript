@@ -19,7 +19,7 @@ class ShareResult:
 
 
 # Service URLs
-PLAYGROUND_URL = "https://play.holoscript.dev"
+PLAYGROUND_URL = "https://play.holoscript.net"
 
 
 def share(

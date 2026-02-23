@@ -5,7 +5,7 @@
  * in any webpage via a CDN script tag.
  *
  * Usage:
- *   <script src="https://cdn.holoscript.dev/v4.min.js"></script>
+ *   <script src="https://cdn.holoscript.net/v4.min.js"></script>
  *   <holo-scene src="./my-world.hs" target="webxr" fallback="threejs"></holo-scene>
  *
  * @version 1.0.0

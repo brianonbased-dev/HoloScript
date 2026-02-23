@@ -21,8 +21,8 @@ class RenderResult:
 
 
 # Service URLs
-RENDER_SERVICE_URL = "https://api.holoscript.dev"
-PLAYGROUND_URL = "https://play.holoscript.dev"
+RENDER_SERVICE_URL = "https://api.holoscript.net"
+PLAYGROUND_URL = "https://play.holoscript.net"
 
 
 def render(

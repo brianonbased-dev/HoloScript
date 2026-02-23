@@ -389,7 +389,7 @@ jobs:
 
 **Announcement**: 2026-03-01
 **Support End**: 2026-09-01 (6 months notice)
-**Migration Guide**: https://holoscript.dev/docs/unity/migration-2021-to-2022
+**Migration Guide**: https://holoscript.net/docs/unity/migration-2021-to-2022
 
 **Steps**:
 

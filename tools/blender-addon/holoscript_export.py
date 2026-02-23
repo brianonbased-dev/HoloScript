@@ -11,7 +11,7 @@ bl_info = {
     "location": "File > Export > HoloScript (.holo)",
     "description": "Export Blender scenes to HoloScript .holo composition format",
     "warning": "",
-    "doc_url": "https://holoscript.dev/docs/blender-addon",
+    "doc_url": "https://holoscript.net/docs/blender-addon",
     "category": "Import-Export",
 }
 

@@ -11,7 +11,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'marketplace.holoscript.dev',
+        hostname: 'marketplace.holoscript.net',
         pathname: '/assets/**',
       },
     ],

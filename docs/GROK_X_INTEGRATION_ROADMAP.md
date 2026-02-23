@@ -149,8 +149,8 @@ POST /api/render
 
 Response:
 {
-  "url": "https://holoscript.dev/renders/abc123.png",
-  "previewUrl": "https://holoscript.dev/view/abc123",
+  "url": "https://holoscript.net/renders/abc123.png",
+  "previewUrl": "https://holoscript.net/view/abc123",
   "embedCode": "<iframe ...>"
 }
 ```
@@ -181,13 +181,13 @@ const share = await createXShare({
 
 // Returns:
 {
-  playgroundUrl: "https://play.holoscript.dev/abc123",
-  embedUrl: "https://embed.holoscript.dev/abc123",
+  playgroundUrl: "https://play.holoscript.net/abc123",
+  embedUrl: "https://embed.holoscript.net/abc123",
   tweetText: "Check out this VR scene I made! 🎮✨",
   qrCode: "data:image/png;base64,...",
   cardMeta: {
     "twitter:card": "player",
-    "twitter:player": "https://embed.holoscript.dev/abc123",
+    "twitter:player": "https://embed.holoscript.net/abc123",
     ...
   }
 }
@@ -246,7 +246,7 @@ object Art @tweetable {
 Hosted API for immediate agent access:
 
 ```
-Base URL: https://api.holoscript.dev
+Base URL: https://api.holoscript.net
 
 Endpoints:
 GET  /parse?code=...        - Parse code
@@ -286,7 +286,7 @@ packages/
 # Use the public API
 import requests
 
-response = requests.post("https://api.holoscript.dev/generate", json={
+response = requests.post("https://api.holoscript.net/generate", json={
     "prompt": "a floating crystal that glows when grabbed",
     "format": "holo"
 })

@@ -403,11 +403,11 @@ export class CollaborationSession implements vscode.Disposable {
   private parseSessionUrl(url: string): { serverUrl: string; roomId: string } {
     // Parse URLs like:
     // - holoscript://collaborate/room-id
-    // - wss://collab.holoscript.dev/room-id
-    // - https://collab.holoscript.dev/join/room-id
+    // - wss://collab.holoscript.net/room-id
+    // - https://collab.holoscript.net/join/room-id
 
     // Default collaboration server
-    const defaultServer = 'wss://collab.holoscript.dev';
+    const defaultServer = 'wss://collab.holoscript.net';
 
     if (url.startsWith('holoscript://collaborate/')) {
       return {

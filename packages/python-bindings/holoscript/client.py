@@ -25,7 +25,7 @@ class HoloScript:
         ...     print(share.playground_url)
     """
     
-    DEFAULT_API_URL = "https://api.holoscript.dev"
+    DEFAULT_API_URL = "https://api.holoscript.net"
     
     def __init__(
         self,
@@ -38,7 +38,7 @@ class HoloScript:
         
         Args:
             api_key: Optional API key for remote rendering/services
-            api_url: Custom API URL (defaults to https://api.holoscript.dev)
+            api_url: Custom API URL (defaults to https://api.holoscript.net)
             local_mode: If True, use local parsing only (no remote calls)
         """
         self.api_key = api_key

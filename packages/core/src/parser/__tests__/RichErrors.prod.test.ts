@@ -142,7 +142,7 @@ describe('formatRichError — Production', () => {
 
   it('includes doc link', () => {
     const err = createRichError('HSP001', 'bad', 1, 1);
-    expect(formatRichError(err)).toContain('holoscript.dev/errors/HSP001');
+    expect(formatRichError(err)).toContain('holoscript.net/errors/HSP001');
   });
 });
 

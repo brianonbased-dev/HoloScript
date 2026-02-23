@@ -131,7 +131,7 @@ export class RegistryClient {
   constructor(config: RegistryClientConfig) {
     this.config = {
       ...config,
-      baseUrl: config.baseUrl || 'https://registry.holoscript.dev/api/v1',
+      baseUrl: config.baseUrl || 'https://registry.holoscript.net/api/v1',
       timeout: config.timeout || 30000,
       retries: config.retries || 3,
     };

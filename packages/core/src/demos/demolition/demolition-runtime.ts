@@ -52,7 +52,7 @@ export const DemolitionRuntime: RuntimeModule = {
     author: 'HoloScript',
     description:
       'Explosive demolition runtime with fracture physics, shock waves, debris particles, and structural collapse',
-    documentation: 'https://holoscript.dev/docs/runtimes/demolition',
+    documentation: 'https://holoscript.net/docs/runtimes/demolition',
     repository: 'https://github.com/holoscript/holoscript',
     license: 'MIT',
     tags: [

@@ -368,7 +368,7 @@ export function formatRichError(error: RichParseError): string {
 
   // Documentation link
   lines.push('');
-  lines.push(`📖 See: https://holoscript.dev/errors/${error.code}`);
+  lines.push(`📖 See: https://holoscript.net/errors/${error.code}`);
 
   return lines.join('\n');
 }

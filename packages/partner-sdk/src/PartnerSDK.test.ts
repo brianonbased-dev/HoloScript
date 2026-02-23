@@ -87,7 +87,7 @@ describe('RegistryClient', () => {
             version: '1.0.0',
             publishedAt: '2026-01-01T00:00:00Z',
             downloadCount: 100,
-            tarballUrl: 'https://registry.holoscript.dev/tarballs/test-1.0.0.tgz',
+            tarballUrl: 'https://registry.holoscript.net/tarballs/test-1.0.0.tgz',
             integrity: 'sha512-abc123',
           },
         };

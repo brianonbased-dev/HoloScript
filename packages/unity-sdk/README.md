@@ -158,7 +158,7 @@ GameObject compiled = HoloScriptCompiler.Compile(holoscriptSource);
 
 ## Support
 
-- **Documentation**: https://holoscript.dev/docs/unity
+- **Documentation**: https://holoscript.net/docs/unity
 - **Discord**: https://discord.gg/holoscript
 - **Issues**: https://github.com/brianonbased-dev/HoloScript/issues
 

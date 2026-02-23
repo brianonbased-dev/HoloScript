@@ -5,9 +5,9 @@
   "description": "HoloScript compiler and runtime for Unity. Compile .hs/.hsplus files to Unity scenes and prefabs.",
   "unity": "2021.3",
   "unityRelease": "0f1",
-  "documentationUrl": "https://holoscript.dev/docs/unity",
-  "changelogUrl": "https://holoscript.dev/changelog",
-  "licensesUrl": "https://holoscript.dev/licenses",
+  "documentationUrl": "https://holoscript.net/docs/unity",
+  "changelogUrl": "https://holoscript.net/changelog",
+  "licensesUrl": "https://holoscript.net/licenses",
   "dependencies": {},
   "keywords": [
     "holoscript",
@@ -21,8 +21,8 @@
   ],
   "author": {
     "name": "HoloScript Team",
-    "email": "support@holoscript.dev",
-    "url": "https://holoscript.dev"
+    "email": "support@holoscript.net",
+    "url": "https://holoscript.net"
   },
   "type": "tool",
   "samples": [

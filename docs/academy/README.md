@@ -72,7 +72,7 @@ holoscript dev
 - [Discord Community](https://discord.gg/holoscript)
 - [GitHub Discussions](https://github.com/brianonbased-dev/HoloScript/discussions)
 - [Stack Overflow](https://stackoverflow.com/questions/tagged/holoscript)
-- [Official Documentation](https://holoscript.dev/docs)
+- [Official Documentation](https://holoscript.net/docs)
 
 ## Contributing
 

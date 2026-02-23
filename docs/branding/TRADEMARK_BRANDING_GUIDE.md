@@ -335,9 +335,9 @@ X402 payments use agentkit wallets on BASE.
 
 ## Contact for Brand Questions
 
-- **Trademark Issues**: [legal@holoscript.dev]
-- **Partnership/Licensing**: [partnerships@holoscript.dev]
-- **Documentation Updates**: [docs@holoscript.dev]
+- **Trademark Issues**: [legal@holoscript.net]
+- **Partnership/Licensing**: [partnerships@holoscript.net]
+- **Documentation Updates**: [docs@holoscript.net]
 - **GitHub Issues**: https://github.com/holoscript/holoscript/issues
 
 ---

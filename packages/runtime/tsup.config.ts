@@ -34,7 +34,7 @@ export default defineConfig([
     external: ['three', 'monaco-editor'],
     esbuildOptions(options) {
       options.banner = {
-        js: '/* HoloScript Runtime v2.1.0 - https://holoscript.dev */',
+        js: '/* HoloScript Runtime v2.1.0 - https://holoscript.net */',
       };
     },
   },

@@ -63,7 +63,7 @@ export function registerCollaborationCommands(context: vscode.ExtensionContext):
       try {
         const serverUrl =
           vscode.workspace.getConfiguration('holoscript.collaboration').get<string>('serverUrl') ||
-          'wss://collab.holoscript.dev';
+          'wss://collab.holoscript.net';
 
         const sessionInfo = await session.startSession({
           serverUrl,

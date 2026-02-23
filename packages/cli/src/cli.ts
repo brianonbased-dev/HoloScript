@@ -1809,7 +1809,7 @@ async function main(): Promise<void> {
       const readline = await import('readline');
 
       const registry =
-        options.registry || process.env.HOLOSCRIPT_REGISTRY || 'https://registry.holoscript.dev';
+        options.registry || process.env.HOLOSCRIPT_REGISTRY || 'https://registry.holoscript.net';
 
       console.log(`Registry: \x1b[36m${registry}\x1b[0m\n`);
 

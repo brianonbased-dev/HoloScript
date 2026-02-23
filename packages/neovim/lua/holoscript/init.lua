@@ -240,7 +240,7 @@ local function setup_commands()
   -- Open HoloScript documentation
   vim.api.nvim_create_user_command("HoloScriptDocs", function(opts)
     local topic = opts.args ~= "" and opts.args or "index"
-    local url = "https://holoscript.dev/docs/" .. topic
+    local url = "https://holoscript.net/docs/" .. topic
     vim.fn.jobstart({ "open", url }, { detach = true })
   end, {
     nargs = "?",

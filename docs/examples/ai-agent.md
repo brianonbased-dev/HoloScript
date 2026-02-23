@@ -203,16 +203,16 @@ if result.valid:
 
 ```bash
 # Generate scene
-curl -X POST https://api.holoscript.dev/generate \
+curl -X POST https://api.holoscript.net/generate \
   -H "Content-Type: application/json" \
   -d '{"description": "underwater coral reef with fish"}'
 
 # Validate
-curl -X POST https://api.holoscript.dev/validate \
+curl -X POST https://api.holoscript.net/validate \
   -d '{"code": "composition \"Test\" { ... }"}'
 
 # Suggest traits
-curl -X POST https://api.holoscript.dev/traits/suggest \
+curl -X POST https://api.holoscript.net/traits/suggest \
   -d '{"description": "a magic wand that shoots sparks"}'
 ```
 

@@ -232,9 +232,9 @@ create_share_link(code) → { playgroundUrl, tweetText, qrCode }
 ### Via REST API (Future)
 
 ```
-POST https://api.holoscript.dev/generate
-POST https://api.holoscript.dev/validate
-POST https://api.holoscript.dev/render
+POST https://api.holoscript.net/generate
+POST https://api.holoscript.net/validate
+POST https://api.holoscript.net/render
 ```
 
 ---
@@ -259,7 +259,7 @@ POST https://api.holoscript.dev/render
 
 3. **Set up render service** for preview generation
 
-4. **Configure public API** at api.holoscript.dev
+4. **Configure public API** at api.holoscript.net
 
 5. **Test with Grok** in X conversations
 

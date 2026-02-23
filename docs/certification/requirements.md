@@ -138,7 +138,7 @@ After certification, add the badge to your README:
 ### SVG Badge (recommended)
 
 ```markdown
-[![HoloScript Certified Gold](https://holoscript.dev/badge/@myorg/my-package/2.0.0.svg)](https://holoscript.dev/certified/@myorg/my-package)
+[![HoloScript Certified Gold](https://holoscript.net/badge/@myorg/my-package/2.0.0.svg)](https://holoscript.net/certified/@myorg/my-package)
 ```
 
 ### Text Badge
@@ -191,7 +191,7 @@ Appeals are reviewed within 5 business days.
 
 ## Certified Packages
 
-Browse certified packages at [holoscript.dev/certified](https://holoscript.dev/certified).
+Browse certified packages at [holoscript.net/certified](https://holoscript.net/certified).
 
 | Package | Level | Score | Certified |
 |---------|-------|-------|-----------|

@@ -250,7 +250,7 @@ HoloScript provides neutral, open-source tools for VR, AR, robotics, and digital
 **Quarterly**:
 - Revenue breakdown (sponsors, grants, donations)
 - Expense breakdown (salaries, infrastructure, grants)
-- Published on [foundation.holoscript.dev/finances](https://foundation.holoscript.dev/finances)
+- Published on [foundation.holoscript.net/finances](https://foundation.holoscript.net/finances)
 
 **Annually**:
 - Form 990 (IRS nonprofit tax filing) - publicly available
@@ -316,7 +316,7 @@ Documentation, tutorials, tools:
 - High-quality deliverable
 - Benefits broad community
 
-**Application**: [grants.holoscript.dev](https://grants.holoscript.dev) (Q3 2026)
+**Application**: [grants.holoscript.net](https://grants.holoscript.net) (Q3 2026)
 
 ---
 
@@ -391,7 +391,7 @@ What future work might build on this?
 - [ ] Reach 10 total sponsors (1 Platinum, 4 Gold, 5 Silver)
 - [ ] Award first 5 platform grants
 - [ ] Publish first quarterly audit of Hololand (validate "even playing field")
-- [ ] Launch public dashboard: [foundation.holoscript.dev](https://foundation.holoscript.dev)
+- [ ] Launch public dashboard: [foundation.holoscript.net](https://foundation.holoscript.net)
 - [ ] Secure 501(c)(3) tax-exempt status from IRS
 
 ### Phase 4: Maturity (2027+)
@@ -421,11 +421,11 @@ HoloScript Foundation is modeled after successful open-source foundations:
 
 ## Contact
 
-**Founding Team**: [foundation@holoscript.dev](mailto:foundation@holoscript.dev)
+**Founding Team**: [foundation@holoscript.net](mailto:foundation@holoscript.net)
 
-**Sponsorship Inquiries**: [sponsorship@holoscript.dev](mailto:sponsorship@holoscript.dev)
+**Sponsorship Inquiries**: [sponsorship@holoscript.net](mailto:sponsorship@holoscript.net)
 
-**Grant Applications**: [grants@holoscript.dev](mailto:grants@holoscript.dev) (opens Q3 2026)
+**Grant Applications**: [grants@holoscript.net](mailto:grants@holoscript.net) (opens Q3 2026)
 
 **Community**: [Discord](https://discord.gg/holoscript) | [GitHub Discussions](https://github.com/brianonbased-dev/HoloScript/discussions)
 

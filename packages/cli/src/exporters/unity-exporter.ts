@@ -1531,7 +1531,7 @@ function generatePackageManifest(compositionName: string): string {
       keywords: ['holoscript', 'vr', 'xr', 'generated'],
       author: {
         name: 'HoloScript Exporter',
-        url: 'https://holoscript.dev',
+        url: 'https://holoscript.net',
       },
     },
     null,

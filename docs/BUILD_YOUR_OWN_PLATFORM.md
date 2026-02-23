@@ -601,9 +601,9 @@ holoscript compile robot-arm.holo --target=urdf --output=robot.urdf
 
 ### Documentation
 
-- [HoloScript Docs](https://holoscript.dev/docs)
+- [HoloScript Docs](https://holoscript.net/docs)
 - [Trait Reference](../TRAITS_REFERENCE.md) (1,800+ traits)
-- [API Reference](https://holoscript.dev/api)
+- [API Reference](https://holoscript.net/api)
 - [Hololand Architecture](./HOLOLAND_REFERENCE_ARCHITECTURE.md) (how we built it)
 
 ### Support Tiers
@@ -627,7 +627,7 @@ HoloScript Foundation offers **$10K-$50K grants** for novel platforms:
 - Uses public HoloScript APIs only
 - Production deployment within 6 months
 
-**Apply**: [grants@holoscript.dev](mailto:grants@holoscript.dev)
+**Apply**: [grants@holoscript.net](mailto:grants@holoscript.net)
 
 ---
 
@@ -686,4 +686,4 @@ Build the next Hololand. Build the next VRChat. Build something we can't imagine
 
 © 2026 HoloScript Foundation
 
-*Built with HoloScript: [List your platform here](mailto:community@holoscript.dev)*
+*Built with HoloScript: [List your platform here](mailto:community@holoscript.net)*

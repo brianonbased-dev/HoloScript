@@ -171,7 +171,7 @@ export const TitleCard: React.FC<TitleCardProps> = ({
       >
         <span>github.com/brianonbased-dev/HoloScript</span>
         <span>·</span>
-        <span style={{ color: theme.success }}>holoscript.dev</span>
+        <span style={{ color: theme.success }}>holoscript.net</span>
       </div>
     </AbsoluteFill>
   );

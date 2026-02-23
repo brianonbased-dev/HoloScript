@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.8"
 authors = [
-    { name = "Brian X Base Team", email = "team@holoscript.dev" }
+    { name = "Brian X Base Team", email = "team@holoscript.net" }
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -51,8 +51,8 @@ pyodide = [
 ]
 
 [project.urls]
-Homepage = "https://holoscript.dev"
-Documentation = "https://holoscript.dev/python"
+Homepage = "https://holoscript.net"
+Documentation = "https://holoscript.net/python"
 Repository = "https://github.com/brianonbased-dev/Holoscript"
 Issues = "https://github.com/brianonbased-dev/Holoscript/issues"
 

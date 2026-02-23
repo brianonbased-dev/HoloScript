@@ -402,10 +402,10 @@ docker rmi holoscript:latest
 
 ## Support
 
-- **Documentation**: https://docs.holoscript.dev
+- **Documentation**: https://docs.holoscript.net
 - **Issues**: https://github.com/brianonbased-dev/HoloScript/issues
 - **Discord**: https://discord.gg/holoscript
-- **Email**: support@holoscript.dev
+- **Email**: support@holoscript.net
 
 ---
 
@@ -413,7 +413,7 @@ docker rmi holoscript:latest
 
 - **Package integrity**: All npm packages are signed with npm's semantic version signature
 - **Updates**: Security patches are published as patch versions (e.g., 3.0.1)
-- **Reporting**: Report security issues to security@holoscript.dev
+- **Reporting**: Report security issues to security@holoscript.net
 
 ---
 
