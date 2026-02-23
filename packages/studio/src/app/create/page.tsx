@@ -20,6 +20,7 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTemporalStore } from '@/lib/historyStore';
 import {
   AlertTriangle,
+  BarChart2,
   Move,
   RotateCw,
   RotateCcw,
@@ -29,6 +30,7 @@ import {
   MessageCircle,
   Layers,
   List,
+  Code2,
   X,
   History,
 } from 'lucide-react';
@@ -37,6 +39,11 @@ import type { GizmoMode } from '@/lib/store';
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
   { ssr: false, loading: () => <ViewportSkeleton /> }
+);
+
+const HoloScriptEditor = dynamic(
+  () => import('@/components/editor/HoloScriptEditor').then((m) => ({ default: m.HoloScriptEditor })),
+  { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">Loading editor…</div> }
 );
 
 function ViewportSkeleton() {
@@ -55,7 +62,7 @@ const GIZMO_BUTTONS: Array<{ mode: GizmoMode; icon: typeof Move; label: string; 
   { mode: 'scale', icon: Maximize2, label: 'Scale (R)', key: 'R' },
 ];
 
-function ViewportToolbar() {
+function ViewportToolbar({ profilerOpen, onToggleProfiler }: { profilerOpen: boolean; onToggleProfiler: () => void }) {
   const gizmoMode = useEditorStore((s) => s.gizmoMode);
   const setGizmoMode = useEditorStore((s) => s.setGizmoMode);
   const undo = useTemporalStore((s) => s.undo);
@@ -69,10 +76,11 @@ function ViewportToolbar() {
       if (e.key === 'w' || e.key === 'W') setGizmoMode('translate');
       if (e.key === 'e' || e.key === 'E') setGizmoMode('rotate');
       if (e.key === 'r' || e.key === 'R') setGizmoMode('scale');
+      if (e.key === 'p' || e.key === 'P') onToggleProfiler();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setGizmoMode]);
+  }, [setGizmoMode, onToggleProfiler]);
 
   return (
     <div className="absolute left-3 top-3 flex items-center gap-1 rounded-lg border border-studio-border/60 bg-studio-panel/90 p-1 backdrop-blur">
@@ -112,6 +120,22 @@ function ViewportToolbar() {
           <Icon className="h-3.5 w-3.5" />
         </button>
       ))}
+
+      {/* Divider */}
+      <div className="mx-1 h-4 w-px bg-studio-border/60" />
+
+      {/* Profiler toggle (P) */}
+      <button
+        onClick={onToggleProfiler}
+        title={profilerOpen ? 'Hide Profiler (P)' : 'Show Profiler (P)'}
+        className={`rounded-md p-2 transition ${
+          profilerOpen
+            ? 'bg-studio-accent text-white shadow-md'
+            : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
+        }`}
+      >
+        <BarChart2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -198,7 +222,8 @@ export default function CreatePage() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [leftTab, setLeftTab] = useState<'scene' | 'assets'>('scene');
+  const [profilerOpen, setProfilerOpen] = useState(false);
+  const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code'>('scene');
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -263,14 +288,27 @@ export default function CreatePage() {
               <Layers className="h-3.5 w-3.5" />
               Assets
             </button>
+            <button
+              onClick={() => setLeftTab('code')}
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
+                leftTab === 'code'
+                  ? 'border-b-2 border-studio-accent text-studio-accent'
+                  : 'text-studio-muted hover:text-studio-text'
+              }`}
+            >
+              <Code2 className="h-3.5 w-3.5" />
+              Code
+            </button>
           </div>
 
           {/* Panel content */}
           <div className="min-h-0 flex-1 overflow-hidden">
             {leftTab === 'scene' ? (
               <SceneGraphPanel />
-            ) : (
+            ) : leftTab === 'assets' ? (
               <AssetLibrary onOpenSplatWizard={() => setSplatWizardOpen(true)} />
+            ) : (
+              <HoloScriptEditor height="100%" />
             )}
           </div>
         </div>
@@ -279,8 +317,8 @@ export default function CreatePage() {
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Viewport */}
           <div className="relative flex-1 overflow-hidden">
-            <SceneRenderer r3fTree={r3fTree} />
-            <ViewportToolbar />
+            <SceneRenderer r3fTree={r3fTree} profilerOpen={profilerOpen} />
+            <ViewportToolbar profilerOpen={profilerOpen} onToggleProfiler={() => setProfilerOpen((v) => !v)} />
             <AIPromptOverlay />
 
             {errors.length > 0 && (

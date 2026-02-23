@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:*",
+    "@monaco-editor/react": "^4.7.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/xr": "^6.6.0",
@@ -33,6 +34,8 @@
     "react-dom": "^19.2.0",
     "reactflow": "^11.11.0",
     "three": "^0.182.0",
+    "y-websocket": "^2.0.3",
+    "yjs": "^13.6.15",
     "zundo": "^2.3.0",
     "zustand": "^4.5.0"
   },

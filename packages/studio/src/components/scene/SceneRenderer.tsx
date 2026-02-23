@@ -10,9 +10,11 @@ import type { SceneNode } from '@/lib/store';
 import { ASSET_DRAG_TYPE } from '@/components/assets/AssetLibrary';
 import type { Asset } from '@/components/assets/useAssetStore';
 import { VREditSession, xrStore } from '@/components/vr/VREditSession';
+import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
 
 interface SceneRendererProps {
   r3fTree: R3FNode | null;
+  profilerOpen?: boolean;
 }
 
 function SceneContent({ r3fTree }: { r3fTree: R3FNode }) {
@@ -79,7 +81,7 @@ function assetToTrait(asset: Asset): { name: string; properties: Record<string, 
 
 // ─── Main renderer with drop zone ────────────────────────────────────────────
 
-export function SceneRenderer({ r3fTree }: SceneRendererProps) {
+export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const addNode = useSceneGraphStore((s) => s.addNode);
   const addTrait = useSceneGraphStore((s) => s.addTrait);
@@ -184,6 +186,9 @@ export function SceneRenderer({ r3fTree }: SceneRendererProps) {
 
         {/* VR edit session — active when XR is running */}
         <VREditSession />
+
+        {/* Performance profiler overlay */}
+        <PerformanceOverlay open={profilerOpen} />
       </Canvas>
 
       {/* Drop overlay */}

@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useAIStore, useSceneStore } from '@/lib/store';
 import { SaveBar } from '@/components/SaveBar';
+import { CollabBar } from '@/components/collaboration/CollabBar';
 
 export function StudioHeader() {
   const ollamaStatus = useAIStore((s) => s.ollamaStatus);
@@ -51,6 +52,9 @@ export function StudioHeader() {
               ? 'Checking...'
               : 'AI Offline'}
         </div>
+
+        {/* Collaboration */}
+        <CollabBar />
 
         {/* Save / Open / Share / Export */}
         <SaveBar />
