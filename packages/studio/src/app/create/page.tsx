@@ -45,6 +45,9 @@ import {
   Terminal,
   Store,
   Smartphone,
+  Download,
+  Wand2,
+  Activity,
   X,
   History,
 } from 'lucide-react';
@@ -137,6 +140,26 @@ const RegistryPanel = dynamic(
 
 const QRRemotePanel = dynamic(
   () => import('@/components/remote/QRRemotePanel').then((m) => ({ default: m.QRRemotePanel })),
+  { ssr: false }
+);
+
+const ExportPanel = dynamic(
+  () => import('@/components/export/ExportPanel').then((m) => ({ default: m.ExportPanel })),
+  { ssr: false }
+);
+
+const SceneGeneratorPanel = dynamic(
+  () => import('@/components/ai/SceneGeneratorPanel').then((m) => ({ default: m.SceneGeneratorPanel })),
+  { ssr: false }
+);
+
+const ProfilerPanel = dynamic(
+  () => import('@/components/profiler/ProfilerPanel').then((m) => ({ default: m.ProfilerPanel })),
+  { ssr: false }
+);
+
+const ProfilerOverlay = dynamic(
+  () => import('@/components/profiler/ProfilerOverlay').then((m) => ({ default: m.ProfilerOverlay })),
   { ssr: false }
 );
 
@@ -328,6 +351,8 @@ export default function CreatePage() {
   const [replOpen, setReplOpen] = useState(false);
   const [registryOpen, setRegistryOpen] = useState(false);
   const [remoteOpen, setRemoteOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [generatorOpen, setGeneratorOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
 
   // Undo/Redo keyboard shortcuts
@@ -448,6 +473,7 @@ export default function CreatePage() {
             <SceneRenderer r3fTree={r3fTree} profilerOpen={profilerOpen} />
             <ViewportToolbar profilerOpen={profilerOpen} onToggleProfiler={() => setProfilerOpen((v) => !v)} />
             <AIPromptOverlay />
+            <ProfilerOverlay active={profilerOpen} />
             <AssetDropOverlay />
 
             {/* Template picker shortcut */}
@@ -549,6 +575,27 @@ export default function CreatePage() {
         {remoteOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
             <QRRemotePanel onClose={() => setRemoteOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Export */}
+        {exportOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <ExportPanel onClose={() => setExportOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: AI Generator */}
+        {generatorOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <SceneGeneratorPanel onClose={() => setGeneratorOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Profiler */}
+        {profilerOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <ProfilerPanel onClose={() => setProfilerOpen(false)} />
           </div>
         )}
 
@@ -676,6 +723,36 @@ export default function CreatePage() {
             }`}
           >
             <Smartphone className="h-4 w-4" />
+          </button>
+          {/* Export toggle */}
+          <button
+            onClick={() => { setExportOpen((v) => !v); setGeneratorOpen(false); setProfilerOpen(false); }}
+            title={exportOpen ? 'Close Export' : 'Export Scene'}
+            className={`transition ${
+              exportOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Download className="h-4 w-4" />
+          </button>
+          {/* AI Generator toggle */}
+          <button
+            onClick={() => { setGeneratorOpen((v) => !v); setExportOpen(false); setProfilerOpen(false); }}
+            title={generatorOpen ? 'Close AI Generator' : 'AI Scene Generator'}
+            className={`transition ${
+              generatorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Wand2 className="h-4 w-4" />
+          </button>
+          {/* Profiler toggle */}
+          <button
+            onClick={() => { setProfilerOpen((v) => !v); setExportOpen(false); setGeneratorOpen(false); }}
+            title={profilerOpen ? 'Close Profiler' : 'Performance Profiler'}
+            className={`transition ${
+              profilerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Activity className="h-4 w-4" />
           </button>
         </div>
       </div>
