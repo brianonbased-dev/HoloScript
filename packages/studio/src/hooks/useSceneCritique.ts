@@ -1,61 +1,41 @@
 'use client';
 
 /**
- * useSceneCritique — calls /api/critique with current scene code.
- * Returns status + suggestions list.
+ * useSceneCritique — fetches and manages AI scene critique results.
  */
 
 import { useState, useCallback } from 'react';
 import { useSceneStore } from '@/lib/store';
-
-export type CritiqueStatus = 'idle' | 'analyzing' | 'done' | 'error';
-
-export interface CritiqueResult {
-  suggestions: string[];
-  error?: string;
-}
+import type { CritiqueResult } from '@/app/api/critique/route';
 
 export function useSceneCritique() {
-  const code = useSceneStore((s) => s.code);
-  const [status, setStatus] = useState<CritiqueStatus>('idle');
+  const code = useSceneStore((s) => s.code) ?? '';
   const [result, setResult] = useState<CritiqueResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastAnalysedLen, setLastAnalysedLen] = useState(0);
 
-  const analyze = useCallback(async () => {
-    if (!code?.trim()) {
-      setResult({ suggestions: [], error: 'Scene is empty — add some HoloScript code first.' });
-      setStatus('error');
-      return;
-    }
-
-    setStatus('analyzing');
-    setResult(null);
-
+  const analyse = useCallback(async () => {
+    if (!code.trim()) { setError('No code to analyse.'); return; }
+    setLoading(true); setError(null);
     try {
       const res = await fetch('/api/critique', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       });
-      const data = (await res.json()) as { suggestions?: string[]; error?: string };
-
-      if (!res.ok || data.error) {
-        setResult({ suggestions: [], error: data.error ?? 'Analysis failed' });
-        setStatus('error');
-        return;
-      }
-
-      setResult({ suggestions: data.suggestions ?? [] });
-      setStatus('done');
-    } catch (err) {
-      setResult({ suggestions: [], error: String(err) });
-      setStatus('error');
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data: CritiqueResult = await res.json();
+      setResult(data);
+      setLastAnalysedLen(code.length);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setLoading(false);
     }
   }, [code]);
 
-  const reset = useCallback(() => {
-    setStatus('idle');
-    setResult(null);
-  }, []);
+  const isStale = result !== null && code.length !== lastAnalysedLen;
 
-  return { status, result, analyze, reset };
+  return { result, loading, error, analyse, isStale };
 }

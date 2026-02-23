@@ -62,10 +62,12 @@ import {
   Eye,
   Terminal as TerminalIcon,
   Clock as ClockIcon,
-  Layers,
   Palette,
   Atom,
   GitCompare,
+  Music2,
+  Move3d,
+  Bot,
 } from 'lucide-react';
 import type { GizmoMode } from '@/lib/store';
 
@@ -276,6 +278,26 @@ const PhysicsPanel = dynamic(
 
 const SnapshotDiffPanel = dynamic(
   () => import('@/components/diff/SnapshotDiffPanel').then((m) => ({ default: m.SnapshotDiffPanel })),
+  { ssr: false }
+);
+
+const AudioVisualizerPanel = dynamic(
+  () => import('@/components/audio/AudioVisualizerPanel').then((m) => ({ default: m.AudioVisualizerPanel })),
+  { ssr: false }
+);
+
+const GlslShaderPanel = dynamic(
+  () => import('@/components/shader/ShaderEditorPanel').then((m) => ({ default: m.GlslShaderPanel })),
+  { ssr: false }
+);
+
+const MultiTransformPanel = dynamic(
+  () => import('@/components/transform/MultiTransformPanel').then((m) => ({ default: m.MultiTransformPanel })),
+  { ssr: false }
+);
+
+const CritiquePanel = dynamic(
+  () => import('@/components/critique/CritiquePanel').then((m) => ({ default: m.CritiquePanel })),
   { ssr: false }
 );
 
@@ -494,6 +516,9 @@ export default function CreatePage() {
   const [materialOpen, setMaterialOpen] = useState(false);
   const [physicsOpen, setPhysicsOpen] = useState(false);
   const [snapshotDiffOpen, setSnapshotDiffOpen] = useState(false);
+  // Sprint V (new additions only — shaderEditorOpen and critiqueOpen already declared above)
+  const [audioVisualizerOpen, setAudioVisualizerOpen] = useState(false);
+  const [multiTransformOpen, setMultiTransformOpen] = useState(false);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -852,6 +877,34 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Audio Visualizer */}
+        {audioVisualizerOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <AudioVisualizerPanel onClose={() => setAudioVisualizerOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: GLSL Shader Editor */}
+        {shaderEditorOpen && (
+          <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+            <GlslShaderPanel onClose={() => setShaderEditorOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Multi-Object Transform */}
+        {multiTransformOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <MultiTransformPanel onClose={() => setMultiTransformOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Scene Critique */}
+        {critiqueOpen && (
+          <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+            <CritiquePanel onClose={() => setCritiqueOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -1158,6 +1211,38 @@ export default function CreatePage() {
             className={`transition ${snapshotDiffOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
             <GitCompare className="h-4 w-4" />
+          </button>
+          {/* Audio Visualizer toggle */}
+          <button
+            onClick={() => setAudioVisualizerOpen((v) => !v)}
+            title={audioVisualizerOpen ? 'Close Audio Visualizer' : 'Audio Visualizer'}
+            className={`transition ${audioVisualizerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Music2 className="h-4 w-4" />
+          </button>
+          {/* Shader Editor toggle */}
+          <button
+            onClick={() => setShaderEditorOpen((v) => !v)}
+            title={shaderEditorOpen ? 'Close Shader Editor' : 'Shader Editor'}
+            className={`transition ${shaderEditorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Code2 className="h-4 w-4" />
+          </button>
+          {/* Multi-Object Transform toggle */}
+          <button
+            onClick={() => setMultiTransformOpen((v) => !v)}
+            title={multiTransformOpen ? 'Close Multi-Transform' : 'Multi-Object Transform'}
+            className={`transition ${multiTransformOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Move3d className="h-4 w-4" />
+          </button>
+          {/* Scene Critique toggle */}
+          <button
+            onClick={() => setCritiqueOpen((v) => !v)}
+            title={critiqueOpen ? 'Close Critique' : 'Scene Critique'}
+            className={`transition ${critiqueOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Bot className="h-4 w-4" />
           </button>
         </div>
       </div>
