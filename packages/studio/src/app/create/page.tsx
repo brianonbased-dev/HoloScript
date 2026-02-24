@@ -69,7 +69,6 @@ import {
   Move3d,
   Bot,
   Sun,
-  Gauge,
 } from 'lucide-react';
 import type { GizmoMode } from '@/lib/store';
 
@@ -308,7 +307,7 @@ const EnvironmentPanel = dynamic(
   { ssr: false }
 );
 
-const AssetPackPanel = dynamic(
+const AssetPackStorePanel = dynamic(
   () => import('@/components/store/AssetPackPanel').then((m) => ({ default: m.AssetPackPanel })),
   { ssr: false }
 );
@@ -325,6 +324,16 @@ const VersionHistoryPanel = dynamic(
 
 const TraitRegistryPanel = dynamic(
   () => import('@/components/registry/TraitRegistryPanel').then((m) => ({ default: m.TraitRegistryPanel })),
+  { ssr: false }
+);
+
+const RemotePreviewPanel = dynamic(
+  () => import('@/components/remote/RemotePreviewPanel').then((m) => ({ default: m.RemotePreviewPanel })),
+  { ssr: false }
+);
+
+const AiSceneGeneratorPanel = dynamic(
+  () => import('@/components/generator/SceneGeneratorPanel').then((m) => ({ default: m.SceneGeneratorPanel })),
   { ssr: false }
 );
 
@@ -969,6 +978,27 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Remote Preview */}
+        {remoteOpen && (
+          <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+            <RemotePreviewPanel onClose={() => setRemoteOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Debugger */}
+        {debuggerOpen && (
+          <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+            <DebuggerPanel onClose={() => setDebuggerOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Scene Generator */}
+        {generatorOpen && (
+          <div className="flex w-96 shrink-0 flex-col border-l border-studio-border">
+            <SceneGeneratorPanel onClose={() => setGeneratorOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -1347,6 +1377,30 @@ export default function CreatePage() {
             className={`transition ${registryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
             <Library className="h-4 w-4" />
+          </button>
+          {/* Remote Preview toggle */}
+          <button
+            onClick={() => setRemoteOpen((v) => !v)}
+            title={remoteOpen ? 'Close Remote' : 'Remote Preview'}
+            className={`transition ${remoteOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Smartphone className="h-4 w-4" />
+          </button>
+          {/* Debugger toggle */}
+          <button
+            onClick={() => setDebuggerOpen((v) => !v)}
+            title={debuggerOpen ? 'Close Debugger' : 'HoloScript Debugger'}
+            className={`transition ${debuggerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Bug className="h-4 w-4" />
+          </button>
+          {/* Scene Generator toggle */}
+          <button
+            onClick={() => setGeneratorOpen((v) => !v)}
+            title={generatorOpen ? 'Close Generator' : 'AI Scene Generator'}
+            className={`transition ${generatorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Wand2 className="h-4 w-4" />
           </button>
         </div>
       </div>
