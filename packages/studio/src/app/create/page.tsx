@@ -68,6 +68,7 @@ import {
   Music2,
   Move3d,
   Bot,
+  Sun,
 } from 'lucide-react';
 import type { GizmoMode } from '@/lib/store';
 
@@ -301,6 +302,16 @@ const CritiquePanel = dynamic(
   { ssr: false }
 );
 
+const EnvironmentPanel = dynamic(
+  () => import('@/components/environment/EnvironmentPanel').then((m) => ({ default: m.EnvironmentPanel })),
+  { ssr: false }
+);
+
+const AssetPackPanel = dynamic(
+  () => import('@/components/store/AssetPackPanel').then((m) => ({ default: m.AssetPackPanel })),
+  { ssr: false }
+);
+
 function ViewportSkeleton() {
   return (
     <div className="flex h-full w-full items-center justify-center bg-[#0a0a12]">
@@ -519,6 +530,8 @@ export default function CreatePage() {
   // Sprint V (new additions only — shaderEditorOpen and critiqueOpen already declared above)
   const [audioVisualizerOpen, setAudioVisualizerOpen] = useState(false);
   const [multiTransformOpen, setMultiTransformOpen] = useState(false);
+  // Sprint W (assetPackOpen already declared above)
+  const [environmentOpen, setEnvironmentOpen] = useState(false);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -905,6 +918,20 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Environment Builder */}
+        {environmentOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <EnvironmentPanel onClose={() => setEnvironmentOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Asset Pack Store */}
+        {assetPackOpen && (
+          <div className="flex w-96 shrink-0 flex-col border-l border-studio-border">
+            <AssetPackPanel onClose={() => setAssetPackOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -1243,6 +1270,22 @@ export default function CreatePage() {
             className={`transition ${critiqueOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
             <Bot className="h-4 w-4" />
+          </button>
+          {/* Environment Builder toggle */}
+          <button
+            onClick={() => setEnvironmentOpen((v) => !v)}
+            title={environmentOpen ? 'Close Environment' : 'Environment Builder'}
+            className={`transition ${environmentOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Sun className="h-4 w-4" />
+          </button>
+          {/* Asset Pack Store toggle */}
+          <button
+            onClick={() => setAssetPackOpen((v) => !v)}
+            title={assetPackOpen ? 'Close Store' : 'Asset Pack Store'}
+            className={`transition ${assetPackOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Store className="h-4 w-4" />
           </button>
         </div>
       </div>
