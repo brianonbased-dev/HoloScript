@@ -10,42 +10,65 @@ import { create } from 'zustand';
 
 // ── Local stubs (replace with @holoscript/core/shader/graph once exported) ──
 
-interface IShaderPort {
+export type ShaderDataType =
+  | 'float' | 'vec2' | 'vec3' | 'vec4'
+  | 'mat2' | 'mat3' | 'mat4'
+  | 'int' | 'ivec2' | 'ivec3' | 'ivec4'
+  | 'bool' | 'sampler2D' | 'samplerCube';
+
+export interface IShaderPort {
   id: string;
   name: string;
-  type: string;
+  type: ShaderDataType;
   direction: 'in' | 'out';
+  connected?: boolean;
+  defaultValue?: number | number[];
 }
+
+export type ShaderNodeCategory =
+  | 'input' | 'output' | 'math' | 'vector'
+  | 'color' | 'texture' | 'utility' | 'material'
+  | 'volumetric' | 'custom';
 
 export interface IShaderNode {
   id: string;
   type: string;
+  name: string;
+  category: ShaderNodeCategory;
   position: { x: number; y: number };
+  /** @deprecated use ports array */
   ports: IShaderPort[];
+  /** Convenience accessors derived from ports */
+  inputs: IShaderPort[];
+  outputs: IShaderPort[];
   properties: Record<string, unknown>;
   label?: string;
-}
-
-export interface IShaderConnection {
-  id: string;
-  fromNodeId: string;
-  fromPortId: string;
-  toNodeId: string;
-  toPortId: string;
+  /** Show a preview swatch for color/texture nodes */
+  preview?: boolean;
 }
 
 class ShaderGraph {
   private name: string;
   private nodes: Map<string, IShaderNode> = new Map();
-  private connections: Map<string, IShaderConnection> = new Map();
+  private _connections: Map<string, IShaderConnection> = new Map();
   private _nodeCounter = 0;
   private _connCounter = 0;
 
   constructor(name: string) { this.name = name; }
 
-  createNode(type: string, position: { x: number; y: number }): IShaderNode | null {
+  createNode(
+    type: string,
+    position: { x: number; y: number },
+    opts?: { name?: string; category?: ShaderNodeCategory }
+  ): IShaderNode | null {
     const id = `node_${++this._nodeCounter}`;
-    const node: IShaderNode = { id, type, position, ports: [], properties: {} };
+    const node: IShaderNode = {
+      id, type,
+      name: opts?.name ?? type,
+      category: opts?.category ?? 'custom',
+      position, ports: [], inputs: [], outputs: [],
+      properties: {},
+    };
     this.nodes.set(id, node);
     return node;
   }
@@ -53,9 +76,8 @@ class ShaderGraph {
   getNode(id: string): IShaderNode | undefined { return this.nodes.get(id); }
 
   removeNode(id: string): boolean {
-    // Remove all connections referencing this node
-    for (const [cid, c] of this.connections) {
-      if (c.fromNodeId === id || c.toNodeId === id) this.connections.delete(cid);
+    for (const [cid, c] of this._connections) {
+      if (c.fromNodeId === id || c.toNodeId === id) this._connections.delete(cid);
     }
     return this.nodes.delete(id);
   }
@@ -64,16 +86,22 @@ class ShaderGraph {
     if (!this.nodes.has(fromNodeId) || !this.nodes.has(toNodeId)) return null;
     const id = `conn_${++this._connCounter}`;
     const conn: IShaderConnection = { id, fromNodeId, fromPortId, toNodeId, toPortId };
-    this.connections.set(id, conn);
+    this._connections.set(id, conn);
+    // Mark the destination port as connected
+    const toNode = this.nodes.get(toNodeId);
+    if (toNode) {
+      const port = toNode.inputs.find((p) => p.id === toPortId);
+      if (port) port.connected = true;
+    }
     return conn;
   }
 
   disconnectPort(nodeId: string, portId: string): boolean {
     let found = false;
-    for (const [id, c] of this.connections) {
+    for (const [id, c] of this._connections) {
       if ((c.fromNodeId === nodeId && c.fromPortId === portId) ||
           (c.toNodeId === nodeId && c.toPortId === portId)) {
-        this.connections.delete(id);
+        this._connections.delete(id);
         found = true;
       }
     }
@@ -96,7 +124,7 @@ class ShaderGraph {
     return JSON.stringify({
       name: this.name,
       nodes: Object.fromEntries(this.nodes),
-      connections: Object.fromEntries(this.connections),
+      connections: Object.fromEntries(this._connections),
     });
   }
 
@@ -108,7 +136,7 @@ class ShaderGraph {
     };
     const g = new ShaderGraph(data.name);
     for (const [k, v] of Object.entries(data.nodes)) g.nodes.set(k, v);
-    for (const [k, v] of Object.entries(data.connections)) g.connections.set(k, v);
+    for (const [k, v] of Object.entries(data.connections)) g._connections.set(k, v);
     return g;
   }
 }

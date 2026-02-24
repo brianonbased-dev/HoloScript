@@ -69,6 +69,7 @@ import {
   Move3d,
   Bot,
   Sun,
+  Gauge,
 } from 'lucide-react';
 import type { GizmoMode } from '@/lib/store';
 
@@ -309,6 +310,21 @@ const EnvironmentPanel = dynamic(
 
 const AssetPackPanel = dynamic(
   () => import('@/components/store/AssetPackPanel').then((m) => ({ default: m.AssetPackPanel })),
+  { ssr: false }
+);
+
+const ProfilerPanel = dynamic(
+  () => import('@/components/profiler/ProfilerPanel').then((m) => ({ default: m.ProfilerPanel })),
+  { ssr: false }
+);
+
+const VersionHistoryPanel = dynamic(
+  () => import('@/components/versions/VersionHistoryPanel').then((m) => ({ default: m.VersionHistoryPanel })),
+  { ssr: false }
+);
+
+const TraitRegistryPanel = dynamic(
+  () => import('@/components/registry/TraitRegistryPanel').then((m) => ({ default: m.TraitRegistryPanel })),
   { ssr: false }
 );
 
@@ -932,6 +948,27 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Performance Profiler */}
+        {profilerOpen && (
+          <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+            <ProfilerPanel onClose={() => setProfilerOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Version History */}
+        {versionsOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <VersionHistoryPanel onClose={() => setVersionsOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Trait Registry */}
+        {registryOpen && (
+          <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+            <TraitRegistryPanel onClose={() => setRegistryOpen(false)} />
+          </div>
+        )}
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -1286,6 +1323,30 @@ export default function CreatePage() {
             className={`transition ${assetPackOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
             <Store className="h-4 w-4" />
+          </button>
+          {/* Performance Profiler toggle */}
+          <button
+            onClick={() => setProfilerOpen((v) => !v)}
+            title={profilerOpen ? 'Close Profiler' : 'Performance Profiler'}
+            className={`transition ${profilerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Gauge className="h-4 w-4" />
+          </button>
+          {/* Version History toggle */}
+          <button
+            onClick={() => setVersionsOpen((v) => !v)}
+            title={versionsOpen ? 'Close History' : 'Version History'}
+            className={`transition ${versionsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <History className="h-4 w-4" />
+          </button>
+          {/* Trait Registry toggle */}
+          <button
+            onClick={() => setRegistryOpen((v) => !v)}
+            title={registryOpen ? 'Close Registry' : 'Trait Registry'}
+            className={`transition ${registryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Library className="h-4 w-4" />
           </button>
         </div>
       </div>

@@ -9,7 +9,7 @@
 import React, { memo, useState } from 'react';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
-import type { IShaderNode, ShaderDataType } from '@holoscript/core/shader/graph/ShaderGraphTypes';
+import type { IShaderNode, ShaderDataType } from '../../hooks/useShaderGraph';
 import { useShaderGraph } from '../../hooks/useShaderGraph';
 import { useNodeSelection } from '../../hooks/useNodeSelection';
 import { ChevronDown, ChevronRight } from 'lucide-react';
