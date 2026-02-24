@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, Suspense } from 'react';
+import { useMemo, Suspense, lazy } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Stars, Environment, Text, Sparkles } from '@react-three/drei';
 import {
@@ -10,6 +10,11 @@ import {
   MATERIAL_PRESETS,
 } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
+
+// VR edit session — lazy loaded to avoid SSR issues
+const VREditSession = lazy(() =>
+  import('@/components/vr/VREditSession').then((m) => ({ default: m.VREditSession }))
+);
 
 // ─── Geometry mapper ────────────────────────────────────────────────────────
 
@@ -404,6 +409,11 @@ export function SceneViewer({
         {showStars && (
           <Stars radius={80} depth={50} count={2000} factor={3} saturation={0.1} fade speed={0.5} />
         )}
+
+        {/* VR Edit Session — mounts inside Canvas so XR hooks work */}
+        <Suspense fallback={null}>
+          <VREditSession />
+        </Suspense>
       </Canvas>
 
       {showObjectCount && r3fTree?.children && (

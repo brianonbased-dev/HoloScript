@@ -56,6 +56,42 @@ export function buildSceneContext(nodes: SceneNode[], selectedId: string | null)
   return lines.join('\n');
 }
 
+/**
+ * Rich context builder — includes the raw .holo code so Brittney can
+ * directly read and modify the scene source. Prioritises code over the
+ * node graph summary when both are available.
+ */
+export function buildRichContext(
+  code: string,
+  nodes: SceneNode[],
+  selectedId: string | null,
+  selectedName: string | null
+): string {
+  const sections: string[] = [];
+
+  // Selected object hint
+  if (selectedName) {
+    sections.push(`Currently selected object: "${selectedName}"`);
+  } else {
+    sections.push('No object is currently selected.');
+  }
+
+  // Node graph summary (compact)
+  if (nodes.length > 0) {
+    sections.push(buildSceneContext(nodes, selectedId));
+  }
+
+  // Full scene source — the ground truth
+  if (code.trim()) {
+    const truncated = code.length > 4000 ? code.slice(0, 4000) + '\n… (truncated)' : code;
+    sections.push(`\nFull scene code (HoloScript):\n\`\`\`holoscript\n${truncated}\n\`\`\``);
+  } else {
+    sections.push('\nScene code is empty. You can create objects with createObject().');
+  }
+
+  return sections.join('\n\n');
+}
+
 // ─── Stream consumer ──────────────────────────────────────────────────────────
 
 /**

@@ -5,11 +5,11 @@
  * Uses useNodeInspector to get typed property groups from the scene code.
  */
 
-import { SlidersHorizontal, X, ChevronDown, ChevronRight, Search } from 'lucide-react';
-import { useState, useCallback, useMemo } from 'react';
+import { SlidersHorizontal, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { useCallback } from 'react';
 import { useNodeInspector } from '@/hooks/useNodeInspector';
 import type { PropGroup, SceneProp } from '@/hooks/useNodeInspector';
-import { useSceneStore } from '@/lib/store';
+import { useEditorStore } from '@/lib/store';
 
 interface NodeInspectorPanelProps { onClose: () => void; }
 
@@ -133,26 +133,14 @@ function GroupCard({ group, onSet }: { group: PropGroup; onSet: (key: string, v:
 // ─── Panel ────────────────────────────────────────────────────────────────────
 
 export function NodeInspectorPanel({ onClose }: NodeInspectorPanelProps) {
-  const [objectName, setObjectName] = useState<string | null>(null);
-  const [inputVal, setInputVal] = useState('');
-
-  // Extract object names from scene code for autocomplete
-  const code = useSceneStore((s) => s.code) ?? '';
-  const objectNames = useMemo(() => {
-    const matches = code.matchAll(/^\s*(?:object|scene|group)\s+(\w+)\s*/gm);
-    return [...matches].map((m) => m[1]).filter(Boolean);
-  }, [code]);
+  // ── Drive selection from the shared editor store (set by SceneOutliner) ──────
+  const objectName = useEditorStore((s) => s.selectedObjectName);
 
   const { objectType, groups, lineRange, setProperty } = useNodeInspector(objectName);
 
   const handleSet = useCallback((trait: string, key: string, value: SceneProp['value']) => {
     setProperty(trait, key, value);
   }, [setProperty]);
-
-  const handleSubmit = () => {
-    const trimmed = inputVal.trim();
-    setObjectName(trimmed || null);
-  };
 
   return (
     <div className="flex h-full flex-col bg-studio-panel text-studio-text">
@@ -171,37 +159,13 @@ export function NodeInspectorPanel({ onClose }: NodeInspectorPanelProps) {
         </button>
       </div>
 
-      {/* Object picker */}
-      <div className="shrink-0 border-b border-studio-border px-3 py-2">
-        <div className="flex items-center gap-2">
-          <Search className="h-3.5 w-3.5 text-studio-muted shrink-0" />
-          <input
-            list="inspector-obj-list"
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-            placeholder="Type object name…"
-            className="flex-1 bg-transparent text-[10px] text-studio-text placeholder:text-studio-muted/60 outline-none"
-          />
-          <datalist id="inspector-obj-list">
-            {objectNames.map((n) => <option key={n} value={n} />)}
-          </datalist>
-          <button onClick={handleSubmit}
-            className="rounded-lg bg-studio-accent/20 px-2 py-0.5 text-[8px] text-studio-accent hover:bg-studio-accent/30 transition">
-            Inspect
-          </button>
-        </div>
-      </div>
-
       {/* Body */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {!objectName && (
-          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+          <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
             <SlidersHorizontal className="h-10 w-10 text-studio-muted/20" />
-            <p className="text-[10px] text-studio-muted">Type an object name above</p>
-            <p className="text-[8px] text-studio-muted/60">
-              {objectNames.length > 0 ? `${objectNames.length} objects in scene` : 'No objects found'}
-            </p>
+            <p className="text-[10px] text-studio-muted">Select an object in the Scene Outliner</p>
+            <p className="text-[8px] text-studio-muted/50">Properties will appear here automatically</p>
           </div>
         )}
 

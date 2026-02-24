@@ -4,11 +4,11 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Send, Loader2, Zap, CheckCircle2, XCircle } from 'lucide-react';
 import {
   streamBrittney,
-  buildSceneContext,
+  buildRichContext,
   executeTool,
 } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
-import { useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/store';
 
 // ─── Message model ────────────────────────────────────────────────────────────
 
@@ -54,7 +54,9 @@ function ToolBadge({ result }: { result: ToolResult }) {
 
 export function BrittneyChatPanel() {
   const selectedId = useEditorStore((s) => s.selectedObjectId);
+  const selectedName = useEditorStore((s) => s.selectedObjectName);
   const nodes = useSceneGraphStore((s) => s.nodes);
+  const code = useSceneStore((s) => s.code) ?? '';
   const addTrait = useSceneGraphStore((s) => s.addTrait);
   const removeTrait = useSceneGraphStore((s) => s.removeTrait);
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
@@ -94,8 +96,8 @@ export function BrittneyChatPanel() {
     setLlmHistory(updatedHistory);
     setIsThinking(true);
 
-    // Build scene context
-    const sceneContext = buildSceneContext(nodes, selectedId);
+    // Build rich scene context (code + node graph + selection)
+    const sceneContext = buildRichContext(code, nodes, selectedId, selectedName);
 
     // Create streaming Brittney message placeholder
     const brittMsgId = (Date.now() + 1).toString();
@@ -191,9 +193,16 @@ export function BrittneyChatPanel() {
             {isThinking ? 'Thinking…' : 'AI Scene Director'}
           </div>
         </div>
-        <div className="ml-auto flex items-center gap-1 text-[10px] text-studio-muted">
+        <div className="ml-auto flex items-center gap-1.5 text-[10px] text-studio-muted">
           <Zap className="h-3 w-3 text-studio-accent" />
-          {nodes.length} obj · {selectedId ? '1 selected' : 'none selected'}
+          {selectedName ? (
+            <span className="rounded-full bg-studio-accent/15 px-1.5 py-0.5 text-[8px] text-studio-accent">
+              {selectedName}
+            </span>
+          ) : (
+            <span>{nodes.length} obj</span>
+          )}
+          <span>· {code.split('\n').length}L</span>
         </div>
       </div>
 

@@ -5,8 +5,8 @@
  * Provides selection state and a jump-to-line callback.
  */
 
-import { useMemo, useState, useCallback } from 'react';
-import { useSceneStore } from '@/lib/store';
+import { useMemo } from 'react';
+import { useSceneStore, useEditorStore } from '@/lib/store';
 
 export type OutlinerNodeType = 'scene' | 'object' | 'light' | 'camera' | 'group';
 
@@ -78,7 +78,7 @@ function parseOutliner(code: string): OutlinerNode[] {
 
 export function useSceneOutliner() {
   const code = useSceneStore((s) => s.code) ?? '';
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedId = useEditorStore((s) => s.selectedObjectId);
 
   const tree = useMemo(() => parseOutliner(code), [code]);
 
@@ -93,7 +93,5 @@ export function useSceneOutliner() {
 
   const selectedNode = useMemo(() => allNodes.find((n) => n.id === selectedId) ?? null, [allNodes, selectedId]);
 
-  const select = useCallback((id: string | null) => setSelectedId(id), []);
-
-  return { tree, allNodes, selectedNode, selectedId, select };
+  return { tree, allNodes, selectedNode };
 }

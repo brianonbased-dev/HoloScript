@@ -178,10 +178,12 @@ interface EditorState {
   activePanel: EditorPanel;
   sidebarOpen: boolean;
   selectedObjectId: string | null;
+  selectedObjectName: string | null;
   gizmoMode: GizmoMode;
   setActivePanel: (panel: EditorPanel) => void;
   toggleSidebar: () => void;
   setSelectedObjectId: (id: string | null) => void;
+  setSelectedObject: (id: string | null, name: string | null) => void;
   setGizmoMode: (mode: GizmoMode) => void;
 }
 
@@ -191,10 +193,12 @@ export const useEditorStore = create<EditorState>()(
       activePanel: 'prompt',
       sidebarOpen: true,
       selectedObjectId: null,
+      selectedObjectName: null,
       gizmoMode: 'translate',
       setActivePanel: (activePanel) => set({ activePanel }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setSelectedObjectId: (selectedObjectId) => set({ selectedObjectId }),
+      setSelectedObject: (selectedObjectId, selectedObjectName) => set({ selectedObjectId, selectedObjectName }),
       setGizmoMode: (gizmoMode) => set({ gizmoMode }),
     }),
     { name: 'editor-store' }

@@ -9,14 +9,15 @@
 
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { streamBrittney, buildSceneContext } from '@/lib/brittney';
+import { streamBrittney, buildRichContext } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload } from '@/lib/brittney';
 import { executeTool } from '@/lib/brittney';
-import { useSceneGraphStore, useEditorStore } from '@/lib/store';
+import { useSceneGraphStore, useEditorStore, useSceneStore } from '@/lib/store';
+import { BrittneyAvatarMesh } from './BrittneyAvatarMesh';
 
 // ─── Speech bubble ────────────────────────────────────────────────────────────
 
@@ -106,6 +107,24 @@ function BrittneyInputPanel({
           outline: 'none',
         }}
       />
+      {/* Voice button */}
+      <button
+        type="button"
+        onClick={handleVoice}
+        disabled={disabled || listening}
+        style={{
+          background: listening ? 'rgba(239,68,68,0.3)' : 'rgba(99,102,241,0.2)',
+          border: 'none',
+          borderRadius: 6,
+          color: listening ? '#ef4444' : '#818cf8',
+          cursor: 'pointer',
+          fontSize: 14,
+          padding: '2px 6px',
+          transition: 'background 0.2s',
+        }}
+      >
+        🎤
+      </button>
       <button
         type="submit"
         disabled={disabled || !value.trim()}
@@ -140,6 +159,8 @@ export function VRBrittney() {
 
   const nodes = useSceneGraphStore((s) => s.nodes);
   const selectedId = useEditorStore((s) => s.selectedObjectId);
+  const selectedName = useEditorStore((s) => s.selectedObjectName);
+  const code = useSceneStore((s) => s.code) ?? '';
   const addTrait = useSceneGraphStore((s) => s.addTrait);
   const removeTrait = useSceneGraphStore((s) => s.removeTrait);
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
@@ -167,7 +188,7 @@ export function VRBrittney() {
     const newHistory: BrittneyMessage[] = [...history, { role: 'user', content: text }];
     setHistory(newHistory);
 
-    const sceneContext = buildSceneContext(nodes, selectedId);
+    const sceneContext = buildRichContext(code, nodes, selectedId, selectedName);
     const storeActions = { nodes, addTrait, removeTrait, setTraitProperty, addNode };
 
     let accumulated = '';
@@ -194,9 +215,12 @@ export function VRBrittney() {
 
   return (
     <group ref={brittRef}>
-      {/* Speech bubble — above input */}
+      {/* Avatar mesh — positioned to the left of the speech UI */}
+      <BrittneyAvatarMesh isSpeaking={isThinking} />
+
+      {/* Speech bubble — above and slightly right */}
       <Html
-        position={[0, 0.08, 0]}
+        position={[0.1, 0.12, 0]}
         transform
         occlude={false}
         scale={0.002}
@@ -206,9 +230,9 @@ export function VRBrittney() {
         <BrittneySpeechBubble text={lastResponse} isThinking={isThinking} />
       </Html>
 
-      {/* Input panel — below */}
+      {/* Input panel — below speech bubble */}
       <Html
-        position={[0, -0.01, 0]}
+        position={[0.1, -0.01, 0]}
         transform
         occlude={false}
         scale={0.002}
