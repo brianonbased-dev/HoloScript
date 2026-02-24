@@ -118,7 +118,105 @@ type StoreActions = {
   removeTrait: (nodeId: string, traitName: string) => void;
   setTraitProperty: (nodeId: string, traitName: string, key: string, value: unknown) => void;
   addNode: (node: SceneNode) => void;
+  getCode: () => string;
+  setCode: (code: string) => void;
 };
+
+// ─── Code patch helpers ───────────────────────────────────────────────────────
+
+/**
+ * Inject a @trait block into the matching object block in HoloScript code.
+ * If the object block is found, appends the trait before the closing `}`.
+ * If not found, appends a new root-level object block.
+ */
+function codeAddTrait(
+  code: string,
+  objectName: string,
+  traitName: string,
+  properties: Record<string, unknown>
+): string {
+  const propLines = Object.entries(properties)
+    .map(([k, v]) => `    ${k}: ${JSON.stringify(v)}`)
+    .join('\n');
+  const traitBlock = propLines
+    ? `  @${traitName} {\n${propLines}\n  }`
+    : `  @${traitName}`;
+
+  // Match: object "Name" { ... }  or object "Name" {  (open brace on same or next line)
+  const objRegex = new RegExp(
+    `((?:object|scene|group|light|camera)\\s+"${escapeRegex(objectName)}"\\s*\\{[^}]*)(\\})`,
+    's'
+  );
+  if (objRegex.test(code)) {
+    return code.replace(objRegex, (_, body, close) => `${body}\n${traitBlock}\n${close}`);
+  }
+  // Fallback: add new object block at end
+  return code + `\nobject "${objectName}" {\n${traitBlock}\n}\n`;
+}
+
+function codeRemoveTrait(code: string, objectName: string, traitName: string): string {
+  // Remove standalone @traitName or @traitName { ... } block inside the object
+  const objRegex = new RegExp(
+    `((?:object|scene|group|light|camera)\\s+"${escapeRegex(objectName)}"\\s*\\{)([\\s\\S]*?)(\\})`,
+    'g'
+  );
+  return code.replace(objRegex, (match, open, body, close) => {
+    // Remove trait line (standalone) or block
+    const cleaned = body
+      .replace(new RegExp(`\\n?\\s*@${escapeRegex(traitName)}\\s*\\{[^}]*\\}`, 'gs'), '')
+      .replace(new RegExp(`\\n?\\s*@${escapeRegex(traitName)}(?!\\s*\\{)[^\\n]*`, 'g'), '');
+    return `${open}${cleaned}${close}`;
+  });
+}
+
+function codeSetTraitProperty(
+  code: string,
+  objectName: string,
+  traitName: string,
+  key: string,
+  value: unknown
+): string {
+  // Within the matching object block, within the @traitName block, set key: value
+  const objRegex = new RegExp(
+    `((?:object|scene|group|light|camera)\\s+"${escapeRegex(objectName)}"\\s*\\{)([\\s\\S]*?)(\\})`,
+    'g'
+  );
+  return code.replace(objRegex, (match, open, body, close) => {
+    const traitBlockRegex = new RegExp(
+      `(@${escapeRegex(traitName)}\\s*\\{)([^}]*)(\\})`,
+      's'
+    );
+    if (traitBlockRegex.test(body)) {
+      const patchedBody = body.replace(traitBlockRegex, (_m: string, tOpen: string, tBody: string, tClose: string) => {
+        const keyRegex = new RegExp(`^(\\s*${escapeRegex(key)}\\s*:).*$`, 'm');
+        const newVal = `    ${key}: ${JSON.stringify(value)}`;
+        const patched = keyRegex.test(tBody)
+          ? tBody.replace(keyRegex, newVal)
+          : `${tBody}\n${newVal}`;
+        return `${tOpen}${patched}${tClose}`;
+      });
+      return `${open}${patchedBody}${close}`;
+    }
+    return match;
+  });
+}
+
+function codeCreateObject(
+  code: string,
+  name: string,
+  type: string,
+  position: [number, number, number]
+): string {
+  const [x, y, z] = position;
+  const posLine = (x !== 0 || y !== 0 || z !== 0)
+    ? `\n  position: [${x}, ${y}, ${z}]`
+    : '';
+  return code + `\n${type} "${name}" {${posLine}\n}\n`;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export function executeTool(
   toolName: string,
@@ -134,6 +232,8 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node) return { tool: toolName, success: false, message: `Object "${objName}" not found in scene` };
         store.addTrait(node.id, { name: traitName, properties });
+        // Patch source code
+        store.setCode(codeAddTrait(store.getCode(), node.name, traitName, properties));
         return { tool: toolName, success: true, message: `Added @${traitName} to "${node.name}"` };
       }
 
@@ -143,6 +243,7 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node) return { tool: toolName, success: false, message: `Object "${objName}" not found` };
         store.removeTrait(node.id, traitName);
+        store.setCode(codeRemoveTrait(store.getCode(), node.name, traitName));
         return { tool: toolName, success: true, message: `Removed @${traitName} from "${node.name}"` };
       }
 
@@ -154,23 +255,18 @@ export function executeTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node) return { tool: toolName, success: false, message: `Object "${objName}" not found` };
         store.setTraitProperty(node.id, traitName, key, value);
+        store.setCode(codeSetTraitProperty(store.getCode(), node.name, traitName, key, value));
         return { tool: toolName, success: true, message: `Set ${traitName}.${key} = ${JSON.stringify(value)} on "${node.name}"` };
       }
 
       case 'create_object': {
         const id = `obj-${Date.now()}`;
+        const name = args.name as string;
+        const type = (args.type as SceneNode['type']) ?? 'mesh';
         const pos = (args.position as [number, number, number]) ?? [0, 0, 0];
-        store.addNode({
-          id,
-          name: args.name as string,
-          type: (args.type as SceneNode['type']) ?? 'mesh',
-          parentId: null,
-          traits: [],
-          position: pos,
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-        });
-        return { tool: toolName, success: true, message: `Created "${args.name}" in the scene` };
+        store.addNode({ id, name, type, parentId: null, traits: [], position: pos, rotation: [0, 0, 0], scale: [1, 1, 1] });
+        store.setCode(codeCreateObject(store.getCode(), name, type, pos));
+        return { tool: toolName, success: true, message: `Created "${name}" in the scene` };
       }
 
       case 'compose_traits': {
@@ -178,9 +274,12 @@ export function executeTool(
         const traitNames = args.trait_names as string[];
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node) return { tool: toolName, success: false, message: `Object "${objName}" not found` };
+        let patchedCode = store.getCode();
         for (const name of traitNames) {
           store.addTrait(node.id, { name, properties: {} });
+          patchedCode = codeAddTrait(patchedCode, node.name, name, {});
         }
+        store.setCode(patchedCode);
         return {
           tool: toolName,
           success: true,

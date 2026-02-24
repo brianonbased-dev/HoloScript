@@ -69,6 +69,7 @@ function BrittneyInputPanel({
   disabled: boolean;
 }) {
   const [value, setValue] = useState('');
+  const [listening, setListening] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +78,25 @@ function BrittneyInputPanel({
       setValue('');
     }
   };
+
+  const handleVoice = useCallback(() => {
+    const SR =
+      (window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition ??
+      (window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.lang = 'en-US';
+    setListening(true);
+    rec.onresult = (ev: any) => {
+      onSend(ev.results[0][0].transcript);
+      setListening(false);
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    rec.start();
+  }, [onSend]);
 
   return (
     <form
@@ -189,7 +209,9 @@ export function VRBrittney() {
     setHistory(newHistory);
 
     const sceneContext = buildRichContext(code, nodes, selectedId, selectedName);
-    const storeActions = { nodes, addTrait, removeTrait, setTraitProperty, addNode };
+    const getCodeFn = () => useSceneStore.getState().code ?? '';
+    const setCodeFn = useSceneStore.getState().setCode;
+    const storeActions = { nodes, addTrait, removeTrait, setTraitProperty, addNode, getCode: getCodeFn, setCode: setCodeFn };
 
     let accumulated = '';
     try {

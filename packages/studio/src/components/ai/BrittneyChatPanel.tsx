@@ -110,7 +110,9 @@ export function BrittneyChatPanel() {
     const toolResults: ToolResult[] = [];
 
     try {
-      const storeActions = { nodes, addTrait, removeTrait, setTraitProperty, addNode };
+      const setCodeFn = useSceneStore.getState().setCode;
+      const getCodeFn = () => useSceneStore.getState().code ?? '';
+      const storeActions = { nodes, addTrait, removeTrait, setTraitProperty, addNode, getCode: getCodeFn, setCode: setCodeFn };
 
       for await (const event of streamBrittney(updatedHistory, sceneContext)) {
         if (event.type === 'text') {

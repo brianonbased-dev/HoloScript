@@ -12,6 +12,7 @@ import { createXRStore, XR } from '@react-three/xr';
 import { VREditHUD } from './VREditHUD';
 import { VRHandControllers } from './VRHandController';
 import { VRBrittney } from './VRBrittney';
+import { AgentEnsemble } from './AgentEnsemble';
 
 // Create a shared XR store (module-level singleton)
 export const xrStore = createXRStore({
@@ -30,6 +31,9 @@ export function VREditSession() {
 
       {/* Brittney floating assistant */}
       <VRBrittney />
+
+      {/* Specialist AI agent orbs */}
+      <AgentEnsemble />
     </XR>
   );
 }
