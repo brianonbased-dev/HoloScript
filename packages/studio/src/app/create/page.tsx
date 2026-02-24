@@ -69,6 +69,9 @@ import {
   Move3d,
   Bot,
   Sun,
+  SlidersHorizontal,
+  Puzzle,
+  Keyboard,
 } from 'lucide-react';
 import type { GizmoMode } from '@/lib/store';
 
@@ -337,6 +340,21 @@ const AiSceneGeneratorPanel = dynamic(
   { ssr: false }
 );
 
+const NodeInspectorPanel = dynamic(
+  () => import('@/components/inspector/NodeInspectorPanel').then((m) => ({ default: m.NodeInspectorPanel })),
+  { ssr: false }
+);
+
+const HotkeyMapOverlay = dynamic(
+  () => import('@/components/hotkeys/HotkeyMapOverlay').then((m) => ({ default: m.HotkeyMapOverlay })),
+  { ssr: false }
+);
+
+const PluginMarketplacePanel = dynamic(
+  () => import('@/components/plugins/PluginMarketplacePanel').then((m) => ({ default: m.PluginMarketplacePanel })),
+  { ssr: false }
+);
+
 function ViewportSkeleton() {
   return (
     <div className="flex h-full w-full items-center justify-center bg-[#0a0a12]">
@@ -557,6 +575,10 @@ export default function CreatePage() {
   const [multiTransformOpen, setMultiTransformOpen] = useState(false);
   // Sprint W (assetPackOpen already declared above)
   const [environmentOpen, setEnvironmentOpen] = useState(false);
+  // Sprint Z
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [hotkeyOpen, setHotkeyOpen] = useState(false);
+  const [pluginsOpen, setPluginsOpen] = useState(false);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -999,6 +1021,23 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Node Inspector */}
+        {inspectorOpen && (
+          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+            <NodeInspectorPanel onClose={() => setInspectorOpen(false)} />
+          </div>
+        )}
+
+        {/* RIGHT RAIL: Plugin Marketplace */}
+        {pluginsOpen && (
+          <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+            <PluginMarketplacePanel onClose={() => setPluginsOpen(false)} />
+          </div>
+        )}
+
+        {/* OVERLAY: Hotkey Map (full screen modal) */}
+        <HotkeyMapOverlay open={hotkeyOpen} onClose={() => setHotkeyOpen(false)} />
+
         {/* RIGHT RAIL: Brittney Chat */}
         {chatOpen && (
           <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
@@ -1401,6 +1440,30 @@ export default function CreatePage() {
             className={`transition ${generatorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
             <Wand2 className="h-4 w-4" />
+          </button>
+          {/* Node Inspector toggle */}
+          <button
+            onClick={() => setInspectorOpen((v) => !v)}
+            title={inspectorOpen ? 'Close Inspector' : 'Node Inspector'}
+            className={`transition ${inspectorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </button>
+          {/* Plugin Marketplace toggle */}
+          <button
+            onClick={() => setPluginsOpen((v) => !v)}
+            title={pluginsOpen ? 'Close Plugins' : 'Plugin Marketplace'}
+            className={`transition ${pluginsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Puzzle className="h-4 w-4" />
+          </button>
+          {/* Hotkey Map toggle */}
+          <button
+            onClick={() => setHotkeyOpen((v) => !v)}
+            title="Keyboard Shortcuts (?)"
+            className={`transition ${hotkeyOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Keyboard className="h-4 w-4" />
           </button>
         </div>
       </div>

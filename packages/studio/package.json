@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.3",
     "@holoscript/core": "workspace:*",
     "@monaco-editor/react": "^4.7.0",
     "@react-three/drei": "^10.7.7",
@@ -32,7 +33,7 @@
     "react": "^19.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^19.2.0",
-    "reactflow": "^11.11.0",
+    "reactflow": "^11.11.4",
     "three": "^0.182.0",
     "y-websocket": "^2.0.3",
     "yjs": "^13.6.15",
@@ -40,6 +41,7 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@types/node": "^24.10.1",

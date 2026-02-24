@@ -122,7 +122,7 @@ function EmbedNodeRenderer({
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
 }) {
-  const children = node.children?.map((child, i) => (
+  const children = node.children?.map((child: R3FNode, i: number) => (
     <EmbedNodeRenderer
       key={child.id || `child-${i}`}
       node={child}
@@ -239,14 +239,14 @@ function SceneContent({
   onSelect?: (id: string | null) => void;
 }) {
   const hasLights = r3fTree.children?.some(
-    (c) =>
+    (c: R3FNode) =>
       c.type === 'ambientLight' ||
       c.type === 'directionalLight' ||
       c.type === 'pointLight' ||
       c.type === 'spotLight' ||
       c.type === 'hemisphereLight'
   );
-  const hasEnv = r3fTree.children?.some((c) => c.type === 'Environment');
+  const hasEnv = r3fTree.children?.some((c: R3FNode) => c.type === 'Environment');
 
   return (
     <group onClick={() => onSelect?.(null)}>
