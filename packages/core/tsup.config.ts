@@ -2,6 +2,7 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: {
+    // Core exports (always loaded)
     index: 'src/index.ts',
     parser: 'src/parser/HoloScriptPlusParser.ts',
     runtime: 'src/HoloScriptRuntime.ts',
@@ -9,13 +10,53 @@ export default defineConfig({
     debugger: 'src/HoloScriptDebugger.ts',
     'storage/index': 'src/storage/index.ts',
     'wot/index': 'src/wot/index.ts',
+
+    // Compiler targets (dynamically loaded on-demand)
+    // VR/AR/XR Compilers
+    'compiler/vrr': 'src/compiler/VRRCompiler.ts',
+    'compiler/ar': 'src/compiler/ARCompiler.ts',
+    'compiler/multi-layer': 'src/compiler/MultiLayerCompiler.ts',
+    'compiler/openxr': 'src/compiler/OpenXRCompiler.ts',
+    'compiler/vrchat': 'src/compiler/VRChatCompiler.ts',
+
+    // Engine-Specific Compilers
+    'compiler/babylon': 'src/compiler/BabylonCompiler.ts',
+    'compiler/unity': 'src/compiler/UnityCompiler.ts',
+    'compiler/unreal': 'src/compiler/UnrealCompiler.ts',
+    'compiler/godot': 'src/compiler/GodotCompiler.ts',
+    'compiler/r3f': 'src/compiler/R3FCompiler.ts',
+    'compiler/playcanvas': 'src/compiler/PlayCanvasCompiler.ts',
+
+    // Platform-Specific Compilers
+    'compiler/android': 'src/compiler/AndroidCompiler.ts',
+    'compiler/android-xr': 'src/compiler/AndroidXRCompiler.ts',
+    'compiler/ios': 'src/compiler/IOSCompiler.ts',
+    'compiler/visionos': 'src/compiler/VisionOSCompiler.ts',
+
+    // Low-Level Compilers
+    'compiler/wasm': 'src/compiler/WASMCompiler.ts',
+    'compiler/webgpu': 'src/compiler/WebGPUCompiler.ts',
+
+    // Specialized Compilers
+    'compiler/dtdl': 'src/compiler/DTDLCompiler.ts',
+    'compiler/urdf': 'src/compiler/URDFCompiler.ts',
+    'compiler/usd-physics': 'src/compiler/USDPhysicsCompiler.ts',
+    'compiler/sdf': 'src/compiler/SDFCompiler.ts',
+    'compiler/state': 'src/compiler/StateCompiler.ts',
+    'compiler/trait-composition': 'src/compiler/TraitCompositionCompiler.ts',
+    'compiler/incremental': 'src/compiler/IncrementalCompiler.ts',
   },
   format: ['cjs', 'esm'],
   dts: false, // Temporarily disable for v3.0 - type mismatches to resolve in v3.1
   clean: true,
   sourcemap: true,
-  splitting: true,
-  treeshake: true,
+  splitting: true, // Enable code splitting for shared chunks
+  treeshake: true, // Remove unused code
   minify: false, // Keep readable for debugging, enable for production
   external: [], // No external deps for now
+  // Rollup-specific options for advanced code splitting
+  esbuildOptions(options) {
+    // Enable advanced tree-shaking
+    options.treeShaking = true;
+  },
 });

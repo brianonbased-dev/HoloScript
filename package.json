@@ -11,8 +11,9 @@
     "build": "pnpm --filter core build && pnpm --filter !core build",
     "build:parallel": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
-    "test": "pnpm -r test",
-    "test:coverage": "pnpm -r test:coverage",
+    "test": "node --max-old-space-size=8192 $(which pnpm) -r test",
+    "test:coverage": "node --max-old-space-size=8192 $(which pnpm) -r test:coverage",
+    "test:core": "pnpm --filter @holoscript/core test",
     "lint": "eslint packages/*/src/**/*.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -29,7 +30,9 @@
     "publish": "pnpm -r publish --access public",
     "docs:api": "typedoc",
     "docs:api:watch": "typedoc --watch",
-    "docs:api:json": "typedoc --json docs/api/api.json"
+    "docs:api:json": "typedoc --json docs/api/api.json",
+    "audit:security": "pnpm audit --audit-level=moderate",
+    "analyze:bundle": "pnpm --filter @holoscript/core build && npx rollup-plugin-visualizer dist/stats.html"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.36.0",
@@ -60,5 +63,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/brianonbased-dev/Holoscript.git"
+  },
+  "dependencies": {
+    "@coinbase/agentkit": "^0.10.4"
   }
 }

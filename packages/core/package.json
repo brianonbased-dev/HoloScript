@@ -45,6 +45,11 @@
       "types": "./dist/wot/index.d.ts",
       "import": "./dist/wot/index.js",
       "require": "./dist/wot/index.cjs"
+    },
+    "./compiler/*": {
+      "types": "./dist/compiler/*.d.ts",
+      "import": "./dist/compiler/*.js",
+      "require": "./dist/compiler/*.cjs"
     }
   },
   "scripts": {
