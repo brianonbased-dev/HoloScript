@@ -53,7 +53,12 @@ export default defineConfig({
   splitting: true, // Enable code splitting for shared chunks
   treeshake: true, // Remove unused code
   minify: false, // Keep readable for debugging, enable for production
-  external: [], // No external deps for now
+  external: [
+    // Externalize blockchain/wallet packages that don't work in browser webpack bundles
+    '@coinbase/agentkit',
+    'viem',
+    'viem/accounts',
+  ],
   // Rollup-specific options for advanced code splitting
   esbuildOptions(options) {
     // Enable advanced tree-shaking
