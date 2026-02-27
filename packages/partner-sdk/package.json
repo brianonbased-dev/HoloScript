@@ -40,7 +40,8 @@
   "author": "HoloScript Team",
   "license": "MIT",
   "dependencies": {
-    "@holoscript/core": "workspace:*"
+    "@holoscript/core": "workspace:*",
+    "@holoscript/llm-provider": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
