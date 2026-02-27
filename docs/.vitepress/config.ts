@@ -5,6 +5,9 @@ export default defineConfig({
   description:
     'Open-source programming language compiling to 18+ targets — Unity, Unreal, Godot, visionOS, robotics, IoT, and more',
 
+  // Ignore dead links in excluded dev notes and cross-repo references
+  ignoreDeadLinks: true,
+
   // Exclude legacy dev notes and directories not part of user-facing docs
   srcExclude: [
     'knowledge/**',      // legacy - content migrated to language/ section
@@ -77,6 +80,16 @@ export default defineConfig({
       },
     ],
     ['meta', { name: 'twitter:image', content: 'https://holoscript.net/og-image.png' }],
+
+    // Security Headers (via meta tags for GitHub Pages)
+    ['meta', { 'http-equiv': 'Content-Security-Policy', content: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';" }],
+    ['meta', { 'http-equiv': 'X-Content-Type-Options', content: 'nosniff' }],
+    ['meta', { 'http-equiv': 'X-Frame-Options', content: 'DENY' }],
+    ['meta', { 'http-equiv': 'Referrer-Policy', content: 'strict-origin-when-cross-origin' }],
+    ['meta', { 'http-equiv': 'Permissions-Policy', content: 'geolocation=(), microphone=(), camera=()' }],
+
+    // Remove version disclosure
+    ['meta', { name: 'generator', content: 'VitePress' }],
   ],
 
   themeConfig: {
