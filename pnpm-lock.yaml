@@ -56,7 +56,7 @@ importers:
         version: 14.0.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typedoc:
         specifier: ^0.28.16
         version: 0.28.16(typescript@5.9.3)
@@ -112,7 +112,7 @@ importers:
         version: 4.0.18(vitest@4.0.18)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -168,7 +168,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -215,7 +215,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -293,7 +293,7 @@ importers:
         version: 0.1.69
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typedoc:
         specifier: ^0.28.16
         version: 0.28.16(typescript@5.9.3)
@@ -418,7 +418,7 @@ importers:
         version: 22.19.12
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -437,7 +437,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -493,7 +493,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -838,7 +838,7 @@ importers:
         version: 7.6.23
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -915,7 +915,7 @@ importers:
         version: 0.170.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -940,7 +940,7 @@ importers:
         version: 4.0.18(vitest@4.0.18)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1107,7 +1107,7 @@ importers:
         version: 23.11.1(typescript@5.9.3)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -26591,51 +26591,6 @@ packages:
       picocolors: 1.1.1
       postcss: 8.5.6
       postcss-load-config: 6.0.1(postcss@8.5.6)(tsx@4.21.0)
-      resolve-from: 5.0.0
-      rollup: 4.55.1
-      source-map: 0.7.6
-      sucrase: 3.35.1
-      tinyexec: 0.3.2
-      tinyglobby: 0.2.15
-      tree-kill: 1.2.2
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - jiti
-      - supports-color
-      - tsx
-      - yaml
-    dev: true
-
-  /tsup@8.5.1(postcss@8.5.6)(typescript@5.9.3):
-    resolution: {integrity: sha512-xtgkqwdhpKWr3tKPmCkvYmS9xnQK3m3XgxZHwSUjvfTjp7YfXe5tT3GgWi0F2N+ZSMsOeWeZFh7ZZFg5iPhing==}
-    engines: {node: '>=18'}
-    hasBin: true
-    peerDependencies:
-      '@microsoft/api-extractor': ^7.36.0
-      '@swc/core': ^1
-      postcss: ^8.4.12
-      typescript: '>=4.5.0'
-    peerDependenciesMeta:
-      '@microsoft/api-extractor':
-        optional: true
-      '@swc/core':
-        optional: true
-      postcss:
-        optional: true
-      typescript:
-        optional: true
-    dependencies:
-      bundle-require: 5.1.0(esbuild@0.27.2)
-      cac: 6.7.14
-      chokidar: 4.0.3
-      consola: 3.4.2
-      debug: 4.4.3
-      esbuild: 0.27.2
-      fix-dts-default-cjs-exports: 1.0.1
-      joycon: 3.1.1
-      picocolors: 1.1.1
-      postcss: 8.5.6
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.6)
       resolve-from: 5.0.0
       rollup: 4.55.1
       source-map: 0.7.6
