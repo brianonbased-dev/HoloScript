@@ -32,5 +32,8 @@
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/holoscript-cdn"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
 }
