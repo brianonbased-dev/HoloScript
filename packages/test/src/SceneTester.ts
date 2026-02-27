@@ -100,7 +100,7 @@ export class SceneTester {
 
     if (!result.success) {
       throw new Error(
-        `Failed to parse ${holoPath}: ${result.errors.map((e) => e.message).join(', ')}`
+        `Failed to parse ${holoPath}: ${result.errors.map((e: any) => e.message).join(', ')}`
       );
     }
 

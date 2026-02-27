@@ -452,7 +452,7 @@ function extractFromHoloAST(ast: HoloComposition): LoadedComposition {
   for (const imp of ast.imports || []) {
     imports.push({
       source: imp.source,
-      specifiers: imp.specifiers.map((s) => ({
+      specifiers: imp.specifiers.map((s: any) => ({
         imported: s.imported,
         local: s.local,
       })),
@@ -483,7 +483,7 @@ function extractLogicFromAST(ast: HoloComposition): CompositionLogic {
     for (const action of ast.logic.actions || []) {
       const actionDef: ActionDefinition = {
         name: action.name,
-        params: (action.parameters || []).map((p) => p.name),
+        params: (action.parameters || []).map((p: any) => p.name),
         body: action.body,
       };
       actions.set(action.name, actionDef);
@@ -493,7 +493,7 @@ function extractLogicFromAST(ast: HoloComposition): CompositionLogic {
     for (const handler of ast.logic.handlers || []) {
       const handlerDef: ActionDefinition = {
         name: handler.event,
-        params: (handler.parameters || []).map((p) => p.name),
+        params: (handler.parameters || []).map((p: any) => p.name),
         body: handler.body,
       };
 
@@ -1360,7 +1360,7 @@ class BrowserRuntime implements HoloScriptRuntime {
     // --- Trait Visual System: compose PBR material from traits ---
     const traitNames = (obj.traits || []).map((t: ParsedTrait) => t.name);
     const composedProps: R3FMaterialProps =
-      traitNames.length > 0 ? this.traitCompositor.compose(traitNames) : {};
+      traitNames.length > 0 ? this.traitCompositor.compose(traitNames, {}) : {};
 
     // Apply named material preset (e.g., material: "glass")
     const namedMaterial = obj.properties?.material as string | undefined;

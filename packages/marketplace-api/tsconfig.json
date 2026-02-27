@@ -6,7 +6,7 @@
     "module": "ESNext",
     "target": "ES2022",
     "lib": ["ES2022"],
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,

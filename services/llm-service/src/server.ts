@@ -11,7 +11,7 @@
  * Pattern: P.HOLOSCRIPT.LLM_SERVICE.01 - User-friendly local AI
  */
 
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
