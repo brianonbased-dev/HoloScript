@@ -1,6 +1,30 @@
 # Introduction to HoloScript
 
-HoloScript is a **full programming language** for VR, AR, robotics, IoT, and digital twins. It compiles to **18+ targets** including Unity, Unreal, Godot, visionOS, Android XR, WebGPU, URDF (ROS 2), SDF (Gazebo), DTDL (Azure Digital Twins), W3C WoT, and OpenUSD — from a single source file.
+HoloScript is a **full programming language** for VR, AR, robotics, IoT, and digital twins. It compiles to **25+ targets** including Unity, Unreal, Godot, visionOS, Android XR, WebGPU, URDF (ROS 2), SDF (Gazebo), DTDL (Azure Digital Twins), W3C WoT, and OpenUSD — from a single source file.
+
+## 🚀 Start with Studio (Recommended)
+
+**No coding required!** [HoloScript Studio](https://studio.holoscript.net) is a web-based IDE powered by **Brittney AI** that lets you build VR scenes using natural language.
+
+### New User? Start Here
+
+1. **[Your First AI Scene](/guides/first-ai-scene)** (15 min) - Build a complete VR scene with Brittney AI
+2. **[Building Your First AI NPC](/guides/first-ai-npc)** (30 min) - Create intelligent characters
+3. **[Studio IDE Reference](/guides/studio-reference)** - Complete interface guide
+
+### Studio Features
+
+- 🎨 **Creator Mode** - AI-driven scene building (no code)
+- 🖌️ **Artist Mode** - Visual shader graph editor
+- 🎬 **Filmmaker Mode** - Cinematic camera paths
+- 🦴 **Character Mode** - Import & animate characters
+- ⚙️ **Expert Mode** - Full code editor for advanced users
+- 🤝 **Real-time Collaboration** - Multi-user editing with CRDT
+- 📤 **One-click Publish** - Share scenes with a URL
+
+**[Launch Studio →](https://studio.holoscript.net)**
+
+---
 
 ## Why HoloScript?
 
