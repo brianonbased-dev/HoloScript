@@ -11,7 +11,7 @@
  * @version 1.0.0
  */
 
-export { HoloSceneElement, registerHoloScene } from './HoloSceneElement';
-export { HoloSceneRenderer } from './HoloSceneRenderer';
-export { HoloCDNConfig, defaultCDNConfig } from './config';
-export type { HoloSceneAttributes, HoloSceneTarget, HoloSceneFallback } from './types';
+export { HoloSceneElement, registerHoloScene } from './HoloSceneElement.js';
+export { HoloSceneRenderer } from './HoloSceneRenderer.js';
+export { HoloCDNConfig, defaultCDNConfig } from './config.js';
+export type { HoloSceneAttributes, HoloSceneTarget, HoloSceneFallback } from './types.js';

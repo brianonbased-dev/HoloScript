@@ -13,7 +13,7 @@
 // =============================================================================
 
 // Import configuration for internal use
-import { DEFAULT_CONFIG, type FormatterConfig } from './config';
+import { DEFAULT_CONFIG, type FormatterConfig, type ImportGroupOrder } from './config';
 
 // Re-export configuration types and defaults
 export type {

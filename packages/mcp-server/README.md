@@ -1,6 +1,6 @@
 # @holoscript/mcp-server
 
-Model Context Protocol (MCP) server for HoloScript AI assistance. **34 tools** across 4 categories, free and open-source.
+Model Context Protocol (MCP) server for HoloScript AI assistance. **43+ tools** across 5 categories, including **18+ compilation targets**. Free and open-source.
 
 ## Installation
 
@@ -22,6 +22,35 @@ Add to your MCP configuration (Claude Code, Cursor, Copilot, etc.):
   }
 }
 ```
+
+## Tool Categories (43+ total)
+
+### Compiler Tools (9) - NEW - Export to Any Platform
+
+| Tool                          | Description                                       |
+| ----------------------------- | ------------------------------------------------- |
+| `compile_holoscript`          | Compile to any target (Unity, URDF, WebGPU, etc.) |
+| `compile_to_unity`            | Compile to Unity C# with prefab generation        |
+| `compile_to_unreal`           | Compile to Unreal C++ with Blueprints             |
+| `compile_to_urdf`             | Compile to URDF for ROS 2 / Gazebo                |
+| `compile_to_sdf`              | Compile to SDF for Gazebo simulation              |
+| `compile_to_webgpu`           | Compile to WebGPU with WGSL shaders               |
+| `compile_to_r3f`              | Compile to React Three Fiber JSX                  |
+| `get_compilation_status`      | Track compilation job progress                    |
+| `list_export_targets`         | List all 18+ export targets with categories       |
+| `get_circuit_breaker_status`  | Check circuit breaker health per target           |
+
+**Supported Export Targets (18+):**
+
+- **Game Engines**: Unity, Unreal, Godot
+- **VR Platforms**: VRChat, OpenXR
+- **Mobile AR**: Android, Android XR, iOS, visionOS, Generic AR
+- **Web Platforms**: Babylon.js, WebGPU, React Three Fiber, WASM, PlayCanvas
+- **Robotics/IoT**: URDF, SDF, DTDL (Azure Digital Twins)
+- **3D Formats**: USD, USDZ
+- **Advanced**: VRR, Multi-Layer
+
+See [COMPILER_TOOLS.md](./COMPILER_TOOLS.md) for detailed documentation.
 
 ## Tool Categories (34 total)
 

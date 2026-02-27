@@ -395,3 +395,17 @@ export function colorToHex(color: ColorRGB | ColorRGBA): string {
     .padStart(2, '0');
   return `#${r}${g}${b}`;
 }
+
+// =============================================================================
+// TRAIT DEFINITIONS
+// =============================================================================
+
+export interface TraitDefinition {
+  name: string;
+  description?: string;
+  type?: string;
+  params?: Record<string, any>;
+  parameters?: Record<string, any>;
+  validator?: (params: Record<string, any>) => boolean;
+  validation?: any;
+}

@@ -274,4 +274,21 @@ if (typeof window !== 'undefined') {
   initRuntime();
 }
 
+// VRR Runtime
+export {
+  VRRRuntime,
+  type VRRRuntimeOptions,
+  type WeatherData,
+  type InventoryData,
+  type PlayerData,
+} from './VRRRuntime.js';
+
+// AR Runtime
+export {
+  ARRuntime,
+  type ARRuntimeOptions,
+  type ARTrackingState,
+} from './ARRuntime.js';
+
 export default runtime;
+

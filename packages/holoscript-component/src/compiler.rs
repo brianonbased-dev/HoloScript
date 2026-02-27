@@ -1,8 +1,8 @@
 //! Compiler module for generating output code for various targets.
 
-use crate::exports::holoscript::core::parser::{
-    CompositionNode, ObjectNode, PropertyValue, Diagnostic, DiagnosticSeverity,
-    Span, Position,
+use crate::holoscript::core::types::{
+    CompositionNode, ObjectNode, Property, PropertyValue, Diagnostic, Severity as DiagnosticSeverity,
+    Span, Position, LightNode,
 };
 
 /// Compile to Unity C#
@@ -194,8 +194,9 @@ pub fn compile_aframe(ast: &CompositionNode) -> Result<String, Diagnostic> {
     
     // Environment
     if let Some(env) = &ast.environment {
-        if let Some(skybox) = &env.skybox {
-            code.push_str(&format!("    <a-sky color=\"{}\">\n</a-sky>\n", 
+        let skybox = get_property_string(&env.properties, "skybox");
+        if !skybox.is_empty() {
+            code.push_str(&format!("    <a-sky color=\"{}\">\n</a-sky>\n",
                 if skybox == "gradient" { "#7EC0EE" } else { "#000000" }));
         }
     }
@@ -320,7 +321,7 @@ fn generate_threejs_object(obj: &ObjectNode, indent: &str) -> String {
     code
 }
 
-fn generate_threejs_light(light: &crate::exports::holoscript::core::parser::LightNode, indent: &str) -> String {
+fn generate_threejs_light(light: &LightNode, indent: &str) -> String {
     let (_, color, intensity) = get_light_props(&light.properties);
     let color_hex = if color.starts_with('#') {
         format!("0x{}", &color[1..])
@@ -445,10 +446,10 @@ pub fn compile_gltf_json(ast: &CompositionNode) -> Result<String, Diagnostic> {
     serde_json::to_string_pretty(&gltf).map_err(|e| Diagnostic {
         severity: DiagnosticSeverity::Error,
         message: format!("JSON serialization failed: {}", e),
-        span: Span {
+        span: Some(Span {
             start: Position { line: 0, column: 0, offset: 0 },
             end: Position { line: 0, column: 0, offset: 0 },
-        },
+        }),
         code: Some("E100".to_string()),
     })
 }
@@ -491,43 +492,45 @@ fn sanitize_name(name: &str) -> String {
         .collect()
 }
 
-fn get_property_string(props: &[(String, PropertyValue)], key: &str) -> String {
+fn get_property_string(props: &[Property], key: &str) -> String {
     props.iter()
-        .find(|(k, _)| k == key)
-        .and_then(|(_, v)| match v {
-            PropertyValue::Str(s) => Some(s.clone()),
+        .find(|p| p.name == key)
+        .and_then(|p| match &p.value {
+            PropertyValue::StringVal(s) => Some(s.clone()),
             _ => None,
         })
         .unwrap_or_default()
 }
 
-fn get_property_array(props: &[(String, PropertyValue)], key: &str) -> Option<Vec<f64>> {
+fn get_property_array(props: &[Property], key: &str) -> Option<Vec<f64>> {
     props.iter()
-        .find(|(k, _)| k == key)
-        .and_then(|(_, v)| match v {
-            PropertyValue::Array(arr) => {
-                let values: Vec<f64> = arr.iter().filter_map(|v| match v {
-                    PropertyValue::Number(n) => Some(*n),
-                    _ => None,
-                }).collect();
-                if values.is_empty() { None } else { Some(values) }
+        .find(|p| p.name == key)
+        .and_then(|p| match &p.value {
+            PropertyValue::ArrayVal(json) => {
+                // Parse JSON array string
+                serde_json::from_str::<Vec<serde_json::Value>>(json)
+                    .ok()
+                    .and_then(|arr| {
+                        let values: Vec<f64> = arr.iter().filter_map(|v| v.as_f64()).collect();
+                        if values.is_empty() { None } else { Some(values) }
+                    })
             }
             _ => None,
         })
 }
 
-fn get_light_props(props: &[(String, PropertyValue)]) -> (String, String, f64) {
+fn get_light_props(props: &[Property]) -> (String, String, f64) {
     let color = get_property_string(props, "color");
     let color = if color.is_empty() { "#ffffff".to_string() } else { color };
-    
+
     let intensity = props.iter()
-        .find(|(k, _)| k == "intensity")
-        .and_then(|(_, v)| match v {
-            PropertyValue::Number(n) => Some(*n),
+        .find(|p| p.name == "intensity")
+        .and_then(|p| match &p.value {
+            PropertyValue::NumberVal(n) => Some(*n),
             _ => None,
         })
         .unwrap_or(1.0);
-    
+
     ("point".to_string(), color, intensity)
 }
 
@@ -537,6 +540,7 @@ mod tests {
     
     fn make_test_ast() -> CompositionNode {
         CompositionNode {
+            event_handlers: vec![],
             name: "TestScene".to_string(),
             templates: vec![],
             objects: vec![
@@ -545,18 +549,26 @@ mod tests {
                     traits: vec!["grabbable".to_string()],
                     template: None,
                     properties: vec![
-                        ("geometry".to_string(), PropertyValue::Str("cube".to_string())),
-                        ("position".to_string(), PropertyValue::Array(vec![
-                            PropertyValue::Number(0.0),
-                            PropertyValue::Number(1.0),
-                            PropertyValue::Number(0.0),
-                        ])),
-                        ("color".to_string(), PropertyValue::Str("#ff0000".to_string())),
+                        Property {
+                            name: "geometry".to_string(),
+                            value: PropertyValue::StringVal("cube".to_string()),
+                            span: None,
+                        },
+                        Property {
+                            name: "position".to_string(),
+                            value: PropertyValue::ArrayVal("[0.0, 1.0, 0.0]".to_string()),
+                            span: None,
+                        },
+                        Property {
+                            name: "color".to_string(),
+                            value: PropertyValue::StringVal("#ff0000".to_string()),
+                            span: None,
+                        },
                     ],
                     span: None,
                 }
             ],
-            groups: vec![],
+            spatial_groups: vec![],
             animations: vec![],
             timelines: vec![],
             lights: vec![],

@@ -68,6 +68,14 @@ export { MockAdapter } from './adapters/mock';
 export { LLMProviderManager } from './provider-manager';
 export type { ProviderManagerConfig } from './provider-manager';
 
+// Quest Generator (Phase 2 Hololand Integration)
+export { QuestGenerator } from './QuestGenerator';
+export type { QuestNarrativeRequest, QuestNarrativeResponse } from './QuestGenerator';
+
+// Narrative Quest Service
+export { getNarrativeQuestService, NarrativeQuestService, type QuestParams } from './services/NarrativeQuestService';
+
+
 // =============================================================================
 // Convenience factory functions
 // =============================================================================

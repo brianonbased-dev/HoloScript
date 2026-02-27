@@ -7,7 +7,7 @@
 import type * as Monaco from 'monaco-editor';
 
 // Example HoloScript code snippets
-const EXAMPLES = {
+const EXAMPLES: Record<string, {name: string, desc: string, runtime: string, code: string}> = {
   demolition: {
     name: 'Building Demolition',
     desc: 'Realistic building collapse with physics',
@@ -392,7 +392,7 @@ async function runCode(): Promise<void> {
     state.stats.status = 'Running';
 
   } catch (error) {
-    logConsole('error', `Error: ${error.message}`);
+    logConsole('error', `Error: ${(error as any).message}`);
     state.stats.status = 'Error';
     overlay.style.display = 'flex';
   } finally {
@@ -605,7 +605,7 @@ async function init(): Promise<void> {
 
   } catch (error) {
     console.error('Failed to initialize playground:', error);
-    logConsole('error', `Initialization failed: ${error.message}`);
+    logConsole('error', `Initialization failed: ${(error as any).message}`);
   }
 }
 

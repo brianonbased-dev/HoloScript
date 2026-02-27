@@ -183,3 +183,12 @@ export function createPartnerSDK(config: {
 
   return { api, webhooks, analytics };
 }
+
+// Business Quest Tools (Hololand Integration Phase 2)
+export {
+  BusinessQuestTools,
+  type BusinessQuestConfig,
+  type BusinessQuestStep,
+  type QuestReward,
+} from './BusinessQuestTools';
+

@@ -6,10 +6,10 @@
 //! The component can be instantiated from any language with Component Model
 //! support: JavaScript (jco), Python (wasmtime), Rust (wasmtime), Go (wazero).
 
+mod compiler;
 mod lexer;
 mod parser;
 mod traits;
-mod compiler;
 
 use wit_bindgen::generate;
 
@@ -17,32 +17,28 @@ use wit_bindgen::generate;
 generate!({
     world: "holoscript-runtime",
     path: "wit",
-    exports: {
-        "holoscript:core/parser": ParserImpl,
-        "holoscript:core/validator": ValidatorImpl,
-        "holoscript:core/compiler": CompilerImpl,
-        "holoscript:core/generator": GeneratorImpl,
-    }
 });
 
 // Import common types and interfaces from generated bindings
 use exports::holoscript::core::{
-    parser::{self, Guest as ParserGuest, ParseResult, CompositionNode},
-    validator::{self, Guest as ValidatorGuest, ValidationResult, TraitDef},
-    compiler::{self, Guest as CompilerGuest, CompileTarget, CompileResult},
-    generator::{self, Guest as GeneratorGuest},
+    compiler::{Guest as CompilerGuest},
+    generator::{Guest as GeneratorGuest},
+    parser::{Guest as ParserGuest},
+    validator::{Guest as ValidatorGuest},
 };
 
-// Re-export generated types for use by submodules (compiler, parser, etc.)
-pub(crate) use exports;
+use holoscript::core::types::{
+    CompileResult, CompileTarget, CompositionNode, ParseResult,
+    TraitDef, ValidationResult,
+};
 
 // =============================================================================
 // PARSER IMPLEMENTATION
 // =============================================================================
 
-struct ParserImpl;
+struct HoloscriptComponent;
 
-impl ParserGuest for ParserImpl {
+impl ParserGuest for HoloscriptComponent {
     fn parse(source: String) -> ParseResult {
         match parser::parse_holoscript(&source) {
             Ok(composition) => ParseResult::Ok(composition),
@@ -59,26 +55,24 @@ impl ParserGuest for ParserImpl {
 // VALIDATOR IMPLEMENTATION
 // =============================================================================
 
-struct ValidatorImpl;
-
-impl ValidatorGuest for ValidatorImpl {
+impl ValidatorGuest for HoloscriptComponent {
     fn validate(source: String) -> ValidationResult {
         let (valid, diagnostics) = parser::validate_holoscript(&source);
         ValidationResult { valid, diagnostics }
     }
-    
+
     fn trait_exists(name: String) -> bool {
         traits::trait_exists(&name)
     }
-    
+
     fn get_trait(name: String) -> Option<TraitDef> {
         traits::get_trait(&name)
     }
-    
+
     fn list_traits() -> Vec<TraitDef> {
         traits::list_all_traits()
     }
-    
+
     fn list_traits_by_category(category: String) -> Vec<TraitDef> {
         traits::list_traits_by_category(&category)
     }
@@ -88,63 +82,47 @@ impl ValidatorGuest for ValidatorImpl {
 // COMPILER IMPLEMENTATION
 // =============================================================================
 
-struct CompilerImpl;
-
-impl CompilerGuest for CompilerImpl {
+impl CompilerGuest for HoloscriptComponent {
     fn compile(source: String, target: CompileTarget) -> CompileResult {
         match parser::parse_holoscript(&source) {
             Ok(ast) => Self::compile_ast(ast, target),
             Err(errors) => CompileResult::Error(errors),
         }
     }
-    
+
     fn compile_ast(ast: CompositionNode, target: CompileTarget) -> CompileResult {
         match target {
-            CompileTarget::UnityCsharp => {
-                match compiler::compile_unity(&ast) {
-                    Ok(code) => CompileResult::Text(code),
-                    Err(e) => CompileResult::Error(vec![e]),
-                }
-            }
-            CompileTarget::GodotGdscript => {
-                match compiler::compile_godot(&ast) {
-                    Ok(code) => CompileResult::Text(code),
-                    Err(e) => CompileResult::Error(vec![e]),
-                }
-            }
-            CompileTarget::AframeHtml => {
-                match compiler::compile_aframe(&ast) {
-                    Ok(code) => CompileResult::Text(code),
-                    Err(e) => CompileResult::Error(vec![e]),
-                }
-            }
-            CompileTarget::Threejs => {
-                match compiler::compile_threejs(&ast) {
-                    Ok(code) => CompileResult::Text(code),
-                    Err(e) => CompileResult::Error(vec![e]),
-                }
-            }
-            CompileTarget::Babylonjs => {
-                match compiler::compile_babylonjs(&ast) {
-                    Ok(code) => CompileResult::Text(code),
-                    Err(e) => CompileResult::Error(vec![e]),
-                }
-            }
-            CompileTarget::GltfJson => {
-                match compiler::compile_gltf_json(&ast) {
-                    Ok(json) => CompileResult::Text(json),
-                    Err(e) => CompileResult::Error(vec![e]),
-                }
-            }
-            CompileTarget::GlbBinary => {
-                match compiler::compile_glb(&ast) {
-                    Ok(bytes) => CompileResult::Binary(bytes),
-                    Err(e) => CompileResult::Error(vec![e]),
-                }
-            }
+            CompileTarget::UnityCsharp => match compiler::compile_unity(&ast) {
+                Ok(code) => CompileResult::Text(code),
+                Err(e) => CompileResult::Error(vec![e]),
+            },
+            CompileTarget::GodotGdscript => match compiler::compile_godot(&ast) {
+                Ok(code) => CompileResult::Text(code),
+                Err(e) => CompileResult::Error(vec![e]),
+            },
+            CompileTarget::AframeHtml => match compiler::compile_aframe(&ast) {
+                Ok(code) => CompileResult::Text(code),
+                Err(e) => CompileResult::Error(vec![e]),
+            },
+            CompileTarget::Threejs => match compiler::compile_threejs(&ast) {
+                Ok(code) => CompileResult::Text(code),
+                Err(e) => CompileResult::Error(vec![e]),
+            },
+            CompileTarget::Babylonjs => match compiler::compile_babylonjs(&ast) {
+                Ok(code) => CompileResult::Text(code),
+                Err(e) => CompileResult::Error(vec![e]),
+            },
+            CompileTarget::GltfJson => match compiler::compile_gltf_json(&ast) {
+                Ok(json) => CompileResult::Text(json),
+                Err(e) => CompileResult::Error(vec![e]),
+            },
+            CompileTarget::GlbBinary => match compiler::compile_glb(&ast) {
+                Ok(bytes) => CompileResult::Binary(bytes),
+                Err(e) => CompileResult::Error(vec![e]),
+            },
         }
     }
-    
+
     fn list_targets() -> Vec<CompileTarget> {
         vec![
             CompileTarget::UnityCsharp,
@@ -162,35 +140,32 @@ impl CompilerGuest for CompilerImpl {
 // GENERATOR IMPLEMENTATION
 // =============================================================================
 
-struct GeneratorImpl;
-
-impl GeneratorGuest for GeneratorImpl {
+impl GeneratorGuest for HoloscriptComponent {
     fn generate_object(description: String) -> Result<String, String> {
         // Simple template-based generation
         let traits = traits::suggest_traits_for_description(&description);
-        let trait_str = traits.iter()
+        let trait_str = traits
+            .iter()
             .map(|t| format!("@{}", t.name))
             .collect::<Vec<_>>()
             .join(" ");
-        
+
         let object_name = extract_object_name(&description);
         let geometry = infer_geometry(&description);
-        
+
         Ok(format!(
             r#"object "{}" {} {{
   geometry: "{}"
   position: [0, 0, 0]
 }}"#,
-            object_name,
-            trait_str,
-            geometry
+            object_name, trait_str, geometry
         ))
     }
-    
+
     fn generate_scene(description: String) -> Result<String, String> {
         let scene_name = extract_scene_name(&description);
         let objects = generate_objects_from_description(&description);
-        
+
         Ok(format!(
             r#"composition "{}" {{
   environment {{
@@ -200,11 +175,10 @@ impl GeneratorGuest for GeneratorImpl {
 
 {}
 }}"#,
-            scene_name,
-            objects
+            scene_name, objects
         ))
     }
-    
+
     fn suggest_traits(description: String) -> Vec<TraitDef> {
         traits::suggest_traits_for_description(&description)
     }
@@ -219,7 +193,11 @@ fn extract_object_name(description: &str) -> String {
     let words: Vec<&str> = description.split_whitespace().collect();
     for word in &words {
         let lower = word.to_lowercase();
-        if !["a", "an", "the", "create", "make", "add", "with", "that", "can"].contains(&lower.as_str()) {
+        if ![
+            "a", "an", "the", "create", "make", "add", "with", "that", "can",
+        ]
+        .contains(&lower.as_str())
+        {
             return word.to_string();
         }
     }
@@ -265,48 +243,66 @@ fn infer_geometry(description: &str) -> &'static str {
 fn generate_objects_from_description(description: &str) -> String {
     let lower = description.to_lowercase();
     let mut objects = Vec::new();
-    
+
     // Check for common scene elements
     if lower.contains("floor") || lower.contains("ground") {
-        objects.push(r##"  object "Ground" @collidable {
+        objects.push(
+            r##"  object "Ground" @collidable {
     geometry: "plane"
     scale: [10, 1, 10]
     position: [0, 0, 0]
     color: "#444444"
-  }"##.to_string());
+  }"##
+            .to_string(),
+        );
     }
-    
+
     if lower.contains("player") {
-        objects.push(r##"  object "Player" @physics @collidable {
+        objects.push(
+            r##"  object "Player" @physics @collidable {
     geometry: "capsule"
     position: [0, 1, 0]
     color: "#00ff00"
-  }"##.to_string());
+  }"##
+            .to_string(),
+        );
     }
-    
+
     if lower.contains("light") || lower.contains("sun") {
-        objects.push(r##"  directional_light "Sun" {
+        objects.push(
+            r##"  directional_light "Sun" {
     position: [5, 10, 5]
     color: "#ffffff"
     intensity: 1.0
-  }"##.to_string());
+  }"##
+            .to_string(),
+        );
     }
-    
+
     if lower.contains("camera") {
-        objects.push(r#"  perspective_camera "MainCamera" {
+        objects.push(
+            r#"  perspective_camera "MainCamera" {
     position: [0, 3, -10]
     fov: 60
-  }"#.to_string());
+  }"#
+            .to_string(),
+        );
     }
-    
+
     // Default object if nothing specific found
     if objects.is_empty() {
-        objects.push(r##"  object "MainObject" @grabbable {
+        objects.push(
+            r##"  object "MainObject" @grabbable {
     geometry: "cube"
     position: [0, 1, 0]
     color: "#3399ff"
-  }"##.to_string());
+  }"##
+            .to_string(),
+        );
     }
-    
+
     objects.join("\n\n")
 }
+
+// Export the component
+export!(HoloscriptComponent);

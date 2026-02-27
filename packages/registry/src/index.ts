@@ -8,6 +8,6 @@ export * from './types.js';
 export * from './workspace/WorkspaceService.js';
 export * from './workspace/WorkspaceRepository.js';
 export * from './api/workspaces.js';
-export * from './PackageManifest.js';
+export { PackageManifest, PackageVersion as ManifestPackageVersion } from './PackageManifest.js';
 export * from './LocalRegistry.js';
 export * from './PackageResolver.js';

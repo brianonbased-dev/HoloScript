@@ -288,7 +288,7 @@ import {
 
 describe('Monaco Setup - language registration', () => {
   test('registers holoscript language with monaco', () => {
-    registerHoloScriptLanguage(mockMonaco);
+    registerHoloScriptLanguage(mockMonaco as any);
     expect(mockMonaco.languages.register).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'holoscript' })
     );
@@ -306,12 +306,12 @@ describe('Monaco Setup - language registration', () => {
         setLanguageConfiguration: vi.fn(),
       },
     };
-    registerHoloScriptLanguage(monacoWithLang);
+    registerHoloScriptLanguage(monacoWithLang as any);
     expect(monacoWithLang.languages.register).not.toHaveBeenCalled();
   });
 
   test('registers dark and light themes', () => {
-    registerThemes(mockMonaco);
+    registerThemes(mockMonaco as any);
     expect(mockMonaco.editor.defineTheme).toHaveBeenCalledWith(
       'holoscript-dark',
       expect.any(Object)

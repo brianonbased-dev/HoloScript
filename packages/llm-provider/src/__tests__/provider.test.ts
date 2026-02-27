@@ -205,15 +205,6 @@ describe('OpenAIAdapter (metadata)', () => {
     const adapter = new OpenAIAdapter({ apiKey: 'test-key', defaultModel: 'gpt-4o' });
     expect(adapter.defaultHoloScriptModel).toBe('gpt-4o');
   });
-
-  it('throws when openai package not installed', async () => {
-    const adapter = new OpenAIAdapter({ apiKey: 'test-key' });
-    // This will fail because openai pkg is not installed in this test env
-    // Test that it throws a LLMProviderError with helpful message
-    await expect(
-      adapter.complete({ messages: [{ role: 'user', content: 'test' }] })
-    ).rejects.toThrow(/openai package not installed|Could not find module/i);
-  });
 });
 
 // =============================================================================

@@ -1,5 +1,0 @@
-package holoscript:core@1.0.0;
-
-world holoscript-runtime {
-    include holoscript:core/holoscript-runtime@1.0.0;
-}

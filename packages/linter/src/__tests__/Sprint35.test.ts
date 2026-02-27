@@ -222,7 +222,7 @@ describe('rule system', () => {
       name: 'Test Rule',
       description: 'A test rule',
       category: 'best-practice',
-      defaultSeverity: 'warn',
+      defaultSeverity: 'warning',
       check: (_ctx: RuleContext) => [],
     };
     linter.registerRule(customRule);

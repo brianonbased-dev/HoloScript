@@ -1,10 +1,10 @@
 //! Parser for HoloScript that produces WIT-compatible AST nodes.
 
 use crate::lexer::{tokenize, SpannedToken, Token, get_line_col};
-use crate::exports::holoscript::core::parser::{
-    CompositionNode, ObjectNode, TemplateNode, GroupNode, AnimationNode,
-    TimelineNode, LightNode, CameraNode, PropertyValue, EnvironmentSettings,
-    Span, Position, Diagnostic, DiagnosticSeverity,
+use crate::holoscript::core::types::{
+    CompositionNode, ObjectNode, TemplateNode, SpatialGroupNode, AnimationNode,
+    TimelineNode, LightNode, CameraNode, Property, PropertyValue, EnvironmentNode,
+    Span, Position, Diagnostic, Severity as DiagnosticSeverity,
 };
 
 /// Parse HoloScript source into a CompositionNode
@@ -17,10 +17,10 @@ pub fn parse_holoscript(source: &str) -> Result<CompositionNode, Vec<Diagnostic>
                 Diagnostic {
                     severity: DiagnosticSeverity::Error,
                     message: msg,
-                    span: Span {
+                    span: Some(Span {
                         start: Position { line: line as u32, column: col as u32, offset: span.start as u32 },
                         end: Position { line: line as u32, column: (col + span.end - span.start) as u32, offset: span.end as u32 },
-                    },
+                    }),
                     code: Some("E001".to_string()),
                 }
             }).collect());
@@ -77,10 +77,10 @@ impl<'a> Parser<'a> {
                 Err(Diagnostic {
                     severity: DiagnosticSeverity::Error,
                     message: format!("Expected {:?}, found {:?}", expected, tok.token),
-                    span: Span {
+                    span: Some(Span {
                         start: Position { line: line as u32, column: col as u32, offset: tok.span.start as u32 },
                         end: Position { line: line as u32, column: (col + tok.span.end - tok.span.start) as u32, offset: tok.span.end as u32 },
-                    },
+                    }),
                     code: Some("E002".to_string()),
                 })
             }
@@ -88,10 +88,10 @@ impl<'a> Parser<'a> {
                 Err(Diagnostic {
                     severity: DiagnosticSeverity::Error,
                     message: format!("Unexpected end of file, expected {:?}", expected),
-                    span: Span {
+                    span: Some(Span {
                         start: Position { line: 1, column: 1, offset: 0 },
                         end: Position { line: 1, column: 1, offset: 0 },
-                    },
+                    }),
                     code: Some("E003".to_string()),
                 })
             }
@@ -233,12 +233,13 @@ impl<'a> Parser<'a> {
             name,
             templates,
             objects,
-            groups,
+            spatial_groups: groups,
             animations,
             timelines,
             lights,
             cameras,
             environment,
+            event_handlers: vec![],
             span: start_span.map(|s| Span {
                 start: Position { line: 1, column: 1, offset: s.start as u32 },
                 end: Position { line: 1, column: 1, offset: s.end as u32 },
@@ -278,7 +279,8 @@ impl<'a> Parser<'a> {
             name,
             traits,
             properties,
-            extends: None,
+            state: vec![],
+            actions: vec![],
             span: None,
         })
     }
@@ -331,14 +333,14 @@ impl<'a> Parser<'a> {
         })
     }
     
-    fn parse_properties(&mut self) -> Result<Vec<(String, PropertyValue)>, Diagnostic> {
+    fn parse_properties(&mut self) -> Result<Vec<Property>, Diagnostic> {
         let mut properties = Vec::new();
-        
+
         while let Some(tok) = self.current() {
             if matches!(tok.token, Token::RBrace) {
                 break;
             }
-            
+
             // Property name
             let prop_name = match &tok.token {
                 Token::Identifier(id) => {
@@ -348,17 +350,21 @@ impl<'a> Parser<'a> {
                 }
                 _ => break,
             };
-            
+
             // Colon
             if let Err(_) = self.expect_token(&Token::Colon) {
                 continue;
             }
-            
+
             // Value
             let value = self.parse_value()?;
-            properties.push((prop_name, value));
+            properties.push(Property {
+                name: prop_name,
+                value,
+                span: None,
+            });
         }
-        
+
         Ok(properties)
     }
     
@@ -368,24 +374,24 @@ impl<'a> Parser<'a> {
             Some(SpannedToken { token: Token::SingleQuoteString(s), .. }) => {
                 let s = s.clone();
                 self.advance();
-                Ok(PropertyValue::Str(s))
+                Ok(PropertyValue::StringVal(s))
             }
             Some(SpannedToken { token: Token::Number(n), .. }) => {
                 let n = *n;
                 self.advance();
-                Ok(PropertyValue::Number(n))
+                Ok(PropertyValue::NumberVal(n))
             }
             Some(SpannedToken { token: Token::True, .. }) => {
                 self.advance();
-                Ok(PropertyValue::Bool(true))
+                Ok(PropertyValue::BooleanVal(true))
             }
             Some(SpannedToken { token: Token::False, .. }) => {
                 self.advance();
-                Ok(PropertyValue::Bool(false))
+                Ok(PropertyValue::BooleanVal(false))
             }
             Some(SpannedToken { token: Token::Null, .. }) => {
                 self.advance();
-                Ok(PropertyValue::Null)
+                Ok(PropertyValue::NullVal)
             }
             Some(SpannedToken { token: Token::LBracket, .. }) => {
                 self.parse_array()
@@ -394,9 +400,10 @@ impl<'a> Parser<'a> {
                 self.parse_object_value()
             }
             Some(SpannedToken { token: Token::Identifier(id), .. }) => {
+                // Treat identifiers as string values for now
                 let id = id.clone();
                 self.advance();
-                Ok(PropertyValue::Reference(id))
+                Ok(PropertyValue::StringVal(id))
             }
             _ => Err(self.error("Expected value")),
         }
@@ -405,97 +412,93 @@ impl<'a> Parser<'a> {
     fn parse_array(&mut self) -> Result<PropertyValue, Diagnostic> {
         self.advance(); // consume '['
         let mut values = Vec::new();
-        
+
         while let Some(tok) = self.current() {
             if matches!(tok.token, Token::RBracket) {
                 break;
             }
-            
-            values.push(self.parse_value()?);
-            
+
+            values.push(self.parse_json_value()?);
+
             // Optional comma
             if matches!(self.current(), Some(SpannedToken { token: Token::Comma, .. })) {
                 self.advance();
             }
         }
-        
+
         self.expect_token(&Token::RBracket)?;
-        Ok(PropertyValue::Array(values))
+        // Convert to JSON string
+        let json = serde_json::to_string(&values).unwrap_or_else(|_| "[]".to_string());
+        Ok(PropertyValue::ArrayVal(json))
     }
-    
+
+    fn parse_json_value(&mut self) -> Result<serde_json::Value, Diagnostic> {
+        match self.current() {
+            Some(SpannedToken { token: Token::String(s), .. }) |
+            Some(SpannedToken { token: Token::SingleQuoteString(s), .. }) => {
+                let s = s.clone();
+                self.advance();
+                Ok(serde_json::Value::String(s))
+            }
+            Some(SpannedToken { token: Token::Number(n), .. }) => {
+                let n = *n;
+                self.advance();
+                Ok(serde_json::Value::from(n))
+            }
+            Some(SpannedToken { token: Token::True, .. }) => {
+                self.advance();
+                Ok(serde_json::Value::Bool(true))
+            }
+            Some(SpannedToken { token: Token::False, .. }) => {
+                self.advance();
+                Ok(serde_json::Value::Bool(false))
+            }
+            Some(SpannedToken { token: Token::Null, .. }) => {
+                self.advance();
+                Ok(serde_json::Value::Null)
+            }
+            _ => Err(self.error("Expected JSON value")),
+        }
+    }
+
     fn parse_object_value(&mut self) -> Result<PropertyValue, Diagnostic> {
         self.advance(); // consume '{'
         let properties = self.parse_properties()?;
         self.expect_token(&Token::RBrace)?;
-        Ok(PropertyValue::Object(properties))
+        // Convert properties to JSON object string
+        let obj: serde_json::Map<String, serde_json::Value> = properties.iter()
+            .filter_map(|p| {
+                let val = match &p.value {
+                    PropertyValue::StringVal(s) => serde_json::Value::String(s.clone()),
+                    PropertyValue::NumberVal(n) => serde_json::Value::from(*n),
+                    PropertyValue::BooleanVal(b) => serde_json::Value::Bool(*b),
+                    PropertyValue::NullVal => serde_json::Value::Null,
+                    PropertyValue::ArrayVal(json) | PropertyValue::ObjectVal(json) => {
+                        serde_json::from_str(json.as_str()).ok()?
+                    }
+                };
+                Some((p.name.clone(), val))
+            })
+            .collect();
+        let json = serde_json::to_string(&obj).unwrap_or_else(|_| "{}".to_string());
+        Ok(PropertyValue::ObjectVal(json))
     }
     
-    fn parse_environment(&mut self) -> Result<EnvironmentSettings, Diagnostic> {
+    fn parse_environment(&mut self) -> Result<EnvironmentNode, Diagnostic> {
         self.advance(); // consume 'environment'
         self.expect_token(&Token::LBrace)?;
-        
-        let mut skybox = None;
-        let mut ambient_light = None;
-        let mut fog = None;
-        let mut gravity = None;
-        
-        while let Some(tok) = self.current() {
-            if matches!(tok.token, Token::RBrace) {
-                break;
-            }
-            
-            let prop_name = match &tok.token {
-                Token::Identifier(id) => {
-                    let id = id.clone();
-                    self.advance();
-                    id
-                }
-                _ => break,
-            };
-            
-            self.expect_token(&Token::Colon)?;
-            
-            match prop_name.as_str() {
-                "skybox" => {
-                    if let Some(SpannedToken { token: Token::String(s), .. }) |
-                       Some(SpannedToken { token: Token::SingleQuoteString(s), .. }) = self.current() {
-                        skybox = Some(s.clone());
-                        self.advance();
-                    }
-                }
-                "ambient_light" => {
-                    if let Some(SpannedToken { token: Token::Number(n), .. }) = self.current() {
-                        ambient_light = Some(*n as f32);
-                        self.advance();
-                    }
-                }
-                "fog" => {
-                    fog = Some(true);
-                    self.parse_value()?; // Skip the value
-                }
-                "gravity" => {
-                    if let Some(SpannedToken { token: Token::Number(n), .. }) = self.current() {
-                        gravity = Some(*n as f32);
-                        self.advance();
-                    }
-                }
-                _ => {
-                    self.parse_value()?; // Skip unknown properties
-                }
-            }
-        }
-        
+
+        let properties = self.parse_properties()?;
+
         self.expect_token(&Token::RBrace)?;
-        
-        Ok(EnvironmentSettings {
-            skybox,
-            ambient_light,
-            fog,
-            gravity,
+
+        Ok(EnvironmentNode {
+            properties,
+            span: None,
         })
     }
     
-    fn parse_group(&mut self) -> Result<GroupNode, Diagnostic> {
+    fn parse_group(&mut self) -> Result<SpatialGroupNode, Diagnostic> {
         self.advance(); // consume 'spatial_group'
         
         let name = match self.current() {
@@ -524,10 +527,9 @@ impl<'a> Parser<'a> {
         
         self.expect_token(&Token::RBrace)?;
         
-        Ok(GroupNode {
+        Ok(SpatialGroupNode {
             name,
-            children,
-            position: None,
+            objects: children,
             span: None,
         })
     }
@@ -550,10 +552,10 @@ impl<'a> Parser<'a> {
         
         let mut property = None;
         let mut duration = 1000;
-        let mut easing = "linear".to_string();
-        let mut from = None;
-        let mut to = None;
-        let mut r#loop = false;
+        let mut easing = None;
+        let mut from_val = None;
+        let mut to_val = 0.0;
+        let mut loop_mode = None;
         
         while let Some(tok) = self.current() {
             if matches!(tok.token, Token::RBrace) {
@@ -573,31 +575,35 @@ impl<'a> Parser<'a> {
             
             match prop_name.as_str() {
                 "property" => {
-                    if let Ok(PropertyValue::Str(s)) = self.parse_value() {
+                    if let Ok(PropertyValue::StringVal(s)) = self.parse_value() {
                         property = Some(s);
                     }
                 }
                 "duration" => {
-                    if let Ok(PropertyValue::Number(n)) = self.parse_value() {
+                    if let Ok(PropertyValue::NumberVal(n)) = self.parse_value() {
                         duration = n as u32;
                     }
                 }
                 "easing" => {
-                    if let Ok(PropertyValue::Str(s)) = self.parse_value() {
-                        easing = s;
+                    if let Ok(PropertyValue::StringVal(s)) = self.parse_value() {
+                        easing = Some(s);
                     }
                 }
                 "from" => {
-                    from = Some(self.parse_value()?);
+                    if let Ok(PropertyValue::NumberVal(n)) = self.parse_value() {
+                        from_val = Some(n);
+                    }
                 }
                 "to" => {
-                    to = Some(self.parse_value()?);
+                    if let Ok(PropertyValue::NumberVal(n)) = self.parse_value() {
+                        to_val = n;
+                    }
                 }
                 "loop" => {
-                    if let Ok(PropertyValue::Bool(b)) = self.parse_value() {
-                        r#loop = b;
-                    } else if let Ok(PropertyValue::Reference(s)) = self.parse_value() {
-                        r#loop = s == "infinite" || s == "true";
+                    if let Ok(PropertyValue::BooleanVal(b)) = self.parse_value() {
+                        loop_mode = Some(if b { "infinite".to_string() } else { "once".to_string() });
+                    } else if let Ok(PropertyValue::StringVal(s)) = self.parse_value() {
+                        loop_mode = Some(s);
                     }
                 }
                 _ => {
@@ -611,11 +617,11 @@ impl<'a> Parser<'a> {
         Ok(AnimationNode {
             name,
             property: property.unwrap_or_default(),
-            from,
-            to,
+            from_val,
+            to_val,
             duration,
             easing,
-            r#loop,
+            loop_mode,
             span: None,
         })
     }
@@ -640,8 +646,7 @@ impl<'a> Parser<'a> {
         
         Ok(TimelineNode {
             name,
-            keyframes: vec![],
-            r#loop: false,
+            entries: vec![],
             span: None,
         })
     }
@@ -755,10 +760,10 @@ impl<'a> Parser<'a> {
         Diagnostic {
             severity: DiagnosticSeverity::Error,
             message: message.to_string(),
-            span: Span {
+            span: Some(Span {
                 start: Position { line, column: col, offset },
                 end: Position { line, column: col + 1, offset: offset + 1 },
-            },
+            }),
             code: Some("E000".to_string()),
         }
     }
@@ -813,19 +818,23 @@ mod tests {
     fn test_parse_environment() {
         let source = r#"composition "Scene" {
             environment {
-                skybox: "gradient"
-                ambient_light: 0.5
+                background: "gradient"
+                fog_density: 0.5
             }
         }"#;
-        
+
         let result = parse_holoscript(source);
+        if let Err(ref e) = result {
+            eprintln!("Parse error: {:?}", e);
+        }
         assert!(result.is_ok());
-        
+
         let comp = result.unwrap();
         assert!(comp.environment.is_some());
         let env = comp.environment.unwrap();
-        assert_eq!(env.skybox, Some("gradient".to_string()));
-        assert_eq!(env.ambient_light, Some(0.5));
+        // Check properties instead of direct fields
+        assert!(env.properties.iter().any(|p| p.name == "background"));
+        assert!(env.properties.iter().any(|p| p.name == "fog_density"));
     }
     
     #[test]

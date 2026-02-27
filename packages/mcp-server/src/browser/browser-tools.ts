@@ -55,17 +55,21 @@ export async function browserLaunch(args: z.infer<typeof BrowserLaunchSchema>) {
 
     // Determine the preview URL
     // Resolve relative to HoloScript root (up 2 dirs from packages/mcp-server)
-    const previewUrl = `file://${path.resolve(__dirname, '../../../examples/browser-preview.html')}?file=${encodeURIComponent(args.holoscriptFile)}`;
+    const previewUrl = args.holoscriptFile.startsWith('http') 
+        ? args.holoscriptFile
+        : `file://${path.resolve(__dirname, '../../../examples/browser-preview.html')}?file=${encodeURIComponent(args.holoscriptFile)}`;
 
     // Navigate to preview
     await session.page.goto(previewUrl, {
-      waitUntil: 'networkidle'
+      waitUntil: args.holoscriptFile.startsWith('http') ? 'domcontentloaded' : 'networkidle'
     });
 
     // Wait for Three.js scene to initialize
-    await session.page.waitForFunction(() => {
-      return (window as any).holoscriptRenderer?.initialized === true;
-    }, { timeout: 10000 });
+    if (!args.holoscriptFile.startsWith('http')) {
+      await session.page.waitForFunction(() => {
+        return (window as any).holoscriptRenderer?.initialized === true;
+      }, { timeout: 10000 });
+    }
 
     return {
       success: true,

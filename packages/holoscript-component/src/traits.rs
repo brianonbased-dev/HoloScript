@@ -1,6 +1,6 @@
 //! Trait definitions for HoloScript VR traits.
 
-use crate::exports::holoscript::core::validator::TraitDef;
+use crate::holoscript::core::types::TraitDef;
 
 /// Check if a trait exists
 pub fn trait_exists(name: &str) -> bool {
@@ -13,7 +13,6 @@ pub fn get_trait(name: &str) -> Option<TraitDef> {
         name: t.0.to_string(),
         category: t.1.to_string(),
         description: t.2.to_string(),
-        default_properties: t.3.iter().map(|s| s.to_string()).collect(),
     })
 }
 
@@ -23,7 +22,6 @@ pub fn list_all_traits() -> Vec<TraitDef> {
         name: t.0.to_string(),
         category: t.1.to_string(),
         description: t.2.to_string(),
-        default_properties: t.3.iter().map(|s| s.to_string()).collect(),
     }).collect()
 }
 
@@ -35,7 +33,6 @@ pub fn list_traits_by_category(category: &str) -> Vec<TraitDef> {
             name: t.0.to_string(),
             category: t.1.to_string(),
             description: t.2.to_string(),
-            default_properties: t.3.iter().map(|s| s.to_string()).collect(),
         })
         .collect()
 }

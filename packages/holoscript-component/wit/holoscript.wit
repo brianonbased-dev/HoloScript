@@ -9,247 +9,260 @@
 
 package holoscript:core@1.0.0;
 
-/// Source code position
-record position {
-    /// 1-indexed line number
-    line: u32,
-    /// 1-indexed column number (in UTF-8 code units)
-    column: u32,
-    /// Byte offset from start of source
-    offset: u32,
-}
+/// Type definitions for HoloScript AST and compiler
+interface types {
+    /// Source code position
+    record position {
+        /// 1-indexed line number
+        line: u32,
+        /// 1-indexed column number (in UTF-8 code units)
+        column: u32,
+        /// Byte offset from start of source
+        offset: u32,
+    }
 
-/// Span in source code
-record span {
-    start: position,
-    end: position,
-}
+    /// Span in source code
+    record span {
+        start: position,
+        end: position,
+    }
 
-/// Diagnostic severity levels
-enum severity {
-    error,
-    warning,
-    info,
-    hint,
-}
+    /// Diagnostic severity levels
+    enum severity {
+        error,
+        warning,
+        info,
+        hint,
+    }
 
-/// A diagnostic message (error, warning, etc.)
-record diagnostic {
-    severity: severity,
-    message: string,
-    span: option<span>,
-    code: option<string>,
-}
+    /// A diagnostic message (error, warning, etc.)
+    record diagnostic {
+        severity: severity,
+        message: string,
+        span: option<span>,
+        code: option<string>,
+    }
 
-/// HoloScript trait definition
-record trait-def {
-    name: string,
-    category: string,
-    description: string,
-}
+    /// HoloScript trait definition
+    record trait-def {
+        name: string,
+        category: string,
+        description: string,
+    }
 
-/// Property value types
-variant property-value {
-    string-val(string),
-    number-val(f64),
-    boolean-val(bool),
-    array-val(list<property-value>),
-    object-val(list<tuple<string, property-value>>),
-    null-val,
-}
+    /// Property value types (using JSON string for nested structures)
+    variant property-value {
+        string-val(string),
+        number-val(f64),
+        boolean-val(bool),
+        /// JSON-encoded array
+        array-val(string),
+        /// JSON-encoded object
+        object-val(string),
+        null-val,
+    }
 
-/// A property on an object or template
-record property {
-    name: string,
-    value: property-value,
-    span: option<span>,
-}
+    /// A property on an object or template
+    record property {
+        name: string,
+        value: property-value,
+        span: option<span>,
+    }
 
-/// An object definition
-record object-node {
-    name: string,
-    template: option<string>,
-    traits: list<string>,
-    properties: list<property>,
-    span: option<span>,
-}
+    /// An object definition
+    record object-node {
+        name: string,
+        template: option<string>,
+        traits: list<string>,
+        properties: list<property>,
+        span: option<span>,
+    }
 
-/// A template definition
-record template-node {
-    name: string,
-    traits: list<string>,
-    properties: list<property>,
-    state: list<property>,
-    actions: list<action-node>,
-    span: option<span>,
-}
+    /// A template definition
+    record template-node {
+        name: string,
+        traits: list<string>,
+        properties: list<property>,
+        state: list<property>,
+        actions: list<action-node>,
+        span: option<span>,
+    }
 
-/// An action definition
-record action-node {
-    name: string,
-    parameters: list<string>,
-    body: string,
-    span: option<span>,
-}
+    /// An action definition
+    record action-node {
+        name: string,
+        parameters: list<string>,
+        body: string,
+        span: option<span>,
+    }
 
-/// Animation definition
-record animation-node {
-    name: string,
-    property: string,
-    from-val: option<f64>,
-    to-val: f64,
-    duration: u32,
-    easing: option<string>,
-    loop-mode: option<string>,
-    span: option<span>,
-}
+    /// Animation definition
+    record animation-node {
+        name: string,
+        property: string,
+        from-val: option<f64>,
+        to-val: f64,
+        duration: u32,
+        easing: option<string>,
+        loop-mode: option<string>,
+        span: option<span>,
+    }
 
-/// Timeline definition
-record timeline-node {
-    name: string,
-    entries: list<timeline-entry>,
-    span: option<span>,
-}
+    /// Timeline definition
+    record timeline-node {
+        name: string,
+        entries: list<timeline-entry>,
+        span: option<span>,
+    }
 
-/// Timeline entry
-record timeline-entry {
-    time: f64,
-    target: string,
-    action: string,
-}
+    /// Timeline entry
+    record timeline-entry {
+        time: f64,
+        target: string,
+        action: string,
+    }
 
-/// Event handler
-record event-handler {
-    event-type: string,
-    target: option<string>,
-    body: string,
-    span: option<span>,
-}
+    /// Event handler
+    record event-handler {
+        event-type: string,
+        target: option<string>,
+        body: string,
+        span: option<span>,
+    }
 
-/// Environment settings
-record environment-node {
-    properties: list<property>,
-    span: option<span>,
-}
+    /// Environment settings
+    record environment-node {
+        properties: list<property>,
+        span: option<span>,
+    }
 
-/// Spatial group
-record spatial-group-node {
-    name: string,
-    objects: list<object-node>,
-    span: option<span>,
-}
+    /// Spatial group
+    record spatial-group-node {
+        name: string,
+        objects: list<object-node>,
+        span: option<span>,
+    }
 
-/// Light node
-record light-node {
-    light-type: string,
-    name: string,
-    properties: list<property>,
-    span: option<span>,
-}
+    /// Light node
+    record light-node {
+        light-type: string,
+        name: string,
+        properties: list<property>,
+        span: option<span>,
+    }
 
-/// Camera node
-record camera-node {
-    camera-type: string,
-    name: string,
-    properties: list<property>,
-    span: option<span>,
-}
+    /// Camera node
+    record camera-node {
+        camera-type: string,
+        name: string,
+        properties: list<property>,
+        span: option<span>,
+    }
 
-/// Top-level composition
-record composition-node {
-    name: string,
-    environment: option<environment-node>,
-    templates: list<template-node>,
-    objects: list<object-node>,
-    spatial-groups: list<spatial-group-node>,
-    animations: list<animation-node>,
-    timelines: list<timeline-node>,
-    lights: list<light-node>,
-    cameras: list<camera-node>,
-    event-handlers: list<event-handler>,
-    span: option<span>,
-}
+    /// Top-level composition
+    record composition-node {
+        name: string,
+        environment: option<environment-node>,
+        templates: list<template-node>,
+        objects: list<object-node>,
+        spatial-groups: list<spatial-group-node>,
+        animations: list<animation-node>,
+        timelines: list<timeline-node>,
+        lights: list<light-node>,
+        cameras: list<camera-node>,
+        event-handlers: list<event-handler>,
+        span: option<span>,
+    }
 
-/// Parse result
-variant parse-result {
-    ok(composition-node),
-    err(list<diagnostic>),
-}
+    /// Parse result
+    variant parse-result {
+        ok(composition-node),
+        err(list<diagnostic>),
+    }
 
-/// Validation result
-record validation-result {
-    valid: bool,
-    diagnostics: list<diagnostic>,
-}
+    /// Validation result
+    record validation-result {
+        valid: bool,
+        diagnostics: list<diagnostic>,
+    }
 
-/// Compile target formats
-enum compile-target {
-    unity-csharp,
-    godot-gdscript,
-    aframe-html,
-    threejs,
-    babylonjs,
-    gltf-json,
-    glb-binary,
-}
+    /// Compile target formats
+    enum compile-target {
+        unity-csharp,
+        godot-gdscript,
+        aframe-html,
+        threejs,
+        babylonjs,
+        gltf-json,
+        glb-binary,
+    }
 
-/// Compile result
-variant compile-result {
-    /// Text output (C#, GDScript, HTML, JSON)
-    text(string),
-    /// Binary output (GLB)
-    binary(list<u8>),
-    /// Compilation failed
-    error(list<diagnostic>),
+    /// Compile result
+    variant compile-result {
+        /// Text output (C#, GDScript, HTML, JSON)
+        text(string),
+        /// Binary output (GLB)
+        binary(list<u8>),
+        /// Compilation failed
+        error(list<diagnostic>),
+    }
 }
 
 /// Parser interface - parse HoloScript source code
 interface parser {
+    use types.{parse-result};
+
     /// Parse HoloScript source code into an AST
     parse: func(source: string) -> parse-result;
-    
+
     /// Parse only the header/metadata without full parsing
     parse-header: func(source: string) -> result<string, string>;
 }
 
 /// Validator interface - validate HoloScript code
 interface validator {
+    use types.{validation-result, trait-def};
+
     /// Validate parsed AST
     validate: func(source: string) -> validation-result;
-    
+
     /// Check if a trait exists
     trait-exists: func(name: string) -> bool;
-    
+
     /// Get trait information
     get-trait: func(name: string) -> option<trait-def>;
-    
+
     /// List all available traits
     list-traits: func() -> list<trait-def>;
-    
+
     /// List traits by category
     list-traits-by-category: func(category: string) -> list<trait-def>;
 }
 
 /// Compiler interface - compile HoloScript to various targets
 interface compiler {
+    use types.{composition-node, compile-target, compile-result};
+
     /// Compile HoloScript source to target format
     compile: func(source: string, target: compile-target) -> compile-result;
-    
+
     /// Compile parsed AST to target format
     compile-ast: func(ast: composition-node, target: compile-target) -> compile-result;
-    
+
     /// Get list of supported compile targets
     list-targets: func() -> list<compile-target>;
 }
 
 /// Generator interface - generate HoloScript code
 interface generator {
+    use types.{trait-def};
+
     /// Generate an object from natural language description
     generate-object: func(description: string) -> result<string, string>;
-    
+
     /// Generate a complete scene from description
     generate-scene: func(description: string) -> result<string, string>;
-    
+
     /// Suggest traits for a description
     suggest-traits: func(description: string) -> list<trait-def>;
 }
