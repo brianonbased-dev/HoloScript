@@ -9,7 +9,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { audioPortalHandler } from '../AudioPortalTrait';
 
-function makeNode() { return { id: 'portal_1' }; }
+function makeNode() { return { id: 'portal_1', type: 'object' }; }
 function makeContext() { return { emit: vi.fn() }; }
 function attachNode(config: any = {}) {
   const node = makeNode();
