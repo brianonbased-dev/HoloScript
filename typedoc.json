@@ -67,7 +67,6 @@
   "plugin": [],
   "lightHighlightTheme": "light-plus",
   "darkHighlightTheme": "dark-plus",
-  "customCss": "docs/api/custom.css",
   "markdownItOptions": {
     "mangle": false
   },
