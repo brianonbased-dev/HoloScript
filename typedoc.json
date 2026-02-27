@@ -36,7 +36,6 @@
   "excludePrivate": true,
   "excludeProtected": false,
   "excludeInternal": false,
-  "readme": "docs/api/README.md",
   "name": "HoloScript API Documentation",
   "navigationLinks": {
     "HoloScript Home": "https://github.com/brianonbased-dev/HoloScript",
