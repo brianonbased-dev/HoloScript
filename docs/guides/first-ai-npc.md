@@ -1,3 +1,36 @@
+---
+title: Building Your First AI NPC - HoloScript Tutorial
+description: Create intelligent AI characters with natural conversation using @llm_agent trait. Learn tool calling, bounded autonomy, and memory systems in this 30-minute practical tutorial.
+head:
+  - - meta
+    - property: og:title
+      content: Building Your First AI NPC - HoloScript
+  - - meta
+    - property: og:description
+      content: Create intelligent NPCs with LLM-powered conversation. Learn @llm_agent trait, tool calling, and bounded autonomy.
+  - - meta
+    - property: og:image
+      content: https://holoscript.net/tutorials/og-first-ai-npc.png
+  - - meta
+    - property: og:type
+      content: article
+  - - meta
+    - name: twitter:card
+      content: summary_large_image
+  - - meta
+    - name: twitter:title
+      content: Building AI NPCs - HoloScript Tutorial
+  - - meta
+    - name: twitter:description
+      content: Create intelligent characters with LLM-powered conversation, tool calling, and bounded autonomy.
+  - - meta
+    - name: twitter:image
+      content: https://holoscript.net/tutorials/og-first-ai-npc.png
+  - - meta
+    - name: keywords
+      content: holoscript, ai npc, llm agent, chatgpt, claude ai, game ai, vr character, tool calling, bounded autonomy
+---
+
 # Building Your First AI NPC
 
 **Duration:** 30 minutes

@@ -1,3 +1,36 @@
+---
+title: HoloScript Studio - Complete IDE Reference
+description: Comprehensive guide to HoloScript Studio IDE with 5 modes - Creator (AI scene building), Artist (shader editor), Filmmaker (camera paths), Expert (code editor), and Character (animation). Learn Brittney AI assistant, keyboard shortcuts, VR mode, collaboration, and export workflows.
+head:
+  - - meta
+    - property: og:title
+      content: HoloScript Studio - Complete IDE Reference
+  - - meta
+    - property: og:description
+      content: Comprehensive IDE guide for HoloScript Studio. Master 5 modes, Brittney AI, VR editing, collaboration, and export to 25+ platforms.
+  - - meta
+    - property: og:image
+      content: https://holoscript.net/tutorials/og-studio-reference.png
+  - - meta
+    - property: og:type
+      content: article
+  - - meta
+    - name: twitter:card
+      content: summary_large_image
+  - - meta
+    - name: twitter:title
+      content: HoloScript Studio - Complete IDE Reference
+  - - meta
+    - name: twitter:description
+      content: Master HoloScript Studio's 5 modes, Brittney AI assistant, and export to 25+ platforms. Complete IDE reference guide.
+  - - meta
+    - name: twitter:image
+      content: https://holoscript.net/tutorials/og-studio-reference.png
+  - - meta
+    - name: keywords
+      content: holoscript studio, ide reference, brittney ai, vr editor, shader editor, camera paths, code editor, animation editor, webxr, three.js, studio documentation
+---
+
 # HoloScript Studio - Complete Reference
 
 **Version:** 0.1.0-beta

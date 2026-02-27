@@ -1,3 +1,36 @@
+---
+title: Your First AI Scene with Studio - HoloScript Tutorial
+description: Build a complete VR scene in 15 minutes using natural language and Brittney AI. No coding required - perfect for beginners getting started with HoloScript Studio.
+head:
+  - - meta
+    - property: og:title
+      content: Your First AI Scene with Studio - HoloScript
+  - - meta
+    - property: og:description
+      content: Build VR scenes using natural language with Brittney AI. No coding required. Learn Studio IDE basics in 15 minutes.
+  - - meta
+    - property: og:image
+      content: https://holoscript.net/tutorials/og-first-ai-scene.png
+  - - meta
+    - property: og:type
+      content: article
+  - - meta
+    - name: twitter:card
+      content: summary_large_image
+  - - meta
+    - name: twitter:title
+      content: Your First AI Scene - HoloScript Tutorial
+  - - meta
+    - name: twitter:description
+      content: Build VR scenes with AI - no coding required. 15-minute beginner tutorial for HoloScript Studio.
+  - - meta
+    - name: twitter:image
+      content: https://holoscript.net/tutorials/og-first-ai-scene.png
+  - - meta
+    - name: keywords
+      content: holoscript, vr tutorial, ai scene generation, brittney ai, no code vr, studio ide, webxr, 3d scene builder
+---
+
 # Your First AI Scene with Studio
 
 **Duration:** 15 minutes
