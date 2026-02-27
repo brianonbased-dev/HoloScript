@@ -78,5 +78,6 @@
   "basePath": ".",
   "disableSources": false,
   "searchInComments": true,
-  "searchInDocuments": true
+  "searchInDocuments": true,
+  "skipErrorChecking": true
 }
