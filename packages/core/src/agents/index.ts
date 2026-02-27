@@ -52,3 +52,11 @@ export {
   getDefaultRegistry,
   resetDefaultRegistry,
 } from './AgentRegistry';
+
+// AgentKit Integration (Transactions/Wallets)
+export {
+  AgentKitIntegration,
+  type AgentKitOptions,
+  type AgentWallet,
+  type AgentTransaction,
+} from './AgentKitIntegration';

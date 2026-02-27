@@ -9,6 +9,7 @@ import { logger } from './logger';
 import type { IParentRuntime, Scope } from './runtime/IParentRuntime';
 import { OrbNode, HoloScriptValue, ExecutionResult, MethodNode } from './types';
 import { ReactiveState } from './ReactiveState';
+import { MemoryConsolidator, EpisodicMemory, SemanticFact } from './learning/MemoryConsolidator';
 
 export class HoloScriptAgentRuntime {
   private agentNode: OrbNode;
@@ -16,6 +17,11 @@ export class HoloScriptAgentRuntime {
   private localState: ReactiveState;
   private runningActions: Map<string, Promise<any>> = new Map();
   private isDestroyed: boolean = false;
+
+  // Episodic Memory & Semantic Extraction (Phase 7 // TODO-019)
+  private rawEpisodes: EpisodicMemory[] = [];
+  public semanticFacts: SemanticFact[] = [];
+  private consolidationInterval: NodeJS.Timeout | null = null;
 
   constructor(agentNode?: OrbNode, parentRuntime?: IParentRuntime) {
     if (!agentNode || !parentRuntime) {
@@ -53,7 +59,39 @@ export class HoloScriptAgentRuntime {
 
     // Inject 'this' and agent-specific builtins into the runtime for this agent
     // Note: We'll use a scoped approach when executing actions
+    
+    // Begin the idle memory consolidation loop
+    if (!this.consolidationInterval) {
+        this.consolidationInterval = setInterval(() => this.consolidateMemory(), 30000); // 30s background cycle
+    }
   }
+
+  /**
+   * Records a raw episodic event into the agent's short-term history queue.
+   */
+  public recordEpisode(action: string, outcome: string, entitiesInvolved: string[]) {
+      this.rawEpisodes.push({
+          id: `ep_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+          timestamp: Date.now(),
+          action,
+          outcome,
+          entitiesInvolved
+      });
+  }
+
+  /**
+   * Internal idle tick leveraging the MemoryConsolidator subsystem to offload processing constraints.
+   */
+  private consolidateMemory() {
+      if (this.isDestroyed || this.rawEpisodes.length < 5) return;
+      
+      const { newFacts, prunedEpisodes } = MemoryConsolidator.compressEpisodes(this.rawEpisodes);
+      if (newFacts.length > 0) {
+          this.semanticFacts.push(...newFacts);
+          this.rawEpisodes = this.rawEpisodes.filter(e => !prunedEpisodes.includes(e.id));
+      }
+  }
+
   /**
    * Execute an action (method) defined on the agent template
    */
@@ -228,6 +266,12 @@ export class HoloScriptAgentRuntime {
   destroy() {
     this.isDestroyed = true;
     this.runningActions.clear();
+    
+    if (this.consolidationInterval) {
+      clearInterval(this.consolidationInterval);
+      this.consolidationInterval = null;
+    }
+
     logger.info(`[Agent:${this.agentNode.name}] Runtime destroyed.`);
   }
 

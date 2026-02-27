@@ -222,7 +222,11 @@ export type AgentCategory =
   | 'management'
   | 'strategic'
   | 'assistant'
-  | 'orchestrator';
+  | 'orchestrator'
+  | 'quest_creator'
+  | 'librarian'
+  | 'twin_manager'
+  | 'payment_handler';
 
 /**
  * Agent position in the Lotus Flower Architecture
@@ -546,6 +550,20 @@ export interface AgentTraitContext {
 
   // Logging
   log: (level: 'debug' | 'info' | 'warn' | 'error', message: string, data?: unknown) => void;
+
+  // Economy & Autonomy Extensions
+  wallet?: {
+    getBalance: (asset?: string) => Promise<number>;
+    pay: (endpoint: string, amount: number, asset: string) => Promise<{ success: boolean; txHash?: string }>;
+    trade: (from: string, to: string, amount: number) => Promise<{ success: boolean; txHash?: string }>;
+    mintNFT: (metadata: Record<string, any>) => Promise<{ success: boolean; tokenId?: string }>;
+  };
+  
+  story_weaver?: {
+    generateNarrative: (context: Record<string, unknown>) => Promise<string>;
+    createWorld: (theme: string) => Promise<string>; // Returns VRR Twin ID
+    deployContracts: (worldId: string) => Promise<boolean>;
+  };
 }
 
 // ============================================================================
