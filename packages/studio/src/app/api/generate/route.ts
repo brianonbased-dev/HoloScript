@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateMockScene, refineMockScene } from '@/lib/mock-generator';
 
+<<<<<<< HEAD
 // ─── Starter Templates metadata (matching mock-generator template IDs) ─────────
 
 const STARTER_TEMPLATES = [
@@ -17,6 +18,8 @@ export function GET() {
 }
 
 
+=======
+>>>>>>> feature/docs-examples-misc
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL || 'http://localhost:8000';
 

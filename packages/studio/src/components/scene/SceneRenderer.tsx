@@ -1,5 +1,6 @@
 'use client';
 
+<<<<<<< HEAD
 import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, Stars, Environment, TransformControls, Stats } from '@react-three/drei';
@@ -21,14 +22,30 @@ import * as THREE from 'three';
 interface SceneRendererProps {
   r3fTree: R3FNode | null;
   profilerOpen?: boolean;
+=======
+import { Suspense } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Grid, Stars, Environment } from '@react-three/drei';
+import type { R3FNode } from '@holoscript/core';
+import { R3FNodeRenderer } from './R3FNodeRenderer';
+import { useEditorStore } from '@/lib/store';
+
+interface SceneRendererProps {
+  r3fTree: R3FNode | null;
+>>>>>>> feature/docs-examples-misc
 }
 
 function SceneContent({ r3fTree }: { r3fTree: R3FNode }) {
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
 
+<<<<<<< HEAD
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hasLights = r3fTree.children?.some(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+=======
+  // Check if the tree already contains lights
+  const hasLights = r3fTree.children?.some(
+>>>>>>> feature/docs-examples-misc
     (c: any) =>
       c.type === 'ambientLight' ||
       c.type === 'directionalLight' ||
@@ -36,18 +53,35 @@ function SceneContent({ r3fTree }: { r3fTree: R3FNode }) {
       c.type === 'spotLight' ||
       c.type === 'hemisphereLight'
   );
+<<<<<<< HEAD
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+=======
+
+  // Check if tree has environment
+>>>>>>> feature/docs-examples-misc
   const hasEnv = r3fTree.children?.some((c: any) => c.type === 'Environment');
 
   return (
     <group onClick={() => setSelectedId(null)}>
+<<<<<<< HEAD
+=======
+      {/* Default lighting if scene doesn't provide its own */}
+>>>>>>> feature/docs-examples-misc
       {!hasLights && (
         <>
           <ambientLight intensity={0.4} color="#e8e0ff" />
           <directionalLight position={[5, 10, 5]} intensity={1} castShadow />
         </>
       )}
+<<<<<<< HEAD
       {!hasEnv && <Environment preset="studio" background={false} />}
+=======
+
+      {/* Default environment if none provided */}
+      {!hasEnv && <Environment preset="studio" background={false} />}
+
+      {/* Render the compiled scene */}
+>>>>>>> feature/docs-examples-misc
       <R3FNodeRenderer node={r3fTree} />
     </group>
   );
@@ -63,6 +97,7 @@ function EmptyScene() {
   );
 }
 
+<<<<<<< HEAD
 // ─── Gizmo Controller ─────────────────────────────────────────────────────────
 
 /**
@@ -224,6 +259,11 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+=======
+export function SceneRenderer({ r3fTree }: SceneRendererProps) {
+  return (
+    <div className="relative h-full w-full">
+>>>>>>> feature/docs-examples-misc
       <Canvas
         camera={{ position: [3, 3, 5], fov: 60 }}
         shadows
@@ -255,6 +295,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         />
 
         <Stars radius={80} depth={50} count={2000} factor={3} saturation={0.1} fade speed={0.5} />
+<<<<<<< HEAD
 
         {/* VR edit session — active when XR is running */}
         <VREditSession />
@@ -337,6 +378,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
           )}
         </div>
       )}
+=======
+      </Canvas>
+>>>>>>> feature/docs-examples-misc
 
       {/* Scene info overlay */}
       {r3fTree && r3fTree.children && (
@@ -347,4 +391,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
     </div>
   );
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> feature/docs-examples-misc

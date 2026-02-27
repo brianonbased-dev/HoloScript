@@ -1,0 +1,346 @@
+
+> @holoscript/studio@0.1.0 test:coverage C:\Users\josep\Documents\GitHub\HoloScript\packages\studio
+> vitest run --coverage
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/josep/Documents/GitHub/HoloScript/packages/studio[39m
+[2m      Coverage enabled with [22m[33mv8[39m
+
+ [32m✓[39m src/__tests__/compiler.test.ts [2m ([22m[2m38 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/__tests__/characterStore.test.ts [2m ([22m[2m38 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+ [32m✓[39m src/__tests__/sceneTemplates.test.ts [2m ([22m[2m44 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/industrial-plant-designer.scenario.ts [2m ([22m[2m82 tests[22m[2m)[22m[90m 35[2mms[22m[39m
+ [32m✓[39m src/__tests__/animationBuilder.test.ts [2m ([22m[2m23 tests[22m[2m)[22m[90m 26[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/sketch-mode.scenario.ts [2m ([22m[2m41 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/ai-orchestration-builder.scenario.ts [2m ([22m[2m50 tests[22m [2m|[22m [33m11 skipped[39m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m src/lib/__tests__/serializer.test.ts [2m ([22m[2m26 tests[22m [2m|[22m [33m1 skipped[39m[2m)[22m[90m 82[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/project-manager.scenario.ts [2m ([22m[2m39 tests[22m [2m|[22m [33m11 skipped[39m[2m)[22m[90m 47[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/undo-history.scenario.ts [2m ([22m[2m29 tests[22m[2m)[22m[90m 34[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/scene-composer.scenario.ts [2m ([22m[2m41 tests[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/robot-engineer.scenario.ts [2m ([22m[2m65 tests[22m[2m)[22m[90m 89[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/animator.scenario.ts [2m ([22m[2m72 tests[22m [2m|[22m [33m19 skipped[39m[2m)[22m[90m 39[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/sculptor.scenario.ts [2m ([22m[2m52 tests[22m [2m|[22m [33m10 skipped[39m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/shader-graph-artist.scenario.ts [2m ([22m[2m42 tests[22m[2m)[22m[90m 195[2mms[22m[39m
+ [32m✓[39m src/__tests__/wizardCodegen.test.ts [2m ([22m[2m27 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/operating-room.scenario.ts [2m ([22m[2m3 tests[22m[2m)[22m[90m 283[2mms[22m[39m
+ [32m✓[39m src/__tests__/editorStore.test.ts [2m ([22m[2m30 tests[22m[2m)[22m[90m 27[2mms[22m[39m
+ [32m✓[39m src/features/shader-editor/__tests__/ShaderEditorIntegration.test.ts [2m ([22m[2m27 tests[22m[2m)[22m[90m 97[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useUndoHistory.test.ts [2m ([22m[2m25 tests[22m[2m)[22m[90m 143[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useMultiSelect.test.ts [2m ([22m[2m15 tests[22m[2m)[22m[90m 123[2mms[22m[39m
+ [32m✓[39m src/components/shader-editor/__tests__/ShaderEditor.test.tsx [2m ([22m[2m18 tests[22m [2m|[22m [33m1 skipped[39m[2m)[22m[90m 121[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSnapshots.test.ts [2m ([22m[2m19 tests[22m[2m)[22m[90m 191[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSceneExport.test.ts [2m ([22m[2m17 tests[22m[2m)[22m[90m 196[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m24 passed[39m[22m[90m (24)[39m
+[2m      Tests [22m [1m[32m810 passed[39m[22m[2m | [22m[33m2 skipped[39m[2m | [22m[90m51 todo[39m[90m (863)[39m
+[2m   Start at [22m 13:31:24
+[2m   Duration [22m 5.07s[2m (transform 5.65s, setup 2.21s, collect 12.52s, tests 1.94s, environment 10.02s, prepare 11.51s)[22m
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   18.39 |    72.01 |   54.76 |   18.39 |                   
+ app               |       0 |        0 |       0 |       0 |                   
+  ...d-example.tsx |       0 |        0 |       0 |       0 | 1-68              
+  providers.tsx    |       0 |        0 |       0 |       0 | 1-20              
+ app/create        |       0 |        0 |       0 |       0 |                   
+  layout.tsx       |       0 |        0 |       0 |       0 | 1-3               
+ app/shared/[id]   |       0 |        0 |       0 |       0 |                   
+  not-found.tsx    |       0 |        0 |       0 |       0 | 1-30              
+ components        |       0 |        0 |       0 |       0 |                   
+  ...ticsPanel.tsx |       0 |        0 |       0 |       0 | 1-261             
+  ...Dashboard.tsx |       0 |        0 |       0 |       0 | 1-138             
+  HistoryPanel.tsx |       0 |        0 |       0 |       0 | 1-166             
+  NFTGallery.tsx   |       0 |        0 |       0 |       0 | 1-177             
+  PublishModal.tsx |       0 |        0 |       0 |       0 | 1-192             
+  RevenueChart.tsx |       0 |        0 |       0 |       0 | 1-188             
+  SaveBar.tsx      |       0 |        0 |       0 |       0 | 1-244             
+  StatCard.tsx     |       0 |        0 |       0 |       0 | 1-69              
+  StudioHeader.tsx |       0 |        0 |       0 |       0 | 1-191             
+  ...eSwitcher.tsx |       0 |        0 |       0 |       0 | 1-65              
+ components/ai     |       0 |        0 |       0 |       0 |                   
+  ...rialPanel.tsx |       0 |        0 |       0 |       0 | 1-191             
+  ...ChatPanel.tsx |       0 |        0 |       0 |       0 | 1-370             
+  PromptBar.tsx    |       0 |        0 |       0 |       0 | 1-143             
+  ...iquePanel.tsx |       0 |        0 |       0 |       0 | 1-148             
+  ...atorPanel.tsx |       0 |        0 |       0 |       0 | 1-183             
+ components/assets |       0 |        0 |       0 |       0 |                   
+  ...Processor.tsx |       0 |        0 |       0 |       0 | 1-203             
+  AssetLibrary.tsx |       0 |        0 |       0 |       0 | 1-404             
+  ...raryPanel.tsx |       0 |        0 |       0 |       0 | 1-135             
+  ...PackPanel.tsx |       0 |        0 |       0 |       0 | 1-216             
+  ...ureWizard.tsx |       0 |        0 |       0 |       0 | 1-482             
+  useAssetStore.ts |       0 |        0 |       0 |       0 | 1-106             
+ components/audio  |       0 |        0 |       0 |       0 |                   
+  ...raitPanel.tsx |       0 |        0 |       0 |       0 | 1-150             
+  ...izerPanel.tsx |       0 |        0 |       0 |       0 | 1-144             
+ ...ents/character |       0 |        0 |       0 |       0 |                   
+  ...oTimeline.tsx |       0 |        0 |       0 |       0 | 1-319             
+  ...terLayout.tsx |       0 |        0 |       0 |       0 | 1-93              
+  ...erLibrary.tsx |       0 |        0 |       0 |       0 | 1-321             
+  ClipLibrary.tsx  |       0 |        0 |       0 |       0 | 1-208             
+  ...tionPanel.tsx |       0 |        0 |       0 |       0 | 1-366             
+  ...tionPanel.tsx |       0 |        0 |       0 |       0 | 1-169             
+  ExportModal.tsx  |       0 |        0 |       0 |       0 | 1-330             
+  GlbDropZone.tsx  |       0 |        0 |       0 |       0 | 1-113             
+  GlbViewer.tsx    |       0 |        0 |       0 |       0 | 1-208             
+  HotkeyGuide.tsx  |       0 |        0 |       0 |       0 | 1-166             
+  ...gProgress.tsx |       0 |        0 |       0 |       0 | 1-109             
+  ...GlbViewer.tsx |       0 |        0 |       0 |       0 | 1-262             
+  ...etonPanel.tsx |       0 |        0 |       0 |       0 | 1-165             
+  ...PosePanel.tsx |       0 |        0 |       0 |       0 | 1-241             
+ components/collab |       0 |        0 |       0 |       0 |                   
+  ...abCursors.tsx |       0 |        0 |       0 |       0 | 1-82              
+  ...CursorsV2.tsx |       0 |        0 |       0 |       0 | 1-67              
+  ...ayerPanel.tsx |       0 |        0 |       0 |       0 | 1-162             
+ .../collaboration |       0 |        0 |       0 |       0 |                   
+  CollabBar.tsx    |       0 |        0 |       0 |       0 | 1-142             
+ ...onents/console |       0 |        0 |       0 |       0 |                   
+  ...ptConsole.tsx |       0 |        0 |       0 |       0 | 1-97              
+ ...nents/critique |       0 |        0 |       0 |       0 |                   
+  ...iquePanel.tsx |       0 |        0 |       0 |       0 | 1-173             
+ ...nents/debugger |       0 |        0 |       0 |       0 |                   
+  ...ggerPanel.tsx |       0 |        0 |       0 |       0 | 1-151             
+ components/diff   |       0 |        0 |       0 |       0 |                   
+  ...DiffPanel.tsx |       0 |        0 |       0 |       0 | 1-164             
+  ...DiffPanel.tsx |       0 |        0 |       0 |       0 | 1-108             
+ components/editor |       0 |        0 |       0 |       0 |                   
+  ...iptEditor.tsx |       0 |        0 |       0 |       0 | 1-285             
+ ...ts/environment |       0 |        0 |       0 |       0 |                   
+  ...mentPanel.tsx |       0 |        0 |       0 |       0 | 1-152             
+ components/export |       0 |        0 |       0 |       0 |                   
+  ExportPanel.tsx  |       0 |        0 |       0 |       0 | 1-122             
+  ...linePanel.tsx |       0 |        0 |       0 |       0 | 1-145             
+ ...onents/gallery |       0 |        0 |       0 |       0 |                   
+  ...otGallery.tsx |       0 |        0 |       0 |       0 | 1-113             
+ ...nts/generative |       0 |        0 |       0 |       0 |                   
+  ...eArtPanel.tsx |       0 |        0 |       0 |       0 | 1-211             
+  ...ivePresets.ts |       0 |        0 |       0 |       0 | 1-207             
+  ...cleSystem.tsx |       0 |        0 |       0 |       0 | 1-122             
+ ...ents/generator |       0 |        0 |       0 |       0 |                   
+  ...atorPanel.tsx |       0 |        0 |       0 |       0 | 1-182             
+ ...onents/history |       0 |        0 |       0 |       0 |                   
+  ...rySidebar.tsx |       0 |        0 |       0 |       0 | 1-86              
+  ...TreePanel.tsx |       0 |        0 |       0 |       0 | 1-188             
+ ...onents/hotkeys |       0 |        0 |       0 |       0 |                   
+  ...apOverlay.tsx |       0 |        0 |       0 |       0 | 1-203             
+ ...ents/inspector |       0 |        0 |       0 |       0 |                   
+  ...ctorPanel.tsx |       0 |        0 |       0 |       0 | 1-195             
+  ...Inspector.tsx |       0 |        0 |       0 |       0 | 1-268             
+  TraitPalette.tsx |       0 |        0 |       0 |       0 | 1-272             
+ ...ents/keyframes |       0 |        0 |       0 |       0 |                   
+  ...ameEditor.tsx |       0 |        0 |       0 |       0 | 1-157             
+ ...onents/layouts |       0 |        0 |       0 |       0 |                   
+  ...torLayout.tsx |       0 |        0 |       0 |       0 | 1-471             
+  ...kerLayout.tsx |       0 |        0 |       0 |       0 | 1-368             
+ components/lod    |       0 |        0 |       0 |       0 |                   
+  LodPanel.tsx     |       0 |        0 |       0 |       0 | 1-127             
+ ...ents/materials |       0 |        0 |       0 |       0 |                   
+  ...rialPanel.tsx |       0 |        0 |       0 |       0 | 1-226             
+ ...onents/minimap |       0 |        0 |       0 |       0 |                   
+  ...apOverlay.tsx |       0 |        0 |       0 |       0 | 1-144             
+ ...nts/node-graph |       0 |        0 |       0 |       0 |                   
+  ...aphEditor.tsx |       0 |        0 |       0 |       0 | 1-369             
+  ...raphPanel.tsx |       0 |        0 |       0 |       0 | 1-189             
+ ...nents/outliner |       0 |        0 |       0 |       0 |                   
+  ...eOutliner.tsx |       0 |        0 |       0 |       0 | 1-144             
+ components/paint  |       0 |        0 |       0 |       0 |                   
+  ...ntToolbar.tsx |       0 |        0 |       0 |       0 | 1-123             
+ ...ents/particles |       0 |        0 |       0 |       0 |                   
+  ...iclePanel.tsx |       0 |        0 |       0 |       0 | 1-129             
+ components/perf   |       0 |        0 |       0 |       0 |                   
+  ...arkCanvas.tsx |       0 |        0 |       0 |       0 | 1-141             
+  ...markScene.tsx |       0 |        0 |       0 |       0 | 1-276             
+  PerfOverlay.tsx  |       0 |        0 |       0 |       0 | 1-125             
+ ...onents/physics |       0 |        0 |       0 |       0 |                   
+  ...ugOverlay.tsx |       0 |        0 |       0 |       0 | 1-46              
+  PhysicsPanel.tsx |       0 |        0 |       0 |       0 | 1-113             
+  ...sProvider.tsx |       0 |        0 |       0 |       0 | 1-118             
+ ...nents/playtest |       0 |        0 |       0 |       0 |                   
+  PlaytestBar.tsx  |       0 |        0 |       0 |       0 | 1-88              
+ ...onents/plugins |       0 |        0 |       0 |       0 |                   
+  ...lacePanel.tsx |       0 |        0 |       0 |       0 | 1-209             
+ ...onents/preview |       0 |        0 |       0 |       0 |                   
+  ...reviewBar.tsx |       0 |        0 |       0 |       0 | 1-113             
+ ...nents/profiler |       0 |        0 |       0 |       0 |                   
+  ...ceOverlay.tsx |       0 |        0 |       0 |       0 | 1-204             
+  ...erOverlay.tsx |       0 |        0 |       0 |       0 | 1-76              
+  ...ilerPanel.tsx |       0 |        0 |       0 |       0 | 1-161             
+ ...onents/project |       0 |        0 |       0 |       0 |                   
+  ...ectTabBar.tsx |       0 |        0 |       0 |       0 | 1-119             
+ ...onents/publish |       0 |        0 |       0 |       0 |                   
+  PublishPanel.tsx |       0 |        0 |       0 |       0 | 1-197             
+ ...nents/registry |       0 |        0 |       0 |       0 |                   
+  ...stryPanel.tsx |       0 |        0 |       0 |       0 | 1-197             
+  ...stryPanel.tsx |       0 |        0 |       0 |       0 | 1-200             
+ components/remote |       0 |        0 |       0 |       0 |                   
+  ...motePanel.tsx |       0 |        0 |       0 |       0 | 1-146             
+  ...viewPanel.tsx |       0 |        0 |       0 |       0 | 1-172             
+ components/repl   |       0 |        0 |       0 |       0 |                   
+  REPLPanel.tsx    |       0 |        0 |       0 |       0 | 1-139             
+ components/scene  |       0 |        0 |       0 |       0 |                   
+  MeshNode.tsx     |       0 |        0 |       0 |       0 | 1-109             
+  ...eRenderer.tsx |       0 |        0 |       0 |       0 | 1-124             
+  ...raphPanel.tsx |       0 |        0 |       0 |       0 | 1-543             
+  ...eRenderer.tsx |       0 |        0 |       0 |       0 | 1-349             
+  ...ormGizmos.tsx |       0 |        0 |       0 |       0 | 1-65              
+ components/search |       0 |        0 |       0 |       0 |                   
+  ...chOverlay.tsx |       0 |        0 |       0 |       0 | 1-113             
+ components/shader |       0 |        0 |       0 |       0 |                   
+  ...itorPanel.tsx |       0 |        0 |       0 |       0 | 1-166             
+ .../shader-editor |       0 |        0 |       0 |       0 |                   
+  ...alPreview.tsx |       0 |        0 |       0 |       0 | 1-306             
+  NodePalette.tsx  |       0 |        0 |       0 |       0 | 1-281             
+  ...ertyPanel.tsx |       0 |        0 |       0 |       0 | 1-259             
+  ...CodePanel.tsx |       0 |        0 |       0 |       0 | 1-164             
+  ShaderEditor.tsx |       0 |        0 |       0 |       0 | 1-58              
+  ...torCanvas.tsx |       0 |        0 |       0 |       0 | 1-264             
+  ...itorPanel.tsx |       0 |        0 |       0 |       0 | 1-272             
+  ...orToolbar.tsx |       0 |        0 |       0 |       0 | 1-315             
+  ...Component.tsx |       0 |        0 |       0 |       0 | 1-286             
+  ...etLibrary.tsx |       0 |        0 |       0 |       0 | 1-218             
+  index.ts         |       0 |        0 |       0 |       0 | 1-12              
+ components/share  |       0 |        0 |       0 |       0 |                   
+  SharePanel.tsx   |       0 |        0 |       0 |       0 | 1-201             
+ components/sketch |       0 |        0 |       0 |       0 |                   
+  SketchCanvas.tsx |       0 |        0 |       0 |       0 | 1-126             
+  SketchStroke.tsx |       0 |        0 |       0 |       0 | 1-78              
+  ...chToolbar.tsx |       0 |        0 |       0 |       0 | 1-140             
+ components/store  |       0 |        0 |       0 |       0 |                   
+  ...PackPanel.tsx |       0 |        0 |       0 |       0 | 1-157             
+ ...ents/templates |       0 |        0 |       0 |       0 |                   
+  TemplateCard.tsx |       0 |        0 |       0 |       0 | 1-42              
+  ...teGallery.tsx |       0 |        0 |       0 |       0 | 1-145             
+  TemplateGrid.tsx |       0 |        0 |       0 |       0 | 1-19              
+  ...atePicker.tsx |       0 |        0 |       0 |       0 | 1-174             
+ ...nents/timeline |       0 |        0 |       0 |       0 |                   
+  ...nTimeline.tsx |       0 |        0 |       0 |       0 | 1-422             
+ ...ents/transform |       0 |        0 |       0 |       0 |                   
+  ...formPanel.tsx |       0 |        0 |       0 |       0 | 1-152             
+ components/ui     |       0 |        0 |       0 |       0 |                   
+  ContextMenu.tsx  |       0 |        0 |       0 |       0 | 1-68              
+  ...lSplitter.tsx |       0 |        0 |       0 |       0 | 1-86              
+  ...Inspector.tsx |       0 |        0 |       0 |       0 | 1-114             
+  ...rBoundary.tsx |       0 |        0 |       0 |       0 | 1-92              
+ ...nents/versions |       0 |        0 |       0 |       0 |                   
+  ...sionPanel.tsx |       0 |        0 |       0 |       0 | 1-187             
+  ...toryPanel.tsx |       0 |        0 |       0 |       0 | 1-134             
+ components/vr     |       0 |        0 |       0 |       0 |                   
+  ...tEnsemble.tsx |       0 |        0 |       0 |       0 | 1-205             
+  ...vatarMesh.tsx |       0 |        0 |       0 |       0 | 1-110             
+  VRBrittney.tsx   |       0 |        0 |       0 |       0 | 1-293             
+  VREditHUD.tsx    |       0 |        0 |       0 |       0 | 1-200             
+  ...itSession.tsx |       0 |        0 |       0 |       0 | 1-39              
+  ...ontroller.tsx |       0 |        0 |       0 |       0 | 1-168             
+ components/wizard |   35.74 |       80 |      50 |   35.74 |                   
+  ...artWizard.tsx |   35.74 |       80 |      50 |   35.74 | 95-263            
+ core/rendering    |   89.85 |    77.77 |    87.5 |   89.85 |                   
+  ...Translator.ts |   89.85 |    77.77 |    87.5 |   89.85 | ...,81-82,122-129 
+ data              |     100 |      100 |     100 |     100 |                   
+  ...eTemplates.ts |     100 |      100 |     100 |     100 |                   
+ embed             |       0 |        0 |       0 |       0 |                   
+  SceneViewer.tsx  |       0 |        0 |       0 |       0 | 1-438             
+  StudioWidget.tsx |       0 |        0 |       0 |       0 | 1-282             
+  index.ts         |       0 |        0 |       0 |       0 | 1-21              
+ .../shader-editor |   81.67 |    80.42 |   63.09 |   81.67 |                   
+  ...iewService.ts |   71.82 |    78.94 |   59.09 |   71.82 | ...99-508,532-536 
+  ...ialLibrary.ts |   93.43 |     91.3 |    87.5 |   93.43 | ...-281,1185-1189 
+  ...torService.ts |   62.42 |       60 |   44.44 |   62.42 | ...47-650,688-692 
+  ...rTemplates.ts |   99.22 |    92.85 |   94.73 |   99.22 | 645-649           
+  ...RedoSystem.ts |   76.52 |    78.26 |   47.45 |   76.52 | ...85-606,618-622 
+  index.ts         |       0 |        0 |       0 |       0 | 1-44              
+ hooks             |   15.86 |    71.35 |   45.05 |   15.86 |                   
+  useAIMaterial.ts |       0 |        0 |       0 |       0 | 1-80              
+  ...setLibrary.ts |       0 |        0 |       0 |       0 | 1-71              
+  ...Visualizer.ts |       0 |        0 |       0 |       0 | 1-148             
+  useAutoSave.ts   |       0 |        0 |       0 |       0 | 1-64              
+  ...neyHistory.ts |       0 |        0 |       0 |       0 | 1-72              
+  ...ttneyVoice.ts |       0 |        0 |       0 |       0 | 1-130             
+  ...laboration.ts |       0 |        0 |       0 |       0 | 1-138             
+  ...eatorStats.ts |       0 |        0 |       0 |       0 | 1-132             
+  useDebugger.ts   |       0 |        0 |       0 |       0 | 1-68              
+  ...nvironment.ts |       0 |        0 |       0 |       0 | 1-48              
+  ...balHotkeys.ts |       0 |        0 |       0 |       0 | 1-155             
+  ...loDebugger.ts |       0 |        0 |       0 |       0 | 1-232             
+  useHotkeys.ts    |       0 |        0 |       0 |       0 | 1-374             
+  useKeyframes.ts  |       0 |        0 |       0 |       0 | 1-125             
+  ...ivePreview.ts |       0 |        0 |       0 |       0 | 1-79              
+  useMinimap.ts    |       0 |        0 |       0 |       0 | 1-77              
+  ...bileRemote.ts |       0 |        0 |       0 |       0 | 1-88              
+  ...tocomplete.ts |       0 |        0 |       0 |       0 | 1-114             
+  ...ultiSelect.ts |     100 |    89.65 |     100 |     100 | 48,80-81          
+  ...playerRoom.ts |       0 |        0 |       0 |       0 | 1-112             
+  useNodeGraph.ts  |       0 |        0 |       0 |       0 | 1-97              
+  ...aphHistory.ts |       0 |        0 |       0 |       0 | 1-85              
+  ...eInspector.ts |       0 |        0 |       0 |       0 | 1-272             
+  ...eSelection.ts |   59.73 |      100 |      50 |   59.73 | ...23-124,127-148 
+  ...lamaStatus.ts |       0 |        0 |       0 |       0 | 1-30              
+  useProfiler.ts   |       0 |        0 |       0 |       0 | 1-100             
+  useREPL.ts       |       0 |        0 |       0 |       0 | 1-58              
+  ...neCritique.ts |       0 |        0 |       0 |       0 | 1-41              
+  ...ceneExport.ts |     100 |     87.5 |     100 |     100 | 14,55             
+  ...eGenerator.ts |       0 |        0 |       0 |       0 | 1-52              
+  ...neOutliner.ts |       0 |        0 |       0 |       0 | 1-97              
+  ...nePipeline.ts |       0 |        0 |       0 |       0 | 1-63              
+  ...neProfiler.ts |       0 |        0 |       0 |       0 | 1-83              
+  ...ceneSearch.ts |       0 |        0 |       0 |       0 | 1-79              
+  useSceneShare.ts |       0 |        0 |       0 |       0 | 1-95              
+  ...neVersions.ts |       0 |        0 |       0 |       0 | 1-106             
+  ...iptConsole.ts |       0 |        0 |       0 |       0 | 1-111             
+  ...ompilation.ts |       0 |        0 |       0 |       0 | 1-515             
+  ...haderGraph.ts |   97.88 |       80 |   86.11 |   97.88 | ...40-343,365-367 
+  ...apshotDiff.ts |       0 |        0 |       0 |       0 | 1-79              
+  useSnapshots.ts  |     100 |     90.9 |     100 |     100 | 26,64             
+  ...xturePaint.ts |   29.91 |      100 |       0 |   29.91 | 36-117            
+  ...ndoHistory.ts |     100 |    96.15 |     100 |     100 | 53                
+  useUndoRedo.ts   |       0 |        0 |       0 |       0 | 1-50              
+  useXRSession.ts  |       0 |        0 |       0 |       0 | 1-83              
+ integrations      |       0 |        0 |       0 |       0 |                   
+  ...ordWebhook.ts |       0 |        0 |       0 |       0 | 1-553             
+ lib               |    47.8 |    86.14 |   82.87 |    47.8 |                   
+  agentEventBus.ts |       0 |        0 |       0 |       0 | 1-218             
+  ...istryStore.ts |     100 |       90 |     100 |     100 | 23                
+  ...ionBuilder.ts |     100 |      100 |     100 |     100 |                   
+  ...ionLooping.ts |       0 |        0 |       0 |       0 | 1-360             
+  api.ts           |       0 |        0 |       0 |       0 | 1-37              
+  audioSync.ts     |       0 |        0 |       0 |       0 | 1-595             
+  behaviorTree.ts  |   98.11 |    93.15 |     100 |   98.11 | ...50,260,262-263 
+  collabStore.ts   |       0 |        0 |       0 |       0 | 1-76              
+  collaboration.ts |       0 |        0 |       0 |       0 | 1-166             
+  curveEasing.ts   |   91.78 |    73.58 |   62.85 |   91.78 | ...,92-97,203-204 
+  glbOptimizer.ts  |       0 |        0 |       0 |       0 | 1-506             
+  ...LabelStore.ts |      95 |      100 |      25 |      95 | 36,38             
+  historyStore.ts  |   92.59 |    82.92 |   92.85 |   92.59 | ...30,133,155-162 
+  ikSolver.ts      |     100 |    83.33 |     100 |     100 | 40,71             
+  ...ialHelpers.ts |     100 |    96.55 |     100 |     100 | 187               
+  memeTemplates.ts |       0 |        0 |       0 |       0 | 1-399             
+  ...-generator.ts |       0 |        0 |       0 |       0 | 1-751             
+  ...phCompiler.ts |     100 |    95.45 |     100 |     100 | 45,114            
+  ...GraphStore.ts |     100 |    77.77 |     100 |     100 | 113,118           
+  physicsStore.ts  |       0 |        0 |       0 |       0 | 1-42              
+  poseLibrary.ts   |       0 |        0 |       0 |       0 | 1-469             
+  projectStore.ts  |   99.02 |    84.61 |     100 |   99.02 | 68                
+  robotHelpers.ts  |   97.82 |    59.57 |     100 |   97.82 | 248-253           
+  ...eTemplates.ts |     100 |      100 |     100 |     100 |                   
+  sceneUtils.ts    |     100 |    94.44 |     100 |     100 | 117,148           
+  ...ingBrushes.ts |     100 |       80 |     100 |     100 | 113,159-161       
+  serializer.ts    |     100 |      100 |     100 |     100 |                   
+  ...pilerUtils.ts |     100 |      100 |     100 |     100 |                   
+  shaderGraph.ts   |     100 |      100 |     100 |     100 |                   
+  sketchStore.ts   |     100 |    94.73 |     100 |     100 | 74                
+  storage.ts       |       0 |        0 |       0 |       0 | 1-41              
+  store.ts         |    96.4 |    97.05 |   69.56 |    96.4 | 50-56,135-137,164 
+  ...eSmoothing.ts |   98.24 |    82.14 |     100 |   98.24 | 120-122           
+  ...lateSearch.ts |     100 |    88.46 |     100 |     100 | 137-138,170       
+  videoExporter.ts |       0 |        0 |       0 |       0 | 1-565             
+ lib/brittney      |       0 |        0 |       0 |       0 |                   
+  ...neySession.ts |       0 |        0 |       0 |       0 | 1-140             
+  BrittneyTools.ts |       0 |        0 |       0 |       0 | 1-296             
+  index.ts         |       0 |        0 |       0 |       0 | 1-4               
+ lib/traits        |       0 |        0 |       0 |       0 |                   
+  ...ctionTrait.ts |       0 |        0 |       0 |       0 | 1-427             
+  ...iggerTrait.ts |       0 |        0 |       0 |       0 | 1-476             
+  ...lPoseTrait.ts |       0 |        0 |       0 |       0 | 1-497             
+-------------------|---------|----------|---------|---------|-------------------
+ ELIFECYCLE  Command failed with exit code 1.

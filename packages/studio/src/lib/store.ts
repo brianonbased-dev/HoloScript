@@ -90,6 +90,7 @@ export const useAIStore = create<AIState>()(
   )
 );
 
+<<<<<<< HEAD
 // ─── Scene Graph Store ───────────────────────────────────────────────────────
 
 export interface TraitConfig {
@@ -175,11 +176,17 @@ type EditorPanel = 'prompt' | 'code' | 'tree';
 export type GizmoMode = 'translate' | 'rotate' | 'scale';
 export type ArtMode = 'none' | 'sketch' | 'paint' | 'generative';
 export type StudioMode = 'creator' | 'artist' | 'filmmaker' | 'expert' | 'character';
+=======
+// ─── Editor Store ───────────────────────────────────────────────────────────
+
+type EditorPanel = 'prompt' | 'code' | 'tree';
+>>>>>>> feature/docs-examples-misc
 
 interface EditorState {
   activePanel: EditorPanel;
   sidebarOpen: boolean;
   selectedObjectId: string | null;
+<<<<<<< HEAD
   selectedObjectName: string | null;
   gizmoMode: GizmoMode;
   artMode: ArtMode;
@@ -203,12 +210,20 @@ const getInitialStudioMode = (): StudioMode => {
   return (saved && ['creator', 'artist', 'filmmaker', 'expert', 'character'].includes(saved)) ? saved : 'creator';
 };
 
+=======
+  setActivePanel: (panel: EditorPanel) => void;
+  toggleSidebar: () => void;
+  setSelectedObjectId: (id: string | null) => void;
+}
+
+>>>>>>> feature/docs-examples-misc
 export const useEditorStore = create<EditorState>()(
   devtools(
     (set) => ({
       activePanel: 'prompt',
       sidebarOpen: true,
       selectedObjectId: null,
+<<<<<<< HEAD
       selectedObjectName: null,
       gizmoMode: 'translate',
       artMode: 'none',
@@ -227,10 +242,16 @@ export const useEditorStore = create<EditorState>()(
       },
       setShowBenchmark: (showBenchmark) => set({ showBenchmark }),
       togglePerfOverlay: () => set((s) => ({ showPerfOverlay: !s.showPerfOverlay })),
+=======
+      setActivePanel: (activePanel) => set({ activePanel }),
+      toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+      setSelectedObjectId: (selectedObjectId) => set({ selectedObjectId }),
+>>>>>>> feature/docs-examples-misc
     }),
     { name: 'editor-store' }
   )
 );
+<<<<<<< HEAD
 
 // ─── Character Store ─────────────────────────────────────────────────────────
 // Shared state between the R3F canvas (GlbViewer) and DOM panels (SkeletonPanel etc.)
@@ -304,3 +325,5 @@ export const useCharacterStore = create<CharacterState>()(
     { name: 'character-store' }
   )
 );
+=======
+>>>>>>> feature/docs-examples-misc

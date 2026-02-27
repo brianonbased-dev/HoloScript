@@ -1,0 +1,113 @@
+
+> @holoscript/studio@0.1.0 test
+> vitest run --run
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90mC:/Users/josep/Documents/GitHub/HoloScript/packages/studio[39m
+
+ [32m✓[39m src/__tests__/compiler.test.ts [2m ([22m[2m38 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/__tests__/characterStore.test.ts [2m ([22m[2m38 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/__tests__/animationBuilder.test.ts [2m ([22m[2m23 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/__tests__/sceneTemplates.test.ts [2m ([22m[2m44 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/ai-orchestration-builder.scenario.ts [2m ([22m[2m50 tests[22m [2m|[22m [33m11 skipped[39m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/industrial-plant-designer.scenario.ts [2m ([22m[2m82 tests[22m[2m)[22m[90m 30[2mms[22m[39m
+ [32m✓[39m src/lib/__tests__/serializer.test.ts [2m ([22m[2m26 tests[22m [2m|[22m [33m1 skipped[39m[2m)[22m[90m 69[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/sketch-mode.scenario.ts [2m ([22m[2m41 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/undo-history.scenario.ts [2m ([22m[2m29 tests[22m[2m)[22m[90m 32[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/project-manager.scenario.ts [2m ([22m[2m39 tests[22m [2m|[22m [33m11 skipped[39m[2m)[22m[90m 49[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/scene-composer.scenario.ts [2m ([22m[2m41 tests[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/animator.scenario.ts [2m ([22m[2m72 tests[22m [2m|[22m [33m19 skipped[39m[2m)[22m[90m 30[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/sculptor.scenario.ts [2m ([22m[2m52 tests[22m [2m|[22m [33m10 skipped[39m[2m)[22m[90m 29[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/robot-engineer.scenario.ts [2m ([22m[2m65 tests[22m[2m)[22m[90m 75[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/shader-graph-artist.scenario.ts [2m ([22m[2m42 tests[22m[2m)[22m[90m 205[2mms[22m[39m
+ [32m✓[39m src/__tests__/wizardCodegen.test.ts [2m ([22m[2m27 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/__tests__/scenarios/operating-room.scenario.ts [2m ([22m[2m3 tests[22m[2m)[22m[90m 266[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useBrittneyHistory.test.ts [2m ([22m[2m30 tests[22m[2m)[22m[90m 190[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useUndoHistory.test.ts [2m ([22m[2m25 tests[22m[2m)[22m[90m 118[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useHotkeys.test.ts [2m ([22m[2m38 tests[22m[2m)[22m[90m 270[2mms[22m[39m
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mHotkey Prevention[2m > [22m[2mshould allow hotkeys when preventInInputs is false[22m[39m
+[Hotkey] Started recording (R)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mHotkey Prevention[2m > [22m[2mshould allow hotkeys when preventInModals is false[22m[39m
+[Hotkey] Started recording (R)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mRecording Hotkeys[2m > [22m[2mshould start recording on R key[22m[39m
+[Hotkey] Started recording (R)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mRecording Hotkeys[2m > [22m[2mshould stop recording on S key[22m[39m
+[Hotkey] Stopped recording (S)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mPlayback Hotkeys[2m > [22m[2mshould toggle playback on Space key[22m[39m
+[Hotkey] Toggled playback (SPACE)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mExport Hotkey[2m > [22m[2mshould export on E key when clip is active[22m[39m
+[Hotkey] Export clip (E): Test Clip
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mDelete Hotkeys[2m > [22m[2mshould delete clip on Delete key[22m[39m
+[Hotkey] Deleted clip (DELETE)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mDelete Hotkeys[2m > [22m[2mshould delete clip on Backspace key[22m[39m
+[Hotkey] Deleted clip (BACKSPACE)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mPreset Pose Hotkeys[2m > [22m[2mshould trigger preset poses 1-9[22m[39m
+[Hotkey] Applied preset pose 1
+[Hotkey] Applied preset pose 2
+[Hotkey] Applied preset pose 3
+[Hotkey] Applied preset pose 4
+[Hotkey] Applied preset pose 5
+[Hotkey] Applied preset pose 6
+[Hotkey] Applied preset pose 7
+[Hotkey] Applied preset pose 8
+[Hotkey] Applied preset pose 9
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mUndo/Redo Hotkeys[2m > [22m[2mshould trigger undo on Ctrl+Z[22m[39m
+[Hotkey] Undo (CTRL+Z)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mUndo/Redo Hotkeys[2m > [22m[2mshould trigger redo on Ctrl+Shift+Z[22m[39m
+[Hotkey] Redo (CTRL+SHIFT+Z)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mUndo/Redo Hotkeys[2m > [22m[2mshould support Cmd+Z on Mac[22m[39m
+[Hotkey] Undo (CTRL+Z)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mHook Options[2m > [22m[2mshould call onHotkeyPress callback[22m[39m
+[Hotkey] Started recording (R)
+
+[90mstdout[2m | src/hooks/__tests__/useHotkeys.test.ts[2m > [22m[2museHotkeys[2m > [22m[2mCleanup[2m > [22m[2mshould update hotkeys when store changes[22m[39m
+[Hotkey] Stopped recording (S)
+
+ [32m✓[39m src/hooks/__tests__/useNodeGraph.test.ts [2m ([22m[2m30 tests[22m[2m)[22m[90m 172[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSnapshotDiff.test.ts [2m ([22m[2m35 tests[22m[2m)[22m[90m 155[2mms[22m[39m
+ [32m✓[39m src/features/shader-editor/__tests__/ShaderEditorIntegration.test.ts [2m ([22m[2m27 tests[22m[2m)[22m[90m 74[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useProfiler.test.ts [2m ([22m[2m29 tests[22m[2m)[22m[90m 167[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useAIMaterial.test.ts [2m ([22m[2m30 tests[22m[2m)[22m[90m 248[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useDebugger.test.ts [2m ([22m[2m28 tests[22m[2m)[22m[90m 193[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useEnvironment.test.ts [2m ([22m[2m27 tests[22m[2m)[22m[90m 139[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSceneGenerator.test.ts [2m ([22m[2m26 tests[22m[2m)[22m[90m 147[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSnapshots.test.ts [2m ([22m[2m19 tests[22m[2m)[22m[90m 170[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useXRSession.test.ts [2m ([22m[2m23 tests[22m[2m)[22m[33m 1528[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useAssetLibrary.test.ts [2m ([22m[2m25 tests[22m[2m)[22m[33m 1778[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useREPL.test.ts [2m ([22m[2m23 tests[22m[2m)[22m[90m 161[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useMultiSelect.test.ts [2m ([22m[2m15 tests[22m[2m)[22m[90m 98[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useAutoSave.test.ts [2m ([22m[2m25 tests[22m[2m)[22m[90m 193[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useScenePipeline.test.ts [2m ([22m[2m28 tests[22m[2m)[22m[90m 155[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSceneSearch.test.ts [2m ([22m[2m33 tests[22m[2m)[22m[90m 154[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useKeyframes.test.ts [2m ([22m[2m30 tests[22m[2m)[22m[33m 3006[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSceneOutliner.test.ts [2m ([22m[2m31 tests[22m[2m)[22m[90m 192[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useMinimap.test.ts [2m ([22m[2m25 tests[22m[2m)[22m[90m 173[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSceneProfiler.test.ts [2m ([22m[2m28 tests[22m[2m)[22m[90m 243[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useCollaboration.test.ts [2m ([22m[2m20 tests[22m[2m)[22m[33m 311[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSceneCritique.test.ts [2m ([22m[2m25 tests[22m[2m)[22m[33m 306[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useUndoRedo.test.ts [2m ([22m[2m20 tests[22m[2m)[22m[90m 129[2mms[22m[39m
+ [32m✓[39m src/components/shader-editor/__tests__/ShaderEditor.test.tsx [2m ([22m[2m18 tests[22m [2m|[22m [33m1 skipped[39m[2m)[22m[90m 134[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSceneExport.test.ts [2m ([22m[2m17 tests[22m[2m)[22m[90m 107[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useSceneShare.test.ts [2m ([22m[2m15 tests[22m[2m)[22m[90m 186[2mms[22m[39m
+ [32m✓[39m src/__tests__/editorStore.test.ts [2m ([22m[2m30 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useNodeGraphHistory.test.ts [2m ([22m[2m16 tests[22m[2m)[22m[90m 48[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useScriptConsole.test.ts [2m ([22m[2m21 tests[22m[2m)[22m[90m 74[2mms[22m[39m
+ [32m✓[39m src/hooks/__tests__/useOllamaStatus.test.ts [2m ([22m[2m7 tests[22m[2m)[22m[90m 96[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m50 passed[39m[22m[90m (50)[39m
+[2m      Tests [22m [1m[32m1478 passed[39m[22m[2m | [22m[33m2 skipped[39m[2m | [22m[90m51 todo[39m[90m (1531)[39m
+[2m   Start at [22m 16:45:55
+[2m   Duration [22m 11.77s[2m (transform 10.25s, setup 4.19s, collect 34.57s, tests 12.09s, environment 57.55s, prepare 19.59s)[22m
+

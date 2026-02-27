@@ -1,0 +1,1 @@
+﻿"src/components/scene/SceneGraphPanel.tsx(153,15): error TS2322: Type \u0027string\u0027 is not assignable to type \u0027never\u0027."
