@@ -69,7 +69,7 @@
   "lightHighlightTheme": "light-plus",
   "darkHighlightTheme": "dark-plus",
   "customCss": "docs/api/custom.css",
-  "markedOptions": {
+  "markdownItOptions": {
     "mangle": false
   },
   "githubPages": true,
