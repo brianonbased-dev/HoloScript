@@ -69,9 +69,9 @@ onMounted(() => {
         </div>
         <h1>One Language, Every Platform</h1>
         <p class="hero-sub">
-          HoloScript is an open-source programming language that compiles to 18+ targets including
+          HoloScript is an open-source programming language that compiles to 25+ targets including
           Unity, Unreal, Godot, visionOS, Android XR, WebGPU, and robotics/IoT formats.
-          <strong>1,525 traits. One source, every platform.</strong>
+          <strong>1,525+ semantic traits. One source, every platform.</strong>
         </p>
         <div class="hero-buttons">
           <a href="https://studio.holoscript.net" class="btn btn-studio">Try Studio</a>
@@ -298,9 +298,9 @@ animate();</code></pre>
     <!-- TRAITS -->
     <section class="section section--alt" id="traits">
       <div class="container">
-        <h2 class="section-title">1,525 Built-in Traits</h2>
+        <h2 class="section-title">1,525+ Semantic Traits</h2>
         <p class="section-sub">
-          61 trait categories covering VR, robotics, IoT, AI, networking, audio, and more. Add
+          74 specialized categories covering VR, robotics (213 traits), IoT, AI/XR (23 traits), scientific computing (28 traits), and more. Add
           powerful behaviors with simple decorators.
         </p>
         <div class="traits-grid">

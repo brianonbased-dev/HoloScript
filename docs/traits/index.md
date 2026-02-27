@@ -1,6 +1,8 @@
 # Traits Reference
 
-HoloScript v3.3.0 includes **1,525+ traits** organized into **13 categories**. Traits are declarative annotations that add behavior to objects without writing code.
+HoloScript v3.42.0 includes **1,525+ traits** organized into **74 specialized categories** across **13 top-level domains**. Traits are declarative annotations that add behavior to objects without writing code.
+
+> **How Traits Work**: The 1,525+ count represents semantic trait tags recognized by the HoloScript parser across domains including VR interaction (13), robotics (213), AI/XR (23), scientific computing (28), and 60+ specialized semantic categories. Core traits have full runtime implementations, while domain-specific traits provide semantic richness for compiler target generation.
 
 ## How Traits Work
 

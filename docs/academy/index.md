@@ -53,6 +53,7 @@ Expert topics: custom traits, procedural generation, agent systems.
 ## Quick Reference
 
 Not a tutorial person? Jump straight to the reference:
-- [Traits Reference](/traits/) — All 1,525+ traits by category
-- [Compiler Targets](/compilers/) — All 18 compilation targets
+
+- [Traits Reference](/traits/) — All 1,525+ semantic traits across 74 categories
+- [Compiler Targets](/compilers/) — 25+ compilation targets (18 documented)
 - [Quick Start](/guides/quick-start) — 5-minute intro
