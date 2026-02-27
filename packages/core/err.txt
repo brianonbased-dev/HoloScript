@@ -1,0 +1,640 @@
+src/ai/GenerationCache.ts(190,17): error TS2339: Property 'key' does not exist on type 'CacheEntry'.
+src/ai/HoloScriptGenerator.ts(190,20): error TS2551: Property 'aiConfidence' does not exist on type 'GenerateResult'. Did you mean 'confidence'?
+src/ai/HoloScriptGenerator.ts(192,58): error TS2551: Property 'aiConfidence' does not exist on type 'GenerateResult'. Did you mean 'confidence'?
+src/ai/HoloScriptGenerator.ts(198,32): error TS2551: Property 'aiConfidence' does not exist on type 'GenerateResult'. Did you mean 'confidence'?
+src/ai/HoloScriptGenerator.ts(237,36): error TS2551: Property 'aiConfidence' does not exist on type 'GenerateResult'. Did you mean 'confidence'?
+src/ai/HoloScriptGenerator.ts(245,57): error TS2551: Property 'aiConfidence' does not exist on type 'GenerateResult'. Did you mean 'confidence'?
+src/ai/HoloScriptGenerator.ts(255,32): error TS2551: Property 'aiConfidence' does not exist on type 'GenerateResult'. Did you mean 'confidence'?
+src/ai/HoloScriptGenerator.ts(265,30): error TS2551: Property 'aiConfidence' does not exist on type 'GenerateResult'. Did you mean 'confidence'?
+src/ai/HoloScriptGenerator.ts(277,53): error TS2551: Property 'aiConfidence' does not exist on type 'GenerateResult'. Did you mean 'confidence'?
+src/ai/SteeringBehaviors.ts(173,18): error TS2699: Static property 'length' conflicts with built-in property 'Function.length' of constructor function 'SteeringBehaviors'.
+src/assets/HumanoidLoader.ts(365,7): error TS2578: Unused '@ts-expect-error' directive.
+src/assets/HumanoidLoader.ts(371,9): error TS2578: Unused '@ts-expect-error' directive.
+src/assets/HumanoidLoader.ts(373,84): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'GLTFParser'.
+src/assets/HumanoidLoader.ts(382,9): error TS2578: Unused '@ts-expect-error' directive.
+src/audio/AudioOcclusion.ts(307,5): error TS2739: Type '{ sourceId: string; occluded: boolean; occlusionFactor: number; hitCount: number; totalTransmissionLoss: number; materials: string[]; }' is missing the following properties from type 'OcclusionResult': lowPassCutoff, frequencyAttenuation
+src/compiler/ARCompiler.ts(10,32): error TS2305: Module '"../parser/HoloCompositionTypes.js"' has no exported member 'TraitInvocation'.
+src/compiler/MultiLayerCompiler.ts(10,32): error TS2305: Module '"../parser/HoloCompositionTypes.js"' has no exported member 'TraitInvocation'.
+src/compiler/MultiLayerCompiler.ts(13,32): error TS2724: '"./BabylonCompiler.js"' has no exported member named 'BabylonCompileResult'. Did you mean 'BabylonCompiler'?
+src/compiler/MultiLayerCompiler.ts(71,9): error TS2353: Object literal may only specify known properties, and 'outputFormat' does not exist in type 'BabylonCompilerOptions'.
+src/compiler/MultiLayerCompiler.ts(81,23): error TS2339: Property 'success' does not exist on type 'string'.
+src/compiler/URDFCompiler.ts(133,40): error TS2352: Conversion of type 'HoloObjectTrait' to type '{ name: string; } & Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'HoloObjectTrait' is not comparable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'HoloObjectTrait'.
+src/compiler/VRRCompiler.ts(149,15): error TS2300: Duplicate identifier 'HoloComposition'.
+src/compiler/VRRCompiler.ts(178,15): error TS2300: Duplicate identifier 'HoloComposition'.
+src/compiler/VRRCompiler.ts(178,32): error TS2305: Module '"../parser/HoloCompositionTypes.js"' has no exported member 'TraitInvocation'.
+src/demos/avalanche/AvalancheDemoScene.ts(503,39): error TS2339: Property 'getAvalancheParticles' does not exist on type 'AvalancheSimulation'.
+src/demos/avalanche/AvalancheDemoScene.ts(538,28): error TS2551: Property 'getTerrainData' does not exist on type 'AvalancheSimulation'. Did you mean 'getGPUTerrainData'?
+src/demos/avalanche/AvalancheDemoScene.ts(545,62): error TS2554: Expected 2 arguments, but got 3.
+src/demos/avalanche/AvalancheDemoScene.ts(559,21): error TS2339: Property 'step' does not exist on type 'AvalancheSimulation'.
+src/demos/avalanche/AvalancheRuntimeExecutor.ts(10,35): error TS2724: '"./AvalancheDemoScene"' has no exported member named 'AvalancheDemoSceneConfig'. Did you mean 'AvalancheDemoScene'?
+src/demos/avalanche/AvalancheRuntimeExecutor.ts(97,37): error TS2339: Property 'traits' does not exist on type 'HoloComposition'.
+src/demos/avalanche/AvalancheRuntimeExecutor.ts(200,9): error TS2322: Type '[number, number]' is not assignable to type 'number | [number, number, number] | undefined'.
+  Type '[number, number]' is not assignable to type '[number, number, number]'.
+    Source has 2 element(s) but target requires 3.
+src/demos/demolition/demolition-runtime.ts(72,5): error TS2739: Type 'DemolitionRuntimeExecutor' is missing the following properties from type 'RuntimeExecutor': update, getState, reset
+src/demos/demolition/DemolitionDemoScene.ts(388,38): error TS2339: Property 'force' does not exist on type 'ExplosionConfig'.
+src/demos/demolition/DemolitionDemoScene.ts(400,14): error TS2339: Property 'radius' does not exist on type 'ExplosionConfig'.
+src/demos/demolition/DemolitionDemoScene.ts(401,14): error TS2339: Property 'force' does not exist on type 'ExplosionConfig'.
+src/demos/demolition/DemolitionDemoScene.ts(405,61): error TS2339: Property 'radius' does not exist on type 'ExplosionConfig'.
+src/demos/demolition/DemolitionDemoScene.ts(536,9): error TS2353: Object literal may only specify known properties, and 'force' does not exist in type 'ExplosionConfig'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(150,26): error TS2339: Property 'rotation' does not exist on type 'Fracturable'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(150,45): error TS2339: Property 'rotation' does not exist on type 'Fracturable'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(150,64): error TS2339: Property 'rotation' does not exist on type 'Fracturable'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(150,83): error TS2339: Property 'rotation' does not exist on type 'Fracturable'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(217,43): error TS2339: Property 'traits' does not exist on type 'HoloComposition'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(217,57): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(258,28): error TS2339: Property 'rotation' does not exist on type 'Fracturable'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(258,47): error TS2339: Property 'rotation' does not exist on type 'Fracturable'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(258,66): error TS2339: Property 'rotation' does not exist on type 'Fracturable'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(258,85): error TS2339: Property 'rotation' does not exist on type 'Fracturable'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(311,38): error TS2339: Property 'rotation' does not exist on type 'FragmentPhysics'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(312,33): error TS2339: Property 'rotation' does not exist on type 'FragmentPhysics'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(312,62): error TS2339: Property 'rotation' does not exist on type 'FragmentPhysics'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(312,91): error TS2339: Property 'rotation' does not exist on type 'FragmentPhysics'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(318,33): error TS2339: Property 'max' does not exist on type 'FragmentGeometry'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(318,59): error TS2339: Property 'min' does not exist on type 'FragmentGeometry'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(319,33): error TS2339: Property 'max' does not exist on type 'FragmentGeometry'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(319,59): error TS2339: Property 'min' does not exist on type 'FragmentGeometry'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(320,33): error TS2339: Property 'max' does not exist on type 'FragmentGeometry'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(320,59): error TS2339: Property 'min' does not exist on type 'FragmentGeometry'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(338,38): error TS2339: Property 'rotation' does not exist on type 'FragmentPhysics'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(339,33): error TS2339: Property 'rotation' does not exist on type 'FragmentPhysics'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(339,62): error TS2339: Property 'rotation' does not exist on type 'FragmentPhysics'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(339,91): error TS2339: Property 'rotation' does not exist on type 'FragmentPhysics'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(502,37): error TS2339: Property 'traits' does not exist on type 'HoloComposition'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(582,38): error TS2339: Property 'entities' does not exist on type 'HoloComposition'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(683,35): error TS2339: Property 'entities' does not exist on type 'HoloComposition'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(683,52): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(700,35): error TS2339: Property 'entities' does not exist on type 'HoloComposition'.
+src/demos/demolition/DemolitionRuntimeExecutor.ts(700,52): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(82,31): error TS2554: Expected 2 arguments, but got 1.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(106,7): error TS2353: Object literal may only specify known properties, and 'buildingCount' does not exist in type 'EarthquakeSimulationConfig'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(113,37): error TS2339: Property 'traits' does not exist on type 'HoloComposition'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(117,18): error TS2339: Property 'defaultIntensity' does not exist on type 'EarthquakeSimulationConfig'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(120,18): error TS2339: Property 'defaultDuration' does not exist on type 'EarthquakeSimulationConfig'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(127,18): error TS2339: Property 'buildingCount' does not exist on type 'EarthquakeSimulationConfig'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(130,18): error TS2339: Property 'buildingHeight' does not exist on type 'EarthquakeSimulationConfig'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(133,18): error TS2339: Property 'buildingSpacing' does not exist on type 'EarthquakeSimulationConfig'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(196,37): error TS2339: Property 'traits' does not exist on type 'HoloComposition'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(196,51): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(230,9): error TS2322: Type '[number, number]' is not assignable to type 'number | [number, number, number] | undefined'.
+  Type '[number, number]' is not assignable to type '[number, number, number]'.
+    Source has 2 element(s) but target requires 3.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(255,50): error TS2339: Property 'buildingCount' does not exist on type 'EarthquakeSimulationConfig'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(256,52): error TS2339: Property 'buildingSpacing' does not exist on type 'EarthquakeSimulationConfig'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(257,51): error TS2339: Property 'buildingHeight' does not exist on type 'EarthquakeSimulationConfig'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(437,21): error TS2339: Property 'updateLight' does not exist on type 'RuntimeRenderer'.
+src/demos/earthquake/EarthquakeRuntimeExecutor.ts(441,21): error TS2339: Property 'updateLight' does not exist on type 'RuntimeRenderer'.
+src/demos/earthquake/EarthquakeSimulation.ts(112,30): error TS1361: 'GPUBufferManager' cannot be used as a value because it was imported using 'import type'.
+src/demos/earthquake/EarthquakeSimulation.ts(113,32): error TS1361: 'ComputePipeline' cannot be used as a value because it was imported using 'import type'.
+src/demos/earthquake/EarthquakeSimulation.ts(117,28): error TS1361: 'SpatialGrid' cannot be used as a value because it was imported using 'import type'.
+src/demos/earthquake/EarthquakeSimulation.ts(123,25): error TS1361: 'InstancedRenderer' cannot be used as a value because it was imported using 'import type'.
+src/demos/earthquake/EarthquakeSimulation.ts(209,37): error TS2345: Argument of type '{ dt: number; gravity: number; groundY: number; restitution: number; friction: number; particleCount: number; }' is not assignable to parameter of type 'UniformData'.
+  Type '{ dt: number; gravity: number; groundY: number; restitution: number; friction: number; particleCount: number; }' is missing the following properties from type 'UniformData': _pad1, _pad2
+src/demos/earthquake/EarthquakeSimulation.ts(268,57): error TS2554: Expected 1 arguments, but got 2.
+src/demos/earthquake/EarthquakeSimulation.ts(277,45): error TS2551: Property 'downloadParticleDataSync' does not exist on type 'GPUBufferManager'. Did you mean 'downloadParticleData'?
+src/demos/erosion/ErosionDemoScene.ts(400,32): error TS2683: 'this' implicitly has type 'any' because it does not have a type annotation.
+src/demos/erosion/ErosionDemoScene.ts(401,30): error TS2683: 'this' implicitly has type 'any' because it does not have a type annotation.
+src/demos/erosion/ErosionDemoScene.ts(402,33): error TS2683: 'this' implicitly has type 'any' because it does not have a type annotation.
+src/demos/erosion/ErosionDemoScene.ts(494,35): error TS2683: 'this' implicitly has type 'any' because it does not have a type annotation.
+src/demos/erosion/ErosionRuntimeExecutor.ts(103,37): error TS2339: Property 'traits' does not exist on type 'HoloComposition'.
+src/demos/erosion/ErosionRuntimeExecutor.ts(171,37): error TS2339: Property 'traits' does not exist on type 'HoloComposition'.
+src/demos/erosion/ErosionRuntimeExecutor.ts(171,51): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/demos/erosion/ErosionRuntimeExecutor.ts(208,9): error TS2353: Object literal may only specify known properties, and 'vertices' does not exist in type '{ type: string; size?: number | [number, number, number] | undefined; radius?: number | undefined; height?: number | undefined; segments?: number | undefined; }'.
+src/demos/erosion/ErosionRuntimeExecutor.ts(565,27): error TS2345: Argument of type '"canyon" | "mountain" | "valley" | "plateau" | "plains"' is not assignable to parameter of type 'SimulationPreset'.
+  Type '"plains"' is not assignable to type 'SimulationPreset'.
+src/demos/erosion/ErosionSimulation.ts(11,32): error TS2305: Module '"./WaterFlowSolver"' has no exported member 'WaterConfig'.
+src/demos/erosion/SedimentTransport.ts(373,71): error TS2341: Property 'config' is private and only accessible within class 'WaterFlowSolver'.
+src/editor/AssetBrowserPanel.ts(6,37): error TS2305: Module '"../ui/UIComponents"' has no exported member 'createText'.
+src/editor/AssetBrowserPanel.ts(31,37): error TS2554: Expected 1 arguments, but got 3.
+src/editor/AssetManager.ts(2,25): error TS2459: Module '"../assets/AssetRegistry"' declares 'AssetMetadata' locally, but it is not exported.
+src/editor/AssetManager.ts(2,40): error TS2459: Module '"../assets/AssetRegistry"' declares 'AssetType' locally, but it is not exported.
+src/editor/EditorUI.ts(14,19): error TS2305: Module '"../types/HoloScriptPlus"' has no exported member 'Quaternion'.
+src/editor/GizmoSystem.ts(5,19): error TS2305: Module '"../types/HoloScriptPlus"' has no exported member 'Quaternion'.
+src/editor/MarketplacePanel.ts(5,37): error TS2305: Module '"../ui/UIComponents"' has no exported member 'createText'.
+src/editor/UIBuilder.ts(72,39): error TS2345: Argument of type '{}' is not assignable to parameter of type 'string'.
+src/export/usdz/USDZExporter.ts(306,9): error TS2820: Type '"token[]"' is not assignable to type 'USDAttributeType'. Did you mean '"token"'?
+src/extensions/RuntimeInterface.ts(8,35): error TS2307: Cannot find module '../traits/TraitRegistry' or its corresponding type declarations.
+src/gpu/InstancedRenderer.ts(196,57): error TS2345: Argument of type 'Float32Array<ArrayBufferLike>' is not assignable to parameter of type 'GPUAllowSharedBufferSource'.
+  Type 'Float32Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is not assignable to type 'ArrayBuffer'.
+          Types of property '[Symbol.toStringTag]' are incompatible.
+            Type '"SharedArrayBuffer"' is not assignable to type '"ArrayBuffer"'.
+src/gpu/InstancedRenderer.ts(209,56): error TS2345: Argument of type 'Uint16Array<ArrayBufferLike>' is not assignable to parameter of type 'GPUAllowSharedBufferSource'.
+  Type 'Uint16Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is not assignable to type 'ArrayBuffer'.
+          Types of property '[Symbol.toStringTag]' are incompatible.
+            Type '"SharedArrayBuffer"' is not assignable to type '"ArrayBuffer"'.
+src/HoloScriptAgentRuntime.ts(14,11): error TS2564: Property 'agentNode' has no initializer and is not definitely assigned in the constructor.
+src/HoloScriptAgentRuntime.ts(15,11): error TS2564: Property 'parentRuntime' has no initializer and is not definitely assigned in the constructor.
+src/HoloScriptAgentRuntime.ts(16,11): error TS2564: Property 'localState' has no initializer and is not definitely assigned in the constructor.
+src/HoloScriptCodeParser.ts(1309,7): error TS2353: Object literal may only specify known properties, and 'template' does not exist in type 'OrbNode'.
+src/HoloScriptCodeParser.ts(1634,56): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
+  Property 'args' does not exist on type 'HSPlusLifecycleDirective'.
+src/HoloScriptCodeParser.ts(1757,7): error TS2353: Object literal may only specify known properties, and 'template' does not exist in type 'OrbNode'.
+src/HoloScriptRuntime.ts(1084,95): error TS2339: Property 'template' does not exist on type 'OrbNode'.
+src/HoloScriptRuntime.ts(1122,26): error TS2339: Property 'template' does not exist on type 'OrbNode'.
+src/HoloScriptRuntime.ts(1123,51): error TS2339: Property 'template' does not exist on type 'OrbNode'.
+src/HoloScriptRuntime.ts(1170,33): error TS2339: Property 'template' does not exist on type 'OrbNode'.
+src/HoloScriptRuntime.ts(1170,76): error TS2339: Property 'template' does not exist on type 'OrbNode'.
+src/HoloScriptRuntime.ts(1196,34): error TS2345: Argument of type 'this' is not assignable to parameter of type 'IParentRuntime'.
+  Type 'HoloScriptRuntime' is not assignable to type 'IParentRuntime'.
+    The types returned by 'callFunction(...)' are incompatible between these types.
+      Property 'success' is missing in type 'Promise<ExecutionResult>' but required in type 'ExecutionResult'.
+src/HoloScriptRuntime.ts(3407,12): error TS2339: Property '_previousVersion' does not exist on type 'TemplateNode'.
+src/HoloScriptRuntime.ts(3419,60): error TS2304: Cannot find name 'MigrationNode'.
+src/HoloScriptRuntime.ts(3432,26): error TS2304: Cannot find name 'HoloScriptCodeParser'.
+src/HoloScriptRuntime.ts(3563,71): error TS2339: Property 'name' does not exist on type 'ASTNode'.
+src/index.ts(235,3): error TS2300: Duplicate identifier 'ImportNode'.
+src/index.ts(236,3): error TS2300: Duplicate identifier 'ExportNode'.
+src/index.ts(1207,3): error TS2300: Duplicate identifier 'ImportNode'.
+src/index.ts(1208,3): error TS2300: Duplicate identifier 'ExportNode'.
+src/lod/index.ts(44,8): error TS2300: Duplicate identifier 'LODTransition'.
+src/lod/index.ts(139,3): error TS2300: Duplicate identifier 'LODTransition'.
+src/lod/LODMetrics.ts(348,40): error TS2683: 'this' implicitly has type 'any' because it does not have a type annotation.
+src/lod/LODMetrics.ts(349,43): error TS2683: 'this' implicitly has type 'any' because it does not have a type annotation.
+src/math/CurveEditor.ts(151,11): error TS2367: This comparison appears to be unintentional because the types '"auto"' and '"flat"' have no overlap.
+src/multiplayer/ReplicationManager.ts(179,44): error TS18047: 'previous' is possibly 'null'.
+src/multiplayer/ReplicationManager.ts(184,44): error TS18047: 'previous' is possibly 'null'.
+src/multiplayer/ReplicationManager.ts(189,44): error TS18047: 'previous' is possibly 'null'.
+src/multiplayer/ReplicationManager.ts(198,11): error TS18047: 'previous' is possibly 'null'.
+src/network/WebSocketTransport.ts(61,7): error TS2783: 'maxReconnectAttempts' is specified more than once, so this usage will be overwritten.
+src/network/WebSocketTransport.ts(62,7): error TS2783: 'initialBackoffMs' is specified more than once, so this usage will be overwritten.
+src/network/WebSocketTransport.ts(63,7): error TS2783: 'maxBackoffMs' is specified more than once, so this usage will be overwritten.
+src/network/WebSocketTransport.ts(64,7): error TS2783: 'heartbeatIntervalMs' is specified more than once, so this usage will be overwritten.
+src/network/WebSocketTransport.ts(223,21): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+    Argument of type 'Timer' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+      Type 'Timer' is missing the following properties from type 'Timeout': close, _onTimeout, [Symbol.dispose]
+  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+    Argument of type 'Timer' is not assignable to parameter of type 'number'.
+src/parser/HoloCompositionTypes.ts(644,18): error TS2430: Interface 'ImportDirective' incorrectly extends interface 'HoloNode'.
+  Types of property 'loc' are incompatible.
+    Type '{ start: { line: number; column: number; }; } | undefined' is not assignable to type 'SourceRange | undefined'.
+      Property 'end' is missing in type '{ start: { line: number; column: number; }; }' but required in type 'SourceRange'.
+src/parser/HoloCompositionTypes.ts(645,3): error TS2687: All declarations of 'type' must have identical modifiers.
+src/parser/HoloCompositionTypes.ts(665,18): error TS2430: Interface 'ExportDirective' incorrectly extends interface 'HoloNode'.
+  Types of property 'loc' are incompatible.
+    Type '{ start: { line: number; column: number; }; } | undefined' is not assignable to type 'SourceRange | undefined'.
+      Property 'end' is missing in type '{ start: { line: number; column: number; }; }' but required in type 'SourceRange'.
+src/parser/HoloCompositionTypes.ts(666,3): error TS2687: All declarations of 'type' must have identical modifiers.
+src/parser/HoloCompositionTypes.ts(1019,12): error TS2687: All declarations of 'type' must have identical modifiers.
+src/parser/HoloCompositionTypes.ts(1054,12): error TS2687: All declarations of 'type' must have identical modifiers.
+src/parser/HoloCompositionTypes.ts(1060,3): error TS2717: Subsequent property declarations must have the same type.  Property 'exportKind' must be of type '"object" | "trait" | "composition" | "template" | "any" | "group" | "scene"', but here has type '"object" | "composition" | "template" | "logic" | "any"'.
+src/parser/HoloScriptPlusParser.ts(15,3): error TS2305: Module '"../types/AdvancedTypeSystem"' has no exported member 'HSPlusNode'.
+src/parser/HoloScriptPlusParser.ts(1055,30): error TS7006: Parameter 'child' implicitly has an 'any' type.
+src/parser/HoloScriptPlusParser.ts(1058,26): error TS7006: Parameter 'child' implicitly has an 'any' type.
+src/parser/HoloScriptPlusParser.ts(1877,40): error TS2353: Object literal may only specify known properties, and 'namedImports' does not exist in type '{ path: string; alias: string; }'.
+src/parser/IncrementalParser.ts(15,15): error TS2305: Module '"../types/AdvancedTypeSystem"' has no exported member 'HSPlusNode'.
+src/parser/ParseCache.ts(1,10): error TS2305: Module '"../types/AdvancedTypeSystem"' has no exported member 'HSPlusNode'.
+src/persistence/DataBinding.ts(81,28): error TS2345: Argument of type 'Binding<T>' is not assignable to parameter of type 'Binding<unknown>'.
+  Types of property 'listeners' are incompatible.
+    Type '((newVal: T, oldVal: T | undefined) => void)[]' is not assignable to type '((newVal: unknown, oldVal: unknown) => void)[]'.
+      Type '(newVal: T, oldVal: T | undefined) => void' is not assignable to type '(newVal: unknown, oldVal: unknown) => void'.
+        Types of parameters 'newVal' and 'newVal' are incompatible.
+          Type 'unknown' is not assignable to type 'T'.
+            'T' could be instantiated with an arbitrary type which could be unrelated to 'unknown'.
+src/physics/PBDSolver.ts(2441,27): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2443,38): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2445,38): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2447,43): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2449,38): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2451,47): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2453,51): error TS2322: Type 'string' is not assignable to type 'object'.
+src/physics/PBDSolver.ts(2566,14): error TS2339: Property 'useGPU' does not exist on type 'ISoftBodyConfig'.
+src/physics/VRPhysicsBridge.ts(65,9): error TS2353: Object literal may only specify known properties, and 'position' does not exist in type 'IRigidBodyConfig'.
+src/physics/VRPhysicsBridge.ts(65,38): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(65,58): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(65,78): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(66,38): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(66,58): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(66,78): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(77,18): error TS2339: Property 'addBody' does not exist on type 'IPhysicsWorld'.
+src/physics/VRPhysicsBridge.ts(86,76): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(86,96): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(86,116): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(92,27): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(93,27): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(94,27): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(99,28): error TS2339: Property 'velocity' does not exist on type 'IRigidBodyState'.
+src/physics/VRPhysicsBridge.ts(109,42): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(109,62): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(109,82): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/physics/VRPhysicsBridge.ts(112,12): error TS2339: Property 'velocity' does not exist on type 'IRigidBodyState'.
+src/plugins/ModRegistry.ts(226,11): error TS2304: Cannot find name 'depId'.
+src/render/postprocess/PostProcessEffect.ts(105,5): error TS2322: Type '{ threshold: number; softThreshold: number; radius: number; iterations: number; anamorphic: number; highQuality: boolean; enabled: boolean; intensity: number; blendMode?: BlendMode | undefined; } | ... 254 more ... | { ...; }' is not assignable to type 'EffectParams'.
+  Type '{ color?: [number, number, number] | undefined; density?: number | undefined; start?: number | undefined; end?: number | undefined; height?: number | undefined; heightFalloff?: number | undefined; ... 10 more ...; spatialDenoise?: boolean; }' is not assignable to type 'EffectParams'.
+    Type '{ color?: [number, number, number] | undefined; density?: number | undefined; start?: number | undefined; end?: number | undefined; height?: number | undefined; heightFalloff?: number | undefined; ... 10 more ...; spatialDenoise?: boolean; }' is not assignable to type 'ISSAOParams'.
+      Types of property 'mode' are incompatible.
+        Type '"hemisphere" | "linear" | "exponential" | "hbao" | "exponentialSquared" | undefined' is not assignable to type '"hemisphere" | "hbao" | undefined'.
+          Type '"linear"' is not assignable to type '"hemisphere" | "hbao" | undefined'.
+src/render/webgpu/PhysicsDebugDrawer.ts(8,42): error TS2307: Cannot find module '../physics/PhysicsTypes' or its corresponding type declarations.
+src/render/webgpu/PhysicsDebugDrawer.ts(9,32): error TS2307: Cannot find module '../render/webgpu/WebGPURenderer' or its corresponding type declarations.
+src/render/webgpu/PhysicsDebugDrawer.ts(51,27): error TS18046: 'state' is of type 'unknown'.
+src/render/webgpu/PhysicsDebugDrawer.ts(52,27): error TS18046: 'state' is of type 'unknown'.
+src/render/webgpu/PhysicsDebugDrawer.ts(55,15): error TS18046: 'state' is of type 'unknown'.
+src/render/webgpu/WebGPURenderer.ts(1012,121): error TS2339: Property 'space' does not exist on type 'XRWebGLLayer'.
+src/render/webgpu/WebGPURenderer.ts(1196,9): error TS2740: Type 'number[]' is missing the following properties from type 'Float32Array<ArrayBufferLike>': BYTES_PER_ELEMENT, buffer, byteLength, byteOffset, and 3 more.
+src/resilience/ResiliencePatterns.ts(316,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+    Argument of type 'Timer' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+      Type 'Timer' is missing the following properties from type 'Timeout': close, _onTimeout, [Symbol.dispose]
+  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+    Argument of type 'Timer' is not assignable to parameter of type 'number'.
+src/resilience/ResiliencePatterns.ts(320,24): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+    Argument of type 'Timer' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+      Type 'Timer' is missing the following properties from type 'Timeout': close, _onTimeout, [Symbol.dispose]
+  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+    Argument of type 'Timer' is not assignable to parameter of type 'number'.
+src/runtime/examples/demolition-example.ts(34,5): error TS2322: Type '"demolition"' is not assignable to type '"Composition"'.
+src/runtime/examples/demolition-example.ts(100,43): error TS2339: Property 'entities' does not exist on type 'HoloComposition'.
+src/runtime/examples/demolition-example.ts(101,41): error TS2339: Property 'traits' does not exist on type 'HoloComposition'.
+src/runtime/GameEngine.ts(60,15): error TS2741: Property 'onUpdate' is missing in type '{}' but required in type 'GameEngineOptions'.
+src/runtime/HoloScriptPlusRuntime.ts(167,7): error TS2353: Object literal may only specify known properties, and 'substeps' does not exist in type 'IPhysicsWorldConfig'.
+src/runtime/HoloScriptPlusRuntime.ts(183,10): error TS2339: Property 'keyboardSystem' does not exist on type 'HoloScriptPlusRuntimeImpl'.
+src/runtime/HoloScriptPlusRuntime.ts(184,10): error TS2339: Property 'handMenuSystem' does not exist on type 'HoloScriptPlusRuntimeImpl'.
+src/runtime/HoloScriptPlusRuntime.ts(194,31): error TS2339: Property 'addConstraint' does not exist on type 'IPhysicsWorld'.
+src/runtime/HoloScriptPlusRuntime.ts(207,27): error TS2551: Property 'removeConstraints' does not exist on type 'IPhysicsWorld'. Did you mean 'removeConstraint'?
+src/runtime/HoloScriptPlusRuntime.ts(212,23): error TS2339: Property 'velocity' does not exist on type 'IRigidBodyState'.
+src/runtime/HoloScriptPlusRuntime.ts(219,14): error TS2339: Property 'keyboardSystem' does not exist on type 'HoloScriptPlusRuntimeImpl'.
+src/runtime/HoloScriptPlusRuntime.ts(229,27): error TS2339: Property 'addConstraint' does not exist on type 'IPhysicsWorld'.
+src/runtime/HoloScriptPlusRuntime.ts(367,7): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(383,7): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(400,15): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(401,13): error TS2531: Object is possibly 'null'.
+src/runtime/HoloScriptPlusRuntime.ts(420,16): error TS2339: Property 'handMenuSystem' does not exist on type 'HoloScriptPlusRuntimeImpl'.
+src/runtime/HoloScriptPlusRuntime.ts(420,37): error TS2339: Property 'handMenuSystem' does not exist on type 'HoloScriptPlusRuntimeImpl'.
+src/runtime/HoloScriptPlusRuntime.ts(470,48): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(referenceSpace: XRReferenceSpace): XRViewerPose | null', gave the following error.
+    Argument of type 'import("C:/Users/josep/Documents/GitHub/HoloScript/packages/core/src/runtime/WebXRManager").XRReferenceSpace' is not assignable to parameter of type 'XRReferenceSpace'.
+      Type 'XRReferenceSpace' is missing the following properties from type 'XRReferenceSpace': getOffsetReferenceSpace, onreset, addEventListener, removeEventListener, dispatchEvent
+  Overload 2 of 2, '(referenceSpace: XRReferenceSpace): XRViewerPose | undefined', gave the following error.
+    Argument of type 'import("C:/Users/josep/Documents/GitHub/HoloScript/packages/core/src/runtime/WebXRManager").XRReferenceSpace' is not assignable to parameter of type 'XRReferenceSpace'.
+      Type 'XRReferenceSpace' is missing the following properties from type 'XRReferenceSpace': getOffsetReferenceSpace, onreset, addEventListener, removeEventListener, dispatchEvent
+src/runtime/HoloScriptPlusRuntime.ts(485,20): error TS2339: Property 'gripSpace' does not exist on type 'XRInputSource | XRInputSource'.
+  Property 'gripSpace' does not exist on type 'XRInputSource'.
+src/runtime/HoloScriptPlusRuntime.ts(490,40): error TS2339: Property 'gripSpace' does not exist on type 'XRInputSource | XRInputSource'.
+  Property 'gripSpace' does not exist on type 'XRInputSource'.
+src/runtime/HoloScriptPlusRuntime.ts(490,51): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(space: XRSpace, baseSpace: XRSpace): XRPose | null', gave the following error.
+    Argument of type 'XRReferenceSpace' is not assignable to parameter of type 'XRSpace'.
+      Type 'XRReferenceSpace' is missing the following properties from type 'XRSpace': addEventListener, dispatchEvent, removeEventListener
+  Overload 2 of 2, '(space: XRSpace, baseSpace: XRSpace): XRPose | undefined', gave the following error.
+    Argument of type 'XRReferenceSpace' is not assignable to parameter of type 'XRSpace'.
+      Type 'XRReferenceSpace' is missing the following properties from type 'XRSpace': addEventListener, dispatchEvent, removeEventListener
+src/runtime/HoloScriptPlusRuntime.ts(503,14): error TS2353: Object literal may only specify known properties, and 'pinchStrength' does not exist in type 'VRHand'.
+src/runtime/HoloScriptPlusRuntime.ts(508,23): error TS2339: Property 'gamepad' does not exist on type 'XRInputSource | XRInputSource'.
+  Property 'gamepad' does not exist on type 'XRInputSource'.
+src/runtime/HoloScriptPlusRuntime.ts(512,27): error TS2339: Property 'gamepad' does not exist on type 'XRInputSource | XRInputSource'.
+  Property 'gamepad' does not exist on type 'XRInputSource'.
+src/runtime/HoloScriptPlusRuntime.ts(513,29): error TS2339: Property 'pinchStrength' does not exist on type 'VRHand'.
+src/runtime/HoloScriptPlusRuntime.ts(513,52): error TS2339: Property 'gamepad' does not exist on type 'XRInputSource | XRInputSource'.
+  Property 'gamepad' does not exist on type 'XRInputSource'.
+src/runtime/HoloScriptPlusRuntime.ts(515,27): error TS2339: Property 'gamepad' does not exist on type 'XRInputSource | XRInputSource'.
+  Property 'gamepad' does not exist on type 'XRInputSource'.
+src/runtime/HoloScriptPlusRuntime.ts(516,29): error TS2339: Property 'gripStrength' does not exist on type 'VRHand'.
+src/runtime/HoloScriptPlusRuntime.ts(516,51): error TS2339: Property 'gamepad' does not exist on type 'XRInputSource | XRInputSource'.
+  Property 'gamepad' does not exist on type 'XRInputSource'.
+src/runtime/HoloScriptPlusRuntime.ts(1511,19): error TS2339: Property 'velocity' does not exist on type 'IRigidBodyState'.
+src/runtime/HoloScriptPlusRuntime.ts(1511,35): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'Vector3'.
+  Property '0' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1511,51): error TS7053: Element implicitly has an 'any' type because expression of type '1' can't be used to index type 'Vector3'.
+  Property '1' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1511,67): error TS7053: Element implicitly has an 'any' type because expression of type '2' can't be used to index type 'Vector3'.
+  Property '2' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1518,42): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'Vector3'.
+  Property '0' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1518,65): error TS7053: Element implicitly has an 'any' type because expression of type '1' can't be used to index type 'Vector3'.
+  Property '1' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1518,88): error TS7053: Element implicitly has an 'any' type because expression of type '2' can't be used to index type 'Vector3'.
+  Property '2' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1525,19): error TS2339: Property 'type' does not exist on type 'IRigidBodyState'.
+src/runtime/HoloScriptPlusRuntime.ts(1528,9): error TS2322: Type '(origin: Vector3, direction: Vector3, maxDistance: number) => { point: [any, any, any]; normal: [any, any, any]; distance: any; nodeId: any; } | null' is not assignable to type '(origin: Vector3, direction: Vector3, maxDistance: number) => RaycastHit | null'.
+  Type '{ point: [any, any, any]; normal: [any, any, any]; distance: any; nodeId: any; } | null' is not assignable to type 'RaycastHit | null'.
+    Property 'node' is missing in type '{ point: [any, any, any]; normal: [any, any, any]; distance: any; nodeId: any; }' but required in type 'RaycastHit'.
+src/runtime/HoloScriptPlusRuntime.ts(1530,27): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'Vector3'.
+  Property '0' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1530,41): error TS7053: Element implicitly has an 'any' type because expression of type '1' can't be used to index type 'Vector3'.
+  Property '1' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1530,55): error TS7053: Element implicitly has an 'any' type because expression of type '2' can't be used to index type 'Vector3'.
+  Property '2' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1531,30): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'Vector3'.
+  Property '0' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1531,47): error TS7053: Element implicitly has an 'any' type because expression of type '1' can't be used to index type 'Vector3'.
+  Property '1' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1531,64): error TS7053: Element implicitly has an 'any' type because expression of type '2' can't be used to index type 'Vector3'.
+  Property '2' does not exist on type 'Vector3'.
+src/runtime/HoloScriptPlusRuntime.ts(1532,16): error TS2353: Object literal may only specify known properties, and 'maxDistance' does not exist in type 'IRaycastOptions'.
+src/runtime/HoloScriptPlusRuntime.ts(1536,29): error TS2339: Property 'point' does not exist on type 'IRaycastHit[]'.
+src/runtime/HoloScriptPlusRuntime.ts(1536,42): error TS2339: Property 'point' does not exist on type 'IRaycastHit[]'.
+src/runtime/HoloScriptPlusRuntime.ts(1536,55): error TS2339: Property 'point' does not exist on type 'IRaycastHit[]'.
+src/runtime/HoloScriptPlusRuntime.ts(1537,30): error TS2339: Property 'normal' does not exist on type 'IRaycastHit[]'.
+src/runtime/HoloScriptPlusRuntime.ts(1537,44): error TS2339: Property 'normal' does not exist on type 'IRaycastHit[]'.
+src/runtime/HoloScriptPlusRuntime.ts(1537,58): error TS2339: Property 'normal' does not exist on type 'IRaycastHit[]'.
+src/runtime/HoloScriptPlusRuntime.ts(1538,31): error TS2339: Property 'distance' does not exist on type 'IRaycastHit[]'.
+src/runtime/HoloScriptPlusRuntime.ts(1539,29): error TS2339: Property 'bodyId' does not exist on type 'IRaycastHit[]'.
+src/runtime/HoloScriptPlusRuntime.ts(1551,39): error TS2339: Property 'velocity' does not exist on type 'IRigidBodyState'.
+src/runtime/HoloScriptPlusRuntime.ts(1952,24): error TS18048: 'stmt.arguments' is possibly 'undefined'.
+src/runtime/HoloScriptPlusRuntime.ts(1953,49): error TS2538: Type 'undefined' cannot be used as an index type.
+src/runtime/HoloScriptPlusRuntime.ts(1963,56): error TS2352: Conversion of type 'HSPlusNode | undefined' to type 'HSPlusNode[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'HSPlusNode' is missing the following properties from type 'HSPlusNode[]': length, pop, push, concat, and 28 more.
+src/runtime/HoloScriptPlusRuntime.ts(1965,56): error TS2352: Conversion of type 'HSPlusNode' to type 'HSPlusNode[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'HSPlusNode' is missing the following properties from type 'HSPlusNode[]': length, pop, push, concat, and 28 more.
+src/runtime/HoloScriptPlusRuntime.ts(1972,21): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/runtime/InstancedRenderer.ts(100,7): error TS2322: Type 'InstanceBatch | null' is not assignable to type 'InstanceBatch | undefined'.
+  Type 'null' is not assignable to type 'InstanceBatch | undefined'.
+src/runtime/NetworkPredictor.ts(8,10): error TS2459: Module '"../state/ReactiveState"' declares 'StateDeclaration' locally, but it is not exported.
+src/runtime/profiles/HeadlessRuntime.ts(469,7): error TS2739: Type '{ applyVelocity: () => void; applyAngularVelocity: () => void; setKinematic: () => void; raycast: () => null; }' is missing the following properties from type 'PhysicsContext': getBodyPosition, getBodyVelocity
+src/runtime/SceneInspector.ts(81,49): error TS2694: Namespace '"C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/@types+three@0.170.0/node_modules/@types/three/build/three.module"' has no exported member 'VertexNormalsHelper'.
+src/runtime/SceneInspector.ts(316,36): error TS2339: Property 'VertexNormalsHelper' does not exist on type 'typeof import("C:/Users/josep/Documents/GitHub/HoloScript/node_modules/.pnpm/@types+three@0.170.0/node_modules/@types/three/build/three.module")'.
+src/runtime/SceneRunner.ts(117,45): error TS2339: Property 'name' does not exist on type 'HSPlusDirective'.
+  Property 'name' does not exist on type 'HSPlusForDirective'.
+src/runtime/SceneRunner.ts(121,86): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
+  Property 'args' does not exist on type 'HSPlusLifecycleDirective'.
+src/runtime/ShaderOptimizationManager.ts(487,7): error TS2322: Type 'Texture' is not assignable to type 'null'.
+src/runtime/ShaderOptimizationManager.ts(547,32): error TS2322: Type 'Texture' is not assignable to type 'null'.
+src/runtime/SystemIntegrator.ts(17,15): error TS2305: Module '"../ecs/SystemScheduler"' has no exported member 'ECSSystem'.
+src/runtime/SystemIntegrator.ts(153,19): error TS2554: Expected 2-6 arguments, but got 1.
+src/runtime/ThreeJSRenderer.ts(166,26): error TS2339: Property 'entities' does not exist on type 'HoloComposition'.
+src/runtime/ThreeJSRenderer.ts(167,45): error TS2339: Property 'entities' does not exist on type 'HoloComposition'.
+src/runtime/ThreeJSRenderer.ts(185,49): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/runtime/ThreeJSRenderer.ts(198,42): error TS2339: Property 'traits' does not exist on type 'HoloComposition'.
+src/runtime/ThreeJSRenderer.ts(198,56): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/runtime/WebXRManager.ts(116,52): error TS2339: Property 'gamepad' does not exist on type 'XRInputSource'.
+src/runtime/WebXRManager.ts(117,41): error TS2339: Property 'gamepad' does not exist on type 'XRInputSource'.
+src/runtime/WebXRManager.ts(187,25): error TS2339: Property 'requestAnimationFrame' does not exist on type 'XRSession'.
+src/runtime/WebXRManager.ts(190,20): error TS2339: Property 'requestAnimationFrame' does not exist on type 'XRSession'.
+src/scripting/ScriptVM.ts(201,55): error TS2339: Property 'toString' does not exist on type 'never'.
+src/semantics/SemanticValidator.ts(1,27): error TS2305: Module '"../types/AdvancedTypeSystem"' has no exported member 'HSPlusNode'.
+src/semantics/SemanticValidator.ts(279,33): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/state/ReactiveState.ts(130,36): error TS2345: Argument of type '((string extends keyof T ? T[keyof T & string] : any) & object) | ((symbol extends keyof T ? T[keyof T & symbol] : any) & object)' is not assignable to parameter of type 'T'.
+  '((string extends keyof T ? T[keyof T & string] : any) & object) | ((symbol extends keyof T ? T[keyof T & symbol] : any) & object)' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'object'.
+    Type '(string extends keyof T ? T[keyof T & string] : any) & object' is not assignable to type 'T'.
+      '(string extends keyof T ? T[keyof T & string] : any) & object' is assignable to the constraint of type 'T', but 'T' could be instantiated with a different subtype of constraint 'object'.
+src/storage/IPFSProviders.ts(42,30): error TS2322: Type 'string | Uint8Array<ArrayBufferLike> | Buffer<ArrayBufferLike>' is not assignable to type 'BlobPart'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BlobPart'.
+    Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+      Types of property 'buffer' are incompatible.
+        Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+          Type 'SharedArrayBuffer' is not assignable to type 'ArrayBuffer'.
+            Types of property '[Symbol.toStringTag]' are incompatible.
+              Type '"SharedArrayBuffer"' is not assignable to type '"ArrayBuffer"'.
+src/storage/IPFSProviders.ts(192,30): error TS2322: Type 'string | Uint8Array<ArrayBufferLike> | Buffer<ArrayBufferLike>' is not assignable to type 'BlobPart'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BlobPart'.
+    Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+      Types of property 'buffer' are incompatible.
+        Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+          Type 'SharedArrayBuffer' is not assignable to type 'ArrayBuffer'.
+            Types of property '[Symbol.toStringTag]' are incompatible.
+              Type '"SharedArrayBuffer"' is not assignable to type '"ArrayBuffer"'.
+src/storage/IPFSProviders.ts(307,30): error TS2322: Type 'string | Uint8Array<ArrayBufferLike> | Buffer<ArrayBufferLike>' is not assignable to type 'BlobPart'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BlobPart'.
+    Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+      Types of property 'buffer' are incompatible.
+        Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+          Type 'SharedArrayBuffer' is not assignable to type 'ArrayBuffer'.
+            Types of property '[Symbol.toStringTag]' are incompatible.
+              Type '"SharedArrayBuffer"' is not assignable to type '"ArrayBuffer"'.
+src/tools/MaterialEditor.ts(189,7): error TS2322: Type 'HTMLElement | null' is not assignable to type 'HTMLElement'.
+  Type 'null' is not assignable to type 'HTMLElement'.
+src/tools/SceneInspector.ts(174,43): error TS2339: Property 'entities' does not exist on type 'HoloComposition'.
+src/tools/SceneInspector.ts(187,37): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/tools/VisualEditor.ts(9,44): error TS2305: Module '"../parser/HoloCompositionTypes"' has no exported member 'HoloTrait'.
+src/tools/VisualEditor.ts(123,7): error TS2322: Type 'HTMLElement | null' is not assignable to type 'HTMLElement'.
+  Type 'null' is not assignable to type 'HTMLElement'.
+src/tools/VisualEditor.ts(536,7): error TS2353: Object literal may only specify known properties, and 'traits' does not exist in type 'HoloComposition'.
+src/tools/VisualEditor.ts(564,46): error TS2345: Argument of type 'HoloObjectDecl' is not assignable to parameter of type 'HoloObject'.
+  Index signature for type 'string' is missing in type 'HoloObjectDecl'.
+src/tools/VisualEditor.ts(582,7): error TS2322: Type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue' is not assignable to type 'string'.
+  Type 'number' is not assignable to type 'string'.
+src/tools/VisualEditor.ts(587,35): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+  Property '0' does not exist on type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+src/tools/VisualEditor.ts(587,52): error TS7053: Element implicitly has an 'any' type because expression of type '1' can't be used to index type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+  Property '1' does not exist on type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+src/tools/VisualEditor.ts(587,69): error TS7053: Element implicitly has an 'any' type because expression of type '2' can't be used to index type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+  Property '2' does not exist on type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+src/tools/VisualEditor.ts(588,35): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+  Property '0' does not exist on type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+src/tools/VisualEditor.ts(588,52): error TS7053: Element implicitly has an 'any' type because expression of type '1' can't be used to index type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+  Property '1' does not exist on type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+src/tools/VisualEditor.ts(588,69): error TS7053: Element implicitly has an 'any' type because expression of type '2' can't be used to index type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+  Property '2' does not exist on type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+src/tools/VisualEditor.ts(589,29): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+  Property '0' does not exist on type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+src/tools/VisualEditor.ts(589,43): error TS7053: Element implicitly has an 'any' type because expression of type '1' can't be used to index type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+  Property '1' does not exist on type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+src/tools/VisualEditor.ts(589,57): error TS7053: Element implicitly has an 'any' type because expression of type '2' can't be used to index type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+  Property '2' does not exist on type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+src/tools/VisualEditor.ts(591,7): error TS2322: Type 'HoloValue' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/tools/VisualEditor.ts(592,7): error TS2322: Type 'HoloValue' is not assignable to type '{ [key: string]: any; type: string; color?: string | undefined; } | undefined'.
+  Type 'null' is not assignable to type '{ [key: string]: any; type: string; color?: string | undefined; } | undefined'.
+src/tools/VisualEditor.ts(593,34): error TS2339: Property 'map' does not exist on type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue'.
+  Property 'map' does not exist on type 'string'.
+src/tools/VisualEditor.ts(593,39): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/tools/VisualEditor.ts(598,7): error TS2322: Type 'string | number | true | HoloValue[] | HoloObject | HoloBindValue' is not assignable to type 'Record<string, any>'.
+  Type 'string' is not assignable to type 'Record<string, any>'.
+src/tools/VisualEditor.ts(630,9): error TS2322: Type 'string | undefined' is not assignable to type 'HoloValue'.
+  Type 'undefined' is not assignable to type 'HoloValue'.
+src/tools/VisualEditor.ts(631,9): error TS2322: Type '{ [key: string]: any; type: string; color?: string | undefined; } | undefined' is not assignable to type 'HoloValue'.
+  Type 'undefined' is not assignable to type 'HoloValue'.
+src/tools/VisualEditor.ts(632,9): error TS2322: Type '{ name: string; properties: Record<string, any> | undefined; }[]' is not assignable to type 'HoloValue'.
+  Type '{ name: string; properties: Record<string, any> | undefined; }[]' is not assignable to type 'HoloValue[]'.
+    Type '{ name: string; properties: Record<string, any> | undefined; }' is not assignable to type 'HoloValue'.
+      Type '{ name: string; properties: Record<string, any> | undefined; }' is not assignable to type 'HoloObject'.
+        Property 'properties' is incompatible with index signature.
+          Type 'Record<string, any> | undefined' is not assignable to type 'HoloValue'.
+            Type 'undefined' is not assignable to type 'HoloValue'.
+src/tools/VisualEditor.ts(642,5): error TS2322: Type 'HoloObject[]' is not assignable to type 'HoloObjectDecl[]'.
+  Type 'HoloObject' is missing the following properties from type 'HoloObjectDecl': type, name, properties, traits
+src/traits/AINPCBrainTrait.ts(12,15): error TS2614: Module '"./LLMAgentTrait"' has no exported member 'LLMConfig'. Did you mean to use 'import LLMConfig from "./LLMAgentTrait"' instead?
+src/traits/AINPCBrainTrait.ts(51,38): error TS2345: Argument of type 'AINPCBrainConfig' is not assignable to parameter of type 'LLMConfig'.
+  Type 'AINPCBrainConfig' is missing the following properties from type 'LLMConfig': model, system_prompt, context_window, temperature, and 6 more.
+src/traits/AINPCBrainTrait.ts(84,38): error TS2345: Argument of type 'AINPCBrainConfig' is not assignable to parameter of type 'LLMConfig'.
+  Type 'AINPCBrainConfig' is missing the following properties from type 'LLMConfig': model, system_prompt, context_window, temperature, and 6 more.
+src/traits/AINPCBrainTrait.ts(89,38): error TS2345: Argument of type 'AINPCBrainConfig' is not assignable to parameter of type 'LLMConfig'.
+  Type 'AINPCBrainConfig' is missing the following properties from type 'LLMConfig': model, system_prompt, context_window, temperature, and 6 more.
+src/traits/AINPCBrainTrait.ts(140,37): error TS2345: Argument of type 'AINPCBrainConfig' is not assignable to parameter of type 'LLMConfig'.
+  Type 'AINPCBrainConfig' is missing the following properties from type 'LLMConfig': model, system_prompt, context_window, temperature, and 6 more.
+src/traits/ComputerUseTrait.ts(218,41): error TS2307: Cannot find module 'playwright' or its corresponding type declarations.
+src/traits/constraintConfig.ts(53,60): error TS2352: Conversion of type 'TraitConstraint' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'TraitConstraint'.
+src/traits/ControllerInputTrait.ts(269,26): error TS2339: Property 'data' does not exist on type '{ [key: string]: any; type: string; } | { type: "controller_data"; node: HSPlusNode; hand: "left" | "right" | "none"; buttons: Record<string, { pressed: boolean; touched: boolean; value: number; }>; ... 4 more ...; timestamp: number; }'.
+  Property 'data' does not exist on type '{ type: "controller_data"; node: HSPlusNode; hand: "left" | "right" | "none"; buttons: Record<string, { pressed: boolean; touched: boolean; value: number; }>; thumbstick: { ...; }; touchpad?: { ...; } | undefined; triggerValue: number; gripValue: number; timestamp: number; }'.
+src/traits/GestureTrait.ts(32,5): error TS2322: Type '"gesture_recognition"' is not assignable to type 'VRTraitName'.
+src/traits/GestureTrait.ts(61,26): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ left: VRHand | null; right: VRHand | null; }'.
+  No index signature with a parameter of type 'string' was found on type '{ left: VRHand | null; right: VRHand | null; }'.
+src/traits/GestureTrait.ts(68,42): error TS2339: Property 'pinchStrength' does not exist on type 'VRHand'.
+src/traits/GestureTrait.ts(81,42): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/traits/GestureTrait.ts(81,65): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/traits/GestureTrait.ts(82,42): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/traits/GestureTrait.ts(82,65): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(34,26): error TS2339: Property 'pinchStrength' does not exist on type 'VRHand'.
+src/traits/GrabbableTrait.ts(54,16): error TS2339: Property 'pinchStrength' does not exist on type 'VRHand'.
+src/traits/GrabbableTrait.ts(68,33): error TS2872: This kind of expression is always truthy.
+src/traits/GrabbableTrait.ts(109,32): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(110,32): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(111,32): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(118,33): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(118,51): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(119,33): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(119,51): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(140,46): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(141,46): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(142,46): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(168,26): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(168,38): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(169,26): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(169,38): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(170,26): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/traits/GrabbableTrait.ts(170,38): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/traits/HandMenuTrait.ts(9,3): error TS2305: Module '"../types/HoloScriptPlus"' has no exported member 'TraitHandler'.
+src/traits/HandMenuTrait.ts(10,3): error TS2305: Module '"../types/HoloScriptPlus"' has no exported member 'TraitContext'.
+src/traits/HandMenuTrait.ts(11,3): error TS2305: Module '"../types/HoloScriptPlus"' has no exported member 'VRContext'.
+src/traits/HandMenuTrait.ts(36,12): error TS7006: Parameter 'node' implicitly has an 'any' type.
+src/traits/HandMenuTrait.ts(36,18): error TS7006: Parameter 'config' implicitly has an 'any' type.
+src/traits/HandMenuTrait.ts(36,26): error TS7006: Parameter 'context' implicitly has an 'any' type.
+src/traits/HandMenuTrait.ts(45,12): error TS7006: Parameter 'node' implicitly has an 'any' type.
+src/traits/HandMenuTrait.ts(45,18): error TS7006: Parameter 'config' implicitly has an 'any' type.
+src/traits/HandMenuTrait.ts(45,26): error TS7006: Parameter 'context' implicitly has an 'any' type.
+src/traits/HandMenuTrait.ts(49,12): error TS7006: Parameter 'node' implicitly has an 'any' type.
+src/traits/HandMenuTrait.ts(49,18): error TS7006: Parameter 'config' implicitly has an 'any' type.
+src/traits/HandMenuTrait.ts(49,26): error TS7006: Parameter 'context' implicitly has an 'any' type.
+src/traits/HandMenuTrait.ts(49,35): error TS7006: Parameter 'delta' implicitly has an 'any' type.
+src/traits/HandMenuTrait.ts(78,38): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/traits/HandMenuTrait.ts(79,38): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/traits/HandMenuTrait.ts(80,38): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/traits/HandMeshAITrait.ts(12,15): error TS2614: Module '"./HandTrackingTrait"' has no exported member 'HandTrackingConfig'. Did you mean to use 'import HandTrackingConfig from "./HandTrackingTrait"' instead?
+src/traits/HandMeshAITrait.ts(121,42): error TS2345: Argument of type 'HandMeshAIConfig' is not assignable to parameter of type 'HandTrackingConfig'.
+  Type 'HandMeshAIConfig' is missing the following properties from type 'HandTrackingConfig': mode, gesture_set, pinch_threshold, grip_threshold, and 5 more.
+src/traits/HandMeshAITrait.ts(140,42): error TS2345: Argument of type 'HandMeshAIConfig' is not assignable to parameter of type 'HandTrackingConfig'.
+  Type 'HandMeshAIConfig' is missing the following properties from type 'HandTrackingConfig': mode, gesture_set, pinch_threshold, grip_threshold, and 5 more.
+src/traits/HandMeshAITrait.ts(146,42): error TS2345: Argument of type 'HandMeshAIConfig' is not assignable to parameter of type 'HandTrackingConfig'.
+  Type 'HandMeshAIConfig' is missing the following properties from type 'HandTrackingConfig': mode, gesture_set, pinch_threshold, grip_threshold, and 5 more.
+src/traits/HandMeshAITrait.ts(210,41): error TS2345: Argument of type 'HandMeshAIConfig' is not assignable to parameter of type 'HandTrackingConfig'.
+  Type 'HandMeshAIConfig' is missing the following properties from type 'HandTrackingConfig': mode, gesture_set, pinch_threshold, grip_threshold, and 5 more.
+src/traits/HandTrackingTrait.ts(280,26): error TS2339: Property 'data' does not exist on type '{ [key: string]: any; type: string; } | { type: "hand_data"; node: HSPlusNode; hand: "left" | "right" | "none"; joints: Record<string, { position: { x: number; y: number; z: number; }; rotation: { ...; }; radius: number; }>; pinchStrength: number; gripStrength: number; timestamp: number; }'.
+  Property 'data' does not exist on type '{ type: "hand_data"; node: HSPlusNode; hand: "left" | "right" | "none"; joints: Record<string, { position: { x: number; y: number; z: number; }; rotation: { x: number; y: number; z: number; w: number; }; radius: number; }>; pinchStrength: number; gripStrength: number; timestamp: number; }'.
+src/traits/LayerAwareTrait.ts(1,29): error TS2459: Module '"./TraitTypes"' declares 'HSPlusNode' locally, but it is not exported.
+src/traits/LayerAwareTrait.ts(9,3): error TS2322: Type '"layer_aware"' is not assignable to type 'VRTraitName'.
+src/traits/NetworkedTrait.ts(289,37): error TS2345: Argument of type 'NetworkMessage & { fromPeer?: string | undefined; }' is not assignable to parameter of type 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'NetworkMessage & { fromPeer?: string | undefined; }'.
+src/traits/NetworkedTrait.ts(313,37): error TS2345: Argument of type 'NetworkMessage' is not assignable to parameter of type 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'NetworkMessage'.
+src/traits/NetworkedTrait.ts(343,37): error TS2345: Argument of type 'NetworkMessage' is not assignable to parameter of type 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'NetworkMessage'.
+src/traits/NetworkedTrait.ts(370,37): error TS2345: Argument of type 'NetworkMessage & { fromPeer?: string | undefined; }' is not assignable to parameter of type 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'NetworkMessage & { fromPeer?: string | undefined; }'.
+src/traits/NeuralForgeTrait.ts(89,11): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/traits/PressableTrait.ts(57,38): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/traits/RenderNetworkTrait.ts(651,28): error TS18048: 'job.actualCredits' is possibly 'undefined'.
+src/traits/RenderNetworkTrait.ts(652,45): error TS18048: 'job.actualCredits' is possibly 'undefined'.
+src/traits/RenderNetworkTrait.ts(826,40): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/traits/RenderNetworkTrait.ts(848,3): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/traits/ScrollableTrait.ts(3,5): error TS2305: Module '"../types/HoloScriptPlus"' has no exported member 'TraitHandler'.
+src/traits/ScrollableTrait.ts(4,5): error TS2305: Module '"../types/HoloScriptPlus"' has no exported member 'TraitContext'.
+src/traits/ScrollableTrait.ts(38,14): error TS7006: Parameter 'node' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(38,20): error TS7006: Parameter 'config' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(38,28): error TS7006: Parameter 'context' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(52,14): error TS7006: Parameter 'node' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(52,20): error TS7006: Parameter 'config' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(52,28): error TS7006: Parameter 'context' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(56,14): error TS7006: Parameter 'node' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(56,20): error TS7006: Parameter 'config' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(56,28): error TS7006: Parameter 'context' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(56,37): error TS7006: Parameter 'delta' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(108,13): error TS7006: Parameter 'node' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(108,19): error TS7006: Parameter 'config' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(108,27): error TS7006: Parameter 'context' implicitly has an 'any' type.
+src/traits/ScrollableTrait.ts(108,36): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/traits/SlidableTrait.ts(53,42): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/traits/SlidableTrait.ts(54,42): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/traits/SlidableTrait.ts(55,42): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/traits/SocialTraits.ts(126,12): error TS2339: Property 'initializeVoice' does not exist on type 'TraitHandler<CollaborativeConfig>'.
+src/traits/SocialTraits.ts(144,9): error TS2353: Object literal may only specify known properties, and 'initializeVoice' does not exist in type 'TraitHandler<CollaborativeConfig>'.
+src/traits/VisionTrait.ts(69,12): error TS2339: Property 'performScan' does not exist on type 'TraitHandler<VisionConfig>'.
+src/traits/VisionTrait.ts(76,12): error TS2339: Property 'performScan' does not exist on type 'TraitHandler<VisionConfig>'.
+src/traits/VisionTrait.ts(81,3): error TS2353: Object literal may only specify known properties, and 'performScan' does not exist in type 'TraitHandler<VisionConfig>'.
+src/traits/VoiceMeshTrait.ts(52,12): error TS2339: Property 'startLocalStream' does not exist on type 'TraitHandler<VoiceMeshConfig>'.
+src/traits/VoiceMeshTrait.ts(111,9): error TS2353: Object literal may only specify known properties, and 'startLocalStream' does not exist in type 'TraitHandler<VoiceMeshConfig>'.
+src/traits/VoiceMeshTrait.ts(128,28): error TS18047: 'state.audioContext' is possibly 'null'.
+src/traits/VoiceMeshTrait.ts(129,30): error TS18047: 'state.audioContext' is possibly 'null'.
+src/traits/VRTraitSystem.ts(1043,3): error TS2322: Type '"proactive"' is not assignable to type 'VRTraitName'.
+src/traits/ZKPrivateTrait.ts(170,47): error TS2307: Cannot find module '@aztec/bb.js' or its corresponding type declarations.
+src/traits/ZoraCoinsTrait.ts(857,7): error TS2322: Type '"mintWithRewards"' is not assignable to type '"initialize" | "multicall" | "mint" | "addPermission" | "adminMint" | "burnBatch" | "callRenderer" | "callSale" | "delegateSetupNewToken" | "reduceSupply" | "removePermission" | ... 15 more ... | "withdraw"'.
+src/traits/ZoraCoinsTrait.ts(863,9): error TS2322: Type '`0x${string}`' is not assignable to type 'undefined'.
+src/traits/ZoraCoinsTrait.ts(865,7): error TS2322: Type 'bigint' is not assignable to type 'undefined'.
+src/ui/HandMenu.ts(59,17): error TS2353: Object literal may only specify known properties, and 'data' does not exist in type 'UIButtonConfig'.
+src/ui/HandMenu.ts(65,17): error TS2353: Object literal may only specify known properties, and 'data' does not exist in type 'UIButtonConfig'.
+src/ui/HandMenu.ts(71,30): error TS2339: Property 'x' does not exist on type 'Vector3'.
+  Property 'x' does not exist on type '[number, number, number]'.
+src/ui/HandMenu.ts(72,30): error TS2339: Property 'y' does not exist on type 'Vector3'.
+  Property 'y' does not exist on type '[number, number, number]'.
+src/ui/HandMenu.ts(73,30): error TS2339: Property 'z' does not exist on type 'Vector3'.
+  Property 'z' does not exist on type '[number, number, number]'.
+src/ui/HandMenu.ts(110,38): error TS2339: Property 'unmountObject' does not exist on type 'HSPlusRuntime'.
+src/ui/HandMenu.ts(111,38): error TS2339: Property 'unmountObject' does not exist on type 'HSPlusRuntime'.
+src/ui/UIButton.ts(49,24): error TS2339: Property 'data' does not exist on type 'UIButtonConfig'.
+src/ui/UIButton.ts(55,9): error TS2740: Type '{ name: string; properties: { distance: number; }; }[]' is missing the following properties from type 'Map<VRTraitName, any>': clear, delete, get, has, and 3 more.
+src/ui/UISlider.ts(55,9): error TS2740: Type '({ name: string; properties: { axis: "x" | "y" | "z"; length: number; }; } | { name: string; properties: { snap_to_hand: true; }; })[]' is missing the following properties from type 'Map<VRTraitName, any>': clear, delete, get, has, and 3 more.
+src/ui/UITextInput.ts(52,5): error TS2322: Type 'Map<"pressable", { travelDistance: number; triggerDistance: number; }>' is not assignable to type 'Map<VRTraitName, any>'.
+  Type '"pressable"' is not assignable to type 'VRTraitName'.
+src/ui/VirtualKeyboard.ts(43,15): error TS2353: Object literal may only specify known properties, and 'data' does not exist in type 'UIButtonConfig'.
+src/wot/ThingDescriptionGenerator.ts(11,15): error TS2305: Module '"../types/AdvancedTypeSystem"' has no exported member 'HSPlusNode'.
+src/wot/ThingDescriptionGenerator.ts(279,10): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/wot/ThingDescriptionGenerator.ts(290,28): error TS2339: Property 'args' does not exist on type 'HSPlusDirective'.
+  Property 'args' does not exist on type 'HSPlusLifecycleDirective'.
+src/wot/ThingDescriptionGenerator.ts(314,8): error TS7006: Parameter 'd' implicitly has an 'any' type.
