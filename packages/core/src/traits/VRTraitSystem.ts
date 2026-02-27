@@ -161,6 +161,7 @@ import { destructionHandler } from './DestructionTrait';
 import { userMonitorHandler } from './UserMonitorTrait';
 import { emotionalVoiceHandler } from './EmotionalVoiceTrait';
 import { flowFieldHandler } from './FlowFieldTrait';
+import { layerAwareHandler } from './LayerAwareTrait';
 
 // v3.1 Agentic Choreography traits
 import { choreographyHandler } from './ChoreographyTrait';
@@ -1495,6 +1496,7 @@ export {
   userMonitorHandler,
   emotionalVoiceHandler,
   flowFieldHandler,
+  layerAwareHandler,
   // V43 Tier 2: AI Upscaling
   aiUpscalingHandler,
   neuralUpscalingHandler,

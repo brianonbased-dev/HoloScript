@@ -641,6 +641,41 @@ export interface GlobalHandlerNode extends ASTNode {
 }
 
 // ============================================================================
+// Phase 7: Memory Types (AI Persistence)
+// ============================================================================
+
+export interface MemoryNode extends ASTNode {
+  type: 'memory';
+  name: string;
+  semantic?: SemanticMemoryNode;
+  episodic?: EpisodicMemoryNode;
+  procedural?: ProceduralMemoryNode;
+}
+
+export interface SemanticMemoryNode extends ASTNode {
+  type: 'semantic-memory';
+  properties: Record<string, HoloScriptValue>;
+}
+
+export interface EpisodicMemoryNode extends ASTNode {
+  type: 'episodic-memory';
+  properties: Record<string, HoloScriptValue>;
+}
+
+export interface ProceduralMemoryNode extends ASTNode {
+  type: 'procedural-memory';
+  properties: Record<string, HoloScriptValue>;
+}
+
+export interface ProceduralSkill {
+  id: string;
+  name: string;
+  preconditions: Record<string, HoloScriptValue>[];
+  action: ASTNode;
+  successRate: number;
+}
+
+// ============================================================================
 // Phase 2: Module Types
 // ============================================================================
 

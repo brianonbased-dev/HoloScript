@@ -455,7 +455,7 @@ export class ThingDescriptionGenerator {
 
     // Find @observable directives
     const observableDirectives = node.directives.filter(
-      (d) =>
+      (d: HSPlusDirective) =>
         d.type === 'directive' &&
         (d.name === 'observable' || d.name === 'event' || d.name === 'emit')
     );

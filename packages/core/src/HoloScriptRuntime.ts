@@ -17,9 +17,11 @@
 import { logger } from './logger';
 import { WebSocketServer, WebSocket } from 'ws';
 import { TimeManager } from './orbital/TimeManager';
-// KeplerianCalculator used via OrbitalTrait handler at runtime
 import { ExpressionEvaluator, createState } from './ReactiveState';
 import { eventBus } from './runtime/EventBus';
+import { StateSynchronizer } from './networking/StateSynchronizer';
+import { AttentionEngine } from './orbital/AttentionEngine';
+import { telemetry } from './monitoring/telemetry';
 import { stateMachineInterpreter } from './runtime/StateMachineInterpreter';
 import { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
 import { mitosisHandler } from './traits/MitosisTrait';
@@ -71,11 +73,11 @@ import type {
   DatabaseNode,
   SystemNode,
   CoreConfigNode,
-  NarrativeNode,
   QuestNode,
   DialogueNode,
   VisualMetadataNode,
   VRTraitName,
+  ProceduralSkill,
 } from './types';
 import type { ImportLoader } from './types';
 
@@ -130,6 +132,7 @@ export class HoloScriptRuntime {
   private eventHandlers: Map<string, EventHandler[]> = new Map();
   private animations: Map<string, Animation> = new Map();
   private uiElements: Map<string, UIElementState> = new Map();
+  private proceduralSkills: Map<string, ProceduralSkill> = new Map();
   private builtinFunctions: Map<
     string,
     (args: HoloScriptValue[]) => HoloScriptValue | Promise<HoloScriptValue>
@@ -165,6 +168,29 @@ export class HoloScriptRuntime {
       // Builtins expect (args: HoloScriptValue[]) but the expression evaluator calls callee(...args).
       this.context.functions.set(name, ((...spreadArgs: any[]) => fn(spreadArgs)) as any);
     }
+
+    // Attention Graph Query (TODO-018)
+    // Allows scripts to cull massive global state arrays into top-k attended components efficiently.
+    this.registerFunction('get_attended_entities', (args: HoloScriptValue[]) => {
+      const topK = typeof args[0] === 'number' ? args[0] : 10;
+      
+      const selfNode = this.context.variables.get('self') as any;
+      const observerPos = selfNode?.position || { x: 0, y: 0, z: 0 };
+
+      const entities: any[] = [];
+      this.context.spatialMemory.forEach((pos, id) => {
+        if (id !== selfNode?.name) {
+          entities.push({
+            id,
+            position: pos,
+            velocity: (this.context.variables.get(id) as any)?.velocity,
+            saliencyBase: (this.context.variables.get(id) as any)?.saliency
+          });
+        }
+      });
+
+      return AttentionEngine.getTopKEntities(observerPos, entities, topK);
+    });
 
     // Register Trait Handlers
     this.traitHandlers.set('mitosis' as any, mitosisHandler);
@@ -596,6 +622,14 @@ export class HoloScriptRuntime {
           break;
         case 'return':
           result = await this.executeReturn(node as ASTNode & { value: unknown });
+          break;
+        case 'memory':
+          result = await this.executeMemory(node as any);
+          break;
+        case 'semantic-memory':
+        case 'episodic-memory':
+        case 'procedural-memory':
+          result = await this.executeMemoryDefinition(node as any);
           break;
         case 'generic':
           result = await this.executeGeneric(node);
@@ -2821,8 +2855,15 @@ export class HoloScriptRuntime {
     scopeOverride?: Scope
   ): Promise<ExecutionResult[]> {
     const results: ExecutionResult[] = [];
+    telemetry.setGauge('execution_depth', this.context.executionStack.length);
     for (const stmt of statements) {
-      results.push(await this.executeHoloStatement(stmt, scopeOverride));
+      telemetry.incrementCounter('statements_executed', 1, { type: stmt.type });
+      
+      const res = await telemetry.measureLatency(`execute_stmt_${stmt.type}`, () => 
+          this.executeHoloStatement(stmt, scopeOverride)
+      );
+      
+      results.push(res);
       // If a result has an output that indicates a return, stop execution
       const last = results[results.length - 1];
       if (last.success && last.output !== undefined && stmt.type === 'ReturnStatement') {
@@ -3536,6 +3577,126 @@ export class HoloScriptRuntime {
       this.context.state.update(stateDirective.body);
     }
     return { success: true, output: 'State updated' };
+  }
+
+  // ============================================================================
+  // Memory Syntactic Execution (Phase 7 / EVOLVE)
+  // ============================================================================
+
+  private async executeMemory(node: import('./types').MemoryNode): Promise<ExecutionResult> {
+    const startTime = Date.now();
+    logger.info(`[Memory] Initializing memory block: ${node.name}`);
+
+    const memoryState: Record<string, any> = {
+      id: node.name,
+      type: 'agent-memory'
+    };
+
+    if (node.semantic) {
+      const semResult = await this.executeNode(node.semantic);
+      if (semResult.success) memoryState.semantic = semResult.output;
+    }
+
+    if (node.episodic) {
+      const epResult = await this.executeNode(node.episodic);
+      if (epResult.success) memoryState.episodic = epResult.output;
+    }
+
+    if (node.procedural) {
+      const procResult = await this.executeNode(node.procedural);
+      if (procResult.success) memoryState.procedural = procResult.output;
+    }
+
+    // Mount memory to runtime state variables so agents can access it
+    this.context.variables.set(node.name, memoryState);
+
+    // Optionally emit event for visualizers
+    this.emit('memory_initialized', { memoryId: node.name, config: memoryState });
+
+    return {
+      success: true,
+      output: memoryState,
+      executionTime: Date.now() - startTime
+    };
+  }
+
+  public loadSkill(skill: ProceduralSkill): void {
+    logger.info(`[Procedural] Loading skill: ${skill.name} (${skill.id})`);
+    
+    // Skill Merging implementation (TODO-015): 
+    // If we receive a network version of a skill we already know, merge the success rate
+    const existing = this.proceduralSkills.get(skill.id);
+    if (existing) {
+        skill.successRate = (existing.successRate + (skill.successRate || 0)) / 2;
+    } else {
+        skill.successRate = skill.successRate || 0;
+    }
+
+    this.proceduralSkills.set(skill.id, skill);
+
+    // Broadcast newly acquired skill over Mesh
+    StateSynchronizer.getInstance().broadcastSkill(skill);
+  }
+
+  public async executeSkill(skillId: string, contextVariables: Record<string, HoloScriptValue> = {}): Promise<ExecutionResult> {
+    const skill = this.proceduralSkills.get(skillId);
+    if (!skill) {
+      throw new Error(`[Procedural] Skill '${skillId}' not found.`);
+    }
+
+    logger.info(`[Procedural] Executing skill: ${skill.name}`);
+    const startTime = Date.now();
+
+    const previousScope = this.currentScope;
+    this.currentScope = { variables: new Map(previousScope.variables), parent: previousScope };
+
+    for (const [key, val] of Object.entries(contextVariables)) {
+      this.currentScope.variables.set(key, val);
+    }
+
+    try {
+      const result = await this.executeNode(skill.action);
+      
+      // Update success tracking statistics
+      if (result.success) {
+          skill.successRate = Math.min(100, skill.successRate + 1);
+      } else {
+          skill.successRate = Math.max(0, skill.successRate - 1);
+      }
+
+      // Sync the updated success rate telemetry
+      StateSynchronizer.getInstance().broadcastSkill(skill);
+
+      return {
+        ...result,
+        executionTime: Date.now() - startTime
+      };
+    } finally {
+      this.currentScope = previousScope;
+    }
+  }
+
+  private async executeMemoryDefinition(node: import('./types').SemanticMemoryNode | import('./types').EpisodicMemoryNode | import('./types').ProceduralMemoryNode): Promise<ExecutionResult> {
+    const startTime = Date.now();
+    
+    // Evaluate properties to concrete config values
+    const config: Record<string, HoloScriptValue> = {};
+    for (const [key, val] of Object.entries(node.properties || {})) {
+      if (typeof val === 'string') {
+        config[key] = this.evaluateExpression(val);
+      } else {
+         config[key] = val;
+      }
+    }
+
+    return {
+      success: true,
+      output: {
+        type: node.type,
+        config
+      },
+      executionTime: Date.now() - startTime
+    };
   }
 
   private applyDirectives(node: ASTNode): void {

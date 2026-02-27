@@ -14,8 +14,12 @@ import {
 import { UIHandMenuTrait } from './UITraits';
 import { SpringAnimator, SpringPresets } from '../animation/SpringAnimator';
 
-// Vector helpers
-const add = (v1: Vector3, v2: Vector3): Vector3 => ({ x: v1.x + v2.x, y: v1.y + v2.y, z: v1.z + v2.z });
+const getCoord = (v: Vector3, idx: 0|1|2, key: 'x'|'y'|'z') => Array.isArray(v) ? v[idx] : v[key];
+const add = (v1: Vector3, v2: Vector3): Vector3 => ({
+  x: getCoord(v1, 0, 'x') + getCoord(v2, 0, 'x'),
+  y: getCoord(v1, 1, 'y') + getCoord(v2, 1, 'y'),
+  z: getCoord(v1, 2, 'z') + getCoord(v2, 2, 'z')
+});
 
 // Per-node spring state
 const menuSprings = new Map<string, SpringAnimator>();

@@ -41,7 +41,12 @@ import type {
   CompositionNode,
   SystemNode,
   ComponentNode,
+  MemoryNode,
+  SemanticMemoryNode,
+  EpisodicMemoryNode,
+  ProceduralMemoryNode,
 } from './types';
+import { HoloScriptPersistenceParser } from './HoloScriptPersistenceParser';
 
 // =============================================================================
 // OBJECT POOL - Reduces GC pressure by reusing objects
@@ -243,11 +248,13 @@ interface Token {
 export class HoloScriptCodeParser {
   private errors: ParseError[] = [];
   private warnings: string[] = [];
-  private tokens: Token[] = [];
-  private position: number = 0;
+  public tokens: Token[] = [];
+  public position: number = 0;
   private keywordSet: Set<string>;
+  private persistenceParser: HoloScriptPersistenceParser;
 
   constructor() {
+    this.persistenceParser = new HoloScriptPersistenceParser(this);
     // Pre-compute keyword set for O(1) lookup instead of O(n) array search
     this.keywordSet = new Set([
       'orb',
@@ -348,6 +355,10 @@ export class HoloScriptCodeParser {
       'on_enter',
       'on_exit',
       'using',
+      'memory',
+      'semantic',
+      'episodic',
+      'procedural',
     ]);
   }
 
@@ -886,6 +897,8 @@ export class HoloScriptCodeParser {
           return this.parsePrimitive();
         case 'zone':
           return this.parseZone();
+        case 'memory':
+          return this.parseMemory();
         default:
           return this.parseExpressionStatement();
       }
@@ -1439,6 +1452,20 @@ export class HoloScriptCodeParser {
 
     this.expect('punctuation', '}');
     return bindings;
+  }
+
+  // ============================================================================
+  // Phase 7: AI Persistence Memory Syntax
+  // ============================================================================
+
+  /**
+   * Parse memory primitive block
+   * memory <Name> { semantic: SemanticMemory { ... }, episodic: EpisodicMemory { ... }, procedural: ProceduralMemory { ... } }
+   * 
+   * Defers to the modular HoloScriptPersistenceParser
+   */
+  private parseMemory(): MemoryNode | null {
+    return this.persistenceParser.parseMemory();
   }
 
   /**
@@ -2759,13 +2786,12 @@ export class HoloScriptCodeParser {
     return false;
   }
 
-  private expectIdentifier(): string | null {
+  public expectIdentifier(): string | null {
     const token = this.currentToken();
-    if (token?.type === 'identifier' || token?.type === 'keyword') {
+    if (token && (token.type === 'identifier' || token.type === 'keyword')) {
       this.advance();
       return token.value;
     }
-
     this.addError(
       this.createError(
         'HS002',

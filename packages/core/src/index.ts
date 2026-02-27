@@ -226,6 +226,20 @@ export {
   bind,
 } from './state/ReactiveState';
 
+// HoloScript+ State Sync & Networking (NEW - Phase 5)
+export {
+  DeltaCompressor,
+  type StateDelta
+} from './networking/DeltaCompressor';
+
+export {
+  StateSynchronizer,
+  type StateSubscriber
+} from './networking/StateSynchronizer';
+
+// Performance Monitoring (Phase 7 - TODO-020)
+export { telemetry } from './monitoring/telemetry';
+
 // Core types
 export type {
   HSPlusAST,
@@ -268,10 +282,56 @@ export { WebGPUCompiler, type WebGPUCompilerOptions } from './compiler/WebGPUCom
 export { BabylonCompiler, type BabylonCompilerOptions } from './compiler/BabylonCompiler';
 export { AndroidXRCompiler, type AndroidXRCompilerOptions } from './compiler/AndroidXRCompiler';
 export { OpenXRCompiler, type OpenXRCompilerOptions } from './compiler/OpenXRCompiler';
+export { VRRCompiler, type VRRCompilerOptions, type VRRCompilationResult } from './compiler/VRRCompiler';
+export { ARCompiler, type ARCompilerOptions, type ARCompilationResult } from './compiler/ARCompiler';
+export { MultiLayerCompiler, type MultiLayerCompilerOptions, type MultiLayerCompilationResult } from './compiler/MultiLayerCompiler';
 
 // HoloScript Robotics & IoT Compilers (Sprint 3)
 export { URDFCompiler, type URDFCompilerOptions } from './compiler/URDFCompiler';
 export { SDFCompiler, type SDFCompilerOptions } from './compiler/SDFCompiler';
+
+// Circuit Breaker Pattern for Export Targets (NEW - v3.43.0)
+export {
+  CircuitBreaker,
+  CircuitBreakerRegistry,
+  CircuitState,
+  type ExportTarget,
+  type CircuitBreakerConfig,
+  type CircuitMetrics,
+  type CircuitResult,
+} from './compiler/CircuitBreaker';
+
+export {
+  ReferenceExporterRegistry,
+  type ExportResult as ReferenceExportResult,
+  type ExporterOptions,
+} from './compiler/ReferenceExporters';
+
+export {
+  ExportManager,
+  getExportManager,
+  resetExportManager,
+  exportComposition,
+  batchExportComposition,
+  type ExportOptions,
+  type ExportResult,
+  type BatchExportResult,
+  type ExportEvent,
+  type ExportEventType,
+  type ExportEventListener,
+} from './compiler/ExportManager';
+
+export {
+  CircuitBreakerMonitor,
+  formatHealthReport,
+  type HealthStatus,
+  type AlertConfig,
+  type Alert,
+  type AlertLevel,
+  type AlertHandler,
+  type PerformanceMetrics,
+  type DashboardData,
+} from './compiler/CircuitBreakerMonitor';
 export {
   DTDLCompiler,
   type DTDLCompilerOptions,
@@ -586,6 +646,7 @@ export {
   windHandler,
   buoyancyHandler,
   destructionHandler,
+  layerAwareHandler,
 } from './traits/VRTraitSystem';
 
 // HoloScript+ Voice Input Trait (NEW - Phase 1)
@@ -2128,3 +2189,44 @@ export {
   type PersonaStyle,
   type PersonaVisibility,
 } from './traits/SpatialPersonaTrait';
+
+// =============================================================================
+// GraphQL Circuit Breaker (v3.44.0 - Frontend Reliability)
+// =============================================================================
+
+export {
+  CircuitBreaker as GraphQLCircuitBreaker,
+  CircuitBreakerManager as GraphQLCircuitBreakerManager,
+  CircuitState as GraphQLCircuitState,
+  type CircuitBreakerConfig as GraphQLCircuitBreakerConfig,
+  type CircuitMetrics as GraphQLCircuitMetrics,
+  type RequestResult as GraphQLRequestResult
+} from './CircuitBreaker';
+
+export {
+  GraphQLCircuitBreakerClient,
+  FallbackDataProvider,
+  createApolloCircuitBreakerLink,
+  createUrqlCircuitBreakerExchange,
+  type GraphQLClientOptions,
+  type GraphQLRequest,
+  type GraphQLResponse,
+  type CircuitBreakerStats as GraphQLCircuitStats
+} from './GraphQLCircuitBreakerClient';
+
+export {
+  CircuitBreakerMetrics as GraphQLMetrics,
+  MetricsMonitor as GraphQLMetricsMonitor,
+  type MetricsSnapshot as GraphQLMetricsSnapshot,
+  type CircuitMetricsReport as GraphQLCircuitMetricsReport,
+  type AggregateMetrics as GraphQLAggregateMetrics,
+  type HealthScore as GraphQLHealthScore,
+  type MetricsExportOptions as GraphQLMetricsExportOptions
+} from './CircuitBreakerMetrics';
+
+export {
+  DegradedModeBanner,
+  useDegradedMode,
+  DegradedModeIndicator,
+  type DegradedModeBannerProps
+} from './DegradedModeBanner';
