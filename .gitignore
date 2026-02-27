@@ -5,6 +5,30 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# TypeScript compiled outputs (exclude from Git, generated from .ts files)
+*.d.ts
+*.js
+*.js.map
+
+# Exception: Keep essential config files that should be committed
+!*.config.js
+!vitest.config.js
+!playwright.config.js
+!jest.config.js
+!rollup.config.js
+!webpack.config.js
+!tsup.config.js
+!vite.config.js
+!next.config.js
+!tailwind.config.js
+!postcss.config.js
+!prettier.config.js
+!eslint.config.js
+
+# Exception: Keep package entry points in certain contexts
+!packages/*/dist/**/*.js
+!packages/*/dist/**/*.d.ts
+
 # IDE
 .idea/
 .vscode/
@@ -117,3 +141,4 @@ packages/video-tutorials/out/*.mov
 packages/video-tutorials/public/narration/*.mp3
 packages/video-tutorials/public/captures/*.webm
 packages/video-tutorials/public/captures/*.mp4
+.secrets/
