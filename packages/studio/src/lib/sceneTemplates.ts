@@ -19,6 +19,7 @@ export interface SceneTemplate {
   description: string;
   thumbnail: string;
   tags: string[];
+  category: string;
   code: string;
   nodes?: Partial<SceneNode>[];
 }
@@ -39,6 +40,7 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
     description: 'Empty scene with default lighting',
     thumbnail: '⬜',
     tags: ['empty', 'basic', 'starter'],
+    category: 'Starter',
     code: `composition "Untitled" {
   environment {
     skybox: "studio"
@@ -56,6 +58,7 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
     description: 'Animated sun, planet with moon, starfield',
     thumbnail: '🌍',
     tags: ['space', 'animation', 'physics', 'starter'],
+    category: 'Starter',
     code: `composition "Solar System" {
   environment {
     skybox: "stars"
@@ -145,6 +148,7 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
     description: 'Minimalist white gallery with floating art planes',
     thumbnail: '🖼️',
     tags: ['vr', 'gallery', 'art', 'interior'],
+    category: 'Art & Zora',
     code: `composition "VR Gallery" {
   environment {
     skybox: "studio"
@@ -205,6 +209,7 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
     description: 'Grid of randomized glowing buildings at night',
     thumbnail: '🏙️',
     tags: ['city', 'procedural', 'night', 'glowing'],
+    category: 'Advanced',
     code: `composition "Night City" {
   environment {
     skybox: "night"
@@ -275,6 +280,7 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
     description: 'Bouncing spheres and boxes with Rapier rigid bodies',
     thumbnail: '⚽',
     tags: ['physics', 'dynamic', 'simulation'],
+    category: 'Utility',
     code: `composition "Physics Playground" {
   environment {
     skybox: "studio"
@@ -324,6 +330,7 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
     description: 'Three spheres with procedural animated shaders',
     thumbnail: '✨',
     tags: ['shaders', 'glsl', 'material', 'showcase'],
+    category: 'Advanced',
     code: `composition "Shader Showcase" {
   environment {
     skybox: "night"
@@ -374,6 +381,7 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
     description: 'Peaceful ambient environment with floating particles',
     thumbnail: '🧘',
     tags: ['ambient', 'vr', 'wellness', 'particles'],
+    category: 'Utility',
     code: `composition "Meditation Space" {
   environment {
     skybox: "nebula"
@@ -450,7 +458,149 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
     material: "glass"
     opacity: 0.6
   }
-}`,
+} `,
+  },
+
+  // ── Clanker Meme Token (Crypto / Social Media) ─────────────────────────────
+  {
+    id: 'clanker-meme',
+    name: 'Clanker Token Forge',
+    description: 'Spinning 3D character token with custom material for Zora/Social',
+    thumbnail: '🤖',
+    tags: ['crypto', 'token', 'meme', 'character', 'zora'],
+    category: 'Social Media',
+    code: `composition "Clanker Meme Token" {
+  environment {
+    skybox: "studio"
+    ambient_light: 1.2
+    shadows: false
+  }
+
+  object "ClankerCoin" {
+    @material metalness:1.0 roughness:0.2
+    geometry: "cylinder"
+    position: [0, 1, 0]
+    scale: [1.5, 0.1, 1.5]
+    rotation: [90, 0, 0]
+    color: "#ffd700"
+    
+    animation spin {
+      property: "rotation.z"
+      from: 0
+      to: 360
+      duration: 3000
+      loop: infinite
+      easing: "linear"
+    }
+  }
+
+  object "CharacterHolo" {
+    @billboard
+    geometry: "plane"
+    position: [0, 1, 0.1]
+    scale: [1, 1, 1]
+    color: "#ffffff"
+    label: "CLANKER"
+  }
+} `,
+  },
+
+  // ── AI Builder (Agentic Generation) ────────────────────────────────────────
+  {
+    id: 'ai-agent-hub',
+    name: 'Agentic Behavior Hub',
+    description: 'A logic-heavy template pre-wired with an AI Agent Node, navigation mesh, and dialogue triggers.',
+    thumbnail: '🧠',
+    tags: ['ai', 'agent', 'npc', 'behavior', 'logic'],
+    category: 'AI Builder',
+    code: `composition "Agentic Behavior Hub" {
+  environment {
+    skybox: "studio"
+    ambient_light: 0.8
+    shadows: true
+  }
+
+  object "NavMeshFloor" {
+    @collidable
+    @navmesh walkable:true
+    geometry: "box"
+    position: [0, -0.1, 0]
+    scale: [20, 0.2, 20]
+    color: "#223344"
+  }
+
+  object "AIAgentNode" {
+    @behavior type:"llm_agent" persona:"story_weaver"
+    @physics type:"dynamic" shape:"capsule"
+    geometry: "capsule"
+    position: [0, 1, 0]
+    color: "#00ffcc"
+    
+    component "DialogueTrigger" {
+      type: "proximity"
+      radius: 3.0
+    }
+  }
+
+  object "WaypointA" {
+    @behavior type:"waypoint" id:"wp_A"
+    geometry: "sphere"
+    position: [5, 0.5, 5]
+    scale: [0.2, 0.2, 0.2]
+    color: "#ff0066"
+    opacity: 0.5
+    material: "glass"
+  }
+} `,
+  },
+
+  // ── Orchestration (Networking & Mesh) ──────────────────────────────────────
+  {
+    id: 'mcp-mesh-node',
+    name: 'MCP Mesh Data Center',
+    description: 'A spatial visualization of a Quantum MCP Mesh server node, wired for pub-sub telemetry and orchestration monitoring.',
+    thumbnail: '🖧',
+    tags: ['orchestration', 'mcp', 'mesh', 'server', 'network', 'visualization'],
+    category: 'Orchestration',
+    code: `composition "MCP Mesh Node" {
+  environment {
+    skybox: "night"
+    ambient_light: 0.1
+    fog: { color: "#000511", density: 0.05 }
+  }
+
+  object "ServerRack" {
+    @collidable
+    @static
+    geometry: "box"
+    position: [0, 2, 0]
+    scale: [1.2, 4, 1.2]
+    color: "#111111"
+    
+    component "TelemetryReceiver" {
+      endpoint: "ws://mcp-orchestrator:5555"
+      topic: "mesh.telemetry"
+    }
+  }
+
+  object "DataStreamVisualizer" {
+    @vfx preset:"digital_rain" color:"#00ff66" speed:2.0
+    geometry: "plane"
+    position: [0, 4.5, 0]
+    scale: [2, 2, 1]
+    rotation: [-90, 0, 0]
+  }
+
+  object "StatusIndicator" {
+    @behavior type:"pulse_light" color:"#00ff00"
+    geometry: "sphere"
+    position: [0, 4.2, 0.65]
+    scale: [0.15, 0.15, 0.15]
+    color: "#00ff00"
+    emissive: "#00ff00"
+    emissiveIntensity: 2.5
+  }
+} `,
   },
 ];
 

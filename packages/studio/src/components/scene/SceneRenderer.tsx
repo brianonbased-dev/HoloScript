@@ -1,12 +1,12 @@
 'use client';
 
-import { Suspense, useState, useCallback, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Stars, Environment } from '@react-three/drei';
+import { Suspense, useState, useCallback, useEffect, useRef } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
+import { OrbitControls, Grid, Stars, Environment, TransformControls, Stats } from '@react-three/drei';
 import type { R3FNode } from '@holoscript/core';
 import { R3FNodeRenderer } from './R3FNodeRenderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/store';
-import type { SceneNode } from '@/lib/store';
+import type { SceneNode, GizmoMode } from '@/lib/store';
 import { ASSET_DRAG_TYPE } from '@/components/assets/AssetLibrary';
 import type { Asset } from '@/components/assets/useAssetStore';
 import { VREditSession, xrStore } from '@/components/vr/VREditSession';
@@ -14,6 +14,9 @@ import { PerformanceOverlay } from '@/components/profiler/PerformanceOverlay';
 import { PhysicsProvider } from '@/components/physics/PhysicsProvider';
 import { PhysicsDebugOverlay } from '@/components/physics/PhysicsDebugOverlay';
 import { usePhysicsStore } from '@/lib/physicsStore';
+import { SketchCanvas } from '@/components/sketch/SketchCanvas';
+import { SketchToolbar } from '@/components/sketch/SketchToolbar';
+import * as THREE from 'three';
 
 interface SceneRendererProps {
   r3fTree: R3FNode | null;
@@ -60,6 +63,54 @@ function EmptyScene() {
   );
 }
 
+// ─── Gizmo Controller ─────────────────────────────────────────────────────────
+
+/**
+ * GizmoController — attaches drei TransformControls to the selected mesh.
+ * Traverses the R3F scene to find the Object3D tagged with userData.nodeId.
+ */
+
+function GizmoController() {
+  const { scene } = useThree();
+  const selectedId         = useEditorStore((s) => s.selectedObjectId);
+  const gizmoMode          = useEditorStore((s) => s.gizmoMode);
+  const updateNodeTransform = useSceneGraphStore((s) => s.updateNodeTransform);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const controlsRef = useRef<any>(null);
+
+  // Find the Three.js object whose userData.nodeId matches the selection
+  const target: THREE.Object3D | null = selectedId
+    ? (() => {
+        let found: THREE.Object3D | null = null;
+        scene.traverse((obj: THREE.Object3D) => {
+          if (!found && obj.userData?.nodeId === selectedId) found = obj as THREE.Object3D;
+        });
+        return found;
+      })()
+    : null;
+
+  const handleChange = useCallback(() => {
+    if (!target || !selectedId) return;
+    const t = target as THREE.Object3D;
+    updateNodeTransform(selectedId, {
+      position: [t.position.x, t.position.y, t.position.z],
+      rotation: [t.rotation.x, t.rotation.y, t.rotation.z],
+      scale:    [t.scale.x,    t.scale.y,    t.scale.z],
+    });
+  }, [target, selectedId, updateNodeTransform]);
+
+  if (!target) return null;
+  return (
+    <TransformControls
+      ref={controlsRef}
+      object={target}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mode={gizmoMode as any}
+      onObjectChange={handleChange}
+    />
+  );
+}
+
 // ─── Category → node type + trait mapping ────────────────────────────────────
 
 function assetToNodeType(category: Asset['category']): SceneNode['type'] {
@@ -101,6 +152,11 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   const [isDragOver, setIsDragOver] = useState(false);
   const addNode = useSceneGraphStore((s) => s.addNode);
   const addTrait = useSceneGraphStore((s) => s.addTrait);
+  const selectedId       = useEditorStore((s) => s.selectedObjectId);
+  const gizmoMode        = useEditorStore((s) => s.gizmoMode);
+  const setGizmoMode     = useEditorStore((s) => s.setGizmoMode);
+  const artMode          = useEditorStore((s) => s.artMode);
+  const showPerfOverlay  = useEditorStore((s) => s.showPerfOverlay);
 
   // ─── XR support detection ──────────────────────────────────────────────────
   const [xrSupport, setXrSupport] = useState<{ vr: boolean; ar: boolean }>({ vr: false, ar: false });
@@ -207,10 +263,44 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         <PhysicsProviderWrapper />
 
         {/* Performance profiler overlay */}
-        <PerformanceOverlay open={profilerOpen} />
-      </Canvas>
+        <PerformanceOverlay open={profilerOpen || showPerfOverlay} />
 
-      {/* Drop overlay */}
+        {/* Transform gizmo — must be inside Canvas */}
+        <GizmoController />
+
+        {/* Sketch mode — freehand 3D strokes */}
+        {artMode === 'sketch' && <SketchCanvas />}
+
+        {/* FPS/frame-time stats — shown in dev OR when Perf overlay toggled on */}
+        {(process.env.NODE_ENV !== 'production' || showPerfOverlay) && <Stats className="!bottom-2 !left-auto !right-2 !top-auto" />}
+      </Canvas>
+      {/* Gizmo mode toolbar — top-left overlay */}
+      <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur">
+        {(['translate', 'rotate', 'scale'] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => setGizmoMode(m)}
+            className={`rounded-lg px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider transition ${
+              gizmoMode === m
+                ? 'bg-indigo-500/20 text-indigo-300'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+            title={m.charAt(0).toUpperCase() + m.slice(1)}
+            aria-label={`${m} mode`}
+            aria-pressed={gizmoMode === m}
+          >
+            {m === 'translate' ? 'Move' : m === 'rotate' ? 'Rotate' : 'Scale'}
+          </button>
+        ))}
+      </div>
+
+      {/* Sketch toolbar — right side overlay when in sketch mode */}
+      {artMode === 'sketch' && (
+        <div className="absolute right-3 top-16 z-10">
+          <SketchToolbar />
+        </div>
+      )}
+
       {isDragOver && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded border-2 border-dashed border-studio-accent bg-studio-accent/10 backdrop-blur-[1px]">
           <div className="rounded-xl bg-studio-panel/90 px-6 py-4 text-center shadow-xl">

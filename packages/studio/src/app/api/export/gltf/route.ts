@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
 
     const slug = body.metadata.name.replace(/\s+/g, '-').toLowerCase() || 'scene';
 
-    return new NextResponse(glb, {
+    return new NextResponse(Buffer.from(glb), {
       status: 200,
       headers: {
         'Content-Type': 'model/gltf-binary',

@@ -11,8 +11,8 @@
  */
 
 import { openDB, type IDBPDatabase } from 'idb';
-import type { ISerializedShaderGraph } from '@holoscript/core/shader/graph/ShaderGraph';
-import { ShaderGraph } from '@holoscript/core/shader/graph/ShaderGraph';
+import { ShaderGraph } from '@/lib/shaderGraph';
+import type { ISerializedShaderGraph } from '@/lib/shaderGraph';
 
 // ============================================================================
 // Types
@@ -156,7 +156,7 @@ export class ShaderEditorService {
     await this.ensureDB();
 
     const graph = new ShaderGraph(name);
-    graph.description = description;
+    graph.description = description ?? '';
 
     const metadata: ShaderGraphMetadata = {
       id: graph.id,
@@ -164,7 +164,7 @@ export class ShaderEditorService {
       description,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      version: graph.version,
+      version: String(graph.version),
       tags,
       size: 0,
     };
@@ -179,8 +179,8 @@ export class ShaderEditorService {
       tx.done,
     ]);
 
-    // Create initial version
-    await this.createVersion(graph.id, 'Initial version');
+    // Create initial version — pass graph directly to avoid a DB re-read
+    await this.createVersion(graph.id, 'Initial version', graph);
 
     return graph;
   }
@@ -390,11 +390,14 @@ export class ShaderEditorService {
 
   /**
    * Create a version snapshot
+   * @param graphId - ID of the shader graph
+   * @param message - Commit message for this version
+   * @param preloadedGraph - Optional preloaded graph to avoid a DB read (used internally in create())
    */
-  async createVersion(graphId: string, message: string): Promise<ShaderGraphVersion> {
+  async createVersion(graphId: string, message: string, preloadedGraph?: ShaderGraph): Promise<ShaderGraphVersion> {
     await this.ensureDB();
 
-    const graph = await this.read(graphId);
+    const graph = preloadedGraph ?? await this.read(graphId);
     if (!graph) {
       throw new Error(`Graph not found: ${graphId}`);
     }
@@ -529,7 +532,7 @@ export class ShaderEditorService {
       description: graph.description,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      version: graph.version,
+      version: String(graph.version),
       tags: [],
       size: new Blob([json]).size,
     };

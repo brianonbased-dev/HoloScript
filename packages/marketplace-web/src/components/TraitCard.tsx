@@ -5,14 +5,17 @@ import Image from 'next/image';
 import type { TraitSummary } from '@/types';
 import { CATEGORY_LABELS, PLATFORM_LABELS } from '@/types';
 import { useInstallStore } from '@/lib/store';
-import { Download, Star, CheckCircle, Loader2, ArrowDownToLine, AlertTriangle } from 'lucide-react';
+import { Download, Star, CheckCircle, Loader2, ArrowDownToLine, AlertTriangle, ShoppingCart } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { CheckoutModal } from './CheckoutModal';
+import { useState } from 'react';
 
 interface TraitCardProps {
   trait: TraitSummary;
 }
 
 export function TraitCard({ trait }: TraitCardProps) {
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const { install, isInstalling, isInstalled, getError } = useInstallStore();
   const installing = isInstalling(trait.id);
   const installed = isInstalled(trait.id);
@@ -21,6 +24,13 @@ export function TraitCard({ trait }: TraitCardProps) {
   const handleInstall = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // In our marketplace-web UX, clicking Install on a Web3 marketplace might prompt purchase.
+    // For demonstration, let's open checkout modal first.
+    setIsCheckoutOpen(true);
+  };
+  
+  const finishInstall = async () => {
     await install(trait.id, trait.version);
   };
 
@@ -142,7 +152,7 @@ export function TraitCard({ trait }: TraitCardProps) {
                 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                 : installing
                   ? 'bg-holoscript-100 dark:bg-holoscript-900/30 text-holoscript-600 dark:text-holoscript-400'
-                  : 'bg-holoscript-500 hover:bg-holoscript-600 text-white'
+                  : 'bg-zinc-900 dark:bg-holoscript-500 hover:bg-zinc-800 dark:hover:bg-holoscript-600 text-white'
             }
           `}
         >
@@ -158,12 +168,19 @@ export function TraitCard({ trait }: TraitCardProps) {
             </>
           ) : (
             <>
-              <ArrowDownToLine className="h-4 w-4" />
-              Install
+              <ShoppingCart className="h-4 w-4" />
+              Buy
             </>
           )}
         </button>
       </div>
+
+      <CheckoutModal 
+        trait={trait} 
+        isOpen={isCheckoutOpen} 
+        onClose={() => setIsCheckoutOpen(false)} 
+        onSuccess={finishInstall}
+      />
 
       {/* Error Message */}
       {error && (

@@ -173,6 +173,8 @@ export const useSceneGraphStore = create<SceneGraphState>()(
 
 type EditorPanel = 'prompt' | 'code' | 'tree';
 export type GizmoMode = 'translate' | 'rotate' | 'scale';
+export type ArtMode = 'none' | 'sketch' | 'paint' | 'generative';
+export type StudioMode = 'creator' | 'artist' | 'filmmaker' | 'expert' | 'character';
 
 interface EditorState {
   activePanel: EditorPanel;
@@ -180,12 +182,26 @@ interface EditorState {
   selectedObjectId: string | null;
   selectedObjectName: string | null;
   gizmoMode: GizmoMode;
+  artMode: ArtMode;
+  studioMode: StudioMode;
+  showBenchmark: boolean;
+  showPerfOverlay: boolean;
   setActivePanel: (panel: EditorPanel) => void;
   toggleSidebar: () => void;
   setSelectedObjectId: (id: string | null) => void;
   setSelectedObject: (id: string | null, name: string | null) => void;
   setGizmoMode: (mode: GizmoMode) => void;
+  setArtMode: (mode: ArtMode) => void;
+  setStudioMode: (mode: StudioMode) => void;
+  setShowBenchmark: (v: boolean) => void;
+  togglePerfOverlay: () => void;
 }
+
+const getInitialStudioMode = (): StudioMode => {
+  if (typeof window === 'undefined') return 'creator';
+  const saved = window.localStorage.getItem('studio-mode') as StudioMode | null;
+  return (saved && ['creator', 'artist', 'filmmaker', 'expert', 'character'].includes(saved)) ? saved : 'creator';
+};
 
 export const useEditorStore = create<EditorState>()(
   devtools(
@@ -195,12 +211,96 @@ export const useEditorStore = create<EditorState>()(
       selectedObjectId: null,
       selectedObjectName: null,
       gizmoMode: 'translate',
+      artMode: 'none',
+      studioMode: getInitialStudioMode(),
+      showBenchmark: false,
+      showPerfOverlay: false,
       setActivePanel: (activePanel) => set({ activePanel }),
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setSelectedObjectId: (selectedObjectId) => set({ selectedObjectId }),
       setSelectedObject: (selectedObjectId, selectedObjectName) => set({ selectedObjectId, selectedObjectName }),
       setGizmoMode: (gizmoMode) => set({ gizmoMode }),
+      setArtMode: (artMode) => set({ artMode }),
+      setStudioMode: (studioMode) => {
+        if (typeof window !== 'undefined') window.localStorage.setItem('studio-mode', studioMode);
+        set({ studioMode });
+      },
+      setShowBenchmark: (showBenchmark) => set({ showBenchmark }),
+      togglePerfOverlay: () => set((s) => ({ showPerfOverlay: !s.showPerfOverlay })),
     }),
     { name: 'editor-store' }
+  )
+);
+
+// ─── Character Store ─────────────────────────────────────────────────────────
+// Shared state between the R3F canvas (GlbViewer) and DOM panels (SkeletonPanel etc.)
+
+import type { RecordedClip } from './animationBuilder';
+
+interface CharacterState {
+  /** Object URL of the loaded .glb file */
+  glbUrl: string | null;
+  /** Bone names extracted from the skeleton */
+  boneNames: string[];
+  /** Currently selected bone index (null = none) */
+  selectedBoneIndex: number | null;
+  /** Whether to display the SkeletonHelper overlay */
+  showSkeleton: boolean;
+  /** Whether live recording is in progress */
+  isRecording: boolean;
+  /** All user-recorded animation clips */
+  recordedClips: RecordedClip[];
+  /** Name of the currently playing clip (null = stopped) */
+  activeClipId: string | null;
+  /** Built-in animations from the loaded .glb */
+  builtinAnimations: Array<{ name: string; duration: number }>;
+  /** Name of the currently playing built-in animation (null = none) */
+  activeBuiltinAnimation: string | null;
+  /** Clip ID currently being exported (null = not exporting) */
+  exportingClipId: string | null;
+
+  // Actions
+  setGlbUrl: (url: string | null) => void;
+  setBoneNames: (names: string[]) => void;
+  setSelectedBoneIndex: (index: number | null) => void;
+  setShowSkeleton: (v: boolean) => void;
+  setIsRecording: (v: boolean) => void;
+  addRecordedClip: (clip: RecordedClip) => void;
+  removeRecordedClip: (id: string) => void;
+  renameRecordedClip: (id: string, name: string) => void;
+  setActiveClipId: (id: string | null) => void;
+  setBuiltinAnimations: (list: Array<{ name: string; duration: number }>) => void;
+  setActiveBuiltinAnimation: (name: string | null) => void;
+  setExportingClipId: (id: string | null) => void;
+}
+
+export const useCharacterStore = create<CharacterState>()(
+  devtools(
+    (set) => ({
+      glbUrl: null,
+      boneNames: [],
+      selectedBoneIndex: null,
+      showSkeleton: true,
+      isRecording: false,
+      recordedClips: [],
+      activeClipId: null,
+      builtinAnimations: [],
+      activeBuiltinAnimation: null,
+      exportingClipId: null,
+
+      setGlbUrl: (glbUrl) => set({ glbUrl, boneNames: [], selectedBoneIndex: null, builtinAnimations: [], activeBuiltinAnimation: null }),
+      setBoneNames: (boneNames) => set({ boneNames }),
+      setSelectedBoneIndex: (selectedBoneIndex) => set({ selectedBoneIndex }),
+      setShowSkeleton: (showSkeleton) => set({ showSkeleton }),
+      setIsRecording: (isRecording) => set({ isRecording }),
+      addRecordedClip: (clip) => set((s) => ({ recordedClips: [...s.recordedClips, clip] })),
+      removeRecordedClip: (id) => set((s) => ({ recordedClips: s.recordedClips.filter((c) => c.id !== id) })),
+      renameRecordedClip: (id, name) => set((s) => ({ recordedClips: s.recordedClips.map((c) => c.id === id ? { ...c, name } : c) })),
+      setActiveClipId: (activeClipId) => set({ activeClipId }),
+      setBuiltinAnimations: (builtinAnimations) => set({ builtinAnimations }),
+      setActiveBuiltinAnimation: (activeBuiltinAnimation) => set({ activeBuiltinAnimation }),
+      setExportingClipId: (exportingClipId) => set({ exportingClipId }),
+    }),
+    { name: 'character-store' }
   )
 );

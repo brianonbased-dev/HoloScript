@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useId } from 'react';
 import {
   Box,
   Lightbulb,
@@ -13,13 +13,13 @@ import {
   Trash2,
   Copy,
   Layers,
+  Type,
 } from 'lucide-react';
-import { useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useSceneGraphStore } from '@/lib/store';
+import { useEditorStore } from '@/lib/store';
 import type { SceneNode } from '@/lib/store';
 
-// ─── Node icon map ────────────────────────────────────────────────────────────
-
-const NODE_ICONS: Record<SceneNode['type'], React.ComponentType<{ className?: string }>> = {
+const NODE_ICONS: Record<string, React.ElementType> = {
   mesh: Box,
   light: Lightbulb,
   camera: Camera,
@@ -28,12 +28,12 @@ const NODE_ICONS: Record<SceneNode['type'], React.ComponentType<{ className?: st
   splat: Layers,
 };
 
-const NODE_COLORS: Record<SceneNode['type'], string> = {
+const NODE_COLORS: Record<string, string> = {
   mesh: 'text-blue-400',
   light: 'text-yellow-400',
   camera: 'text-green-400',
   audio: 'text-pink-400',
-  group: 'text-studio-muted',
+  group: 'text-gray-400',
   splat: 'text-purple-400',
 };
 
@@ -45,29 +45,62 @@ interface ContextMenuState {
   nodeId: string;
 }
 
-// ─── Tree Node ───────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Returns a flat ordered list of node IDs as they appear in the visible tree,
+ * respecting the expanded/collapsed state of each node.
+ */
+function getFlatVisibleIds(
+  nodes: SceneNode[],
+  expandedMap: Map<string, boolean>
+): string[] {
+  const result: string[] = [];
+  const rootNodes = nodes.filter((n) => n.parentId === null);
+
+  function walk(node: SceneNode) {
+    result.push(node.id);
+    const isExpanded = expandedMap.get(node.id) ?? true;
+    if (!isExpanded) return;
+    const children = nodes.filter((n) => n.parentId === node.id);
+    children.forEach(walk);
+  }
+
+  rootNodes.forEach(walk);
+  return result;
+}
+
+// ─── Tree Row ─────────────────────────────────────────────────────────────────
 
 interface TreeNodeProps {
   node: SceneNode;
   allNodes: SceneNode[];
   depth: number;
+  isExpanded: boolean;
+  onToggleExpand: (id: string) => void;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+  onDuplicate: (node: SceneNode) => void;
   contextMenu: ContextMenuState | null;
   setContextMenu: (m: ContextMenuState | null) => void;
 }
 
-function TreeNode({ node, allNodes, depth, contextMenu: _cm, setContextMenu }: TreeNodeProps) {
+function TreeNode({
+  node,
+  allNodes,
+  depth,
+  isExpanded,
+  onToggleExpand,
+  onSelect,
+  onDelete,
+  onDuplicate,
+  setContextMenu,
+}: TreeNodeProps) {
   const selectedId = useEditorStore((s) => s.selectedObjectId);
-  const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
-  const removeNode = useSceneGraphStore((s) => s.removeNode);
-  const addNode = useSceneGraphStore((s) => s.addNode);
-
-  const [expanded, setExpanded] = useState(true);
-
+  const isSelected = selectedId === node.id;
   const children = allNodes.filter((n) => n.parentId === node.id);
   const hasChildren = children.length > 0;
-  const isSelected = selectedId === node.id;
-
-  const Icon = NODE_ICONS[node.type];
+  const Icon = NODE_ICONS[node.type] as React.ElementType;
   const iconColor = NODE_COLORS[node.type];
 
   const handleContextMenu = useCallback(
@@ -79,26 +112,22 @@ function TreeNode({ node, allNodes, depth, contextMenu: _cm, setContextMenu }: T
     [node.id, setContextMenu]
   );
 
-  const handleDuplicate = useCallback(() => {
-    const newId = `${node.id}-copy-${Date.now()}`;
-    addNode({ ...node, id: newId, name: `${node.name} Copy` });
-  }, [node, addNode]);
-
-  const handleDelete = useCallback(() => {
-    if (selectedId === node.id) setSelectedId(null);
-    removeNode(node.id);
-  }, [node.id, selectedId, setSelectedId, removeNode]);
-
   return (
-    <div>
+    <div role="none">
       <div
-        className={`group flex cursor-pointer items-center gap-1 rounded-md px-2 py-[3px] text-sm transition-colors ${
+        role="treeitem"
+        aria-selected={isSelected}
+        aria-expanded={hasChildren ? isExpanded : undefined}
+        aria-level={depth + 1}
+        tabIndex={isSelected ? 0 : -1}
+        data-nodeid={node.id}
+        className={`group flex cursor-pointer items-center gap-1 rounded-md px-2 py-[3px] text-sm transition-colors outline-none focus-visible:ring-1 focus-visible:ring-studio-accent ${
           isSelected
             ? 'bg-studio-accent/20 text-studio-text'
             : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
         }`}
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
-        onClick={() => setSelectedId(isSelected ? null : node.id)}
+        onClick={() => onSelect(node.id)}
         onContextMenu={handleContextMenu}
       >
         {/* Expand arrow */}
@@ -106,11 +135,12 @@ function TreeNode({ node, allNodes, depth, contextMenu: _cm, setContextMenu }: T
           className="flex h-4 w-4 items-center justify-center"
           onClick={(e) => {
             e.stopPropagation();
-            setExpanded((v) => !v);
+            onToggleExpand(node.id);
           }}
+          aria-hidden="true"
         >
           {hasChildren ? (
-            expanded ? (
+            isExpanded ? (
               <ChevronDown className="h-3 w-3 opacity-60" />
             ) : (
               <ChevronRight className="h-3 w-3 opacity-60" />
@@ -121,14 +151,17 @@ function TreeNode({ node, allNodes, depth, contextMenu: _cm, setContextMenu }: T
         </span>
 
         {/* Type icon */}
-        <Icon className={`h-3.5 w-3.5 shrink-0 ${iconColor}`} />
+        <Icon className={`h-3.5 w-3.5 shrink-0 ${iconColor}`} aria-hidden="true" />
 
         {/* Name */}
         <span className="truncate font-medium">{node.name}</span>
 
         {/* Trait badge */}
         {node.traits.length > 0 && (
-          <span className="ml-auto rounded-full bg-studio-accent/20 px-1.5 text-[10px] text-studio-accent">
+          <span
+            className="ml-auto rounded-full bg-studio-accent/20 px-1.5 text-[10px] text-studio-accent"
+            title={`${node.traits.length} trait${node.traits.length !== 1 ? 's' : ''}`}
+          >
             {node.traits.length}
           </span>
         )}
@@ -138,20 +171,22 @@ function TreeNode({ node, allNodes, depth, contextMenu: _cm, setContextMenu }: T
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleDuplicate();
+              onDuplicate(node);
             }}
             className="rounded p-0.5 hover:bg-studio-border"
             title="Duplicate"
+            aria-label={`Duplicate ${node.name}`}
           >
             <Copy className="h-3 w-3" />
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleDelete();
+              onDelete(node.id);
             }}
             className="rounded p-0.5 hover:bg-red-500/20 hover:text-red-400"
             title="Delete"
+            aria-label={`Delete ${node.name}`}
           >
             <Trash2 className="h-3 w-3" />
           </button>
@@ -159,15 +194,18 @@ function TreeNode({ node, allNodes, depth, contextMenu: _cm, setContextMenu }: T
       </div>
 
       {/* Children */}
-      {hasChildren && expanded && (
-        <div>
+      {hasChildren && isExpanded && (
+        <div role="group">
           {children.map((child) => (
-            <TreeNode
+            <ConnectedTreeNode
               key={child.id}
               node={child}
               allNodes={allNodes}
               depth={depth + 1}
-              contextMenu={null}
+              onToggleExpand={onToggleExpand}
+              onSelect={onSelect}
+              onDelete={onDelete}
+              onDuplicate={onDuplicate}
               setContextMenu={setContextMenu}
             />
           ))}
@@ -177,9 +215,25 @@ function TreeNode({ node, allNodes, depth, contextMenu: _cm, setContextMenu }: T
   );
 }
 
+// ConnectedTreeNode resolves expandedMap from parent for children
+interface ConnectedTreeNodeProps extends Omit<TreeNodeProps, 'isExpanded' | 'contextMenu'> {}
+
+// We pass the expandedMap down via closure in the panel
+// For simplicity TreeNode reads expanded from props (passed from panel-level map)
+function ConnectedTreeNode(props: ConnectedTreeNodeProps & { expandedMap?: Map<string, boolean> }) {
+  const { expandedMap = new Map(), ...rest } = props;
+  return (
+    <TreeNode
+      {...rest}
+      isExpanded={expandedMap.get(props.node.id) ?? true}
+      contextMenu={null}
+    />
+  );
+}
+
 // ─── Add Object Dropdown ──────────────────────────────────────────────────────
 
-const OBJECT_TYPES: Array<{ type: SceneNode['type']; label: string }> = [
+const ADD_TYPES: { type: SceneNode['type']; label: string }[] = [
   { type: 'mesh', label: 'Mesh Object' },
   { type: 'light', label: 'Point Light' },
   { type: 'camera', label: 'Camera' },
@@ -190,36 +244,93 @@ const OBJECT_TYPES: Array<{ type: SceneNode['type']; label: string }> = [
 
 function AddObjectMenu({ onAdd }: { onAdd: (type: SceneNode['type']) => void }) {
   const [open, setOpen] = useState(false);
+  const menuId = useId();
+
   return (
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-studio-muted transition hover:bg-studio-surface hover:text-studio-text"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={menuId}
+        className="flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-medium text-studio-muted hover:bg-studio-surface hover:text-studio-text transition"
+        title="Add object"
+        aria-label="Add scene object"
       >
-        <Plus className="h-3.5 w-3.5" />
+        <Plus className="h-3 w-3" />
         Add
       </button>
+
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[160px] rounded-lg border border-studio-border bg-studio-panel shadow-xl">
-          {OBJECT_TYPES.map(({ type, label }) => {
-            const Icon = NODE_ICONS[type];
-            const color = NODE_COLORS[type];
-            return (
-              <button
-                key={type}
-                className="flex w-full items-center gap-2 px-3 py-2 text-xs text-studio-muted transition hover:bg-studio-surface hover:text-studio-text"
-                onClick={() => {
-                  onAdd(type);
-                  setOpen(false);
-                }}
-              >
-                <Icon className={`h-3.5 w-3.5 ${color}`} />
-                {label}
-              </button>
-            );
-          })}
+        <div
+          id={menuId}
+          role="listbox"
+          aria-label="Object types"
+          className="absolute right-0 top-full z-50 mt-1 w-40 overflow-hidden rounded-xl border border-studio-border bg-studio-panel shadow-xl"
+        >
+          {ADD_TYPES.map((item) => (
+            <button
+              key={item.type}
+              role="option"
+              aria-selected={false}
+              onClick={() => {
+                onAdd(item.type);
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-studio-muted hover:bg-studio-surface hover:text-studio-text transition"
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Context Menu ─────────────────────────────────────────────────────────────
+
+function ContextMenuPopup({
+  state,
+  onDuplicate,
+  onRename,
+  onDelete,
+  onClose,
+}: {
+  state: ContextMenuState;
+  onDuplicate: (id: string) => void;
+  onRename: (id: string) => void;
+  onDelete: (id: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed z-[100] min-w-32 overflow-hidden rounded-xl border border-studio-border bg-studio-panel shadow-xl"
+      style={{ left: state.x, top: state.y }}
+      role="menu"
+      aria-label="Scene node actions"
+    >
+      <button
+        role="menuitem"
+        onClick={() => { onDuplicate(state.nodeId); onClose(); }}
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-studio-muted hover:bg-studio-surface hover:text-studio-text"
+      >
+        <Copy className="h-3 w-3" /> Duplicate
+      </button>
+      <button
+        role="menuitem"
+        onClick={() => { onRename(state.nodeId); onClose(); }}
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-studio-muted hover:bg-studio-surface hover:text-studio-text"
+      >
+        <Type className="h-3 w-3" /> Rename
+      </button>
+      <button
+        role="menuitem"
+        onClick={() => { onDelete(state.nodeId); onClose(); }}
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
+      >
+        <Trash2 className="h-3 w-3" /> Delete
+      </button>
     </div>
   );
 }
@@ -227,22 +338,28 @@ function AddObjectMenu({ onAdd }: { onAdd: (type: SceneNode['type']) => void }) 
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 export function SceneGraphPanel() {
-  const nodes = useSceneGraphStore((s) => s.nodes);
-  const addNode = useSceneGraphStore((s) => s.addNode);
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const nodes         = useSceneGraphStore((s) => s.nodes);
+  const addNode       = useSceneGraphStore((s) => s.addNode);
+  const removeNode    = useSceneGraphStore((s) => s.removeNode);
+  const updateNode    = useSceneGraphStore((s) => s.updateNode);
+  const selectedId    = useEditorStore((s) => s.selectedObjectId);
+  const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
+
+  const [contextMenu, setContextMenu]   = useState<ContextMenuState | null>(null);
+  // Tracks expanded state per node id (default: expanded)
+  const [expandedMap, setExpandedMap]   = useState<Map<string, boolean>>(new Map());
+  const treeRef           = useRef<HTMLDivElement>(null);
 
   const rootNodes = nodes.filter((n) => n.parentId === null);
+
+  // ─── Node actions ──────────────────────────────────────────────────────────
 
   const handleAddObject = useCallback(
     (type: SceneNode['type']) => {
       const id = `obj-${Date.now()}`;
-      const labelMap: Record<SceneNode['type'], string> = {
-        mesh: 'Object',
-        light: 'Light',
-        camera: 'Camera',
-        audio: 'Audio',
-        group: 'Group',
-        splat: 'Splat',
+      const labelMap: Record<string, string> = {
+        mesh: 'Object', light: 'Light', camera: 'Camera',
+        audio: 'Audio', group: 'Group', splat: 'Splat',
       };
       addNode({
         id,
@@ -254,9 +371,124 @@ export function SceneGraphPanel() {
         rotation: [0, 0, 0],
         scale: [1, 1, 1],
       });
+      setSelectedId(id);
     },
-    [nodes.length, addNode]
+    [nodes.length, addNode, setSelectedId]
   );
+
+  const handleToggleExpand = useCallback((id: string) => {
+    setExpandedMap((prev) => {
+      const next = new Map(prev);
+      next.set(id, !(prev.get(id) ?? true));
+      return next;
+    });
+  }, []);
+
+  const handleSelect = useCallback((id: string) => {
+    setSelectedId(selectedId === id ? null : id);
+  }, [selectedId, setSelectedId]);
+
+  const handleDelete = useCallback((id: string) => {
+    if (selectedId === id) setSelectedId(null);
+    removeNode(id);
+  }, [selectedId, setSelectedId, removeNode]);
+
+  const handleDuplicate = useCallback((nodeOrId: SceneNode | string) => {
+    const node = typeof nodeOrId === 'string'
+      ? nodes.find((n) => n.id === nodeOrId)
+      : nodeOrId;
+    if (!node) return;
+    const newId = `${node.id}-copy-${Date.now()}`;
+    addNode({ ...node, id: newId, name: `${node.name} Copy` });
+    setSelectedId(newId);
+  }, [nodes, addNode, setSelectedId]);
+
+  const handleRename = useCallback((id: string) => {
+    const node = nodes.find((n) => n.id === id);
+    if (!node) return;
+    const newName = window.prompt(`Rename "${node.name}"`, node.name);
+    if (newName && newName.trim() !== '') {
+      updateNode(id, { name: newName.trim() });
+    }
+  }, [nodes, updateNode]);
+
+  // ─── Keyboard navigation ───────────────────────────────────────────────────
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const flatIds = getFlatVisibleIds(nodes, expandedMap);
+      if (flatIds.length === 0) return;
+
+      const idx = selectedId ? flatIds.indexOf(selectedId) : -1;
+
+      switch (e.key) {
+        case 'ArrowDown': {
+          e.preventDefault();
+          const next = flatIds[Math.min(idx + 1, flatIds.length - 1)];
+          setSelectedId(next);
+          // Focus the row element
+          treeRef.current
+            ?.querySelector<HTMLElement>(`[data-nodeid="${next}"]`)
+            ?.focus();
+          break;
+        }
+        case 'ArrowUp': {
+          e.preventDefault();
+          const prev = flatIds[Math.max(idx - 1, 0)];
+          setSelectedId(prev);
+          treeRef.current
+            ?.querySelector<HTMLElement>(`[data-nodeid="${prev}"]`)
+            ?.focus();
+          break;
+        }
+        case 'ArrowRight': {
+          // Expand selected node
+          if (selectedId) {
+            e.preventDefault();
+            setExpandedMap((m) => { const n = new Map(m); n.set(selectedId, true); return n; });
+          }
+          break;
+        }
+        case 'ArrowLeft': {
+          // Collapse selected node
+          if (selectedId) {
+            e.preventDefault();
+            setExpandedMap((m) => { const n = new Map(m); n.set(selectedId, false); return n; });
+          }
+          break;
+        }
+        case 'Enter': {
+          // Toggle selection (select if not selected, deselect if selected)
+          if (selectedId) {
+            e.preventDefault();
+            setSelectedId(selectedId === selectedId ? selectedId : null);
+          } else if (flatIds.length > 0) {
+            e.preventDefault();
+            setSelectedId(flatIds[0]);
+          }
+          break;
+        }
+        case 'Delete':
+        case 'Backspace': {
+          if (selectedId && e.target === treeRef.current) {
+            e.preventDefault();
+            handleDelete(selectedId);
+          }
+          break;
+        }
+        case 'Escape': {
+          setSelectedId(null);
+          setContextMenu(null);
+          break;
+        }
+        default:
+          break;
+      }
+    },
+    [nodes, expandedMap, selectedId, setSelectedId, handleDelete]
+  );
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div
@@ -271,8 +503,15 @@ export function SceneGraphPanel() {
         <AddObjectMenu onAdd={handleAddObject} />
       </div>
 
-      {/* Tree */}
-      <div className="flex-1 overflow-y-auto py-1">
+      {/* Tree — keyboard nav container */}
+      <div
+        ref={treeRef}
+        role="tree"
+        aria-label="Scene graph"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        className="flex-1 overflow-y-auto py-1 outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-studio-accent/40"
+      >
         {nodes.length === 0 ? (
           <div className="p-4 text-center text-xs text-studio-muted">
             <p className="mb-2">Empty scene</p>
@@ -285,6 +524,11 @@ export function SceneGraphPanel() {
               node={node}
               allNodes={nodes}
               depth={0}
+              isExpanded={expandedMap.get(node.id) ?? true}
+              onToggleExpand={handleToggleExpand}
+              onSelect={handleSelect}
+              onDelete={handleDelete}
+              onDuplicate={handleDuplicate}
               contextMenu={contextMenu}
               setContextMenu={setContextMenu}
             />
@@ -296,7 +540,24 @@ export function SceneGraphPanel() {
       {nodes.length > 0 && (
         <div className="border-t border-studio-border px-3 py-1.5 text-[10px] text-studio-muted">
           {nodes.length} object{nodes.length !== 1 ? 's' : ''}
+          {selectedId && (
+            <span className="ml-2 text-studio-accent">
+              · {nodes.find(n => n.id === selectedId)?.name ?? 'selected'}
+            </span>
+          )}
+          <span className="ml-auto float-right opacity-50">↑↓ navigate · Del delete</span>
         </div>
+      )}
+
+      {/* Context menu */}
+      {contextMenu && (
+        <ContextMenuPopup
+          state={contextMenu}
+          onDuplicate={handleDuplicate}
+          onRename={handleRename}
+          onDelete={handleDelete}
+          onClose={() => setContextMenu(null)}
+        />
       )}
     </div>
   );

@@ -74,7 +74,7 @@ export function VersionHistoryPanel({ onClose }: VersionHistoryPanelProps) {
             <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full border border-studio-border bg-studio-border" />
             <div className="flex-1 min-w-0">
               <p className="text-[9px] text-studio-muted truncate">
-                {state.nodes.length} node{state.nodes.length !== 1 ? 's' : ''}
+                {state.nodes?.length ?? 0} node{(state.nodes?.length ?? 0) !== 1 ? 's' : ''}
               </p>
               <p className="text-[7px] text-studio-muted/50">Future state (redo available)</p>
             </div>
@@ -103,7 +103,7 @@ export function VersionHistoryPanel({ onClose }: VersionHistoryPanelProps) {
               <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full border border-studio-border bg-studio-surface" />
               <div className="flex-1 min-w-0">
                 <p className="text-[9px] text-studio-muted truncate group-hover:text-studio-text transition">
-                  Step {stepIndex} · {state.nodes.length} node{state.nodes.length !== 1 ? 's' : ''}
+                  Step {stepIndex} · {state.nodes?.length ?? 0} node{(state.nodes?.length ?? 0) !== 1 ? 's' : ''}
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <Clock className="h-2 w-2 text-studio-muted/40" />

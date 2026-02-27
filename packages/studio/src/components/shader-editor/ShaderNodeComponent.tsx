@@ -36,6 +36,24 @@ const TYPE_COLORS: Record<ShaderDataType, string> = {
   samplerCube: '#9333ea',
 };
 
+// Color-blind accessible shape markers (shape + color = double signal)
+const TYPE_SHAPES: Record<ShaderDataType, string> = {
+  float:       '●', // filled circle
+  vec2:        '▲', // triangle up
+  vec3:        '■', // filled square
+  vec4:        '◆', // diamond
+  mat2:        '★', // star
+  mat3:        '▼', // triangle down
+  mat4:        '▶', // triangle right
+  int:         '⧟', // double circle
+  ivec2:       '⧡', // dotted fence
+  ivec3:       '◈', // white diamond + dot
+  ivec4:       '▣', // square + dot
+  bool:        '☐', // ballot box
+  sampler2D:   '⬢', // black hexagon
+  samplerCube: '◉', // fisheye
+};
+
 // Category icons (using Unicode symbols)
 const CATEGORY_ICONS: Record<string, string> = {
   input: '📥',
@@ -100,7 +118,15 @@ export const ShaderNodeComponent = memo(({ data, id, selected }: NodeProps<NodeD
                   left: -6,
                   top: 12 + index * 32,
                 }}
+                title={`${input.type} ${TYPE_SHAPES[input.type] ?? ''}`}
               />
+              <span
+                className="absolute text-[8px] select-none pointer-events-none"
+                style={{ left: -18, top: 12 + index * 32 - 4, color: TYPE_COLORS[input.type] }}
+                aria-hidden="true"
+              >
+                {TYPE_SHAPES[input.type] ?? ''}
+              </span>
               <div className="flex-1 min-w-0">
                 <label className="text-xs text-gray-400 block truncate">{input.name}</label>
                 {!input.connected && input.type !== 'sampler2D' && input.type !== 'samplerCube' && (
@@ -144,7 +170,15 @@ export const ShaderNodeComponent = memo(({ data, id, selected }: NodeProps<NodeD
                   right: -6,
                   top: 12 + index * 32,
                 }}
+                title={`${output.type} ${TYPE_SHAPES[output.type] ?? ''}`}
               />
+              <span
+                className="absolute text-[8px] select-none pointer-events-none"
+                style={{ right: -18, top: 12 + index * 32 - 4, color: TYPE_COLORS[output.type] }}
+                aria-hidden="true"
+              >
+                {TYPE_SHAPES[output.type] ?? ''}
+              </span>
             </div>
           ))}
 

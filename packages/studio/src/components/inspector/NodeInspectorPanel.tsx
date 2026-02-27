@@ -6,7 +6,7 @@
  */
 
 import { SlidersHorizontal, X, ChevronDown, ChevronRight } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useNodeInspector } from '@/hooks/useNodeInspector';
 import type { PropGroup, SceneProp } from '@/hooks/useNodeInspector';
 import { useEditorStore } from '@/lib/store';

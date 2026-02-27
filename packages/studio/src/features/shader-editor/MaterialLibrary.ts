@@ -13,8 +13,8 @@
  * - Material variants (LOD-specific simplified shaders)
  */
 
-import { ShaderGraph } from '@holoscript/core/shader/graph/ShaderGraph';
-import type { ISerializedShaderGraph } from '@holoscript/core/shader/graph/ShaderGraph';
+import { ShaderGraph } from '@/lib/shaderGraph';
+import type { ISerializedShaderGraph } from '@/lib/shaderGraph';
 import { openDB, type IDBPDatabase } from 'idb';
 
 // ============================================================================

@@ -81,7 +81,9 @@ export function useAssetDropProcessor() {
           src: asset.src,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           category: asset.category as any,
-          sizeKb: asset.sizeKb,
+          size: asset.sizeKb * 1024,
+          addedAt: Date.now(),
+          tags: [],
         });
 
         if (!asset.is3D) {

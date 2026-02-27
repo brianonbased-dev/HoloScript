@@ -16,6 +16,8 @@ interface SceneExportRequest {
   code?: string;
   format?: SceneExportFormat;
   sceneName?: string;
+  /** Full scene-graph nodes from Zustand, including traits */
+  nodes?: unknown[];
 }
 
 // ── Minimal scene model parsed from HoloScript code ──────────────────────────
@@ -131,8 +133,17 @@ function toUSD(scene: ParsedScene): string {
   return lines.join('\n');
 }
 
-function toJSON(scene: ParsedScene, code: string): string {
-  return JSON.stringify({ meta: { generator: 'HoloScript Studio', version: '1.0' }, scene, source: code }, null, 2);
+function toJSON(scene: ParsedScene, code: string, nodes?: unknown[]): string {
+  return JSON.stringify(
+    {
+      meta: { generator: 'HoloScript Studio', version: '1.0', exportedAt: new Date().toISOString() },
+      scene,
+      sceneGraph: nodes ?? [],  // full Zustand SceneNode[] with traits
+      source: code,
+    },
+    null,
+    2
+  );
 }
 
 // ── Minimal ZIP builder (no dependencies) ───────────────────────────────────
@@ -244,7 +255,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { code = '', format = 'gltf', sceneName } = body;
+  const { code = '', format = 'gltf', sceneName, nodes } = body;
   const enc = new TextEncoder();
 
   const scene = parseScene(code);
@@ -267,7 +278,7 @@ export async function POST(request: NextRequest) {
     }
     case 'json': {
       files = [
-        { name: `${slug}.json`, data: enc.encode(toJSON(scene, code)) },
+        { name: `${slug}.json`, data: enc.encode(toJSON(scene, code, nodes)) },
         { name: 'source.holoscript', data: enc.encode(code) },
       ];
       break;
@@ -283,13 +294,13 @@ export async function POST(request: NextRequest) {
 
   const zip = buildZip(files);
   // Buffer is a BodyInit-compatible Uint8Array subclass in Node.js
-  const body = Buffer.from(zip);
+  const zipBuffer = Buffer.from(zip);
 
-  return new Response(body, {
+  return new Response(zipBuffer, {
     headers: {
       'Content-Type': 'application/zip',
       'Content-Disposition': `attachment; filename="${slug}_${format}.zip"`,
-      'Content-Length': String(body.length),
+      'Content-Length': String(zipBuffer.length),
     },
   });
 }

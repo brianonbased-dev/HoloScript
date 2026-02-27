@@ -5,9 +5,14 @@
  *
  * Loads the template's HoloScript code into the scene store.
  * The parser then produces the R3F tree and populates the scene graph.
+ *
+ * Features:
+ *   - Search by name / tag
+ *   - Category tab row ("All" + one tab per unique category)
+ *   - Both filters combine
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { X, Search } from 'lucide-react';
 import { SCENE_TEMPLATES, searchTemplates, type SceneTemplate } from '@/lib/sceneTemplates';
 import { useSceneStore } from '@/lib/store';
@@ -15,6 +20,8 @@ import { useSceneStore } from '@/lib/store';
 interface TemplatePickerProps {
   onClose: () => void;
 }
+
+// ── Card ──────────────────────────────────────────────────────────────────────
 
 function TemplateCard({
   template,
@@ -56,13 +63,30 @@ function TemplateCard({
   );
 }
 
+// ── Main picker ───────────────────────────────────────────────────────────────
+
 export function TemplatePicker({ onClose }: TemplatePickerProps) {
   const [query, setQuery] = useState('');
-  const results = searchTemplates(query);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const setCode = useSceneStore((s) => s.setCode);
   const setMetadata = useSceneStore((s) => s.setMetadata);
   const markClean = useSceneStore((s) => s.markClean);
+
+  // Derive unique sorted categories
+  const categories = useMemo(() => {
+    const cats = new Set(SCENE_TEMPLATES.map((t) => t.category ?? 'General'));
+    return Array.from(cats).sort();
+  }, []);
+
+  // Combined filter: search query + active category
+  const results = useMemo(() => {
+    let list = searchTemplates(query);
+    if (activeCategory) {
+      list = list.filter((t) => (t.category ?? 'General') === activeCategory);
+    }
+    return list;
+  }, [query, activeCategory]);
 
   const handleSelect = useCallback(
     (template: SceneTemplate) => {
@@ -76,7 +100,7 @@ export function TemplatePicker({ onClose }: TemplatePickerProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="relative flex h-[80vh] w-[780px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-studio-border bg-studio-bg shadow-2xl">
+      <div className="relative flex h-[80vh] w-[820px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-studio-border bg-studio-bg shadow-2xl">
         {/* Header */}
         <div className="flex shrink-0 items-center gap-3 border-b border-studio-border px-5 py-4">
           <div className="flex-1">
@@ -103,11 +127,38 @@ export function TemplatePicker({ onClose }: TemplatePickerProps) {
           </button>
         </div>
 
+        {/* Category tabs */}
+        <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-studio-border px-5 py-2">
+          <button
+            onClick={() => setActiveCategory(null)}
+            className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-medium transition ${
+              activeCategory === null
+                ? 'bg-studio-accent text-white'
+                : 'bg-studio-surface text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            All
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat === activeCategory ? null : cat)}
+              className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-medium transition ${
+                activeCategory === cat
+                  ? 'bg-studio-accent text-white'
+                  : 'bg-studio-surface text-studio-muted hover:text-studio-text'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
         {/* Grid */}
         <div className="flex-1 overflow-y-auto p-5">
           {results.length === 0 ? (
             <div className="flex h-full items-center justify-center text-sm text-studio-muted">
-              No templates match "{query}"
+              No templates match {query ? `"${query}"` : `category "${activeCategory}"`}
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">

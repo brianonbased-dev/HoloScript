@@ -81,8 +81,10 @@ function BrittneyInputPanel({
 
   const handleVoice = useCallback(() => {
     const SR =
-      (window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition ??
-      (window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).SpeechRecognition ??
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).webkitSpeechRecognition;
     if (!SR) return;
     const rec = new SR();
     rec.continuous = false;
@@ -186,9 +188,15 @@ export function VRBrittney() {
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
   const addNode = useSceneGraphStore((s) => s.addNode);
 
-  // Float right of center, slightly down
-  useFrame(() => {
+  const elapsedRef = useRef(0);
+  const [isGazed, setIsGazed] = useState(false);
+  const _toCamera = new THREE.Vector3();
+
+  // Float right of center + gaze detection + thinking idle
+  useFrame((_, delta) => {
     if (!brittRef.current) return;
+    elapsedRef.current += delta;
+    const t = elapsedRef.current;
 
     camera.getWorldDirection(_dir);
     _right.crossVectors(_dir, camera.up).normalize();
@@ -199,8 +207,22 @@ export function VRBrittney() {
       .addScaledVector(_right, 0.4)
       .addScaledVector(camera.up, -0.3);
 
+    // Thinking idle: gentle Y-rotation + figure-8 bob
+    if (isThinking) {
+      brittRef.current.rotation.y = Math.sin(t * 1.2) * 0.18;
+      target.x += Math.sin(t * 0.8) * 0.035;
+      target.y += Math.cos(t * 1.6) * 0.02;
+    } else {
+      brittRef.current.rotation.y *= 0.9; // dampen back to 0
+    }
+
     brittRef.current.position.lerp(target, 0.08);
     brittRef.current.quaternion.slerp(camera.quaternion, 0.08);
+
+    // Gaze detection: dot(camera→Brittney direction, camera forward) > 0.7
+    _toCamera.copy(brittRef.current.position).sub(camera.position).normalize();
+    const dot = _dir.dot(_toCamera);
+    setIsGazed(dot > 0.7);
   });
 
   const handleSend = async (text: string) => {
@@ -237,8 +259,10 @@ export function VRBrittney() {
 
   return (
     <group ref={brittRef}>
-      {/* Avatar mesh — positioned to the left of the speech UI */}
-      <BrittneyAvatarMesh isSpeaking={isThinking} />
+      {/* Avatar mesh — positioned to the left of the speech UI.
+           isSpeaking prop drives mouth/glow animation.
+           isGazed prop triggers a subtle brightness/scale pulse. */}
+      <BrittneyAvatarMesh isSpeaking={isThinking || isGazed} />
 
       {/* Speech bubble — above and slightly right */}
       <Html

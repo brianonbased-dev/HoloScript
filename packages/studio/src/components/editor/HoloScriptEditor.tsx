@@ -14,7 +14,22 @@
 import { useRef, useEffect, useCallback } from 'react';
 import MonacoEditor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import { useSceneStore } from '@/lib/store';
-import type { editor as MonacoEditorNS } from 'monaco-editor';
+
+/** Minimal IStandaloneCodeEditor surface used by this component. */
+interface IStandaloneCodeEditor {
+  getModel(): { getLineLength(line: number): number } | null;
+  dispose(): void;
+}
+
+/** Minimal IMarkerData surface used for pipeline error markers. */
+interface IMarkerData {
+  severity: number;
+  message: string;
+  startLineNumber: number;
+  startColumn: number;
+  endLineNumber: number;
+  endColumn: number;
+}
 
 // ─── HoloScript Grammar ───────────────────────────────────────────────────────
 
@@ -187,7 +202,7 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
   const setCode = useSceneStore((s) => s.setCode);
   const errors = useSceneStore((s) => s.errors);
 
-  const editorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -200,7 +215,7 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
     const model = editor.getModel();
     if (!model) return;
 
-    const markers: MonacoEditorNS.IMarkerData[] = errors.map((e) => ({
+    const markers: IMarkerData[] = errors.map((e) => ({
       severity: monaco.MarkerSeverity.Error,
       message: e.message,
       startLineNumber: e.line ?? 1,
@@ -209,7 +224,8 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
       endColumn: model.getLineLength(e.line ?? 1) + 1,
     }));
 
-    monaco.editor.setModelMarkers(model, 'holoscript', markers);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    monaco.editor.setModelMarkers(model as any, 'holoscript', markers as any);
   }, [errors]);
 
   const handleMount: OnMount = useCallback((editor, monaco) => {

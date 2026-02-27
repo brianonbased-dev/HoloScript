@@ -5,15 +5,16 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useSceneStore } from '@/lib/store';
+import { useSceneStore, useSceneGraphStore } from '@/lib/store';
 
 export type ExportFormat = 'gltf' | 'usd' | 'usdz' | 'json';
 export type ExportStatus = 'idle' | 'exporting' | 'done' | 'error';
 
 export function useSceneExport() {
-  const code = useSceneStore((s) => s.code) ?? '';
+  const code  = useSceneStore((s) => s.code) ?? '';
+  const nodes = useSceneGraphStore((s) => s.nodes);
   const [status, setStatus] = useState<ExportStatus>('idle');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]   = useState<string | null>(null);
 
   const exportScene = useCallback(async (format: ExportFormat, sceneName?: string) => {
     setStatus('exporting');
@@ -22,7 +23,13 @@ export function useSceneExport() {
       const res = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, format, sceneName }),
+        body: JSON.stringify({
+          code,
+          format,
+          sceneName,
+          // Include full scene graph (with traits) for JSON round-trip
+          ...(format === 'json' ? { nodes } : {}),
+        }),
       });
 
       if (!res.ok) {
@@ -48,7 +55,7 @@ export function useSceneExport() {
       setError(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
-  }, [code]);
+  }, [code, nodes]);
 
   return { status, error, exportScene };
 }

@@ -68,7 +68,8 @@ function analyseSyntax(lines: string[]): Diagnostic[] {
     }
 
     // Detect property assignments with no colon (potential typo)
-    const propLike = line.match(/^\s+(\w+)\s+(".*?"|[^:{\s]\S+)\s*$/);
+    // Match: property "value", property value, property [1, 2, 3], property { ... }
+    const propLike = line.match(/^\s+(\w+)\s+(".*?"|\[.*?\]|\{.*?\}|[^:{\s]\S*)\s*$/);
     if (propLike && !line.trim().startsWith('@') && !line.trim().startsWith('//') && braceDepth > 0) {
       diags.push({
         id: `syn-${i}-nocolon`,
@@ -117,7 +118,8 @@ function analyseTraits(lines: string[]): Diagnostic[] {
     const trimmed = line.trim();
 
     // Track object/scene block boundaries
-    if (/^(object|scene|group)\s+\w+/.test(trimmed)) {
+    // Match any HoloScript object type: scene, object, group, box, sphere, light, camera, etc.
+    if (/^(object|scene|group|box|sphere|cylinder|plane|cone|torus|capsule|mesh|light|camera|audio|text|model|particles|terrain|water|sky|fog|portal|trigger|zone|path|waypoint|spawn|checkpoint|enemy|player|npc|item|collectible|weapon|projectile|vehicle|building|prop|decor|effect|emitter|force|field|constraint|joint|sensor|actuator|controller|manager|system|component|entity)\s+(".+?"|[\w\-\.]+)\s*\{/.test(trimmed)) {
       inObject = true;
       baseDepth = (line.match(/\{/g) ?? []).length - (line.match(/\}/g) ?? []).length;
       seenTraitsInObj.length = 0;
@@ -156,6 +158,30 @@ function analyseTraits(lines: string[]): Diagnostic[] {
         });
       }
       seenTraits.set(currentTrait, lineNum);
+
+      // Check for inline trait parameters: @physics { type: "invalid" }
+      const inlineMatch = trimmed.match(/^@\w+\s*\{(.+?)\}/);
+      if (inlineMatch && currentTrait in TRAIT_VALID_ENUM) {
+        const inlineContent = inlineMatch[1];
+        // Split by comma or newline to get individual parameters
+        const params = inlineContent.split(/[,\n]/).map((p) => p.trim()).filter((p) => p);
+        for (const param of params) {
+          const paramMatch = param.match(/^(\w+)\s*:\s*(.+)$/);
+          if (paramMatch) {
+            const [, key, rawVal] = paramMatch;
+            const val = rawVal.trim().replace(/"/g, '');
+            const enumDef = TRAIT_VALID_ENUM[currentTrait]?.[key];
+            if (enumDef && enumDef.length > 0 && !enumDef.includes(val)) {
+              diags.push({
+                id: `trait-invalid-${i}`,
+                severity: 'error', line: lineNum, col: 1,
+                message: `Invalid value "${val}" for @${currentTrait}.${key} — valid: ${enumDef.map((v) => `"${v}"`).join(', ')}`,
+                source: 'trait',
+              });
+            }
+          }
+        }
+      }
     }
 
     // Inside a trait block — check param values

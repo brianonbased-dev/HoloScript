@@ -7,8 +7,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ALL_NODE_TEMPLATES } from '@holoscript/core/shader/graph/ShaderGraphTypes';
-import type { INodeTemplate, NodeCategory } from '@holoscript/core/shader/graph/ShaderGraphTypes';
+import { NODE_TEMPLATES } from '@/lib/shaderGraph';
+import type { INodeTemplate } from '@/lib/shaderGraph';
+// Flatten NODE_TEMPLATES catalog to a flat array for search/filter
+const ALL_NODE_TEMPLATES = Object.values(NODE_TEMPLATES).flat();
+type NodeCategory = keyof typeof NODE_TEMPLATES;
 import { useShaderGraph } from '../../hooks/useShaderGraph';
 import { Search, Star, ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -51,7 +54,6 @@ export function NodePalette() {
     const filtered = ALL_NODE_TEMPLATES.filter(
       (template) =>
         template.name.toLowerCase().includes(query) ||
-        template.description.toLowerCase().includes(query) ||
         template.type.toLowerCase().includes(query)
     );
 
@@ -243,7 +245,7 @@ function NodeSection({
       </button>
 
       {actualExpanded && (
-        <div className="pb-2">
+        <div className="pb-2 max-h-56 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
           {nodes.map((template) => (
             <div
               key={template.type}

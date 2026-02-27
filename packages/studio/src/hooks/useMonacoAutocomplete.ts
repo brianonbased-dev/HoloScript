@@ -9,7 +9,10 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import type * as Monaco from 'monaco-editor';
+import type { Monaco } from '@monaco-editor/react';
+
+/** Minimal IDisposable — matches the monaco-editor IDisposable interface. */
+interface IDisposable { dispose(): void; }
 
 interface AutocompleteOptions {
   enabled?: boolean;
@@ -17,11 +20,11 @@ interface AutocompleteOptions {
 }
 
 export function useMonacoAutocomplete(
-  monaco: typeof Monaco | null,
+  monaco: Monaco | null,
   options?: AutocompleteOptions
 ) {
   const { enabled = true, debounceMs = 300 } = options ?? {};
-  const disposableRef = useRef<Monaco.IDisposable | null>(null);
+  const disposableRef = useRef<IDisposable | null>(null);
   const pendingRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchCompletion = useCallback(async (prefix: string, suffix: string): Promise<string> => {
@@ -41,8 +44,20 @@ export function useMonacoAutocomplete(
   useEffect(() => {
     if (!monaco || !enabled) return;
 
+    // Use structural typing for provider params to avoid deep ITextModel
+    // resolution differences between the two pnpm installs of monaco-editor.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     disposableRef.current = monaco.languages.registerInlineCompletionsProvider('holo', {
-      provideInlineCompletions(model: Monaco.editor.ITextModel, position: Monaco.Position, _context: Monaco.languages.InlineCompletionContext, token: Monaco.CancellationToken) {
+      provideInlineCompletions(
+        model: {
+          getValueInRange: (r: unknown) => string;
+          getLineCount: () => number;
+          getLineMaxColumn: (l: number) => number;
+        },
+        position: { lineNumber: number; column: number },
+        _context: unknown,
+        token: { isCancellationRequested: boolean }
+      ) {
         return new Promise((resolve) => {
           if (pendingRef.current) clearTimeout(pendingRef.current);
 
@@ -52,7 +67,6 @@ export function useMonacoAutocomplete(
               return;
             }
 
-            // Build prefix (everything before cursor) and suffix (everything after)
             const prefix = model.getValueInRange({
               startLineNumber: 1,
               startColumn: 1,
@@ -89,7 +103,8 @@ export function useMonacoAutocomplete(
         });
       },
       freeInlineCompletions() { /* noop */ },
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
 
     return () => {
       disposableRef.current?.dispose();

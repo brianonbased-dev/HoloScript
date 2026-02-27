@@ -19,7 +19,8 @@ export interface ConstantNodeData {
 export interface MathNodeData {
   type: 'math';
   label: string;
-  op: 'add' | 'sub' | 'mul' | 'div' | 'pow' | 'sin' | 'cos' | 'max' | 'min' | 'mix' | 'dot' | 'length';
+  op: 'add' | 'sub' | 'mul' | 'div' | 'pow' | 'sin' | 'cos' | 'max' | 'min' | 'mix' | 'dot' | 'length'
+    | 'voronoi' | 'gradient' | 'fract' | 'smoothstep';
 }
 
 export interface TextureNodeData {

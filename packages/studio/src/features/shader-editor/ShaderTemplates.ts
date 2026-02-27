@@ -11,8 +11,8 @@
  * - VFX (Dissolve, Holographic scan lines)
  */
 
-import { ShaderGraph } from '@holoscript/core/shader/graph/ShaderGraph';
-import type { ISerializedShaderGraph } from '@holoscript/core/shader/graph/ShaderGraph';
+import { ShaderGraph } from '@/lib/shaderGraph';
+import type { ISerializedShaderGraph } from '@/lib/shaderGraph';
 
 // ============================================================================
 // Types

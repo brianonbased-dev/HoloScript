@@ -11,7 +11,7 @@
  *  - Reset button, Compile button with status indicator
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -24,8 +24,11 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { useNodeGraphStore } from '@/lib/nodeGraphStore';
+import type { GNode } from '@/lib/nodeGraphStore';
+import { useNodeGraphHistory } from '@/hooks/useNodeGraphHistory';
+
 import { compileNodeGraph } from '@/lib/nodeGraphCompiler';
-import { Play, RotateCcw, Plus } from 'lucide-react';
+import { Play, RotateCcw, Plus, Undo2, Redo2 } from 'lucide-react';
 
 // ─── Handle color ────────────────────────────────────────────────────────────
 
@@ -135,17 +138,44 @@ interface NodeGraphEditorProps {
 let nodeSeq = 10;
 
 export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
-  const nodes = useNodeGraphStore((s) => s.nodes);
-  const edges = useNodeGraphStore((s) => s.edges);
-  const setNodes = useNodeGraphStore((s) => s.setNodes);
-  const setEdges = useNodeGraphStore((s) => s.setEdges);
+  const nodes         = useNodeGraphStore((s) => s.nodes);
+  const edges         = useNodeGraphStore((s) => s.edges);
+  const setNodes      = useNodeGraphStore((s) => s.setNodes);
+  const setEdges      = useNodeGraphStore((s) => s.setEdges);
   const setCompiledGLSL = useNodeGraphStore((s) => s.setCompiledGLSL);
-  const reset = useNodeGraphStore((s) => s.reset);
+  const reset         = useNodeGraphStore((s) => s.reset);
+
+  const { canUndo, canRedo, record, undo, redo, clear } = useNodeGraphHistory();
+
+  // ─── Keyboard shortcuts ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        const snap = undo({ nodes, edges });
+        if (snap) { setNodes(snap.nodes); setEdges(snap.edges); }
+      } else if ((e.key === 'Z' || (e.key === 'z' && e.shiftKey)) || e.key === 'y') {
+        e.preventDefault();
+        const snap = redo({ nodes, edges });
+        if (snap) { setNodes(snap.nodes); setEdges(snap.edges); }
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [nodes, edges, undo, redo, setNodes, setEdges]);
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
 
   const onConnect = useCallback(
-    (connection: Connection) =>
-      setEdges((eds) => addEdge({ ...connection, animated: true }, eds)),
-    [setEdges]
+    (connection: Connection) => {
+      record(nodes, edges);
+      setEdges((eds) => addEdge({ ...connection, animated: true }, eds));
+    },
+    [setEdges, record, nodes, edges]
   );
 
   const handleCompile = useCallback(() => {
@@ -156,8 +186,58 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
     }
   }, [nodes, edges, setCompiledGLSL, onCompile]);
 
+  // ─── Auto-compile (debounced, position-skip) ──────────────────────────────
+
+  const autoCompileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stable signature: edge topology + node types (NOT positions)
+  const graphSignature = useMemo(() => {
+    const nodeKey = nodes.map((n) => `${n.id}:${n.type}:${JSON.stringify(n.data)}`).join('|');
+    const edgeKey = edges.map((e) => `${e.source}>${e.sourceHandle}->${e.target}>${e.targetHandle}`).join('|');
+    return `${nodeKey}\n${edgeKey}`;
+  }, [nodes, edges]);
+
+  const lastCompiledSig = useRef<string>('');
+  const [autoCompileStatus, setAutoCompileStatus] = useState<'idle' | 'ok' | 'err'>('idle');
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (graphSignature === lastCompiledSig.current) return;
+    if (autoCompileTimer.current) clearTimeout(autoCompileTimer.current);
+    autoCompileTimer.current = setTimeout(() => {
+      const result = compileNodeGraph(nodes, edges);
+      if (result.ok) {
+        setCompiledGLSL(result.glsl);
+        onCompile?.(result.glsl);
+        lastCompiledSig.current = graphSignature;
+        setAutoCompileStatus('ok');
+      } else {
+        setAutoCompileStatus('err');
+      }
+      if (statusTimer.current) clearTimeout(statusTimer.current);
+      statusTimer.current = setTimeout(() => setAutoCompileStatus('idle'), 2000);
+    }, 600);
+    return () => { if (autoCompileTimer.current) clearTimeout(autoCompileTimer.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graphSignature]);
+
+  const handleUndo = useCallback(() => {
+    const snap = undo({ nodes, edges });
+    if (snap) { setNodes(snap.nodes); setEdges(snap.edges); }
+  }, [nodes, edges, undo, setNodes, setEdges]);
+
+  const handleRedo = useCallback(() => {
+    const snap = redo({ nodes, edges });
+    if (snap) { setNodes(snap.nodes); setEdges(snap.edges); }
+  }, [nodes, edges, redo, setNodes, setEdges]);
+
+  const handleReset = useCallback(() => {
+    clear();
+    reset();
+  }, [clear, reset]);
+
   const addNodeFromPalette = useCallback(
     (item: typeof PALETTE[0]) => {
+      record(nodes, edges);
       const id = `node_${++nodeSeq}`;
       setNodes((ns) => [
         ...ns,
@@ -167,9 +247,9 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
           position: { x: 200 + Math.random() * 100, y: 100 + Math.random() * 200 },
           data: { ...item.data },
         },
-      ]);
+      ] as GNode[]);
     },
-    [setNodes]
+    [setNodes, record, nodes, edges]
   );
 
   const nodeTypes = useMemo(() => NODE_TYPES, []);
@@ -189,11 +269,46 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
             {item.label}
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-2">
+
+        <div className="ml-auto flex items-center gap-1">
+          {/* Undo / Redo */}
           <button
-            onClick={reset}
+            onClick={handleUndo}
+            disabled={!canUndo}
+            aria-label="Undo"
+            title="Undo (Ctrl+Z)"
+            className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-studio-muted hover:bg-studio-border disabled:opacity-30 disabled:cursor-not-allowed transition"
+          >
+            <Undo2 className="h-3 w-3" />
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={!canRedo}
+            aria-label="Redo"
+            title="Redo (Ctrl+Shift+Z)"
+            className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-studio-muted hover:bg-studio-border disabled:opacity-30 disabled:cursor-not-allowed transition"
+          >
+            <Redo2 className="h-3 w-3" />
+          </button>
+
+          <div className="mx-1 h-4 w-px bg-studio-border" aria-hidden="true" />
+
+          {/* Auto-compile status badge */}
+          {autoCompileStatus !== 'idle' && (
+            <span
+              className={`text-[9px] px-1.5 py-0.5 rounded font-mono transition-opacity ${
+                autoCompileStatus === 'ok' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+              }`}
+            >
+              {autoCompileStatus === 'ok' ? '✓ compiled' : '✗ error'}
+            </span>
+          )}
+
+          <button
+            onClick={handleReset}
             className="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-studio-muted hover:bg-studio-border"
             title="Reset graph to default"
+            aria-label="Reset node graph"
           >
             <RotateCcw className="h-3 w-3" /> Reset
           </button>
@@ -201,6 +316,7 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
             onClick={handleCompile}
             className="flex items-center gap-1 rounded bg-studio-accent px-3 py-1 text-[10px] font-medium text-white transition hover:bg-studio-accent/80"
             title="Compile graph → GLSL"
+            aria-label="Compile node graph to GLSL"
           >
             <Play className="h-3 w-3" /> Compile GLSL
           </button>
@@ -214,7 +330,8 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
           edges={edges}
           nodeTypes={nodeTypes}
           onNodesChange={(changes) => {
-            // Apply position changes
+            const hasRemove = changes.some((c) => c.type === 'remove');
+            if (hasRemove) record(nodes, edges);
             setNodes((ns) =>
               ns.map((n) => {
                 const change = changes.find((c) => c.type === 'position' && c.id === n.id);
@@ -228,6 +345,8 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
             );
           }}
           onEdgesChange={(changes) => {
+            const hasRemove = changes.some((c) => c.type === 'remove');
+            if (hasRemove) record(nodes, edges);
             setEdges((es) =>
               es.filter((e) => !changes.some((c) => c.type === 'remove' && c.id === e.id))
             );

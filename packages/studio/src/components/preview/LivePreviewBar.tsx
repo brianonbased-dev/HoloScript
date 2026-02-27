@@ -51,7 +51,7 @@ export function LivePreviewBar({ sceneId = 'default' }: LivePreviewBarProps) {
     : 'never';
 
   return (
-    <div className="flex h-7 shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel/60 px-3 text-[11px] backdrop-blur">
+    <div className="flex h-7 shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel px-3 text-[11px]">
       {/* Connection dot */}
       <div className={`h-2 w-2 rounded-full ${STATUS_COLOR[status] ?? 'bg-gray-400'}`} />
       <span className="text-studio-muted">{STATUS_LABEL[status] ?? status}</span>

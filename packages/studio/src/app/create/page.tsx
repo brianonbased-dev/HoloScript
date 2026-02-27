@@ -20,6 +20,7 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTemporalStore } from '@/lib/historyStore';
 import { useProjectStore } from '@/lib/projectStore';
 import { AssetDropOverlay } from '@/components/assets/AssetDropProcessor';
+import { StudioErrorBoundary } from '@/components/ui/StudioErrorBoundary';
 import {
   AlertTriangle,
   BarChart2,
@@ -72,8 +73,15 @@ import {
   SlidersHorizontal,
   Puzzle,
   Keyboard,
+  Gauge,
+  Pencil,
+  PaintBucket,
 } from 'lucide-react';
-import type { GizmoMode } from '@/lib/store';
+import type { GizmoMode, ArtMode, StudioMode } from '@/lib/store';
+import { PanelSplitter } from '@/components/ui/PanelSplitter';
+import { CreatorLayout } from '@/components/layouts/CreatorLayout';
+import { FilmmakerLayout } from '@/components/layouts/FilmmakerLayout';
+import { CharacterLayout } from '@/components/character/CharacterLayout';
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
@@ -143,6 +151,11 @@ const SceneVersionPanel = dynamic(
 const REPLPanel = dynamic(
   () => import('@/components/repl/REPLPanel').then((m) => ({ default: m.REPLPanel })),
   { ssr: false }
+);
+
+const GenerativeArtPanel = dynamic(
+  () => import('@/components/generative/GenerativeArtPanel').then((m) => ({ default: m.GenerativeArtPanel })),
+  { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">Loading generative art…</div> }
 );
 
 const ProjectTabBar = dynamic(
@@ -315,7 +328,7 @@ const AssetPackStorePanel = dynamic(
   { ssr: false }
 );
 
-const ProfilerPanel = dynamic(
+const ProfilerPanel2 = dynamic(
   () => import('@/components/profiler/ProfilerPanel').then((m) => ({ default: m.ProfilerPanel })),
   { ssr: false }
 );
@@ -374,6 +387,8 @@ const GIZMO_BUTTONS: Array<{ mode: GizmoMode; icon: typeof Move; label: string; 
 function ViewportToolbar({ profilerOpen, onToggleProfiler }: { profilerOpen: boolean; onToggleProfiler: () => void }) {
   const gizmoMode = useEditorStore((s) => s.gizmoMode);
   const setGizmoMode = useEditorStore((s) => s.setGizmoMode);
+  const artMode = useEditorStore((s) => s.artMode);
+  const setArtMode = useEditorStore((s) => s.setArtMode);
   const undo = useTemporalStore((s) => s.undo);
   const redo = useTemporalStore((s) => s.redo);
   const canUndo = useTemporalStore((s) => s.pastStates.length > 0);
@@ -433,18 +448,27 @@ function ViewportToolbar({ profilerOpen, onToggleProfiler }: { profilerOpen: boo
       {/* Divider */}
       <div className="mx-1 h-4 w-px bg-studio-border/60" />
 
-      {/* Profiler toggle (P) */}
-      <button
-        onClick={onToggleProfiler}
-        title={profilerOpen ? 'Hide Profiler (P)' : 'Show Profiler (P)'}
-        className={`rounded-md p-2 transition ${
-          profilerOpen
-            ? 'bg-studio-accent text-white shadow-md'
-            : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
-        }`}
-      >
-        <BarChart2 className="h-3.5 w-3.5" />
-      </button>
+      {/* Art mode buttons */}
+      {(
+        [
+          { mode: 'sketch'     as ArtMode, icon: Pencil,      title: 'Sketch mode — draw 3D strokes (S)' },
+          { mode: 'paint'      as ArtMode, icon: PaintBucket,  title: 'Texture paint mode (P)' },
+          { mode: 'generative' as ArtMode, icon: Sparkles,     title: 'Generative art mode (G)' },
+        ] as const
+      ).map(({ mode, icon: Icon, title }) => (
+        <button
+          key={mode}
+          onClick={() => setArtMode(artMode === mode ? 'none' : mode)}
+          title={title}
+          className={`rounded-md p-2 transition ${
+            artMode === mode
+              ? 'bg-violet-500/30 text-violet-300 shadow-md ring-1 ring-violet-500/50'
+              : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
+          }`}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </button>
+      ))}
     </div>
   );
 }
@@ -527,6 +551,13 @@ export default function CreatePage() {
 
   const addNode = useSceneGraphStore((s) => s.addNode);
   const addAsset = useAssetStore((s) => s.addAsset);
+  const artMode = useEditorStore((s) => s.artMode);
+  const studioMode = useEditorStore((s) => s.studioMode);
+
+  // Panel widths (px) — driven by PanelSplitter drag
+  const [leftPanelW,   setLeftPanelW]   = useState(256);
+  const [bottomPanelH, setBottomPanelH] = useState(224);
+  const [rightPanelW,  setRightPanelW]  = useState(288);
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
@@ -624,11 +655,34 @@ export default function CreatePage() {
       {/* Live preview status bar */}
       <LivePreviewBar sceneId="scene-1" />
 
-      {/* ── 3-panel layout ───────────────────────────────────────────────────── */}
+      {/* ── Layout: switches based on Studio Mode ────────────────────────────── */}
+      {studioMode === 'creator' ? (
+        <CreatorLayout
+          viewportSlot={
+            <div className="relative h-full w-full">
+              <StudioErrorBoundary><SceneRenderer r3fTree={r3fTree} profilerOpen={profilerOpen} /></StudioErrorBoundary>
+              <AssetDropOverlay />
+            </div>
+          }
+        />
+      ) : studioMode === 'filmmaker' ? (
+        <FilmmakerLayout
+          viewportSlot={
+            <div className="relative h-full w-full">
+              <StudioErrorBoundary><SceneRenderer r3fTree={r3fTree} profilerOpen={profilerOpen} /></StudioErrorBoundary>
+              <AssetDropOverlay />
+            </div>
+          }
+        />
+      ) : studioMode === 'character' ? (
+        <div className="flex flex-1 overflow-hidden">
+          <CharacterLayout />
+        </div>
+      ) : (
       <div className="flex flex-1 overflow-hidden">
 
         {/* LEFT: Scene Graph + Assets tabbed panel */}
-        <div className="flex w-64 shrink-0 flex-col border-r border-studio-border">
+        <div className="flex shrink-0 flex-col" style={{ width: leftPanelW }}>
           {/* Tab strip */}
           <div className="flex shrink-0 border-b border-studio-border">
             <button
@@ -691,11 +745,26 @@ export default function CreatePage() {
           </div>
         </div>
 
+        {/* ── Left splitter ── */}
+        <PanelSplitter
+          direction="horizontal"
+          onDelta={(d) => setLeftPanelW((w) => Math.max(160, Math.min(w + d, 520)))}
+        />
+
         {/* CENTER: Viewport + Inspector split */}
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Viewport */}
           <div className="relative flex-1 overflow-hidden">
-            <SceneRenderer r3fTree={r3fTree} profilerOpen={profilerOpen} />
+            {/* Generative Art Panel — replaces viewport when artMode===generative */}
+            {artMode === 'generative' ? (
+              <StudioErrorBoundary label="Generative Art">
+                <GenerativeArtPanel />
+              </StudioErrorBoundary>
+            ) : (
+              <StudioErrorBoundary label="3D Viewport">
+                <SceneRenderer r3fTree={r3fTree} profilerOpen={profilerOpen} />
+              </StudioErrorBoundary>
+            )}
             <ViewportToolbar profilerOpen={profilerOpen} onToggleProfiler={() => setProfilerOpen((v) => !v)} />
             <AIPromptOverlay />
             <ProfilerOverlay active={profilerOpen} />
@@ -706,7 +775,7 @@ export default function CreatePage() {
             <button
               onClick={() => setTemplatePickerOpen(true)}
               title="Browse scene templates"
-              className="absolute right-3 top-2 z-10 flex items-center gap-1 rounded-lg bg-studio-panel/80 px-2.5 py-1.5 text-[10px] text-studio-muted backdrop-blur hover:bg-studio-surface hover:text-studio-text transition"
+              className="absolute right-3 top-14 z-10 flex items-center gap-1 rounded-lg bg-studio-panel/80 px-2.5 py-1.5 text-[10px] text-studio-muted backdrop-blur hover:bg-studio-surface hover:text-studio-text transition"
             >
               <LayoutTemplate className="h-3.5 w-3.5" /> Templates
             </button>
@@ -727,9 +796,16 @@ export default function CreatePage() {
           </div>
 
           {/* Inspector (bottom strip) — Shader Editor — Animation Timeline */}
-          <div className={`shrink-0 ${shaderEditorOpen || timelineOpen ? 'h-96' : 'h-56'}`}>
+          {/* ── Bottom splitter ── */}
+          <PanelSplitter
+            direction="vertical"
+            onDelta={(d) => setBottomPanelH((h) => Math.max(120, Math.min(h - d, 600)))}
+          />
+          <div className="shrink-0" style={{ height: shaderEditorOpen || timelineOpen ? Math.max(bottomPanelH, 320) : bottomPanelH }}>
             {shaderEditorOpen ? (
-              <ShaderEditorPanel onClose={() => setShaderEditorOpen(false)} />
+              <StudioErrorBoundary label="Shader Editor">
+                <ShaderEditorPanel onClose={() => setShaderEditorOpen(false)} />
+              </StudioErrorBoundary>
             ) : timelineOpen ? (
               <AnimationTimeline onClose={() => setTimelineOpen(false)} />
             ) : (
@@ -743,163 +819,232 @@ export default function CreatePage() {
 
         {/* RIGHT RAIL: History panel (optional) */}
         {historyOpen && (
-          <div className="flex w-56 shrink-0 flex-col border-l border-studio-border">
-            <HistoryPanel onClose={() => setHistoryOpen(false)} />
-          </div>
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
+              <HistoryPanel onClose={() => setHistoryOpen(false)} />
+            </div>
+          </>
         )}
 
         {/* RIGHT RAIL: AI Material Generator */}
         {aiMaterialOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-            <AIMaterialPanel onClose={() => setAiMaterialOpen(false)} />
-          </div>
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
+              <AIMaterialPanel onClose={() => setAiMaterialOpen(false)} />
+            </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Share Panel */}
         {shareOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-            <SharePanel onClose={() => setShareOpen(false)} />
-          </div>
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
+              <SharePanel onClose={() => setShareOpen(false)} />
+            </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Scene Critique */}
         {critiqueOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <SceneCritiquePanel onClose={() => setCritiqueOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Asset Pack Importer */}
         {assetPackOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <AssetPackPanel onClose={() => setAssetPackOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Scene Versions */}
         {versionsOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <SceneVersionPanel sceneId="scene-1" onClose={() => setVersionsOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: REPL */}
         {replOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <REPLPanel onClose={() => setReplOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Pack Registry */}
         {registryOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <RegistryPanel onClose={() => setRegistryOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Mobile Remote */}
         {remoteOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <QRRemotePanel onClose={() => setRemoteOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Export */}
         {exportOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <ExportPanel onClose={() => setExportOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: AI Generator */}
         {generatorOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <SceneGeneratorPanel onClose={() => setGeneratorOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Profiler */}
         {profilerOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <ProfilerPanel onClose={() => setProfilerOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Multiplayer */}
         {multiplayerOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <MultiplayerPanel onClose={() => setMultiplayerOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Debugger */}
         {debuggerOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <DebuggerPanel onClose={() => setDebuggerOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Snapshot Gallery */}
         {snapshotsOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <SnapshotGallery onClose={() => setSnapshotsOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Asset Library v2 */}
         {assetLibOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
             <AssetLibraryPanel onClose={() => setAssetLibOpen(false)} />
           </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Template Gallery */}
         {templateGalleryOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-            <TemplateGallery onClose={() => setTemplateGalleryOpen(false)} />
-          </div>
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
+              <TemplateGallery onClose={() => setTemplateGalleryOpen(false)} />
+            </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Audio Traits */}
         {audioOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-            <AudioTraitPanel onClose={() => setAudioOpen(false)} />
-          </div>
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
+              <AudioTraitPanel onClose={() => setAudioOpen(false)} />
+            </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Export Pipeline v2 */}
         {exportV2Open && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-            <ExportPipelinePanel onClose={() => setExportV2Open(false)} />
-          </div>
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
+              <ExportPipelinePanel onClose={() => setExportV2Open(false)} />
+            </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Node Graph Editor */}
         {nodeGraphOpen && (
-          <div className="flex w-96 shrink-0 flex-col border-l border-studio-border">
-            <NodeGraphPanel onClose={() => setNodeGraphOpen(false)} />
-          </div>
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
+              <NodeGraphPanel onClose={() => setNodeGraphOpen(false)} />
+            </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Keyframe Editor */}
         {keyframesOpen && (
-          <div className="flex w-[620px] shrink-0 flex-col border-l border-studio-border">
-            <KeyframeEditor onClose={() => setKeyframesOpen(false)} />
-          </div>
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
+              <KeyframeEditor onClose={() => setKeyframesOpen(false)} />
+            </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Particle Traits */}
         {particlesOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-            <ParticlePanel onClose={() => setParticlesOpen(false)} />
-          </div>
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
+              <ParticlePanel onClose={() => setParticlesOpen(false)} />
+            </div>
+          </>
         )}
 
         {/* RIGHT RAIL: LOD / Camera Culling */}
         {lodOpen && (
-          <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-            <LodPanel onClose={() => setLodOpen(false)} />
-          </div>
+          <>
+            <PanelSplitter direction="horizontal" onDelta={(d) => setRightPanelW((w) => Math.max(180, Math.min(w - d, 520)))} />
+            <div className="flex shrink-0 flex-col" style={{ width: rightPanelW }}>
+              <LodPanel onClose={() => setLodOpen(false)} />
+            </div>
+          </>
         )}
 
         {/* RIGHT RAIL: Undo History */}
@@ -1045,12 +1190,8 @@ export default function CreatePage() {
           </div>
         )}
 
-        {/* Floating tab strip (right edge) */}
-        <div
-          className={`absolute right-0 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-1 rounded-l-lg border border-r-0 border-studio-border bg-studio-panel px-1.5 py-3 ${
-            chatOpen ? 'translate-x-[-288px]' : historyOpen ? 'translate-x-[-224px]' : ''
-          }`}
-        >
+        {/* Icon rail — right edge of viewport, always visible */}
+        <div className="flex shrink-0 flex-col items-center gap-1 overflow-y-auto border-l border-studio-border bg-[#1e1e2e] px-1.5 py-3">
           {/* Brittney toggle */}
           <button
             onClick={() => setChatOpen((v) => !v)}
@@ -1467,6 +1608,7 @@ export default function CreatePage() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Trait Palette modal */}
       <TraitPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, Package, User, Menu, X } from 'lucide-react';
+import { Search, Package, Menu, X, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
+import { LoginButton } from './auth/LoginButton';
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -64,12 +65,15 @@ export function Header() {
               Publish
             </Link>
             <Link
-              href="/account"
+              href="/dashboard"
               className="p-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-              aria-label="Account"
+              aria-label="Dashboard"
             >
-              <User className="h-5 w-5" />
+              <LayoutDashboard className="h-5 w-5" />
             </Link>
+            <div className="ml-2">
+              <LoginButton />
+            </div>
           </div>
 
           {/* Mobile Menu Toggle */}

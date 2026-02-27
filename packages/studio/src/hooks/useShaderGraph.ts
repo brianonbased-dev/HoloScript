@@ -28,7 +28,7 @@ export interface IShaderPort {
 export type ShaderNodeCategory =
   | 'input' | 'output' | 'math' | 'vector'
   | 'color' | 'texture' | 'utility' | 'material'
-  | 'volumetric' | 'custom';
+  | 'volumetric' | 'custom' | 'procedural';
 
 export interface IShaderNode {
   id: string;
@@ -47,14 +47,91 @@ export interface IShaderNode {
   preview?: boolean;
 }
 
-class ShaderGraph {
-  private name: string;
-  private nodes: Map<string, IShaderNode> = new Map();
-  private _connections: Map<string, IShaderConnection> = new Map();
+export interface IShaderConnection {
+  id: string;
+  fromNodeId: string;
+  fromPortId: string;
+  toNodeId: string;
+  toPortId: string;
+  /** @deprecated aliases — use fromNodeId/toNodeId/fromPortId/toPortId */
+  fromNode: string;
+  fromPort: string;
+  toNode: string;
+  toPort: string;
+}
+
+/** Serialized graph shape (used by ShaderEditorService, MaterialLibrary, ShaderTemplates) */
+export interface ISerializedShaderGraph {
+  id: string;
+  name: string;
+  description?: string;
+  version: number;
+  createdAt: number;
+  updatedAt: number;
+  nodes: Array<{
+    id: string;
+    type: string;
+    name: string;
+    category: ShaderNodeCategory;
+    position: { x: number; y: number };
+    properties: Record<string, unknown>;
+    ports: IShaderPort[];
+    inputs: IShaderPort[];
+    outputs: IShaderPort[];
+    label?: string;
+    preview?: boolean;
+  }>;
+  connections: Array<{
+    id: string;
+    fromNodeId: string;
+    fromPortId: string;
+    toNodeId: string;
+    toPortId: string;
+  }>;
+}
+
+/** Build a connection object with both new-style and legacy alias fields */
+function makeConn(
+  id: string,
+  fromNodeId: string, fromPortId: string,
+  toNodeId: string, toPortId: string
+): IShaderConnection {
+  return {
+    id,
+    fromNodeId, fromPortId,
+    toNodeId, toPortId,
+    // legacy aliases
+    fromNode: fromNodeId, fromPort: fromPortId,
+    toNode:   toNodeId,  toPort:   toPortId,
+  };
+}
+
+export class ShaderGraph {
+  public id: string;
+  public name: string;
+  public version: number;
+  public description: string;
+  public createdAt: number;
+  public updatedAt: number;
+
+  public nodes: Map<string, IShaderNode> = new Map();
+  private _connections: IShaderConnection[] = [];
   private _nodeCounter = 0;
   private _connCounter = 0;
 
-  constructor(name: string) { this.name = name; }
+  /** Connections as a live array (supports .find, .length, .filter, spread) */
+  get connections(): IShaderConnection[] { return this._connections; }
+
+  constructor(name: string) {
+    this.id = `graph_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    this.name = name;
+    this.version = 1;
+    this.description = '';
+    this.createdAt = Date.now();
+    this.updatedAt = Date.now();
+  }
+
+  // ── Node operations ─────────────────────────────────────────────────────────
 
   createNode(
     type: string,
@@ -70,74 +147,141 @@ class ShaderGraph {
       properties: {},
     };
     this.nodes.set(id, node);
+    this.updatedAt = Date.now();
     return node;
   }
 
   getNode(id: string): IShaderNode | undefined { return this.nodes.get(id); }
 
-  removeNode(id: string): boolean {
-    for (const [cid, c] of this._connections) {
-      if (c.fromNodeId === id || c.toNodeId === id) this._connections.delete(cid);
-    }
-    return this.nodes.delete(id);
+  /** Re-insert a previously deleted node (used by UndoRedoSystem) */
+  addCustomNode(node: IShaderNode): void {
+    this.nodes.set(node.id, node);
+    this.updatedAt = Date.now();
   }
+
+  removeNode(id: string): boolean {
+    this._connections = this._connections.filter(
+      (c) => c.fromNodeId !== id && c.toNodeId !== id
+    );
+    const deleted = this.nodes.delete(id);
+    if (deleted) this.updatedAt = Date.now();
+    return deleted;
+  }
+
+  // ── Property operations ────────────────────────────────────────────────────
+
+  setNodeProperty(nodeId: string, key: string, value: unknown): boolean {
+    const node = this.nodes.get(nodeId);
+    if (!node) return false;
+    node.properties[key] = value;
+    this.updatedAt = Date.now();
+    return true;
+  }
+
+  getNodeProperty(nodeId: string, key: string): unknown {
+    return this.nodes.get(nodeId)?.properties[key];
+  }
+
+  setNodePosition(nodeId: string, x: number, y: number): void {
+    const node = this.nodes.get(nodeId);
+    if (node) { node.position = { x, y }; this.updatedAt = Date.now(); }
+  }
+
+  // ── Connection operations ──────────────────────────────────────────────────
 
   connect(fromNodeId: string, fromPortId: string, toNodeId: string, toPortId: string): IShaderConnection | null {
     if (!this.nodes.has(fromNodeId) || !this.nodes.has(toNodeId)) return null;
+    // Prevent self-connections
+    if (fromNodeId === toNodeId) return null;
+    // Prevent cycles: check if toNodeId can already reach fromNodeId
+    if (this._canReach(toNodeId, fromNodeId)) return null;
     const id = `conn_${++this._connCounter}`;
-    const conn: IShaderConnection = { id, fromNodeId, fromPortId, toNodeId, toPortId };
-    this._connections.set(id, conn);
+    const conn = makeConn(id, fromNodeId, fromPortId, toNodeId, toPortId);
+    this._connections.push(conn);
     // Mark the destination port as connected
     const toNode = this.nodes.get(toNodeId);
     if (toNode) {
       const port = toNode.inputs.find((p) => p.id === toPortId);
       if (port) port.connected = true;
     }
+    this.updatedAt = Date.now();
     return conn;
   }
 
-  disconnectPort(nodeId: string, portId: string): boolean {
-    let found = false;
-    for (const [id, c] of this._connections) {
-      if ((c.fromNodeId === nodeId && c.fromPortId === portId) ||
-          (c.toNodeId === nodeId && c.toPortId === portId)) {
-        this._connections.delete(id);
-        found = true;
+  /** DFS: returns true if `startId` can reach `targetId` via connections */
+  private _canReach(startId: string, targetId: string): boolean {
+    const visited = new Set<string>();
+    const stack = [startId];
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      if (current === targetId) return true;
+      if (visited.has(current)) continue;
+      visited.add(current);
+      for (const conn of this._connections) {
+        if (conn.fromNodeId === current) stack.push(conn.toNodeId);
       }
     }
-    return found;
+    return false;
   }
 
-  setNodeProperty(nodeId: string, key: string, value: unknown): boolean {
-    const node = this.nodes.get(nodeId);
-    if (!node) return false;
-    node.properties[key] = value;
-    return true;
+  disconnectPort(nodeId: string, portId: string): boolean {
+    const before = this._connections.length;
+    this._connections = this._connections.filter(
+      (c) => !((c.fromNodeId === nodeId && c.fromPortId === portId) ||
+                (c.toNodeId === nodeId && c.toPortId === portId))
+    );
+    return this._connections.length < before;
   }
 
-  setNodePosition(nodeId: string, x: number, y: number): void {
-    const node = this.nodes.get(nodeId);
-    if (node) node.position = { x, y };
+  disconnect(nodeId: string, portId: string): boolean {
+    return this.disconnectPort(nodeId, portId);
   }
 
-  serialize(): string {
-    return JSON.stringify({
+  /** All connections that involve a given node (as source or target) */
+  getNodeConnections(nodeId: string): IShaderConnection[] {
+    return this._connections.filter(
+      (c) => c.fromNodeId === nodeId || c.toNodeId === nodeId
+    );
+  }
+
+  // ── Serialization ──────────────────────────────────────────────────────────
+
+  toJSON(): ISerializedShaderGraph {
+    return {
+      id: this.id,
       name: this.name,
-      nodes: Object.fromEntries(this.nodes),
-      connections: Object.fromEntries(this._connections),
-    });
+      description: this.description,
+      version: this.version,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      nodes: Array.from(this.nodes.values()),
+      connections: this._connections.map(({ id, fromNodeId, fromPortId, toNodeId, toPortId }) => ({
+        id, fromNodeId, fromPortId, toNodeId, toPortId,
+      })),
+    };
+  }
+
+  static fromJSON(data: ISerializedShaderGraph): ShaderGraph {
+    const g = new ShaderGraph(data.name);
+    g.id = data.id ?? g.id;
+    g.version = data.version ?? 1;
+    g.description = data.description ?? '';
+    g.createdAt = data.createdAt ?? Date.now();
+    g.updatedAt = data.updatedAt ?? Date.now();
+    for (const n of data.nodes) g.nodes.set(n.id, n as IShaderNode);
+    for (const c of (data.connections ?? [])) {
+      g._connections.push(makeConn(c.id, c.fromNodeId, c.fromPortId, c.toNodeId, c.toPortId));
+    }
+    return g;
+  }
+
+  /** Legacy JSON string serialization (used by Zustand history) */
+  serialize(): string {
+    return JSON.stringify(this.toJSON());
   }
 
   static deserialize(json: string): ShaderGraph {
-    const data = JSON.parse(json) as {
-      name: string;
-      nodes: Record<string, IShaderNode>;
-      connections: Record<string, IShaderConnection>;
-    };
-    const g = new ShaderGraph(data.name);
-    for (const [k, v] of Object.entries(data.nodes)) g.nodes.set(k, v);
-    for (const [k, v] of Object.entries(data.connections)) g._connections.set(k, v);
-    return g;
+    return ShaderGraph.fromJSON(JSON.parse(json) as ISerializedShaderGraph);
   }
 }
 
@@ -175,11 +319,14 @@ interface ShaderGraphState {
   markDirty: () => void;
 }
 
+const _initialGraph = new ShaderGraph('Untitled Shader');
+const _initialSerialized = _initialGraph.serialize();
+
 export const useShaderGraph = create<ShaderGraphState>((set, get) => ({
-  graph: new ShaderGraph('Untitled Shader'),
+  graph: _initialGraph,
   isDirty: false,
-  history: [],
-  historyIndex: -1,
+  history: [_initialSerialized],   // Seed with the initial empty-graph state
+  historyIndex: 0,                  // Start at index 0 (initial state)
   maxHistorySize: 50,
 
   createNode: (type, position) => {
@@ -268,7 +415,9 @@ export const useShaderGraph = create<ShaderGraphState>((set, get) => ({
   serializeGraph: () => get().graph.serialize(),
 
   clearGraph: () => {
-    set({ graph: new ShaderGraph('Untitled Shader'), history: [], historyIndex: -1, isDirty: false });
+    const fresh = new ShaderGraph('Untitled Shader');
+    const freshSerialized = fresh.serialize();
+    set({ graph: fresh, history: [freshSerialized], historyIndex: 0, isDirty: false });
   },
 
   markClean: () => set({ isDirty: false }),

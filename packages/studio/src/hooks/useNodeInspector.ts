@@ -145,7 +145,8 @@ function formatValue(value: SceneProp['value'], type: PropType): string {
 }
 
 function findObjectBlock(lines: string[], name: string): [number, number] | null {
-  const startRe = new RegExp(`^\\s*(object|scene|group)\\s+${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{?`);
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const startRe = new RegExp(`^\\s*(object|scene|group|light)\\s+"${escapedName}"\\s*\\{?`);
   let start = -1;
   let depth = 0;
   for (let i = 0; i < lines.length; i++) {
@@ -210,9 +211,9 @@ export function useNodeInspector(objectName: string | null): InspectorResult {
     const lineRange = findObjectBlock(lines, objectName);
     if (!lineRange) return null;
     const groups = extractGroups(lines, lineRange[0], lineRange[1]);
-    // Determine object type from the opening line
-    const openLine = lines[lineRange[0] - 2] ?? '';
-    const typeMatch = openLine.trim().match(/^(object|scene|group)\s+/);
+    // Determine object type from the opening line (lineRange is 1-indexed)
+    const openLine = lines[lineRange[0] - 1] ?? '';
+    const typeMatch = openLine.trim().match(/^(object|scene|group|light)\s+/);
     return { lineRange, groups, objectType: typeMatch?.[1] ?? 'object' };
   }, [code, objectName]);
 

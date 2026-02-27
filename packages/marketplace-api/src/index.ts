@@ -14,6 +14,13 @@ export { PostgresTraitDatabase } from './PostgresTraitDatabase.js';
 export { MarketplaceService, DownloadStatsTracker, RatingService } from './MarketplaceService.js';
 
 export {
+  x402PaymentService,
+  type x402PaymentServiceOptions,
+  type x402PaymentRequest,
+  type x402PaymentReceipt,
+} from './x402PaymentService.js';
+
+export {
   DependencyResolver,
   parseVersionRequirement,
   satisfies,

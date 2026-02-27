@@ -1,7 +1,10 @@
 /**
  * Shader Editor Canvas
  *
- * React Flow integration for node graph canvas with pan/zoom, selection, and connections
+ * React Flow integration for node graph canvas with:
+ *  - Pan/zoom, selection, connections
+ *  - Drag-to-canvas from NodePalette (application/reactflow MIME type)
+ *  - Delete key / Ctrl+A / Escape shortcuts
  */
 
 'use client';
@@ -23,26 +26,31 @@ import ReactFlow, {
   applyNodeChanges,
   applyEdgeChanges,
   BackgroundVariant,
+  useReactFlow,
+  ReactFlowProvider,
 } from 'reactflow';
-import 'reactflow/dist/style.css';
-import { ShaderNodeComponent } from './ShaderNodeComponent';
 import { useShaderGraph } from '../../hooks/useShaderGraph';
 import { useNodeSelection } from '../../hooks/useNodeSelection';
+import { ShaderNodeComponent } from './ShaderNodeComponent';
 
-const nodeTypes = {
-  shaderNode: ShaderNodeComponent,
-};
+import 'reactflow/dist/style.css';
 
 interface ShaderEditorCanvasProps {
   snapToGrid?: boolean;
   snapGrid?: [number, number];
 }
 
-export function ShaderEditorCanvas({
+const nodeTypes = {
+  shaderNode: ShaderNodeComponent,
+};
+
+/** Inner canvas — must live inside a ReactFlowProvider so useReactFlow() works. */
+function ShaderEditorCanvasInner({
   snapToGrid = true,
   snapGrid = [20, 20],
 }: ShaderEditorCanvasProps) {
   const graph = useShaderGraph((state) => state.graph);
+  const createNode = useShaderGraph((state) => state.createNode);
   const connect = useShaderGraph((state) => state.connect);
   const disconnect = useShaderGraph((state) => state.disconnect);
   const setNodePosition = useShaderGraph((state) => state.setNodePosition);
@@ -54,15 +62,15 @@ export function ShaderEditorCanvas({
   const selectedNodeIds = useNodeSelection((state) => state.getSelectedNodes());
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const { screenToFlowPosition } = useReactFlow();
   const [nodes, setNodes] = useNodesState([]);
   const [edges, setEdges] = useEdgesState([]);
 
-  // Sync graph to React Flow
+  // Sync graph → React Flow
   useEffect(() => {
     const flowNodes: Node[] = [];
     const flowEdges: Edge[] = [];
 
-    // Convert shader graph nodes to React Flow nodes
     graph.nodes.forEach((node) => {
       flowNodes.push({
         id: node.id,
@@ -73,14 +81,13 @@ export function ShaderEditorCanvas({
       });
     });
 
-    // Convert connections to React Flow edges
     graph.connections.forEach((conn) => {
       flowEdges.push({
         id: conn.id,
-        source: conn.fromNode,
-        sourceHandle: conn.fromPort,
-        target: conn.toNode,
-        targetHandle: conn.toPort,
+        source: conn.fromNodeId,
+        sourceHandle: conn.fromPortId,
+        target: conn.toNodeId,
+        targetHandle: conn.toPortId,
         type: 'default',
         animated: false,
       });
@@ -133,10 +140,7 @@ export function ShaderEditorCanvas({
   // Handle connection validation
   const isValidConnection = useCallback(
     (connection: Connection) => {
-      // Prevent self-connection
       if (connection.source === connection.target) return false;
-
-      // Additional validation would go here (type checking, etc.)
       return true;
     },
     []
@@ -154,10 +158,37 @@ export function ShaderEditorCanvas({
     [selectNodes, clearSelection]
   );
 
-  // Handle keyboard shortcuts
+  // ─── Drag-from-palette support ────────────────────────────────────────────
+
+  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+
+      const nodeType = event.dataTransfer.getData('application/reactflow');
+      if (!nodeType) return;
+
+      // Convert screen position → React Flow canvas position
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      createNode(nodeType, position);
+    },
+    [screenToFlowPosition, createNode]
+  );
+
+  // ─── Keyboard shortcuts ───────────────────────────────────────────────────
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Delete selected nodes
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedNodeIds.length > 0) {
           e.preventDefault();
@@ -165,13 +196,11 @@ export function ShaderEditorCanvas({
         }
       }
 
-      // Select all (Ctrl+A)
       if (e.ctrlKey && e.key === 'a') {
         e.preventDefault();
         selectNodes(Array.from(graph.nodes.keys()));
       }
 
-      // Deselect all (Escape)
       if (e.key === 'Escape') {
         clearSelection();
       }
@@ -191,6 +220,8 @@ export function ShaderEditorCanvas({
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         onSelectionChange={onSelectionChange}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
         nodeTypes={nodeTypes}
         snapToGrid={snapToGrid}
         snapGrid={snapGrid}
@@ -211,7 +242,7 @@ export function ShaderEditorCanvas({
         <MiniMap
           className="bg-gray-900 border-gray-700"
           nodeColor={(node) => {
-            const data = node.data as any;
+            const data = node.data as { category?: string };
             if (data.category === 'output') return '#ef4444';
             if (data.category === 'input') return '#3b82f6';
             return '#6b7280';
@@ -220,5 +251,14 @@ export function ShaderEditorCanvas({
         />
       </ReactFlow>
     </div>
+  );
+}
+
+/** Public export — wraps in ReactFlowProvider so useReactFlow() works inside. */
+export function ShaderEditorCanvas(props: ShaderEditorCanvasProps) {
+  return (
+    <ReactFlowProvider>
+      <ShaderEditorCanvasInner {...props} />
+    </ReactFlowProvider>
   );
 }

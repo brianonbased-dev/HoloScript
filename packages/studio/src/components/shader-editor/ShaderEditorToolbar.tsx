@@ -9,6 +9,7 @@
 import React, { useState, useRef } from 'react';
 import { useShaderGraph } from '../../hooks/useShaderGraph';
 import { useAutoSave } from '../../hooks/useAutoSave';
+import { useShaderCompilation } from '../../hooks/useShaderCompilation';
 import {
   Save,
   FolderOpen,
@@ -39,6 +40,7 @@ export function ShaderEditorToolbar() {
   const canRedo = useShaderGraph((state) => state.canRedo());
 
   const { loadAutoSave, clearAutoSave } = useAutoSave();
+  const { compiled, lastCompileTime, exportGLSL, exportWGSL, exportHLSL } = useShaderCompilation();
 
   // Save graph to file
   const handleSave = () => {
@@ -91,10 +93,11 @@ export function ShaderEditorToolbar() {
     }
   };
 
-  // Export options
+  // Export options — delegates to useShaderCompilation download helpers
   const handleExport = (format: 'wgsl' | 'glsl' | 'hlsl') => {
-    // TODO: Implement export to different shader formats
-    alert(`Export to ${format.toUpperCase()} coming soon!`);
+    if (format === 'glsl') exportGLSL();
+    else if (format === 'wgsl') exportWGSL();
+    else if (format === 'hlsl') exportHLSL();
     setShowExportMenu(false);
   };
 

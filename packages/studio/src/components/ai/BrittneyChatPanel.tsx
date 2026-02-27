@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Send, Loader2, Zap, CheckCircle2, XCircle } from 'lucide-react';
+import { Send, Loader2, Zap, CheckCircle2, XCircle, Mic, MicOff, Trash2 } from 'lucide-react';
 import {
   streamBrittney,
   buildRichContext,
@@ -9,6 +9,8 @@ import {
 } from '@/lib/brittney';
 import type { BrittneyMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/store';
+import { useBrittneyVoice } from '@/hooks/useBrittneyVoice';
+import { useBrittneyHistory } from '@/hooks/useBrittneyHistory';
 
 // ─── Message model ────────────────────────────────────────────────────────────
 
@@ -62,17 +64,49 @@ export function BrittneyChatPanel() {
   const setTraitProperty = useSceneGraphStore((s) => s.setTraitProperty);
   const addNode = useSceneGraphStore((s) => s.addNode);
 
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: '0',
-      role: 'brittney',
-      text: "Hi! I'm Brittney. Tell me what you want to build — I'll add traits, compose behaviors, and shape the scene for you.",
-    },
-  ]);
+  // Persistent history
+  const { history: savedHistory, addMessage: persistMessage, clearHistory: clearPersistedHistory } = useBrittneyHistory('default');
+
+  const GREETING: ChatMessage = {
+    id: '0',
+    role: 'brittney',
+    text: "Hi! I'm Brittney. Tell me what you want to build — I'll add traits, compose behaviors, and shape the scene for you.",
+  };
+
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([GREETING]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [llmHistory, setLlmHistory] = useState<BrittneyMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load persisted history on mount
+  useEffect(() => {
+    if (historyLoaded) return;
+    setHistoryLoaded(true);
+    if (savedHistory.length > 0) {
+      setChatMessages([
+        GREETING,
+        ...savedHistory.map((m, i) => ({
+          id: `h-${i}`,
+          role: m.role === 'user' ? 'user' : 'brittney' as ChatMessage['role'],
+          text: m.content,
+        })),
+      ]);
+      setLlmHistory(savedHistory.map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }) as BrittneyMessage));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedHistory]);
+
+  // Voice input
+  const { isListening, isSupported: voiceSupported, transcript, interimTranscript, startListening, stopListening, clearTranscript } = useBrittneyVoice();
+  // Append confirmed voice transcript to input
+  useEffect(() => {
+    if (transcript) {
+      setInput((prev) => (prev ? prev + ' ' + transcript : transcript).trim());
+      clearTranscript();
+    }
+  }, [transcript, clearTranscript]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -87,6 +121,7 @@ export function BrittneyChatPanel() {
     // Add user message to chat
     const userMsgId = Date.now().toString();
     setChatMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
+    persistMessage({ role: 'user', content: text });
 
     // Build updated LLM history
     const updatedHistory: BrittneyMessage[] = [
@@ -160,12 +195,20 @@ export function BrittneyChatPanel() {
       ...h,
       { role: 'assistant', content: accumulatedText },
     ]);
+    persistMessage({ role: 'assistant', content: accumulatedText });
 
     setIsThinking(false);
   }, [
     input, isThinking, llmHistory, nodes, selectedId,
-    addTrait, removeTrait, setTraitProperty, addNode,
+    addTrait, removeTrait, setTraitProperty, addNode, persistMessage,
   ]);
+
+  const handleClearHistory = useCallback(() => {
+    clearPersistedHistory();
+    setChatMessages([GREETING]);
+    setLlmHistory([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearPersistedHistory]);
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -205,6 +248,14 @@ export function BrittneyChatPanel() {
             <span>{nodes.length} obj</span>
           )}
           <span>· {code.split('\n').length}L</span>
+          <button
+            onClick={handleClearHistory}
+            aria-label="Clear chat history"
+            title="Clear conversation history"
+            className="ml-1 rounded p-1 text-studio-muted hover:bg-studio-border hover:text-red-400 transition"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
         </div>
       </div>
 
@@ -264,7 +315,7 @@ export function BrittneyChatPanel() {
       <div className="shrink-0 border-t border-studio-border p-3">
         <div className="relative">
           <textarea
-            value={input}
+            value={isListening && interimTranscript ? input + ' ' + interimTranscript : input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKey}
             placeholder={
@@ -276,19 +327,42 @@ export function BrittneyChatPanel() {
             }
             disabled={isThinking}
             rows={2}
-            className="w-full resize-none rounded-xl border border-studio-border bg-studio-surface px-3 py-2 pr-10 text-xs text-studio-text placeholder-studio-muted outline-none transition focus:border-studio-accent/60 focus:ring-1 focus:ring-studio-accent/20 disabled:opacity-50"
+            className={`w-full resize-none rounded-xl border bg-studio-surface px-3 py-2 pr-16 text-xs text-studio-text placeholder-studio-muted outline-none transition focus:ring-1 disabled:opacity-50 ${
+              isListening
+                ? 'border-red-400/70 focus:border-red-400 focus:ring-red-400/20'
+                : 'border-studio-border focus:border-studio-accent/60 focus:ring-studio-accent/20'
+            }`}
+            aria-label="Message Brittney"
           />
-          <button
-            onClick={handleSend}
-            disabled={isThinking || !input.trim()}
-            className="absolute bottom-2.5 right-2 rounded-lg bg-studio-accent p-1.5 text-white shadow transition hover:bg-studio-accent/80 disabled:opacity-30"
-          >
-            {isThinking ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Send className="h-3 w-3" />
+          <div className="absolute bottom-2.5 right-2 flex items-center gap-1">
+            {voiceSupported && (
+              <button
+                onClick={isListening ? stopListening : startListening}
+                disabled={isThinking}
+                className={`rounded-lg p-1.5 transition ${
+                  isListening
+                    ? 'animate-pulse bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                    : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
+                }`}
+                title={isListening ? 'Stop listening' : 'Voice input'}
+                aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
+              >
+                {isListening ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+              </button>
             )}
-          </button>
+            <button
+              onClick={handleSend}
+              disabled={isThinking || !input.trim()}
+              className="rounded-lg bg-studio-accent p-1.5 text-white shadow transition hover:bg-studio-accent/80 disabled:opacity-30"
+              aria-label="Send message to Brittney"
+            >
+              {isThinking ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Send className="h-3 w-3" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+
 
 /**
  * GET /api/shader-presets — GLSL shader snippet catalog.
@@ -120,9 +120,10 @@ gl_FragColor = vec4(uColor * (0.2 + 0.8 * cel), 1.0);`,
   },
 ];
 
-export async function GET(request: NextRequest) {
-  const q = request.nextUrl.searchParams.get('q')?.toLowerCase() ?? '';
-  const category = request.nextUrl.searchParams.get('category') ?? '';
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const q = url.searchParams.get('q')?.toLowerCase() ?? '';
+  const category = url.searchParams.get('category') ?? '';
   let results: ShaderPreset[] = PRESETS;
   if (category) results = results.filter((p) => p.category === category);
   if (q) results = results.filter((p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));

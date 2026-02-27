@@ -69,7 +69,7 @@ export function deserializeScene(raw: string): DeserializeResult {
     const parsed = JSON.parse(raw);
 
     // Support v1 (code-only) — migrate to v2
-    if (!parsed.v && parsed.code !== undefined) {
+    if ((!parsed.v || parsed.v === 1) && parsed.code !== undefined) {
       return {
         ok: true,
         scene: {

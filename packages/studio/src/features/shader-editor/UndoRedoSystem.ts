@@ -10,8 +10,8 @@
  * - Persistence to localStorage
  */
 
-import { ShaderGraph } from '@holoscript/core/shader/graph/ShaderGraph';
-import type { IShaderNode, IShaderConnection } from '@holoscript/core/shader/graph/ShaderGraphTypes';
+import { ShaderGraph } from '@/lib/shaderGraph';
+import type { IShaderNode, IShaderConnection } from '@/lib/shaderGraph';
 
 // ============================================================================
 // Types
