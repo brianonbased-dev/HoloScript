@@ -9,3 +9,7 @@ export { DNASequencerPanel } from './DNASequencerPanel';
 export { SpaceMissionPanel } from './SpaceMissionPanel';
 export { BrainMapperPanel } from './BrainMapperPanel';
 export { ClimateDashboardPanel } from './ClimateDashboardPanel';
+export { WineSommelierPanel } from './WineSommelierPanel';
+export { OceanExplorerPanel } from './OceanExplorerPanel';
+export { ThemeParkPanel } from './ThemeParkPanel';
+export { GeologyLabPanel } from './GeologyLabPanel';
