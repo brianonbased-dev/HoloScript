@@ -7,6 +7,7 @@ interface OrchestrationKeyboardCallbacks {
   onToggleEventMonitor: () => void;
   onToggleToolCallGraph: () => void;
   onToggleAgentEnsemble: () => void;
+  onTogglePlugins?: () => void;
 }
 
 export function useOrchestrationKeyboard(callbacks: OrchestrationKeyboardCallbacks) {
@@ -35,6 +36,10 @@ export function useOrchestrationKeyboard(callbacks: OrchestrationKeyboardCallbac
       if (e.ctrlKey && e.shiftKey && e.key === 'A') {
         e.preventDefault();
         callbacks.onToggleAgentEnsemble();
+      }
+      if (e.ctrlKey && e.key === 'p' && callbacks.onTogglePlugins) {
+        e.preventDefault();
+        callbacks.onTogglePlugins();
       }
     };
 

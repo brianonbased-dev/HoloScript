@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Glasses, Upload, Zap, BarChart2, X, BookOpen, HelpCircle, Sparkles, Server, Workflow, GitBranch, Users, Activity, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, Glasses, Upload, Zap, BarChart2, X, BookOpen, HelpCircle, Sparkles, Server, Workflow, GitBranch, Users, Activity, ShoppingBag, Package } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAIStore, useSceneStore, useEditorStore } from '@/lib/store';
@@ -32,6 +32,9 @@ const ToolCallGraphVisualizer = dynamic(() => import('@/components/orchestration
 // Marketplace
 const MarketplacePanel = dynamic(() => import('@/components/marketplace').then((m) => ({ default: m.MarketplacePanel })), { ssr: false });
 
+// Plugins
+const PluginManagerPanel = dynamic(() => import('@/components/plugins').then((m) => ({ default: m.PluginManagerPanel })), { ssr: false });
+
 export function StudioHeader() {
   const ollamaStatus = useAIStore((s) => s.ollamaStatus);
   const metadata = useSceneStore((s) => s.metadata);
@@ -60,6 +63,7 @@ export function StudioHeader() {
   const [eventMonitorOpen, setEventMonitorOpen] = useState(false);
   const [toolCallGraphOpen, setToolCallGraphOpen] = useState(false);
   const [marketplaceOpen, setMarketplaceOpen] = useState(false);
+  const [pluginManagerOpen, setPluginManagerOpen] = useState(false);
 
   // ── First-launch detection ──────────────────────────────────────────────────
   useEffect(() => {
@@ -85,6 +89,7 @@ export function StudioHeader() {
     onToggleEventMonitor: () => setEventMonitorOpen((v) => !v),
     onToggleToolCallGraph: () => setToolCallGraphOpen((v) => !v),
     onToggleAgentEnsemble: () => setAgentEnsembleOpen((v) => !v),
+    onTogglePlugins: () => setPluginManagerOpen((v) => !v),
   });
 
   // ── Orchestration auto-save ─────────────────────────────────────────────────
@@ -276,6 +281,19 @@ export function StudioHeader() {
           <span className="hidden lg:inline">Tools</span>
         </button>
 
+        <button
+          onClick={() => setPluginManagerOpen(!pluginManagerOpen)}
+          title="Plugin Manager (Ctrl+P)"
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+            pluginManagerOpen
+              ? 'border-violet-500/40 bg-violet-500/20 text-violet-300'
+              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-violet-500/40 hover:text-violet-400'
+          }`}
+        >
+          <Package className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Plugins</span>
+        </button>
+
         {/* ── Expert-only tools ─────────────────────────────── */}
         {isExpert && (
           <>
@@ -441,6 +459,11 @@ export function StudioHeader() {
     {/* Marketplace (full-screen modal) */}
     {marketplaceOpen && (
       <MarketplacePanel onClose={() => setMarketplaceOpen(false)} />
+    )}
+
+    {/* Plugin Manager (full-screen modal) */}
+    {pluginManagerOpen && (
+      <PluginManagerPanel onClose={() => setPluginManagerOpen(false)} />
     )}
   </>
   );
