@@ -18,6 +18,7 @@
  */
 
 import type {
+import { CompilerBase } from './CompilerBase';
   HoloComposition,
   HoloObjectDecl,
   HoloSpatialGroup,
@@ -41,12 +42,14 @@ export interface AndroidXRCompilerOptions {
   indent?: string;
 }
 
-export class AndroidXRCompiler {
+export class AndroidXRCompiler extends CompilerBase {
+  protected readonly compilerName = 'AndroidXRCompiler';
   private options: Required<AndroidXRCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
   constructor(options: AndroidXRCompilerOptions = {}) {
+    super();
     this.options = {
       packageName: options.packageName || 'com.holoscript.generated',
       activityName: options.activityName || 'GeneratedXRActivity',
@@ -56,7 +59,8 @@ export class AndroidXRCompiler {
     };
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.lines = [];
     this.indentLevel = 0;
 

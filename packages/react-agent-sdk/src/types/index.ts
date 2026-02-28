@@ -4,13 +4,37 @@
  * TypeScript types for the React Agent SDK
  */
 
-import type {
-  AgentConfig,
-  AgentPhase,
-  CycleResult,
-  AgentMessage,
-  AgentResponse,
-} from '@holoscript/core/agents';
+// ── Local stubs for @holoscript/core/agents (not yet a published subpath) ──
+
+export interface AgentConfig {
+  name: string;
+  endpoint?: string;
+  timeout?: number;
+  [key: string]: unknown;
+}
+
+export type AgentPhase =
+  | 'intake' | 'reflect' | 'execute' | 'compress'
+  | 'reintake' | 'grow' | 'evolve' | 'autonomize';
+
+export interface CycleResult {
+  success: boolean;
+  phase: AgentPhase;
+  data?: unknown;
+  error?: Error;
+}
+
+export interface AgentMessage {
+  action: string;
+  payload: unknown;
+  timestamp: number;
+}
+
+export interface AgentResponse {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
 
 // ============================================================================
 // AGENT CONFIGURATION

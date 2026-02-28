@@ -32,7 +32,7 @@ export class MarketplaceClient {
   private apiKey?: string;
 
   constructor(config: MarketplaceClientConfig = {}) {
-    this.baseUrl = config.baseUrl || 'https://marketplace.holoscript.xyz/api';
+    this.baseUrl = config.baseUrl || 'https://marketplace.holoscript.net/api';
     this.apiKey = config.apiKey;
   }
 

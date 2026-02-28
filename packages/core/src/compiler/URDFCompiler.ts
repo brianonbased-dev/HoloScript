@@ -15,6 +15,7 @@
  */
 
 import type {
+import { CompilerBase } from './CompilerBase';
   HoloComposition,
   HoloObjectDecl,
   HoloSpatialGroup,
@@ -92,7 +93,8 @@ export interface URDFJoint {
   };
 }
 
-export class URDFCompiler {
+export class URDFCompiler extends CompilerBase {
+  protected readonly compilerName = 'URDFCompiler';
   private options: Required<URDFCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
@@ -100,6 +102,7 @@ export class URDFCompiler {
   private joints: URDFJoint[] = [];
 
   constructor(options: URDFCompilerOptions = {}) {
+    super();
     this.options = {
       robotName: options.robotName || 'HoloScriptRobot',
       includeVisual: options.includeVisual ?? true,
@@ -154,7 +157,8 @@ export class URDFCompiler {
     }
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.lines = [];
     this.links = [];
     this.joints = [];

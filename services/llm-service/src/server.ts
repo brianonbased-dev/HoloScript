@@ -92,7 +92,7 @@ app.use(authMiddleware);
  */
 app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Response) => {
   const apiKey = (req as any).apiKey || 'anonymous';
-  const { messages, sceneContext, tools, model, temperature, maxTokens } = req.body;
+  const { messages, sceneContext, tools, model, temperature, maxTokens, tier } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
     res.status(400).json({ error: 'messages array required' });
@@ -117,7 +117,7 @@ app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Respon
     'X-Accel-Buffering': 'no',
   });
 
-  const request: ChatRequest = { messages, sceneContext, tools, model, temperature, maxTokens };
+  const request: ChatRequest = { messages, sceneContext, tools, model, temperature, maxTokens, tier: tier || 'standard' };
   let completionText = '';
 
   try {
@@ -323,7 +323,7 @@ async function start() {
     // Check inference providers
     const providers = await inference.getStatus();
     for (const p of providers) {
-      logger.info(`[Provider] ${p.provider}: ${p.available ? '✅ available' : '❌ unavailable'}`);
+      logger.info(`[Provider] ${p.provider} (${p.tier}): ${p.available ? '✅ available' : '❌ unavailable'}`);
     }
 
     app.listen(PORT, () => {

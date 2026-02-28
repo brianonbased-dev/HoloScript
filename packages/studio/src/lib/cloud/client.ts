@@ -28,7 +28,7 @@ export class CloudClient {
   private timeout: number;
 
   constructor(config: CloudClientConfig = {}) {
-    this.baseUrl = config.baseUrl || 'https://cloud.holoscript.xyz/api';
+    this.baseUrl = config.baseUrl || 'https://cloud.holoscript.net/api';
     this.apiKey = config.apiKey;
     this.timeout = config.timeout || 30000;
   }

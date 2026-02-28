@@ -77,7 +77,7 @@ export class AgentErrorBoundary extends Component<Props, State> {
             </button>
           </div>
 
-          <style jsx>{`
+          <style dangerouslySetInnerHTML={{ __html: `
             .agent-error-boundary {
               padding: 40px;
               background: #ffebee;
@@ -116,7 +116,7 @@ export class AgentErrorBoundary extends Component<Props, State> {
             .agent-error-boundary__reset-button:hover {
               background: #c62828;
             }
-          `}</style>
+          ` }} />
         </div>
       );
     }

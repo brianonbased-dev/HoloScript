@@ -5,8 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { AgentResponse } from '@holoscript/core/agents';
-import type { UseAgentConfig, UseAgentReturn, TaskParams, TaskResult } from '../types';
+import type { AgentResponse, UseAgentConfig, UseAgentReturn, TaskParams, TaskResult } from '../types';
 import { useAgentContext } from '../context/AgentContext';
 import { CircuitBreaker, ExponentialBackoff } from '../utils';
 

@@ -150,7 +150,7 @@ export function PluginManagerPanel({ onClose }: PluginManagerPanelProps) {
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-studio-border px-6 py-4">
           <p className="text-xs text-studio-muted">
-            Plugin SDK: <a href="https://holoscript.xyz/docs/plugins" target="_blank" rel="noopener noreferrer" className="text-studio-accent hover:underline">Documentation</a>
+            Plugin SDK: <a href="https://holoscript.net/docs/plugins" target="_blank" rel="noopener noreferrer" className="text-studio-accent hover:underline">Documentation</a>
           </p>
           <button
             className="flex items-center gap-2 rounded-lg bg-studio-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-studio-accent/90"

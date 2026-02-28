@@ -4,7 +4,7 @@
 **Priority:** Critical
 **Actual Time:** 4.5 hours
 **Date:** 2026-02-26
-**Architecture:** **Bring Your Own Keys (BYOK)** — HoloScript is the spatial IDE
+**Architecture:** **HoloScript Cloud** — AI creation via Pro subscription; BYOK for AI orchestrations in Hololand
 
 ---
 
@@ -19,15 +19,22 @@ Multi-path character and avatar creation system with **NO DEPENDENCIES** on defu
 **Status:** ✅ **COMPLETE**
 **File:** `src/components/settings/APIKeysPanel.tsx` (350+ lines)
 
-### Bring Your Own Keys (BYOK) Architecture
+### HoloScript Cloud + BYOK Architecture
 
-HoloScript is positioned as **the spatial IDE** where users bring their own API keys (like VSCode or Cursor).
+HoloScript provides **three service tiers**:
+
+1. **Free (email sign-up)** — Brittney AI assistant + all manual studio tools. Everything works. Sign up to try Brittney and build with the full studio: scene builder, character customizer, animation, shaders, etc.
+2. **Cloud Service (token-based)** — Pay-per-token usage for Brittney via HoloScript Cloud. Scene generation, code assistance, asset recommendations. Primary revenue driver.
+3. **Pro Subscription** — Vision model for AI generation (characters, creatures, scenes, etc.), priority processing, premium asset library, reduced marketplace commission.
+
+**Additionally:**
+- **BYOK (Bring Your Own Keys)** — For users building AI orchestrations in their Hololand setups. Separate from the studio tiers above.
 
 **Philosophy:**
-- **Privacy-first:** Keys stored in browser localStorage, never sent to HoloScript servers
-- **No vendor lock-in:** Users control their own integrations
-- **No subscription fees:** Free core features (Preset, Upload, VRoid)
-- **Flexible:** Optional paid features via user's own API keys
+- **Free works fully:** All manual tools + Brittney trial, no paywalls on core functionality
+- **Token billing:** Cloud Brittney usage billed per token (users pay for what they use)
+- **Pro unlocks vision model:** AI generation across the entire studio
+- **Privacy-first:** BYOK orchestration keys stored in browser localStorage, never sent to our servers
 
 ### Features
 
@@ -220,12 +227,12 @@ NEXT_PUBLIC_SKETCHFAB_API_KEY=your_key_here
    - Updated button and callbacks
 
 3. `src/lib/aiCharacterGeneration.ts` - **UPDATED**
-   - Switched from env vars to localStorage (BYOK model)
+   - Switched from env vars to localStorage (transitioning to HoloScript Cloud)
    - `getAPIKey()` and `getAPIConfig()` functions
    - Reads from `holoscript_meshy_api_key` and `holoscript_rodin_api_key`
 
 4. `src/lib/sketchfabIntegration.ts` - **UPDATED**
-   - Switched from env vars to localStorage (BYOK model)
+   - Switched from env vars to localStorage (third-party integration)
    - `getSketchfabAPIKey()` and `getSketchfabAPI()` functions
    - Reads from `holoscript_sketchfab_api_key`
 
@@ -264,13 +271,13 @@ NEXT_PUBLIC_SKETCHFAB_API_KEY=your_key_here
 
 ---
 
-## 🔑 API Key Configuration (BYOK Model)
+## 🔑 API Key Configuration
 
-### No Environment Variables Required! 🎉
+### HoloScript Cloud (Pro) + Third-Party Integrations
 
-**All API keys are configured via the UI Settings panel.**
+**AI-powered features are available through the HoloScript Cloud Pro subscription, including character creation, scene generation, and more.**
 
-Users configure their own API keys through the browser-based settings interface:
+For third-party integrations (Sketchfab), users can configure API keys through the settings interface. For AI orchestrations in Hololand, users bring their own provider keys (BYOK):
 
 1. Click **"API Keys"** button in character creation modal
 2. Enter API keys for desired services
@@ -340,7 +347,7 @@ holoscript_sketchfab_api_key  → Sketchfab
 | Test Cases Added | 1 |
 | Development Time | 4.5 hours |
 | API Integrations | 4 (Meshy, Rodin, Mixamo, Sketchfab) |
-| Architecture Model | BYOK (Bring Your Own Keys) |
+| Architecture Model | HoloScript Cloud (Pro) + BYOK (AI orchestrations) |
 
 ---
 
@@ -440,15 +447,20 @@ holoscript_sketchfab_api_key  → Sketchfab
 ### ✅ Complete Implementation
 
 **6 Creation Paths + Settings Panel:**
-- 🟢 **FREE:** Preset Models, Upload, VRoid (fully functional, no keys needed)
-- 🔑 **BYOK:** AI Generate (Meshy/Rodin), Sketchfab (user's own API keys)
+- 🟢 **FREE (email sign-up):** Brittney AI + Preset Models, Upload, VRoid, all manual tools
+- 💰 **CLOUD TOKENS:** Pay-per-token Brittney cloud usage (scene gen, code assist, etc.)
+- ✨ **PRO:** Vision model for AI generation (characters, creatures, scenes, etc.)
+- 🔗 **INTEGRATIONS:** Sketchfab (third-party API key)
 - 📖 **GUIDE:** Mixamo (manual workflow with instructions)
 
-**Bring Your Own Keys (BYOK) Architecture:**
-- ✅ Settings panel for API key configuration
-- ✅ Browser-only localStorage (privacy-first)
-- ✅ No vendor lock-in, users control their integrations
-- ✅ Positioned as "the spatial IDE" (like VSCode/Cursor)
+**Revenue Architecture:**
+- ✅ Free tier: Brittney + all manual tools, everything works (email sign-up)
+- ✅ Cloud tokens: pay-per-token Brittney usage (primary revenue driver)
+- ✅ Marketplace: free for all users (revenue share — HoloScript takes commission)
+- ✅ Pro subscription: vision model + priority + premium assets + reduced commission
+- ✅ BYOK for AI orchestrations in Hololand (users bring own AI provider keys)
+- ✅ Settings panel for third-party and orchestration key configuration
+- ✅ Browser-only localStorage for BYOK keys (privacy-first)
 
 **Production-Ready Features:**
 - ✅ Robust error handling

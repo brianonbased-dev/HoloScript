@@ -50,7 +50,7 @@ export type {
   TaskProgress,
   TaskLog,
   CircuitState,
-  CircuitBreakerStatus,
+  CircuitBreakerStatus as CircuitBreakerStatusInfo,
   CircuitBreakerConfig,
   DegradedModeStatus,
   AgentMetrics,

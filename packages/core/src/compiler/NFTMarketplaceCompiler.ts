@@ -17,6 +17,7 @@
  */
 
 import type {
+import { CompilerBase } from './CompilerBase';
   NFTMarketplaceAST,
   NFTContract,
   MarketplaceConfig,
@@ -42,7 +43,8 @@ export interface NFTMarketplaceCompilerOptions {
   licenseType?: string;
 }
 
-export class NFTMarketplaceCompiler {
+export class NFTMarketplaceCompiler extends CompilerBase {
+  protected readonly compilerName = 'NFTMarketplaceCompiler';
   private options: Required<NFTMarketplaceCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
@@ -51,6 +53,7 @@ export class NFTMarketplaceCompiler {
   private currentSlot: number = 0;
 
   constructor(options: NFTMarketplaceCompilerOptions = {}) {
+    super();
     this.options = {
       solcVersion: options.solcVersion || '0.8.20',
       optimizer: options.optimizer || { enabled: true, runs: 200 },

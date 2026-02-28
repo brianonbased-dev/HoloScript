@@ -33,6 +33,7 @@ import type {
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { MATERIAL_PRESETS } from './R3FCompiler';
 import type { R3FMaterialProps } from '../traits/visual/types';
+import { CompilerBase } from './CompilerBase';
 
 // =============================================================================
 // TYPES
@@ -401,7 +402,8 @@ function generatePlaneGeometry(scale: [number, number, number]): GeometryData {
 // GLTF PIPELINE
 // =============================================================================
 
-export class GLTFPipeline {
+export class GLTFPipeline extends CompilerBase {
+  protected readonly compilerName = 'GLTFPipeline';
   private options: Required<GLTFPipelineOptions>;
   private compositor: TraitCompositor;
   private bufferData: number[] = [];
@@ -430,6 +432,7 @@ export class GLTFPipeline {
   };
 
   constructor(options: GLTFPipelineOptions = {}) {
+    super();
     this.options = {
       format: options.format ?? 'glb',
       dracoCompression: options.dracoCompression ?? false,
@@ -446,7 +449,8 @@ export class GLTFPipeline {
   /**
    * Compile a HoloScript composition to glTF format
    */
-  compile(composition: HoloComposition): GLTFExportResult {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): GLTFExportResult {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.reset();
 
     // Build glTF structure

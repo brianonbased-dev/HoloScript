@@ -33,6 +33,7 @@ import type {
   HoloEffects,
 } from '../parser/HoloCompositionTypes';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
+import { CompilerBase } from './CompilerBase';
 
 export interface PlayCanvasCompilerOptions {
   className?: string;
@@ -57,12 +58,14 @@ const SHAPE_TO_PRIMITIVE: Record<string, string> = {
   disc: 'plane',
 };
 
-export class PlayCanvasCompiler {
+export class PlayCanvasCompiler extends CompilerBase {
+  protected readonly compilerName = 'PlayCanvasCompiler';
   private options: Required<PlayCanvasCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
   constructor(options: PlayCanvasCompilerOptions = {}) {
+    super();
     this.options = {
       className: options.className || 'GeneratedScene',
       enablePhysics: options.enablePhysics ?? true,
@@ -71,7 +74,8 @@ export class PlayCanvasCompiler {
     };
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.lines = [];
     this.indentLevel = 0;
 

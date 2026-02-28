@@ -29,6 +29,7 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { generateTraitCode, getRequiredImports, getMinVisionOSVersion } from './VisionOSTraitMap';
+import { CompilerBase } from './CompilerBase';
 
 export interface VisionOSCompilerOptions {
   structName?: string;
@@ -36,12 +37,14 @@ export interface VisionOSCompilerOptions {
   useRealityComposerPro?: boolean;
 }
 
-export class VisionOSCompiler {
+export class VisionOSCompiler extends CompilerBase {
+  protected readonly compilerName = 'VisionOSCompiler';
   private options: Required<VisionOSCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
   constructor(options: VisionOSCompilerOptions = {}) {
+    super();
     this.options = {
       structName: options.structName || 'GeneratedScene',
       indent: options.indent || '    ',
@@ -49,7 +52,8 @@ export class VisionOSCompiler {
     };
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.lines = [];
     this.indentLevel = 0;
 

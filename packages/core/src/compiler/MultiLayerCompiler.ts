@@ -11,6 +11,7 @@ import type { HoloComposition, TraitInvocation } from '../parser/HoloComposition
 import { VRRCompiler, type VRRCompilationResult } from './VRRCompiler.js';
 import { ARCompiler, type ARCompilationResult } from './ARCompiler.js';
 import { BabylonCompiler } from './BabylonCompiler.js'; // Assuming standard VR target
+import { CompilerBase } from './CompilerBase';
 
 export interface MultiLayerCompilerOptions {
   targets: Array<'vr' | 'vrr' | 'ar'>;
@@ -27,14 +28,17 @@ export interface MultiLayerCompilationResult {
   errors: string[];
 }
 
-export class MultiLayerCompiler {
+export class MultiLayerCompiler extends CompilerBase {
+  protected readonly compilerName = 'MultiLayerCompiler';
   private options: MultiLayerCompilerOptions;
 
   constructor(options: MultiLayerCompilerOptions) {
+    super();
     this.options = options;
   }
 
-  compile(composition: HoloComposition): MultiLayerCompilationResult {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): MultiLayerCompilationResult {
+    this.validateCompilerAccess(agentToken, outputPath);
     const result: MultiLayerCompilationResult = {
       success: true,
       warnings: [],

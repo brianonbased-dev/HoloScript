@@ -19,6 +19,7 @@
  */
 
 import type {
+import { CompilerBase } from './CompilerBase';
   HoloComposition,
   HoloObjectDecl,
   HoloSpatialGroup,
@@ -160,7 +161,8 @@ export interface USDPhysicsScene {
 // USD PHYSICS COMPILER
 // =============================================================================
 
-export class USDPhysicsCompiler {
+export class USDPhysicsCompiler extends CompilerBase {
+  protected readonly compilerName = 'USDPhysicsCompiler';
   private options: Required<USDPhysicsCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
@@ -169,6 +171,7 @@ export class USDPhysicsCompiler {
   private materials: Map<string, USDMaterial> = new Map();
 
   constructor(options: USDPhysicsCompilerOptions = {}) {
+    super();
     this.options = {
       stageName: options.stageName ?? 'HoloScriptPhysicsStage',
       upAxis: options.upAxis ?? 'Z', // Isaac Sim default
@@ -390,7 +393,8 @@ export class USDPhysicsCompiler {
   /**
    * Compile HoloScript composition to USD ASCII with physics schemas
    */
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.lines = [];
     this.prims = [];
     this.joints = [];

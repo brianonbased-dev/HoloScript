@@ -16,6 +16,7 @@
  */
 
 import type {
+import { CompilerBase } from './CompilerBase';
   HoloComposition,
   HoloObjectDecl,
   HoloTemplate,
@@ -140,11 +141,13 @@ export interface DTDLObjectSchema {
   fields: Array<{ name: string; schema: DTDLSchema; displayName?: string }>;
 }
 
-export class DTDLCompiler {
+export class DTDLCompiler extends CompilerBase {
+  protected readonly compilerName = 'DTDLCompiler';
   private options: Required<DTDLCompilerOptions>;
   private generatedInterfaces: DTDLInterface[] = [];
 
   constructor(options: DTDLCompilerOptions = {}) {
+    super();
     this.options = {
       dtdlVersion: options.dtdlVersion ?? 3,
       namespace: options.namespace || 'dtmi:holoscript',
@@ -171,7 +174,8 @@ export class DTDLCompiler {
     return traits?.some((t) => this.getTraitName(t) === targetTrait) ?? false;
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.generatedInterfaces = [];
 
     // Generate interfaces for templates first (they're base types)

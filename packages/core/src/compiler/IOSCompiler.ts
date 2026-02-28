@@ -16,6 +16,7 @@
  */
 
 import type {
+import { CompilerBase } from './CompilerBase';
   HoloComposition,
   HoloObjectDecl,
   HoloLight,
@@ -39,12 +40,14 @@ export interface IOSCompileResult {
   infoPlist: string;
 }
 
-export class IOSCompiler {
+export class IOSCompiler extends CompilerBase {
+  protected readonly compilerName = 'IOSCompiler';
   private options: Required<IOSCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
   constructor(options: IOSCompilerOptions = {}) {
+    super();
     this.options = {
       className: options.className || 'GeneratedARScene',
       indent: options.indent || '    ',
@@ -55,7 +58,8 @@ export class IOSCompiler {
     };
   }
 
-  compile(composition: HoloComposition): IOSCompileResult {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): IOSCompileResult {
+    this.validateCompilerAccess(agentToken, outputPath);
     return {
       viewFile: this.generateViewFile(composition),
       sceneFile: this.generateSceneFile(composition),

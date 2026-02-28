@@ -8,6 +8,7 @@
  */
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
+import { CompilerBase } from './CompilerBase';
 
 export interface ARCompilerOptions {
   target: 'webxr' | 'ar.js';
@@ -29,17 +30,20 @@ export interface ARCompilationResult {
   errors: string[];
 }
 
-export class ARCompiler {
+export class ARCompiler extends CompilerBase {
+  protected readonly compilerName = 'ARCompiler';
   private options: ARCompilerOptions;
   private errors: string[] = [];
   private warnings: string[] = [];
   private generatedCode: string[] = [];
 
   constructor(options: ARCompilerOptions) {
+    super();
     this.options = options;
   }
 
-  compile(composition: HoloComposition): ARCompilationResult {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): ARCompilationResult {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.errors = [];
     this.warnings = [];
     this.generatedCode = [];

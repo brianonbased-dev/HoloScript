@@ -147,6 +147,7 @@
  */
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
+import { CompilerBase } from './CompilerBase';
 
 export interface VRRCompilerOptions {
   target: 'threejs' | 'babylonjs';
@@ -176,17 +177,20 @@ export interface VRRCompilationResult {
 }
 
 // Removed duplicate imports
-export class VRRCompiler {
+export class VRRCompiler extends CompilerBase {
+  protected readonly compilerName = 'VRRCompiler';
   private options: VRRCompilerOptions;
   private errors: string[] = [];
   private warnings: string[] = [];
   private generatedCode: string[] = [];
 
   constructor(options: VRRCompilerOptions) {
+    super();
     this.options = options;
   }
 
-  compile(composition: HoloComposition): VRRCompilationResult {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): VRRCompilationResult {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.errors = [];
     this.warnings = [];
     this.generatedCode = [];

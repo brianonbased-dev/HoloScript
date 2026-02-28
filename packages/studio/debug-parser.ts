@@ -10,16 +10,14 @@ async function test() {
   
   const parser = new HoloScriptPlusParser();
   const ast = parser.parse(raw);
-  
+
   console.log("AST Keys:", Object.keys(ast));
-  console.log("AST.body type:", typeof ast.body);
+  console.log("AST type:", typeof ast);
   console.log("Is ast an array?", Array.isArray(ast));
-  console.log("ast.length:", ast.length);
-  
-  if (Array.isArray(ast)) {
-    console.log("AST Items:", ast.length);
-  } else if (ast.body) {
-    console.log("AST.body length:", ast.body.length);
+
+  if ('root' in ast) {
+    console.log("AST.root type:", typeof ast.root);
+    console.log("AST.root:", ast.root);
   }
 }
 test().catch(e => console.error(e));

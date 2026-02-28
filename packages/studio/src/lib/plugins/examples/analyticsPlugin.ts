@@ -13,9 +13,9 @@ export const analyticsPlugin: HoloScriptPlugin = {
     description: 'Real-time analytics and metrics visualization for your HoloScript projects',
     author: {
       name: 'HoloScript Team',
-      email: 'team@holoscript.xyz',
+      email: 'team@holoscript.net',
     },
-    homepage: 'https://holoscript.xyz/plugins/analytics',
+    homepage: 'https://holoscript.net/plugins/analytics',
     license: 'MIT',
     keywords: ['analytics', 'metrics', 'dashboard', 'visualization'],
     icon: 'BarChart2',

@@ -94,7 +94,7 @@ export function TaskMonitor({
         </div>
       )}
 
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .task-monitor {
           padding: 16px;
           border: 1px solid #e0e0e0;
@@ -241,7 +241,7 @@ export function TaskMonitor({
         .task-monitor__log-message {
           color: #333;
         }
-      `}</style>
+      ` }} />
     </div>
   );
 }

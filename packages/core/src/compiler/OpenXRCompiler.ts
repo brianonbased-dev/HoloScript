@@ -18,6 +18,7 @@
  */
 
 import type {
+import { CompilerBase } from './CompilerBase';
   HoloComposition,
   HoloObjectDecl,
   HoloSpatialGroup,
@@ -35,12 +36,14 @@ export interface OpenXRCompilerOptions {
   indent?: string;
 }
 
-export class OpenXRCompiler {
+export class OpenXRCompiler extends CompilerBase {
+  protected readonly compilerName = 'OpenXRCompiler';
   private options: Required<OpenXRCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
   constructor(options: OpenXRCompilerOptions = {}) {
+    super();
     this.options = {
       appName: options.appName || 'HoloScriptApp',
       renderBackend: options.renderBackend || 'vulkan',
@@ -50,7 +53,8 @@ export class OpenXRCompiler {
     };
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.lines = [];
     this.indentLevel = 0;
 

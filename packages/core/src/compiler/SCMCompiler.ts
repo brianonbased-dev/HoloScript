@@ -8,6 +8,7 @@
  */
 
 import type {
+import { CompilerBase } from './CompilerBase';
   HoloComposition,
   HoloObjectDecl,
   HoloSpatialGroup
@@ -49,12 +50,14 @@ export interface SCMDAG {
   edges: SCMEdge[];
 }
 
-export class SCMCompiler {
+export class SCMCompiler extends CompilerBase {
+  protected readonly compilerName = 'SCMCompiler';
   private options: Required<SCMCompilerOptions>;
   private nodes: SCMNode[] = [];
   private edges: SCMEdge[] = [];
 
   constructor(options: SCMCompilerOptions = {}) {
+    super();
     this.options = {
       modelName: options.modelName || 'HoloScript_SCM_DAG',
       affectiveContext: options.affectiveContext || { valence: 0, arousal: 0, dominantEmotion: 'calm' },
@@ -71,7 +74,8 @@ export class SCMCompiler {
     return obj.traits?.some((t) => this.getTraitName(t) === traitName) ?? false;
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.nodes = [];
     this.edges = [];
 

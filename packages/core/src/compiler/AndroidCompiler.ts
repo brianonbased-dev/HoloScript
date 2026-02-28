@@ -15,6 +15,7 @@
  */
 
 import type { HoloComposition, HoloObjectDecl, HoloValue } from '../parser/HoloCompositionTypes';
+import { CompilerBase } from './CompilerBase';
 
 export interface AndroidCompilerOptions {
   packageName?: string;
@@ -35,12 +36,14 @@ export interface AndroidCompileResult {
   buildGradle: string;
 }
 
-export class AndroidCompiler {
+export class AndroidCompiler extends CompilerBase {
+  protected readonly compilerName = 'AndroidCompiler';
   private options: Required<AndroidCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
   constructor(options: AndroidCompilerOptions = {}) {
+    super();
     this.options = {
       packageName: options.packageName || 'com.holoscript.generated',
       className: options.className || 'GeneratedARScene',
@@ -53,7 +56,8 @@ export class AndroidCompiler {
     };
   }
 
-  compile(composition: HoloComposition): AndroidCompileResult {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): AndroidCompileResult {
+    this.validateCompilerAccess(agentToken, outputPath);
     return {
       activityFile: this.generateActivityFile(composition),
       stateFile: this.generateStateFile(composition),

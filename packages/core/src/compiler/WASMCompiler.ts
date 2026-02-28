@@ -15,6 +15,7 @@
 
 import type { HoloComposition, HoloObjectDecl, HoloState } from '../parser/HoloCompositionTypes';
 import type { HSPlusAST, HSPlusNode } from '../types/HoloScriptPlus';
+import { CompilerBase } from './CompilerBase';
 
 // =============================================================================
 // TYPES
@@ -101,7 +102,8 @@ type WASMValueType = 'i32' | 'i64' | 'f32' | 'f64';
 // WASM COMPILER
 // =============================================================================
 
-export class WASMCompiler {
+export class WASMCompiler extends CompilerBase {
+  protected readonly compilerName = 'WASMCompiler';
   private options: Required<WASMCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
@@ -127,6 +129,7 @@ export class WASMCompiler {
   };
 
   constructor(options: WASMCompilerOptions = {}) {
+    super();
     this.options = {
       format: options.format || 'wat',
       debug: options.debug ?? false,
@@ -145,7 +148,8 @@ export class WASMCompiler {
   /**
    * Compile HoloComposition AST to WASM
    */
-  compile(composition: HoloComposition): WASMCompileResult {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): WASMCompileResult {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.reset();
 
     // Analyze composition

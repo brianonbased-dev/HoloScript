@@ -15,6 +15,7 @@
  */
 
 import type {
+import { CompilerBase } from './CompilerBase';
   HoloComposition,
   HoloObjectDecl,
   HoloEnvironment,
@@ -39,7 +40,8 @@ export interface VRChatCompileResult {
   worldDescriptor: string;
 }
 
-export class VRChatCompiler {
+export class VRChatCompiler extends CompilerBase {
+  protected readonly compilerName = 'VRChatCompiler';
   private options: Required<VRChatCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
@@ -47,6 +49,7 @@ export class VRChatCompiler {
   private interactableObjects: string[] = [];
 
   constructor(options: VRChatCompilerOptions = {}) {
+    super();
     this.options = {
       namespace: options.namespace || 'HoloWorld',
       className: options.className || 'GeneratedWorld',
@@ -57,7 +60,8 @@ export class VRChatCompiler {
     };
   }
 
-  compile(composition: HoloComposition): VRChatCompileResult {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): VRChatCompileResult {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.lines = [];
     this.udonScripts.clear();
     this.interactableObjects = [];

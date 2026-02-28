@@ -2,7 +2,11 @@
  * InferenceRouter — Multi-Provider LLM Inference
  *
  * Routes Brittney chat requests to the best available inference provider.
- * Primary: Fireworks AI (GPU) | Fallback: Together AI | Dev: Ollama (local)
+ * 
+ * Tiers:
+ *   - pro:      Kimi K2.5 (1T MoE, 32B active) — advanced reasoning, vision, agentic
+ *   - standard: Fireworks (Qwen2.5-Coder-7B fine-tuned) — fast, cheap, code-optimized
+ *   - fallback: Together AI, Ollama (local dev)
  *
  * All providers implement the same InferenceProvider interface and return
  * an async generator of SSE-compatible events.
@@ -26,6 +30,7 @@ export interface ChatRequest {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  tier?: 'pro' | 'standard';
 }
 
 export interface ToolDefinition {
@@ -126,7 +131,7 @@ class FireworksProvider implements InferenceProvider {
       return;
     }
 
-    yield* this.parseOpenAIStream(response.body);
+    yield* parseOpenAIStream(response.body);
   }
 
   private buildMessages(request: ChatRequest): ChatMessage[] {
@@ -135,61 +140,121 @@ class FireworksProvider implements InferenceProvider {
       : BRITTNEY_SYSTEM_PROMPT;
     return [{ role: 'system', content: systemMsg }, ...request.messages];
   }
+}
 
-  private async *parseOpenAIStream(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamEvent> {
-    const reader = body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let pendingToolCall: { name: string; argsBuf: string } | null = null;
+// ============================================================================
+// Shared OpenAI-compatible SSE parser (used by Fireworks, Kimi, Together)
+// ============================================================================
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+async function* parseOpenAIStream(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamEvent> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let pendingToolCall: { name: string; argsBuf: string } | null = null;
 
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
 
-      for (const line of lines) {
-        const trimmed = line.replace(/^data: /, '').trim();
-        if (!trimmed || trimmed === '[DONE]') {
-          if (trimmed === '[DONE]') {
-            if (pendingToolCall) {
-              try {
-                yield { type: 'tool_call', payload: { name: pendingToolCall.name, arguments: JSON.parse(pendingToolCall.argsBuf || '{}') } };
-              } catch { /* ignore */ }
-              pendingToolCall = null;
-            }
-            yield { type: 'done', payload: null };
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      const trimmed = line.replace(/^data: /, '').trim();
+      if (!trimmed || trimmed === '[DONE]') {
+        if (trimmed === '[DONE]') {
+          if (pendingToolCall) {
+            try {
+              yield { type: 'tool_call', payload: { name: pendingToolCall.name, arguments: JSON.parse(pendingToolCall.argsBuf || '{}') } };
+            } catch { /* ignore */ }
+            pendingToolCall = null;
           }
-          continue;
+          yield { type: 'done', payload: null };
         }
-        try {
-          const chunk = JSON.parse(trimmed);
-          const delta = chunk.choices?.[0]?.delta;
-          if (!delta) continue;
+        continue;
+      }
+      try {
+        const chunk = JSON.parse(trimmed);
+        const delta = chunk.choices?.[0]?.delta;
+        if (!delta) continue;
 
-          if (delta.content) {
-            yield { type: 'text', payload: delta.content };
-          }
+        if (delta.content) {
+          yield { type: 'text', payload: delta.content };
+        }
 
-          if (delta.tool_calls?.length) {
-            for (const tc of delta.tool_calls) {
-              if (tc.function?.name) {
-                if (pendingToolCall) {
-                  try {
-                    yield { type: 'tool_call', payload: { name: pendingToolCall.name, arguments: JSON.parse(pendingToolCall.argsBuf || '{}') } };
-                  } catch { /* ignore */ }
-                }
-                pendingToolCall = { name: tc.function.name, argsBuf: tc.function.arguments ?? '' };
-              } else if (pendingToolCall && tc.function?.arguments) {
-                pendingToolCall.argsBuf += tc.function.arguments;
+        if (delta.tool_calls?.length) {
+          for (const tc of delta.tool_calls) {
+            if (tc.function?.name) {
+              if (pendingToolCall) {
+                try {
+                  yield { type: 'tool_call', payload: { name: pendingToolCall.name, arguments: JSON.parse(pendingToolCall.argsBuf || '{}') } };
+                } catch { /* ignore */ }
               }
+              pendingToolCall = { name: tc.function.name, argsBuf: tc.function.arguments ?? '' };
+            } else if (pendingToolCall && tc.function?.arguments) {
+              pendingToolCall.argsBuf += tc.function.arguments;
             }
           }
-        } catch { /* partial line */ }
-      }
+        }
+      } catch { /* partial line */ }
     }
+  }
+}
+
+// ============================================================================
+// Kimi K2.5 Provider (Brittney Pro — via Fireworks serverless)
+// ============================================================================
+
+class KimiProvider implements InferenceProvider {
+  name = 'kimi';
+  private apiKey: string;
+  private model: string;
+
+  constructor() {
+    this.apiKey = process.env.FIREWORKS_API_KEY || '';
+    this.model = process.env.KIMI_MODEL || 'accounts/fireworks/models/kimi-k2p5';
+  }
+
+  async isAvailable(): Promise<boolean> {
+    return this.apiKey.length > 0;
+  }
+
+  async *stream(request: ChatRequest): AsyncGenerator<StreamEvent> {
+    const systemMsg = request.sceneContext
+      ? `${BRITTNEY_SYSTEM_PROMPT}\n\nCurrent scene:\n${request.sceneContext}`
+      : BRITTNEY_SYSTEM_PROMPT;
+
+    const body: Record<string, unknown> = {
+      model: request.model || this.model,
+      stream: true,
+      messages: [{ role: 'system', content: systemMsg }, ...request.messages],
+      temperature: request.temperature ?? 0.7,
+      max_tokens: request.maxTokens ?? 4096,
+    };
+
+    if (request.tools?.length) {
+      body.tools = request.tools;
+    }
+
+    // Kimi K2.5 is served through Fireworks API (same OpenAI-compatible endpoint)
+    const response = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok || !response.body) {
+      yield { type: 'error', payload: `Kimi K2.5 error: ${response.status} ${response.statusText}` };
+      yield { type: 'done', payload: null };
+      return;
+    }
+
+    // Same OpenAI-compatible SSE format
+    yield* parseOpenAIStream(response.body);
   }
 }
 
@@ -244,8 +309,7 @@ class TogetherProvider implements InferenceProvider {
     }
 
     // Together uses the same OpenAI-compatible format
-    const fireworks = new FireworksProvider();
-    yield* (fireworks as any).parseOpenAIStream(response.body);
+    yield* parseOpenAIStream(response.body);
   }
 }
 
@@ -334,10 +398,12 @@ class OllamaLocalProvider implements InferenceProvider {
 
 export class InferenceRouter {
   private providers: InferenceProvider[];
+  private proProvider: InferenceProvider;
   private preferredProvider: string;
 
   constructor() {
     this.preferredProvider = process.env.BRITTNEY_PROVIDER || 'fireworks';
+    this.proProvider = new KimiProvider();
     this.providers = [
       new FireworksProvider(),
       new TogetherProvider(),
@@ -346,10 +412,22 @@ export class InferenceRouter {
   }
 
   /**
-   * Stream a chat response from the best available provider
+   * Stream a chat response, routing by tier
+   *   - pro:      Kimi K2.5 (falls back to standard if unavailable)
+   *   - standard: preferred provider → any available
    */
   async *chat(request: ChatRequest): AsyncGenerator<StreamEvent> {
-    // Try preferred provider first
+    // Pro tier: route to Kimi K2.5
+    if (request.tier === 'pro') {
+      if (await this.proProvider.isAvailable()) {
+        logger.info(`[InferenceRouter] Pro tier → ${this.proProvider.name}`);
+        yield* this.proProvider.stream(request);
+        return;
+      }
+      logger.warn(`[InferenceRouter] Pro tier unavailable, falling back to standard`);
+    }
+
+    // Standard tier: try preferred provider first
     const preferred = this.providers.find(p => p.name === this.preferredProvider);
     if (preferred && await preferred.isAvailable()) {
       logger.info(`[InferenceRouter] Using ${preferred.name}`);
@@ -371,12 +449,14 @@ export class InferenceRouter {
   }
 
   /**
-   * Get status of all providers
+   * Get status of all providers including pro tier
    */
-  async getStatus(): Promise<{ provider: string; available: boolean }[]> {
-    const results = [];
+  async getStatus(): Promise<{ provider: string; available: boolean; tier: string }[]> {
+    const results: { provider: string; available: boolean; tier: string }[] = [
+      { provider: this.proProvider.name, available: await this.proProvider.isAvailable(), tier: 'pro' },
+    ];
     for (const p of this.providers) {
-      results.push({ provider: p.name, available: await p.isAvailable() });
+      results.push({ provider: p.name, available: await p.isAvailable(), tier: 'standard' });
     }
     return results;
   }

@@ -17,6 +17,7 @@
  */
 
 import type {
+import { CompilerBase } from './CompilerBase';
   HoloComposition,
   HoloObjectDecl,
   HoloSpatialGroup,
@@ -42,12 +43,14 @@ export interface SDFCompilerOptions {
   meshPathPrefix?: string;
 }
 
-export class SDFCompiler {
+export class SDFCompiler extends CompilerBase {
+  protected readonly compilerName = 'SDFCompiler';
   private options: Required<SDFCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
   constructor(options: SDFCompilerOptions = {}) {
+    super();
     this.options = {
       worldName: options.worldName || 'holoscript_world',
       sdfVersion: options.sdfVersion || '1.8',
@@ -59,7 +62,8 @@ export class SDFCompiler {
     };
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
     this.lines = [];
     this.indentLevel = 0;
 
