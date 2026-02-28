@@ -14,7 +14,7 @@ import ReactFlow, {
   useNodesState, useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Play, Save, Workflow, X, GitBranch, Repeat, Layers, GitMerge, BookTemplate, Undo, Redo } from 'lucide-react';
+import { Play, Save, Workflow, X, GitBranch, Repeat, Layers, GitMerge, BookTemplate, Undo, Redo, History } from 'lucide-react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
 import type { WorkflowNode, AgentNodeData, ToolNodeData, DecisionNodeData, LoopNodeData, ParallelNodeData, MergeNodeData } from '@/lib/orchestrationStore';
 import { TemplateBrowserPanel } from './TemplateBrowserPanel';
@@ -33,6 +33,7 @@ import { CollaborationToolbar } from '@/components/collaboration/CollaborationTo
 import { UserCursors } from '@/components/collaboration/UserCursor';
 import { usePresence } from '@/hooks/usePresence';
 import type { User } from '@/lib/collaboration/types';
+import { VersionControlPanel } from '@/components/versionControl/VersionControlPanel';
 
 // Node component for Agent nodes
 function AgentNode({ data }: { data: AgentNodeData }) {
@@ -149,6 +150,7 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
   const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
+  const [showVersionControl, setShowVersionControl] = useState(false);
 
   // Mock current user (in production, this would come from auth)
   const currentUser: User = {
@@ -312,6 +314,28 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
     }
   };
 
+  const handleRevertWorkflow = (revertedWorkflow: any) => {
+    // Update nodes and edges from reverted workflow
+    setNodes(
+      revertedWorkflow.nodes.map((n: any) => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: n.data,
+      }))
+    );
+    setEdges(revertedWorkflow.edges);
+
+    // Update workflow in store
+    if (workflow) {
+      updateWorkflow(workflow.id, {
+        nodes: revertedWorkflow.nodes,
+        edges: revertedWorkflow.edges,
+        metadata: revertedWorkflow.metadata,
+      });
+    }
+  };
+
   if (!workflow) {
     return (
       <div className="flex h-full items-center justify-center text-studio-muted">
@@ -330,6 +354,15 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
             console.log(`[WorkflowEditor] Loaded template: ${templateId} (${type})`);
             setShowTemplateBrowser(false);
           }}
+        />
+      )}
+
+      {/* Version Control */}
+      {showVersionControl && (
+        <VersionControlPanel
+          workflow={workflow}
+          onClose={() => setShowVersionControl(false)}
+          onRevert={handleRevertWorkflow}
         />
       )}
 
@@ -420,6 +453,18 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
         >
           <Save className="inline h-3 w-3 mr-1" />
           Save
+        </button>
+        <button
+          onClick={() => setShowVersionControl(!showVersionControl)}
+          className={`rounded px-2 py-1 text-[9px] flex-shrink-0 ${
+            showVersionControl
+              ? 'bg-emerald-500/20 text-emerald-400'
+              : 'bg-studio-surface text-studio-muted hover:bg-studio-border'
+          }`}
+          title="Version Control"
+        >
+          <History className="inline h-3 w-3 mr-1" />
+          Versions
         </button>
         <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text flex-shrink-0">
           <X className="h-4 w-4" />
