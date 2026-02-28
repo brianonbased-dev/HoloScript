@@ -9,10 +9,9 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import React from 'react';
 
 const { useCharacterStore } = await import('@/lib/store');
-const { BUILTIN_ITEMS } = await import('@/components/character/WardrobePanel');
+const { BUILTIN_ITEMS } = await import('@/data/wardrobeItems');
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -129,9 +128,9 @@ describe('Scenario: Wardrobe System — Built-in Catalogue', () => {
     expect(BUILTIN_ITEMS.length).toBe(20);
   });
 
-  it('covers 5 unique slot types', () => {
+  it('covers 6 unique slot types', () => {
     const slots = new Set(BUILTIN_ITEMS.map((i) => i.slot));
-    expect(slots.size).toBe(5);
+    expect(slots.size).toBe(6);
   });
 
   it('has 4 hair items', () => {

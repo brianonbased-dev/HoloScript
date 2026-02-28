@@ -654,6 +654,243 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
   }
 }`,
   },
+  {
+    id: 'swim-center',
+    name: 'Olympic Swimming Pool',
+    emoji: '🏊',
+    category: 'sports',
+    desc: 'Competitive pool with lanes, diving board, and timing system',
+    tags: ['Sports', 'Swimming', 'Competition'],
+    code: `world "Olympic Swimming Pool" {
+  @setting("aquatic_center")
+  @skybox("clear_day")
+  @lighting("bright_natural")
+  @max_players(16)
+
+  object "Pool" { @position(0, -1, 0) @size(50, 2, 25) @fluid_sim @lanes(8) }
+  object "StartBlocks" { @count(8) @grid(8, 1) @spacing(3.125) @interactive }
+  object "DivingBoard_Low" { @position(-20, 3, 0) @interactive @physics_object }
+  object "DivingBoard_High" { @position(-20, 10, 0) @interactive @physics_object }
+  object "TimingBoard" { @position(25, 4, -13) @ui_element @race_timer }
+  object "SpectatorBleachers" { @position(0, 2, -15) @seating(200) }
+  object "WaterFountain" { @position(28, 0, 0) @interactive }
+
+  game_logic {
+    @race_system
+    @lane_tracking
+    @split_times
+    @photo_finish
+  }
+}`,
+  },
+  {
+    id: 'climbing-wall',
+    name: 'Indoor Climbing Wall',
+    emoji: '🧗',
+    category: 'sports',
+    desc: 'Bouldering and lead climbing with route grading',
+    tags: ['Sports', 'Climbing', 'Fitness'],
+    code: `world "Climbing Center" {
+  @setting("indoor_sports")
+  @skybox("neutral")
+  @lighting("bright_natural")
+  @max_players(12)
+
+  object "BoulderWall_A" { @position(-8, 0, -5) @size(10, 5, 0.5) @climbable @route(grade: "V3") }
+  object "BoulderWall_B" { @position(0, 0, -5) @size(10, 5, 0.5) @climbable @route(grade: "V5") }
+  object "LeadWall" { @position(8, 0, -5) @size(6, 15, 0.5) @climbable @route(grade: "5.11a") @rope }
+  object "CrashPad" { @position(0, 0, -3) @size(28, 0.5, 8) @physics(restitution: 0.8) }
+  object "ChalkBag" { @position(-12, 1, 0) @interactive @pickup }
+  object "TimerDisplay" { @position(0, 8, -5.5) @ui_element @speed_timer }
+
+  game_logic {
+    @route_tracker
+    @send_counter
+    @achievement_system
+    @leaderboard("fastest_ascent")
+  }
+}`,
+  },
+
+  // ── ART (Additional) ────────────────────────────────────────────────────
+  {
+    id: 'sculpture-garden',
+    name: 'Immersive Sculpture Garden',
+    emoji: '🗿',
+    category: 'art',
+    desc: 'Outdoor sculpture park with interactive installations and ambient audio',
+    tags: ['Art', 'Sculpture', 'Immersive'],
+    code: `world "Sculpture Garden" {
+  @setting("garden")
+  @skybox("golden_hour")
+  @lighting("warm_natural")
+  @max_players(30)
+
+  object "SculptureA" { @position(-8, 0, 0) @pedestal @interactive @rotate_drag @glow }
+  object "SculptureB" { @position(0, 0, -6) @pedestal @interactive @clickable @audio_reactive }
+  object "SculptureC" { @position(8, 0, 0) @pedestal @interactive @particle_emitter(type: "sparkle") }
+  object "WaterFeature" { @position(0, 0, 6) @fluid_sim @ambient(sound: "water_flow.mp3") }
+  object "PathLights" { @count(20) @along_path @emissive @timed(on_at: "dusk") }
+  object "BenchRow" { @position(0, 0, 10) @count(4) @spacing(4) @seating(1) }
+  object "InfoKiosk" { @position(-12, 0, 0) @interactive @readable @context_sensitive }
+  object "AmbientSoundscape" { @ambient(sound: "birds_garden.mp3", blend_radius: 40) }
+}`,
+  },
+  {
+    id: 'music-visualizer',
+    name: 'Music Visualizer World',
+    emoji: '🎵',
+    category: 'art',
+    desc: 'Audio-reactive 3D environment with beat-driven geometry',
+    tags: ['Art', 'Music', 'Generative'],
+    code: `world "Music Visualizer" {
+  @setting("void")
+  @skybox("nebula")
+  @lighting("dynamic_neon")
+  @max_players(100)
+
+  object "WaveformRing" { @position(0, 2, 0) @audio_reactive(source: "mic", property: "scale") @count(64) @circular }
+  object "BeatSphere" { @position(0, 5, 0) @audio_reactive(source: "mic", property: "emissive") @glowing(color: "#ff00ff") }
+  object "FrequencyBars" { @count(32) @grid(32, 1) @spacing(0.5) @audio_reactive(source: "mic", property: "scale_y") }
+  object "ParticleField" { @particle_emitter(type: "sparkle", rate: 200) @audio_reactive(source: "mic", property: "rate") }
+  object "FloorGrid" { @position(0, 0, 0) @size(50, 0.01, 50) @reflective(roughness: 0.1) @emissive(color: "#001133") }
+  object "CameraOrbit" { @orbital @auto_rotate }
+
+  game_logic {
+    @audio_analysis
+    @beat_detection
+    @color_cycle
+  }
+}`,
+  },
+
+  // ── SOCIAL (Additional) ──────────────────────────────────────────────────
+  {
+    id: 'coworking-space',
+    name: 'Virtual Co-Working Space',
+    emoji: '💼',
+    category: 'social',
+    desc: 'Collaborative workspace with meeting rooms, whiteboards, and video screens',
+    tags: ['Social', 'Work', 'Collaboration'],
+    code: `world "Co-Working Space" {
+  @setting("modern_office")
+  @skybox("city_skyline")
+  @lighting("bright_natural")
+  @max_players(30)
+
+  object "OpenDesk" { @count(12) @grid(4, 3) @spacing(3) @seating(1) @interactive }
+  object "MeetingRoom_A" { @position(-10, 0, -8) @room @size(6, 3, 6) @door @whiteboard }
+  object "MeetingRoom_B" { @position(10, 0, -8) @room @size(6, 3, 6) @door @media_player }
+  object "Whiteboard" { @position(-10, 1.5, -10.5) @writable @interactive @synced }
+  object "ScreenShare" { @position(10, 2, -10.5) @media_player @synced @size(3, 2, 0.05) }
+  object "CoffeeStation" { @position(0, 0, 8) @interactive @emote("sip") }
+  object "Lounge" { @position(12, 0, 5) @seating(4) @ambient(sound: "lofi_music.mp3") }
+  object "Clock" { @position(0, 3, -12) @ui_element @real_time }
+
+  game_logic {
+    @proximity_voice
+    @screen_sharing
+    @do_not_disturb_toggle
+  }
+}`,
+  },
+
+  // ── EDUCATION (Additional) ────────────────────────────────────────────────
+  {
+    id: 'planetarium',
+    name: 'VR Planetarium',
+    emoji: '🌌',
+    category: 'education',
+    desc: 'Interactive solar system with orbital mechanics and constellation overlays',
+    tags: ['Education', 'Space', 'Astronomy'],
+    code: `world "VR Planetarium" {
+  @setting("space")
+  @skybox("starfield")
+  @lighting("space_ambient")
+  @max_players(20)
+
+  object "Sun" { @position(0, 0, 0) @emissive(color: "#ffcc00", power: 500) @size(10, 10, 10) }
+  object "Mercury" { @orbital(radius: 15, speed: 4.15) @size(0.38, 0.38, 0.38) @interactive }
+  object "Venus" { @orbital(radius: 20, speed: 1.62) @size(0.95, 0.95, 0.95) @interactive }
+  object "Earth" { @orbital(radius: 30, speed: 1) @size(1, 1, 1) @interactive }
+  object "Mars" { @orbital(radius: 40, speed: 0.53) @size(0.53, 0.53, 0.53) @interactive }
+  object "Jupiter" { @orbital(radius: 60, speed: 0.084) @size(11, 11, 11) @interactive }
+  object "ConstellationOverlay" { @transparent(opacity: 0.3) @toggle @layer("constellations") }
+  object "InfoPanel" { @position(0, 5, -20) @ui_element @context_sensitive }
+
+  game_logic {
+    @time_warp(speed_range: [1, 1000000])
+    @planet_facts
+    @quiz_mode
+    @scale_toggle
+  }
+}`,
+  },
+
+  // ── HEALTHCARE (Additional) ───────────────────────────────────────────────
+  {
+    id: 'rehab-center',
+    name: 'Physical Rehab Center',
+    emoji: '🦽',
+    category: 'healthcare',
+    desc: 'VR rehabilitation with guided exercises and progress tracking',
+    tags: ['Healthcare', 'Rehab', 'Physiotherapy'],
+    code: `world "Rehab Center" {
+  @setting("therapy_room")
+  @skybox("peaceful")
+  @lighting("soft_warm")
+  @max_players(4)
+
+  object "ExerciseMat" { @position(0, 0, 0) @count(4) @spacing(3) @interactive }
+  object "BalanceBoard" { @position(-4, 0.1, 0) @interactive @physics @sensor(type: "balance") }
+  object "ResistanceBand" { @position(0, 1, 2) @interactive @physics @stretch_sim }
+  object "Mirror" { @position(0, 1.5, -5) @reflective @size(6, 3, 0.1) }
+  object "ProgressBoard" { @position(4, 2, -5) @ui_element @patient_metrics }
+  object "GuidedExercise" { @position(0, 2, 0) @ui_element @video_overlay @step_through }
+
+  npc "Therapist" { @position(3, 0, 2) @dialogue("rehab_protocol") @role("Instructor") }
+
+  game_logic {
+    @rep_tracking
+    @range_of_motion
+    @pain_scale_input
+    @progress_chart
+  }
+}`,
+  },
+
+  // ── E-COMMERCE (Additional) ───────────────────────────────────────────────
+  {
+    id: 'real-estate-tour',
+    name: 'Virtual Property Tour',
+    emoji: '🏠',
+    category: 'ecommerce',
+    desc: 'Walkable real estate showroom with room annotations and mortgage calculator',
+    tags: ['E-commerce', 'Real Estate', 'Virtual Tour'],
+    code: `world "Property Tour" {
+  @setting("suburban_house")
+  @skybox("clear_day")
+  @lighting("natural_warm")
+  @max_players(4)
+
+  object "LivingRoom" { @room @position(0, 0, 0) @size(8, 3, 6) @walkable }
+  object "Kitchen" { @room @position(10, 0, 0) @size(6, 3, 6) @walkable @interactive }
+  object "Bedroom_Master" { @room @position(0, 0, -10) @size(6, 3, 5) @walkable }
+  object "Bedroom_2" { @room @position(8, 0, -10) @size(5, 3, 4) @walkable }
+  object "Bathroom" { @room @position(-6, 0, -10) @size(4, 3, 4) }
+  object "Garden" { @position(0, 0, 10) @outdoor @size(12, 0, 8) }
+  object "InfoAnnotation" { @count(15) @auto_place @readable @context_sensitive }
+  object "FloorPlanToggle" { @ui_element @minimap @toggle }
+  object "MortgageCalc" { @ui_element @interactive @calculator }
+
+  game_logic {
+    @guided_tour
+    @measurement_tool
+    @favorite_rooms
+    @share_link
+  }
+}`,
+  },
 ];
 
 export const TEMPLATE_CATEGORIES = [
