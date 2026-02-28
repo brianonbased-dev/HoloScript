@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Glasses, Upload, Zap, BarChart2, X, BookOpen, HelpCircle, Sparkles, Server, Workflow, GitBranch, Users, Activity } from 'lucide-react';
+import { ArrowLeft, Glasses, Upload, Zap, BarChart2, X, BookOpen, HelpCircle, Sparkles, Server, Workflow, GitBranch, Users, Activity, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAIStore, useSceneStore, useEditorStore } from '@/lib/store';
@@ -29,6 +29,9 @@ const DesktopAgentEnsemble = dynamic(() => import('@/components/orchestration').
 const AgentEventMonitorPanel = dynamic(() => import('@/components/orchestration').then((m) => ({ default: m.AgentEventMonitorPanel })), { ssr: false });
 const ToolCallGraphVisualizer = dynamic(() => import('@/components/orchestration').then((m) => ({ default: m.ToolCallGraphVisualizer })), { ssr: false });
 
+// Marketplace
+const MarketplacePanel = dynamic(() => import('@/components/marketplace').then((m) => ({ default: m.MarketplacePanel })), { ssr: false });
+
 export function StudioHeader() {
   const ollamaStatus = useAIStore((s) => s.ollamaStatus);
   const metadata = useSceneStore((s) => s.metadata);
@@ -56,6 +59,7 @@ export function StudioHeader() {
   const [agentEnsembleOpen, setAgentEnsembleOpen] = useState(false);
   const [eventMonitorOpen, setEventMonitorOpen] = useState(false);
   const [toolCallGraphOpen, setToolCallGraphOpen] = useState(false);
+  const [marketplaceOpen, setMarketplaceOpen] = useState(false);
 
   // ── First-launch detection ──────────────────────────────────────────────────
   useEffect(() => {
@@ -172,6 +176,16 @@ export function StudioHeader() {
         >
           <Sparkles className="h-3.5 w-3.5" />
           <span className="hidden lg:inline">Prompts</span>
+        </button>
+
+        {/* ── Marketplace button ─────────────────────────────── */}
+        <button
+          onClick={() => setMarketplaceOpen(true)}
+          title="Content Marketplace"
+          className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-emerald-500/40 hover:text-emerald-400"
+        >
+          <ShoppingBag className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Marketplace</span>
         </button>
 
         {/* ── Help / Tour button ─────────────────────────────── */}
@@ -422,6 +436,11 @@ export function StudioHeader() {
       <div className="fixed right-0 top-12 bottom-0 z-40 w-96 border-l border-studio-border shadow-2xl">
         <ToolCallGraphVisualizer onClose={() => setToolCallGraphOpen(false)} />
       </div>
+    )}
+
+    {/* Marketplace (full-screen modal) */}
+    {marketplaceOpen && (
+      <MarketplacePanel onClose={() => setMarketplaceOpen(false)} />
     )}
   </>
   );
