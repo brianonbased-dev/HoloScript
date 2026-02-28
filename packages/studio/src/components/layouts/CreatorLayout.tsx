@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSceneStore, useCharacterStore } from '@/lib/store';
 import { SCENE_TEMPLATES, TEMPLATE_CATEGORIES } from '@/data/sceneTemplates';
 import { QuickStartWizard } from '@/components/wizard/QuickStartWizard';
-import { CharacterCreationModal, type CharacterMetadata } from '@/components/character/CharacterCreationModal';
+import { CharacterCreationModal, type CharacterMetadata } from '@/components/character/creation/CharacterCreationModal';
 import { PlaytestBar } from '@/components/playtest/PlaytestBar';
 import { ContextMenu } from '@/components/ui/ContextMenu';
 import { SimplePropertyInspector } from '@/components/ui/SimplePropertyInspector';

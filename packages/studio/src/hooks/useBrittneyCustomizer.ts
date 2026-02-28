@@ -16,7 +16,7 @@
 import { useCallback, useState } from 'react';
 import { useCharacterStore } from '@/lib/store';
 import { parseCharacterIntent, executeCharacterIntent, type CharacterIntent } from '@/lib/brittney/CharacterIntentParser';
-import { BUILTIN_ITEMS } from '@/components/character/WardrobePanel';
+import { BUILTIN_ITEMS } from '@/components/character/wardrobe/WardrobePanel';
 
 export interface BrittneyCustomizerReturn {
   /** Process a text command and return Brittney's response */

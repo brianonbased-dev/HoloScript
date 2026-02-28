@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { Upload, FolderOpen, Sparkles } from 'lucide-react';
 import { useCharacterStore } from '@/lib/store';
-import { CharacterCreationModal, type CharacterMetadata } from './CharacterCreationModal';
+import { CharacterCreationModal, type CharacterMetadata } from '../creation/CharacterCreationModal';
 
 export function GlbDropZone() {
   const setGlbUrl = useCharacterStore((s) => s.setGlbUrl);

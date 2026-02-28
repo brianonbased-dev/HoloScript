@@ -81,7 +81,7 @@ import type { GizmoMode, ArtMode, StudioMode } from '@/lib/store';
 import { PanelSplitter } from '@/components/ui/PanelSplitter';
 import { CreatorLayout } from '@/components/layouts/CreatorLayout';
 import { FilmmakerLayout } from '@/components/layouts/FilmmakerLayout';
-import { CharacterLayout } from '@/components/character/CharacterLayout';
+import { CharacterLayout } from '@/components/character/layout/CharacterLayout';
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),

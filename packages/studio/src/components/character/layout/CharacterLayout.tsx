@@ -16,18 +16,18 @@ import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useCharacterStore } from '@/lib/store';
-import { SkeletonPanel } from '@/components/character/SkeletonPanel';
-import { ClipLibrary } from '@/components/character/ClipLibrary';
-import { GlbDropZone } from '@/components/character/GlbDropZone';
-import { CharacterCustomizer } from '@/components/character/CharacterCustomizer';
-import { MorphTargetController } from '@/components/character/MorphTargetController';
-import { WardrobePanel } from '@/components/character/WardrobePanel';
+import { SkeletonPanel } from './SkeletonPanel';
+import { ClipLibrary } from '../wardrobe/ClipLibrary';
+import { GlbDropZone } from '../viewer/GlbDropZone';
+import { CharacterCustomizer } from '../customizer/CharacterCustomizer';
+import { MorphTargetController } from '../customizer/MorphTargetController';
+import { WardrobePanel } from '../wardrobe/WardrobePanel';
 import { Bone, Sliders, Shirt } from 'lucide-react';
 
 // Dynamically import the R3F viewer to avoid SSR issues
 // MEME-012: Using OptimizedGlbViewer for <500ms load times
 const GlbViewer = dynamic(
-  () => import('@/components/character/OptimizedGlbViewer').then((m) => ({ default: m.OptimizedGlbViewer })),
+  () => import('../viewer/OptimizedGlbViewer').then((m) => ({ default: m.OptimizedGlbViewer })),
   { ssr: false }
 );
 

@@ -56,3 +56,19 @@ export interface TemplateInfo {
   category: string;
   filename: string;
 }
+
+// ─── Re-exports from service layer ──────────────────────────────────────────
+// Common types used across the studio, defined in the service layer.
+
+export type {
+  SubscriptionTier,
+  AccountStatus,
+  SubscriptionStatus,
+  TokenBalance,
+  GenerationDomain,
+  CloudGenerationRequest,
+  CloudGenerationResult,
+  MarketplaceItem,
+  CharacterData,
+  CreatureConfig,
+} from '@/lib/services/holoscriptCloud';

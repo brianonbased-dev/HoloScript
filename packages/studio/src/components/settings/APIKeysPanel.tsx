@@ -6,7 +6,8 @@
  * Third-party API keys for AI orchestrations in Hololand.
  * BYOK (Bring Your Own Keys) lets users configure their own AI providers
  * for building orchestrations in their Hololand setups.
- * Character creation uses the HoloScript Cloud vision model (Pro subscription).
+ * Free users get Brittney + all manual tools. Cloud token usage for Brittney AI.
+ * Pro subscription unlocks the vision model and premium features.
  *
  * Features:
  * - Secure API key input (password fields)
@@ -147,7 +148,7 @@ export default function APIKeysPanel({ onClose, autoFocus }: APIKeysPanelProps) 
         <p>
           <strong>AI Orchestration Keys</strong> — Configure your own AI providers for building orchestrations in Hololand.
           <br />
-          Character creation is powered by the HoloScript Cloud vision model (Pro subscription).
+          Free tier includes Brittney + all manual tools. Cloud Brittney usage is token-based. Pro unlocks the vision model.
         </p>
         <p className="privacy-note">
           🔒 <strong>Privacy:</strong> Keys stored locally in your browser. Never sent to HoloScript servers.

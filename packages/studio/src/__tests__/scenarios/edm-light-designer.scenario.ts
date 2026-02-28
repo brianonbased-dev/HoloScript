@@ -12,129 +12,28 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Beat, AudioSyncConfig } from '@/lib/audioSync';
-
-// ═══════════════════════════════════════════════════════════════════
-// Domain Types — Concert Lighting
-// ═══════════════════════════════════════════════════════════════════
-
-type FixtureType = 'par' | 'spot' | 'wash' | 'strobe' | 'laser' | 'led-bar' | 'moving-head' | 'fog';
-
-interface DMXChannel {
-  address: number;     // 1-512
-  value: number;       // 0-255
-  label: string;
-}
-
-interface LightFixture {
-  id: string;
-  name: string;
-  type: FixtureType;
-  dmxStart: number;    // Starting DMX address
-  channels: DMXChannel[];
-  color: { r: number; g: number; b: number };
-  intensity: number;   // 0-1
-  position: { x: number; y: number; z: number };
-  groupId?: string;
-}
-
-interface LightCue {
-  id: string;
-  name: string;
-  fixtures: Map<string, { intensity: number; color: { r: number; g: number; b: number } }>;
-  fadeInMs: number;
-  fadeOutMs: number;
-  holdMs: number;
-  beatSync: boolean;   // true = trigger on beat
-}
-
-interface CueSheet {
-  id: string;
-  name: string;
-  bpm: number;
-  cues: LightCue[];
-  looping: boolean;
-}
-
-interface FixtureGroup {
-  id: string;
-  name: string;
-  fixtureIds: string[];
-  syncMode: 'all' | 'chase' | 'alternate' | 'random';
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Domain Logic — Pure Functions
-// ═══════════════════════════════════════════════════════════════════
-
-function createFixture(id: string, name: string, type: FixtureType, dmxStart: number): LightFixture {
-  const channelCount: Record<FixtureType, number> = {
-    par: 4, spot: 6, wash: 5, strobe: 2, laser: 8, 'led-bar': 3, 'moving-head': 16, fog: 2,
-  };
-  const channels: DMXChannel[] = Array.from({ length: channelCount[type] }, (_, i) => ({
-    address: dmxStart + i, value: 0, label: `ch-${i + 1}`,
-  }));
-  return { id, name, type, dmxStart, channels, color: { r: 0, g: 0, b: 0 }, intensity: 0, position: { x: 0, y: 0, z: 0 } };
-}
-
-function setFixtureColor(fixture: LightFixture, r: number, g: number, b: number): LightFixture {
-  return { ...fixture, color: { r: Math.min(255, Math.max(0, r)), g: Math.min(255, Math.max(0, g)), b: Math.min(255, Math.max(0, b)) } };
-}
-
-function setFixtureIntensity(fixture: LightFixture, intensity: number): LightFixture {
-  return { ...fixture, intensity: Math.min(1, Math.max(0, intensity)) };
-}
-
-function mixColors(a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }, weight = 0.5): { r: number; g: number; b: number } {
-  return {
-    r: Math.round(a.r * (1 - weight) + b.r * weight),
-    g: Math.round(a.g * (1 - weight) + b.g * weight),
-    b: Math.round(a.b * (1 - weight) + b.b * weight),
-  };
-}
-
-function colorToHex(c: { r: number; g: number; b: number }): string {
-  return `#${c.r.toString(16).padStart(2, '0')}${c.g.toString(16).padStart(2, '0')}${c.b.toString(16).padStart(2, '0')}`;
-}
-
-function hexToColor(hex: string): { r: number; g: number; b: number } {
-  const h = hex.replace('#', '');
-  return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
-}
-
-function bpmToBeatIntervalMs(bpm: number): number {
-  return 60_000 / bpm;
-}
-
-function createChasePattern(fixtureCount: number, stepIndex: number): number[] {
-  // Returns intensity array — one fixture lit at a time
-  return Array.from({ length: fixtureCount }, (_, i) => i === stepIndex % fixtureCount ? 1 : 0);
-}
-
-function createStrobePattern(bpm: number, subdivisions: number, time: number): boolean {
-  const intervalMs = bpmToBeatIntervalMs(bpm) / subdivisions;
-  const phase = (time % intervalMs) / intervalMs;
-  return phase < 0.3; // 30% duty cycle
-}
-
-function dmxAddressValid(address: number): boolean {
-  return Number.isInteger(address) && address >= 1 && address <= 512;
-}
-
-function detectDmxCollision(fixtures: LightFixture[]): Array<[string, string, number]> {
-  const collisions: Array<[string, string, number]> = [];
-  for (let i = 0; i < fixtures.length; i++) {
-    for (let j = i + 1; j < fixtures.length; j++) {
-      const a = fixtures[i], b = fixtures[j];
-      const aEnd = a.dmxStart + a.channels.length - 1;
-      const bEnd = b.dmxStart + b.channels.length - 1;
-      if (a.dmxStart <= bEnd && b.dmxStart <= aEnd) {
-        collisions.push([a.id, b.id, Math.max(a.dmxStart, b.dmxStart)]);
-      }
-    }
-  }
-  return collisions;
-}
+import {
+  createFixture,
+  setFixtureColor,
+  setFixtureIntensity,
+  mixColors,
+  colorToHex,
+  hexToColor,
+  bpmToBeatIntervalMs,
+  createChasePattern,
+  createStrobePattern,
+  dmxAddressValid,
+  detectDmxCollision,
+  createArtNetPacket,
+  midiToIntensity,
+  parseSMPTE,
+  isLaserEyeSafe,
+  exportGrandMA,
+  type LightFixture,
+  type LightCue,
+  type CueSheet,
+  type FixtureGroup,
+} from '@/lib/dmxEngine';
 
 // ═══════════════════════════════════════════════════════════════════
 // 1. DMX Fixture Management
@@ -286,32 +185,22 @@ describe('Scenario: EDM Light Designer — Beat Sync', () => {
   });
 
   it('ArtNet packet structure has correct header and universe', () => {
-    const artNetPacket = {
-      header: 'Art-Net\0', opcode: 0x5000, protocolVersion: 14,
-      universe: 0, length: 512, data: new Uint8Array(512),
-    };
+    const artNetPacket = createArtNetPacket(0);
     expect(artNetPacket.header).toBe('Art-Net\0');
     expect(artNetPacket.opcode).toBe(0x5000);
     expect(artNetPacket.data.length).toBe(512);
   });
 
   it('MIDI CC maps fader value (0-127) to intensity (0-1)', () => {
-    const midiToIntensity = (cc: number) => cc / 127;
     expect(midiToIntensity(0)).toBe(0);
     expect(midiToIntensity(127)).toBe(1);
     expect(midiToIntensity(64)).toBeCloseTo(0.504, 2);
   });
 
   it('laser safety interlock classifies zones', () => {
-    type SafetyZone = 'audience' | 'above-head' | 'backstage';
-    const isEyeSafe = (zone: SafetyZone, height: number) => {
-      if (zone === 'audience') return height > 2.5; // Above head level
-      if (zone === 'backstage') return true; // No audience
-      return true;
-    };
-    expect(isEyeSafe('audience', 3.0)).toBe(true);
-    expect(isEyeSafe('audience', 1.5)).toBe(false);
-    expect(isEyeSafe('backstage', 0)).toBe(true);
+    expect(isLaserEyeSafe('audience', 3.0)).toBe(true);
+    expect(isLaserEyeSafe('audience', 1.5)).toBe(false);
+    expect(isLaserEyeSafe('backstage', 0)).toBe(true);
   });
 });
 
@@ -392,20 +281,11 @@ describe('Scenario: EDM Light Designer — Cue Sheet', () => {
   });
 
   it('SMPTE timecode parses HH:MM:SS:FF format', () => {
-    const parseSMPTE = (tc: string) => {
-      const [h, m, s, f] = tc.split(':').map(Number);
-      return { hours: h, minutes: m, seconds: s, frames: f };
-    };
     const tc = parseSMPTE('01:30:45:12');
     expect(tc).toEqual({ hours: 1, minutes: 30, seconds: 45, frames: 12 });
   });
 
   it('cue sheet exports to grandMA-compatible JSON', () => {
-    const exportGrandMA = (sheet: CueSheet) => ({
-      format: 'grandMA3', version: '1.0',
-      show: sheet.name, bpm: sheet.bpm,
-      cueCount: sheet.cues.length, looping: sheet.looping,
-    });
     const exported = exportGrandMA(cueSheet);
     expect(exported.format).toBe('grandMA3');
     expect(exported.show).toBe('Main Stage Set');
@@ -421,7 +301,6 @@ describe('Scenario: EDM Light Designer — Cue Sheet', () => {
     fixtures[1].position = { x: 5, y: 8, z: 0 };
     expect(fixtures[0].position.x).toBe(-5);
     expect(fixtures[1].position.x).toBe(5);
-    // Both at same height (truss)
     expect(fixtures[0].position.y).toBe(fixtures[1].position.y);
   });
 });

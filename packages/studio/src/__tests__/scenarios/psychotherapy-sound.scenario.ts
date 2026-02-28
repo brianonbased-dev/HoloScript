@@ -13,147 +13,26 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-
-// ═══════════════════════════════════════════════════════════════════
-// Domain Types — Therapeutic Audio
-// ═══════════════════════════════════════════════════════════════════
-
-type BrainwaveState = 'delta' | 'theta' | 'alpha' | 'beta' | 'gamma';
-
-interface BrainwaveBand {
-  name: BrainwaveState;
-  minHz: number;
-  maxHz: number;
-  description: string;
-  therapeuticUse: string;
-}
-
-interface BinauralBeatConfig {
-  baseFrequencyHz: number;    // Carrier tone (e.g., 200 Hz)
-  beatFrequencyHz: number;    // Difference between L/R (e.g., 10 Hz for alpha)
-  leftEarHz: number;          // baseFrequency
-  rightEarHz: number;         // baseFrequency + beatFrequency
-  targetState: BrainwaveState;
-  durationMinutes: number;
-}
-
-interface SolfeggioFrequency {
-  hz: number;
-  name: string;
-  description: string;
-  chakra?: string;
-}
-
-interface TherapySession {
-  id: string;
-  patientId: string;
-  therapistId: string;
-  type: 'binaural' | 'solfeggio' | 'asmr' | 'guided' | 'exposure' | 'emdr';
-  startTime: number;
-  durationMinutes: number;
-  maxVolumeDBA: number;       // Safety limit
-  layers: AudioLayer[];
-  notes: string;
-}
-
-interface AudioLayer {
-  id: string;
-  name: string;
-  type: 'binaural' | 'nature' | 'music' | 'voice' | 'noise' | 'frequency';
-  volume: number;   // 0-1
-  panLR: number;    // -1 (left) to 1 (right)
-  fadeInSec: number;
-  fadeOutSec: number;
-}
-
-interface ExposureTherapyConfig {
-  trigger: string;          // e.g., "thunderstorm", "crowd noise", "airplane"
-  startIntensity: number;   // 0-1
-  endIntensity: number;
-  rampDurationMin: number;  // Gradual exposure ramp
-  safeWord: string;         // Immediate stop trigger
-  maxVolumeDBA: number;
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Domain Logic — Pure Functions
-// ═══════════════════════════════════════════════════════════════════
-
-const BRAINWAVE_BANDS: BrainwaveBand[] = [
-  { name: 'delta', minHz: 0.5, maxHz: 4, description: 'Deep sleep', therapeuticUse: 'Insomnia, deep rest, healing' },
-  { name: 'theta', minHz: 4, maxHz: 8, description: 'Meditation, creativity', therapeuticUse: 'PTSD, anxiety, creativity enhancement' },
-  { name: 'alpha', minHz: 8, maxHz: 13, description: 'Relaxed awareness', therapeuticUse: 'Stress reduction, mindfulness, pain management' },
-  { name: 'beta', minHz: 13, maxHz: 30, description: 'Active thinking', therapeuticUse: 'ADHD focus training, cognitive therapy' },
-  { name: 'gamma', minHz: 30, maxHz: 100, description: 'Higher cognition', therapeuticUse: 'Memory recall, peak performance' },
-];
-
-const SOLFEGGIO_FREQUENCIES: SolfeggioFrequency[] = [
-  { hz: 174, name: 'Foundation', description: 'Pain reduction, security', chakra: 'Root' },
-  { hz: 285, name: 'Restoration', description: 'Tissue healing, safety', chakra: 'Sacral' },
-  { hz: 396, name: 'Liberation', description: 'Release fear and guilt', chakra: 'Root' },
-  { hz: 417, name: 'Change', description: 'Facilitate change, undo past', chakra: 'Sacral' },
-  { hz: 432, name: 'Natural Tuning', description: 'Harmony with nature', chakra: 'Heart' },
-  { hz: 528, name: 'Miracle', description: 'DNA repair, transformation', chakra: 'Solar Plexus' },
-  { hz: 639, name: 'Connection', description: 'Relationships, communication', chakra: 'Heart' },
-  { hz: 741, name: 'Expression', description: 'Self-expression, solutions', chakra: 'Throat' },
-  { hz: 852, name: 'Intuition', description: 'Inner awareness, insight', chakra: 'Third Eye' },
-  { hz: 963, name: 'Transcendence', description: 'Divine connection, oneness', chakra: 'Crown' },
-];
-
-function createBinauralBeat(baseHz: number, beatHz: number, targetState: BrainwaveState, durationMin = 20): BinauralBeatConfig {
-  return {
-    baseFrequencyHz: baseHz,
-    beatFrequencyHz: beatHz,
-    leftEarHz: baseHz,
-    rightEarHz: baseHz + beatHz,
-    targetState,
-    durationMinutes: durationMin,
-  };
-}
-
-function getBrainwaveBand(frequencyHz: number): BrainwaveState | null {
-  for (const band of BRAINWAVE_BANDS) {
-    if (frequencyHz >= band.minHz && frequencyHz < band.maxHz) return band.name;
-  }
-  if (frequencyHz >= 30 && frequencyHz <= 100) return 'gamma';
-  return null;
-}
-
-function validateVolumeSafety(volumeDBA: number): { safe: boolean; warning?: string } {
-  if (volumeDBA <= 60) return { safe: true };
-  if (volumeDBA <= 70) return { safe: true, warning: 'Moderate volume — monitor patient comfort' };
-  if (volumeDBA <= 85) return { safe: false, warning: 'Exceeds safe therapy threshold (70 dBA)' };
-  return { safe: false, warning: 'DANGEROUS: Risk of hearing damage above 85 dBA' };
-}
-
-function calculateExposureIntensity(config: ExposureTherapyConfig, elapsedMin: number): number {
-  if (elapsedMin >= config.rampDurationMin) return config.endIntensity;
-  const t = elapsedMin / config.rampDurationMin;
-  // Ease-in-out for gentler exposure
-  const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-  return config.startIntensity + (config.endIntensity - config.startIntensity) * eased;
-}
-
-function isFrequencySolfeggio(hz: number): boolean {
-  return SOLFEGGIO_FREQUENCIES.some(f => f.hz === hz);
-}
-
-function getSessionDurationFormatted(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-
-function validateSessionSafety(session: TherapySession): string[] {
-  const warnings: string[] = [];
-  if (session.maxVolumeDBA > 70) warnings.push('Volume exceeds safe therapy limit (70 dBA)');
-  if (session.durationMinutes > 90) warnings.push('Session exceeds recommended 90-minute maximum');
-  if (session.layers.length === 0) warnings.push('No audio layers configured');
-  if (session.type === 'exposure' && !session.notes.toLowerCase().includes('consent')) {
-    warnings.push('Exposure therapy requires documented patient consent');
-  }
-  return warnings;
-}
+import {
+  createBinauralBeat,
+  getBrainwaveBand,
+  isFrequencySolfeggio,
+  validateVolumeSafety,
+  validateSessionSafety,
+  calculateExposureIntensity,
+  getSessionDurationFormatted,
+  redactPatientPII,
+  exportSessionHIPAA,
+  createEMDRPattern,
+  emdrPanValues,
+  hrvIntensityMultiplier,
+  calculateAutoDucking,
+  BRAINWAVE_BANDS,
+  SOLFEGGIO_FREQUENCIES,
+  type TherapySession,
+  type AudioLayer,
+  type ExposureTherapyConfig,
+} from '@/lib/therapeuticAudio';
 
 // ═══════════════════════════════════════════════════════════════════
 // 1. Brainwave Entrainment
@@ -384,38 +263,27 @@ describe('Scenario: Psychotherapy Sound — Exposure Therapy', () => {
   });
 
   it('EMDR bilateral stimulation alternates L/R tones', () => {
-    const emdrConfig = {
-      toneHz: 440, durationMs: 500, intervalMs: 1000,
-      pattern: ['left', 'right', 'left', 'right'] as const,
-    };
+    const emdrConfig = createEMDRPattern(4);
     expect(emdrConfig.pattern).toHaveLength(4);
     expect(emdrConfig.pattern[0]).toBe('left');
     expect(emdrConfig.pattern[1]).toBe('right');
-    // Alternating pan values: -1 = left, 1 = right
-    const panValues = emdrConfig.pattern.map(p => p === 'left' ? -1 : 1);
+    const panValues = emdrPanValues(emdrConfig.pattern);
     expect(panValues).toEqual([-1, 1, -1, 1]);
   });
 
   it('HRV feedback adjusts therapy intensity based on heart rate', () => {
     const hrvReading = { bpm: 72, hrv: 45, stress: 0.3 };
-    // If stress is high (>0.5), reduce audio intensity
-    const intensityMultiplier = hrvReading.stress > 0.5 ? 0.5 : 1.0;
-    expect(intensityMultiplier).toBe(1.0);
-    // High stress reading
+    expect(hrvIntensityMultiplier(hrvReading)).toBe(1.0);
     const stressed = { bpm: 95, hrv: 20, stress: 0.8 };
-    const stressedMultiplier = stressed.stress > 0.5 ? 0.5 : 1.0;
-    expect(stressedMultiplier).toBe(0.5);
+    expect(hrvIntensityMultiplier(stressed)).toBe(0.5);
   });
 
   it('guided meditation voice overlay uses auto-ducking', () => {
-    const layers: AudioLayer[] = [
-      { id: 'music', name: 'Ambient', type: 'music', volume: 0.6, panLR: 0, fadeInSec: 10, fadeOutSec: 10 },
-      { id: 'voice', name: 'Guide', type: 'voice', volume: 0.9, panLR: 0, fadeInSec: 2, fadeOutSec: 2 },
-    ];
-    // Auto-ducking: when voice is active, reduce music volume
-    const voiceActive = true;
-    const musicVolume = voiceActive ? layers[0].volume * 0.4 : layers[0].volume;
-    expect(musicVolume).toBeCloseTo(0.24, 2);
+    const musicVolume = 0.6;
+    const ducked = calculateAutoDucking(musicVolume, true);
+    expect(ducked).toBeCloseTo(0.24, 2);
+    const unducked = calculateAutoDucking(musicVolume, false);
+    expect(unducked).toBe(0.6);
   });
 
   it('spatial ASMR positions audio sources in 3D', () => {
@@ -425,7 +293,6 @@ describe('Scenario: Psychotherapy Sound — Exposure Therapy', () => {
       { id: 'crackling', position: { x: 1, y: 0, z: -0.5 }, type: 'nature' as const },
     ];
     expect(asmrSources).toHaveLength(3);
-    // Left whisper should have negative x
     expect(asmrSources[1].position.x).toBeLessThan(0);
   });
 
@@ -436,15 +303,7 @@ describe('Scenario: Psychotherapy Sound — Exposure Therapy', () => {
       layers: [{ id: 'l1', name: 'Alpha', type: 'binaural', volume: 0.5, panLR: 0, fadeInSec: 5, fadeOutSec: 5 }],
       notes: 'Patient gave informed consent.',
     };
-    // Export redacts patient ID
-    const exported = {
-      sessionId: session.id,
-      patientId: session.patientId.replace(/\d/g, 'X'),
-      type: session.type,
-      durationMinutes: session.durationMinutes,
-      layerCount: session.layers.length,
-      timestamp: new Date(session.startTime).toISOString(),
-    };
+    const exported = exportSessionHIPAA(session);
     expect(exported.patientId).toBe('P-XXXXX');
     expect(exported.type).toBe('binaural');
   });

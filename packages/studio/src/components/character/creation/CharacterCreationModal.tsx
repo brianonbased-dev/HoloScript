@@ -130,7 +130,7 @@ export function CharacterCreationModal({
           <div>
             <h2 className="text-2xl font-bold text-white">Create Character</h2>
             <p className="mt-1 text-sm text-studio-muted">
-              <span className="text-purple-400">HoloScript Cloud</span> — Create characters with our AI vision model (Pro) or bring your own assets
+              <span className="text-purple-400">HoloScript Studio</span> — Build with Brittney (free) or upgrade for AI vision model (Pro)
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -638,8 +638,8 @@ function AIGenerationTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSe
             <div className="flex-1">
               <h4 className="text-lg font-bold text-white">🔑 API Key Required</h4>
               <p className="mt-2 text-sm text-studio-muted leading-relaxed">
-                <span className="text-purple-400 font-semibold">HoloScript Cloud</span> — AI character generation is available with a Pro subscription.
-                Subscribe to access our vision model for creating characters, creatures, and avatars.
+                <span className="text-purple-400 font-semibold">HoloScript Cloud</span> — AI generation requires a Pro subscription.
+                Pro unlocks the vision model for characters, creatures, scenes, and more.
               </p>
               <p className="mt-3 text-sm text-white">
                 <strong>Supported providers:</strong>

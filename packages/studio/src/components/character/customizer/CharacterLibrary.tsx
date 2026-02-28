@@ -46,9 +46,9 @@ export function CharacterLibrary({
   const filteredTemplates = useMemo(() => {
     let results = allTemplates;
 
-    // Apply category filter
+    // Apply popularity filter (mapped to category UI)
     if (categoryFilter !== 'all') {
-      results = results.filter((t) => t.category === categoryFilter);
+      results = results.filter((t) => t.popularity === categoryFilter);
     }
 
     // Apply search filter
@@ -56,7 +56,7 @@ export function CharacterLibrary({
       results = searchTemplates(searchQuery.trim());
       // If category filter is active, intersect results
       if (categoryFilter !== 'all') {
-        results = results.filter((t) => t.category === categoryFilter);
+        results = results.filter((t) => t.popularity === categoryFilter);
       }
     }
 
@@ -182,16 +182,16 @@ export function CharacterLibrary({
                   {/* Category badge */}
                   <div
                     className={`absolute right-3 top-3 flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${getCategoryColor(
-                      template.category
+                      template.popularity
                     )}`}
                   >
-                    {getCategoryIcon(template.category)}
-                    <span className="capitalize">{template.category}</span>
+                    {getCategoryIcon(template.popularity)}
+                    <span className="capitalize">{template.popularity}</span>
                   </div>
 
-                  {/* Emoji */}
+                  {/* Preview Image or Placeholder */}
                   <div className="mb-3 text-5xl transition-transform group-hover:scale-110">
-                    {template.emoji}
+                    {template.previewImage ? '🖼️' : '🎭'}
                   </div>
 
                   {/* Name and description */}
@@ -237,17 +237,17 @@ export function CharacterLibrary({
 
             {/* Header */}
             <div className="mb-6 flex items-start gap-4">
-              <div className="text-6xl">{selectedTemplate.emoji}</div>
+              <div className="text-6xl">{selectedTemplate.previewImage ? '🖼️' : '🎭'}</div>
               <div className="flex-1">
                 <div className="mb-2 flex items-center gap-2">
                   <h2 className="text-2xl font-bold text-white">{selectedTemplate.name}</h2>
                   <div
                     className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold ${getCategoryColor(
-                      selectedTemplate.category
+                      selectedTemplate.popularity
                     )}`}
                   >
-                    {getCategoryIcon(selectedTemplate.category)}
-                    <span className="capitalize">{selectedTemplate.category}</span>
+                    {getCategoryIcon(selectedTemplate.popularity)}
+                    <span className="capitalize">{selectedTemplate.popularity}</span>
                   </div>
                 </div>
                 <p className="text-sm text-studio-muted">{selectedTemplate.description}</p>
@@ -260,12 +260,12 @@ export function CharacterLibrary({
                 Auto-detects
               </p>
               <div className="flex flex-wrap gap-2">
-                {selectedTemplate.detectionPatterns.map((pattern, i) => (
+                {selectedTemplate.filenamePatterns.map((pattern, i) => (
                   <span
                     key={i}
                     className="rounded-md bg-purple-500/20 px-2 py-1 font-mono text-xs text-purple-300"
                   >
-                    {pattern}
+                    {pattern.source}
                   </span>
                 ))}
               </div>
