@@ -197,3 +197,78 @@ export function scenePerimeterArea(polygon: Vector3[]): number {
   }
   return Math.abs(area) / 2;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Forensic Timeline
+// ═══════════════════════════════════════════════════════════════════
+
+export interface ForensicEvent {
+  id: string;
+  timestamp: number;
+  type: 'gunshot' | 'scream' | 'footstep' | 'glass-break' | 'vehicle' | 'witness-arrival' | 'other';
+  description: string;
+  position?: Vector3;
+  confidence: number;  // 0-1 (reliability of the event timing)
+}
+
+/**
+ * Builds a sorted forensic timeline from events, placing them in chronological order.
+ */
+export function forensicTimeline(events: ForensicEvent[]): ForensicEvent[] {
+  return [...events].sort((a, b) => a.timestamp - b.timestamp);
+}
+
+/**
+ * Finds contradictions between timeline events (events that are too close
+ * in time but too far in distance for a single person to traverse).
+ */
+export function timelineContradictions(
+  events: ForensicEvent[],
+  maxSpeedMps: number = 10  // Max human sprint speed
+): Array<{ event1: string; event2: string; reason: string }> {
+  const contradictions: Array<{ event1: string; event2: string; reason: string }> = [];
+  const sorted = forensicTimeline(events);
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    for (let j = i + 1; j < sorted.length; j++) {
+      const a = sorted[i];
+      const b = sorted[j];
+      if (!a.position || !b.position) continue;
+
+      const timeDiff = (b.timestamp - a.timestamp) / 1000; // seconds
+      if (timeDiff <= 0) continue;
+
+      const dist = distanceBetween(a.position, b.position);
+      const requiredSpeed = dist / timeDiff;
+
+      if (requiredSpeed > maxSpeedMps) {
+        contradictions.push({
+          event1: a.id,
+          event2: b.id,
+          reason: `${dist.toFixed(1)}m in ${timeDiff.toFixed(1)}s requires ${requiredSpeed.toFixed(1)} m/s (max: ${maxSpeedMps} m/s)`,
+        });
+      }
+    }
+  }
+  return contradictions;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DNA Contamination
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Estimates DNA contamination probability based on handler count,
+ * time since collection, and environmental exposure.
+ */
+export function dnaContaminationRisk(
+  handlersCount: number,
+  hoursSinceCollection: number,
+  isSealed: boolean
+): number {
+  let risk = 0;
+  risk += handlersCount * 5;   // Each handler adds 5% risk
+  risk += hoursSinceCollection * 0.5; // 0.5% per hour exposed
+  if (!isSealed) risk += 20;   // Unsealed adds 20%
+  return Math.min(100, Math.max(0, Math.round(risk)));
+}

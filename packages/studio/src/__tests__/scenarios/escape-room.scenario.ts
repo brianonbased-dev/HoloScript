@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   isPuzzleAvailable, checkSolution, roomProgress, timeRemaining,
   isRoomComplete, getNextHint, criticalPath, averageDifficulty,
-  estimatedTotalTime,
+  estimatedTotalTime, generateProceduralPuzzle,
   type Puzzle, type EscapeRoom,
 } from '@/lib/escapeRoomDesigner';
 
@@ -92,5 +92,23 @@ describe('Scenario: Escape Room — Room Progress', () => {
   });
 
   it.todo('multiplayer sync — coordinate puzzle solving across players');
-  it.todo('procedural puzzle generation — randomize solutions each playthrough');
+
+  it('procedural puzzle generation — randomize solutions each playthrough', () => {
+    const template: Puzzle = {
+      id: 'p1', name: 'Lock', type: 'lock', description: '', position: { x: 0, y: 0, z: 0 },
+      difficulty: 2, timeEstimateSec: 60, solution: 'original', status: 'available',
+      dependsOn: [], hints: [], maxAttempts: 5, attempts: 3,
+    };
+    // Same seed → same solution
+    const a = generateProceduralPuzzle(template, 42);
+    const b = generateProceduralPuzzle(template, 42);
+    expect(a.solution).toBe(b.solution);
+    // Different seed → likely different solution
+    const c = generateProceduralPuzzle(template, 99);
+    // Solution comes from pool, attempts reset
+    expect(a.attempts).toBe(0);
+    expect(a.status).toBe('available');
+    // Solution is from lock pool
+    expect(['1234', '5678', '9021', '3141', '7890', '2468', '1357', '8024']).toContain(a.solution);
+  });
 });

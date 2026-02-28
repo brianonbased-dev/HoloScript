@@ -112,3 +112,52 @@ export function totalProductionDays(days: ProductionDay[]): number {
 export function totalProductionHours(days: ProductionDay[]): number {
   return days.reduce((sum, d) => sum + d.estimatedHours, 0);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Shot List Export
+// ═══════════════════════════════════════════════════════════════════
+
+export interface ShotListEntry {
+  sceneNumber: number;
+  shotNumber: number;
+  shotSize: ShotSize;
+  movement: CameraMovement;
+  duration: number;
+  description: string;
+  location: string;
+}
+
+/**
+ * Generates a structured shot list from scenes, suitable for export (PDF/CSV).
+ */
+export function generateShotList(scenes: Scene[]): ShotListEntry[] {
+  const entries: ShotListEntry[] = [];
+  for (const scene of scenes) {
+    for (const panel of scene.panels) {
+      entries.push({
+        sceneNumber: scene.number,
+        shotNumber: panel.shotNumber,
+        shotSize: panel.shotSize,
+        movement: panel.cameraMovement,
+        duration: panel.durationSec,
+        description: panel.description,
+        location: scene.location,
+      });
+    }
+  }
+  return entries;
+}
+
+/**
+ * Film pacing analysis — shots per minute by act.
+ */
+export function filmPacing(scenes: Scene[]): Record<NarrativeAct, number> {
+  const result: Record<NarrativeAct, number> = { setup: 0, confrontation: 0, resolution: 0 };
+  for (const act of (['setup', 'confrontation', 'resolution'] as NarrativeAct[])) {
+    const actScenes = scenesByAct(scenes, act);
+    const totalShots = actScenes.reduce((s, sc) => s + sc.panels.length, 0);
+    const totalMin = actScenes.reduce((s, sc) => s + sceneDuration(sc), 0) / 60;
+    result[act] = totalMin > 0 ? totalShots / totalMin : 0;
+  }
+  return result;
+}

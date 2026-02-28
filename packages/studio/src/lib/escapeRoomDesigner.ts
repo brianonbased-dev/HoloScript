@@ -97,3 +97,40 @@ export function averageDifficulty(puzzles: Puzzle[]): number {
 export function estimatedTotalTime(puzzles: Puzzle[]): number {
   return puzzles.reduce((sum, p) => sum + p.timeEstimateSec, 0);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Procedural Puzzle Generation
+// ═══════════════════════════════════════════════════════════════════
+
+const SOLUTIONS_POOL: Record<PuzzleType, string[]> = {
+  lock: ['1234', '5678', '9021', '3141', '7890', '2468', '1357', '8024'],
+  cipher: ['freedom', 'escape', 'shadow', 'labyrinth', 'enigma', 'phantom', 'nexus'],
+  pattern: ['ABBA', 'AABB', 'ABCD', 'ABAC', 'CBBA', 'DCBA'],
+  physical: ['pull', 'push', 'twist', 'slide', 'lift', 'rotate'],
+  logic: ['true', 'north', 'seven', 'blue', 'third', 'last'],
+  search: ['drawer', 'behind_painting', 'under_rug', 'bookshelf', 'ceiling_tile'],
+  mechanical: ['clockwise', 'three_turns', 'reverse', 'align_gears'],
+};
+
+/**
+ * Generates a procedural puzzle variant with a randomized solution
+ * from the type-appropriate pool. Randomizes solution each playthrough.
+ */
+export function generateProceduralPuzzle(
+  template: Puzzle,
+  seed?: number
+): Puzzle {
+  const pool = SOLUTIONS_POOL[template.type] ?? ['default'];
+  // Simple seeded random (LCG)
+  const rng = seed !== undefined
+    ? () => { seed = (seed! * 1664525 + 1013904223) & 0x7fffffff; return seed / 0x7fffffff; }
+    : Math.random;
+
+  const solution = pool[Math.floor(rng() * pool.length)];
+  return {
+    ...template,
+    solution,
+    status: template.dependsOn.length === 0 ? 'available' : 'locked',
+    attempts: 0,
+  };
+}

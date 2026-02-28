@@ -125,3 +125,47 @@ export function soloedTracks(tracks: MidiTrack[]): MidiTrack[] {
   const soloed = tracks.filter(t => t.solo);
   return soloed.length > 0 ? soloed : tracks.filter(t => !t.muted);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// VST Plugin Chain
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Calculates cumulative gain applied by a chain of insert effects.
+ * Each effect may add/subtract gain (e.g. compressor reduces, limiter clips).
+ */
+export function vstChainGain(effects: EffectInstance[]): number {
+  let gainDb = 0;
+  for (const fx of effects) {
+    if (!fx.enabled) continue;
+    switch (fx.type) {
+      case 'eq':
+        gainDb += fx.params.gain ?? 0;
+        break;
+      case 'compressor':
+        gainDb -= fx.params.reduction ?? 0;
+        gainDb += fx.params.makeupGain ?? 0;
+        break;
+      case 'limiter':
+        gainDb += fx.params.gain ?? 0;
+        // Ceiling clamps
+        break;
+      case 'distortion':
+        gainDb += fx.params.drive ?? 0;
+        break;
+      default:
+        // reverb, delay, chorus are wet/dry — typically unity gain
+        break;
+    }
+  }
+  return gainDb;
+}
+
+/**
+ * Computes RMS level from a sample buffer (useful for oscilloscope/metering).
+ */
+export function waveformRMS(samples: number[]): number {
+  if (samples.length === 0) return 0;
+  const sumSquares = samples.reduce((s, v) => s + v * v, 0);
+  return Math.sqrt(sumSquares / samples.length);
+}

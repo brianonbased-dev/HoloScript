@@ -11,6 +11,7 @@ import {
   panelsByMovement, scenesByAct, averageShotDuration,
   threeActBalance, isBalancedStructure,
   uniqueLocations, totalProductionDays, totalProductionHours,
+  generateShotList, filmPacing,
   type Scene, type StoryboardPanel, type ProductionDay,
 } from '@/lib/filmStoryboard';
 
@@ -99,6 +100,17 @@ describe('Scenario: Film Storyboard — Production', () => {
     expect(totalProductionHours(days)).toBe(26);
   });
 
-  it.todo('shot list export — generate PDF shot list per scene');
+  it('shot list export — generate structured shot list per scene', () => {
+    const scenes: Scene[] = [
+      { id: 's1', number: 1, name: 'Opening', act: 'setup', location: 'Park', timeOfDay: 'dawn', panels: [makePanel({ shotNumber: 1, shotSize: 'wide' }), makePanel({ shotNumber: 2, shotSize: 'close-up' })], emotionalTone: 'hopeful' },
+      { id: 's2', number: 2, name: 'Chase', act: 'confrontation', location: 'Street', timeOfDay: 'day', panels: [makePanel({ shotNumber: 1, shotSize: 'medium' })], emotionalTone: 'tense' },
+    ];
+    const shotList = generateShotList(scenes);
+    expect(shotList).toHaveLength(3);
+    expect(shotList[0].sceneNumber).toBe(1);
+    expect(shotList[0].location).toBe('Park');
+    expect(shotList[2].sceneNumber).toBe(2);
+  });
+
   it.todo('previsualization — 3D camera path animation preview');
 });

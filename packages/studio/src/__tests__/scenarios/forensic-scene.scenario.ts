@@ -25,10 +25,14 @@ import {
   distanceBetween,
   canWitnessSeePoint,
   scenePerimeterArea,
+  forensicTimeline,
+  timelineContradictions,
+  dnaContaminationRisk,
   type BulletTrajectory,
   type BloodSpatterPattern,
   type EvidenceMarker,
   type WitnessViewpoint,
+  type ForensicEvent,
 } from '@/lib/forensicScene';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -232,6 +236,27 @@ describe('Scenario: Forensic Scene — Witness & Scene', () => {
   });
 
   it.todo('photogrammetry — reconstruct 3D scene from crime scene photos');
-  it.todo('timeline playback — animate events based on forensic timeline');
-  it.todo('DNA evidence heatmap — overlay contamination probability');
+
+  it('timeline playback — animate events based on forensic timeline', () => {
+    const events: ForensicEvent[] = [
+      { id: 'e3', timestamp: 3000, type: 'glass-break', description: 'Window shattered', confidence: 0.9 },
+      { id: 'e1', timestamp: 1000, type: 'gunshot', description: 'First shot', position: { x: 5, y: 1, z: 5 }, confidence: 1.0 },
+      { id: 'e2', timestamp: 2000, type: 'scream', description: 'Cry for help', confidence: 0.8 },
+    ];
+    const timeline = forensicTimeline(events);
+    expect(timeline[0].id).toBe('e1'); // earliest first
+    expect(timeline[1].id).toBe('e2');
+    expect(timeline[2].id).toBe('e3');
+  });
+
+  it('DNA evidence heatmap — contamination probability', () => {
+    // Properly sealed, few handlers
+    const low = dnaContaminationRisk(2, 1, true);
+    expect(low).toBeLessThan(20);
+
+    // Unsealed, many handlers, long time
+    const high = dnaContaminationRisk(10, 48, false);
+    expect(high).toBeGreaterThan(50);
+    expect(high).toBeLessThanOrEqual(100);
+  });
 });

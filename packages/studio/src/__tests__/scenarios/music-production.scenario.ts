@@ -10,8 +10,8 @@ import {
   midiNoteNumber, noteFromMidi, noteFrequency,
   beatsToSeconds, secondsToBeats, measureCount,
   dbToLinear, linearToDb, panLaw, isClipping,
-  trackDuration, soloedTracks,
-  type MidiTrack, type TimeSignature,
+  trackDuration, soloedTracks, vstChainGain, waveformRMS,
+  type MidiTrack, type TimeSignature, type EffectInstance,
 } from '@/lib/musicProduction';
 
 describe('Scenario: Music Production — MIDI Notes', () => {
@@ -112,6 +112,27 @@ describe('Scenario: Music Production — Mixing', () => {
     expect(soloedTracks(tracks)[0].name).toBe('Lead');
   });
 
-  it.todo('VST plugin chain — insert/send effects routing');
-  it.todo('waveform visualization — real-time oscilloscope rendering');
+  it('VST plugin chain — insert/send effects routing', () => {
+    const effects: EffectInstance[] = [
+      { id: 'eq1', type: 'eq', enabled: true, params: { gain: 3 } },
+      { id: 'comp1', type: 'compressor', enabled: true, params: { reduction: 6, makeupGain: 4 } },
+      { id: 'rev1', type: 'reverb', enabled: true, params: { mix: 0.3 } }, // unity gain
+      { id: 'lim1', type: 'limiter', enabled: false, params: { gain: 2 } }, // disabled
+    ];
+    const gain = vstChainGain(effects);
+    // EQ +3, compressor -6+4=-2, reverb 0, limiter disabled → +1 dB
+    expect(gain).toBe(1);
+  });
+
+  it('waveform visualization — RMS level metering', () => {
+    // Silence
+    expect(waveformRMS([])).toBe(0);
+
+    // Unity sine peak approximation: [1, 0, -1, 0]
+    const rms = waveformRMS([1, 0, -1, 0]);
+    expect(rms).toBeCloseTo(0.707, 2); // sqrt(2)/2
+
+    // Loud signal
+    expect(waveformRMS([1, 1, 1, 1])).toBe(1);
+  });
 });
