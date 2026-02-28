@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Glasses, Upload, Zap, BarChart2, X, BookOpen, HelpCircle, Sparkles, Server, Workflow, GitBranch, Users, Activity, ShoppingBag, Package } from 'lucide-react';
+import { ArrowLeft, Glasses, Upload, Zap, BarChart2, X, BookOpen, HelpCircle, Sparkles, Server, Workflow, GitBranch, Users, Activity, ShoppingBag, Package, Cloud } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAIStore, useSceneStore, useEditorStore } from '@/lib/store';
@@ -35,6 +35,9 @@ const MarketplacePanel = dynamic(() => import('@/components/marketplace').then((
 // Plugins
 const PluginManagerPanel = dynamic(() => import('@/components/plugins').then((m) => ({ default: m.PluginManagerPanel })), { ssr: false });
 
+// Cloud Deployment
+const CloudDeployPanel = dynamic(() => import('@/components/cloud').then((m) => ({ default: m.CloudDeployPanel })), { ssr: false });
+
 export function StudioHeader() {
   const ollamaStatus = useAIStore((s) => s.ollamaStatus);
   const metadata = useSceneStore((s) => s.metadata);
@@ -64,6 +67,7 @@ export function StudioHeader() {
   const [toolCallGraphOpen, setToolCallGraphOpen] = useState(false);
   const [marketplaceOpen, setMarketplaceOpen] = useState(false);
   const [pluginManagerOpen, setPluginManagerOpen] = useState(false);
+  const [cloudDeployOpen, setCloudDeployOpen] = useState(false);
 
   // ── First-launch detection ──────────────────────────────────────────────────
   useEffect(() => {
@@ -90,6 +94,7 @@ export function StudioHeader() {
     onToggleToolCallGraph: () => setToolCallGraphOpen((v) => !v),
     onToggleAgentEnsemble: () => setAgentEnsembleOpen((v) => !v),
     onTogglePlugins: () => setPluginManagerOpen((v) => !v),
+    onToggleCloud: () => setCloudDeployOpen((v) => !v),
   });
 
   // ── Orchestration auto-save ─────────────────────────────────────────────────
@@ -294,6 +299,19 @@ export function StudioHeader() {
           <span className="hidden lg:inline">Plugins</span>
         </button>
 
+        <button
+          onClick={() => setCloudDeployOpen(!cloudDeployOpen)}
+          title="Cloud Deployment (Ctrl+Shift+D)"
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+            cloudDeployOpen
+              ? 'border-sky-500/40 bg-sky-500/20 text-sky-300'
+              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-sky-500/40 hover:text-sky-400'
+          }`}
+        >
+          <Cloud className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Cloud</span>
+        </button>
+
         {/* ── Expert-only tools ─────────────────────────────── */}
         {isExpert && (
           <>
@@ -464,6 +482,11 @@ export function StudioHeader() {
     {/* Plugin Manager (full-screen modal) */}
     {pluginManagerOpen && (
       <PluginManagerPanel onClose={() => setPluginManagerOpen(false)} />
+    )}
+
+    {/* Cloud Deployment (full-screen modal) */}
+    {cloudDeployOpen && (
+      <CloudDeployPanel onClose={() => setCloudDeployOpen(false)} />
     )}
   </>
   );
