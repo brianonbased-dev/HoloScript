@@ -90,7 +90,6 @@ export const useAIStore = create<AIState>()(
   )
 );
 
-<<<<<<< HEAD
 // ─── Scene Graph Store ───────────────────────────────────────────────────────
 
 export interface TraitConfig {
@@ -176,17 +175,11 @@ type EditorPanel = 'prompt' | 'code' | 'tree';
 export type GizmoMode = 'translate' | 'rotate' | 'scale';
 export type ArtMode = 'none' | 'sketch' | 'paint' | 'generative';
 export type StudioMode = 'creator' | 'artist' | 'filmmaker' | 'expert' | 'character';
-=======
-// ─── Editor Store ───────────────────────────────────────────────────────────
-
-type EditorPanel = 'prompt' | 'code' | 'tree';
->>>>>>> feature/docs-examples-misc
 
 interface EditorState {
   activePanel: EditorPanel;
   sidebarOpen: boolean;
   selectedObjectId: string | null;
-<<<<<<< HEAD
   selectedObjectName: string | null;
   gizmoMode: GizmoMode;
   artMode: ArtMode;
@@ -210,20 +203,12 @@ const getInitialStudioMode = (): StudioMode => {
   return (saved && ['creator', 'artist', 'filmmaker', 'expert', 'character'].includes(saved)) ? saved : 'creator';
 };
 
-=======
-  setActivePanel: (panel: EditorPanel) => void;
-  toggleSidebar: () => void;
-  setSelectedObjectId: (id: string | null) => void;
-}
-
->>>>>>> feature/docs-examples-misc
 export const useEditorStore = create<EditorState>()(
   devtools(
     (set) => ({
       activePanel: 'prompt',
       sidebarOpen: true,
       selectedObjectId: null,
-<<<<<<< HEAD
       selectedObjectName: null,
       gizmoMode: 'translate',
       artMode: 'none',
@@ -242,21 +227,26 @@ export const useEditorStore = create<EditorState>()(
       },
       setShowBenchmark: (showBenchmark) => set({ showBenchmark }),
       togglePerfOverlay: () => set((s) => ({ showPerfOverlay: !s.showPerfOverlay })),
-=======
-      setActivePanel: (activePanel) => set({ activePanel }),
-      toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
-      setSelectedObjectId: (selectedObjectId) => set({ selectedObjectId }),
->>>>>>> feature/docs-examples-misc
     }),
     { name: 'editor-store' }
   )
 );
-<<<<<<< HEAD
 
 // ─── Character Store ─────────────────────────────────────────────────────────
 // Shared state between the R3F canvas (GlbViewer) and DOM panels (SkeletonPanel etc.)
 
 import type { RecordedClip } from './animationBuilder';
+
+export type WardrobeSlot = 'hair' | 'top' | 'bottom' | 'shoes' | 'accessory_1' | 'accessory_2';
+
+export interface WardrobeItem {
+  id: string;
+  name: string;
+  slot: WardrobeSlot;
+  thumbnail: string;
+  modelUrl?: string;
+  category: string;
+}
 
 interface CharacterState {
   /** Object URL of the loaded .glb file */
@@ -280,6 +270,22 @@ interface CharacterState {
   /** Clip ID currently being exported (null = not exporting) */
   exportingClipId: string | null;
 
+  // ── Character Customizer (Phase 1) ────────────────────────────────────────
+  /** Morph target weights: name → 0..1 */
+  morphTargets: Record<string, number>;
+  /** Skin color hex string */
+  skinColor: string;
+  /** Whether customize mode is active (sliders vs skeleton) */
+  customizeMode: boolean;
+  /** Active panel mode for the character layout */
+  panelMode: 'skeleton' | 'customize' | 'wardrobe';
+
+  // ── Wardrobe (Phase 2) ──────────────────────────────────────────────────────
+  /** Equipped items by slot */
+  equippedItems: Partial<Record<WardrobeSlot, WardrobeItem>>;
+  /** Available wardrobe items */
+  wardrobeItems: WardrobeItem[];
+
   // Actions
   setGlbUrl: (url: string | null) => void;
   setBoneNames: (names: string[]) => void;
@@ -293,6 +299,14 @@ interface CharacterState {
   setBuiltinAnimations: (list: Array<{ name: string; duration: number }>) => void;
   setActiveBuiltinAnimation: (name: string | null) => void;
   setExportingClipId: (id: string | null) => void;
+  setMorphTarget: (name: string, value: number) => void;
+  resetMorphTargets: () => void;
+  setSkinColor: (color: string) => void;
+  setCustomizeMode: (v: boolean) => void;
+  setPanelMode: (mode: 'skeleton' | 'customize' | 'wardrobe') => void;
+  equipItem: (item: WardrobeItem) => void;
+  unequipSlot: (slot: WardrobeSlot) => void;
+  clearWardrobe: () => void;
 }
 
 export const useCharacterStore = create<CharacterState>()(
@@ -308,6 +322,12 @@ export const useCharacterStore = create<CharacterState>()(
       builtinAnimations: [],
       activeBuiltinAnimation: null,
       exportingClipId: null,
+      morphTargets: {},
+      skinColor: '#e8beac',
+      customizeMode: false,
+      panelMode: 'skeleton' as const,
+      equippedItems: {},
+      wardrobeItems: [],
 
       setGlbUrl: (glbUrl) => set({ glbUrl, boneNames: [], selectedBoneIndex: null, builtinAnimations: [], activeBuiltinAnimation: null }),
       setBoneNames: (boneNames) => set({ boneNames }),
@@ -321,9 +341,19 @@ export const useCharacterStore = create<CharacterState>()(
       setBuiltinAnimations: (builtinAnimations) => set({ builtinAnimations }),
       setActiveBuiltinAnimation: (activeBuiltinAnimation) => set({ activeBuiltinAnimation }),
       setExportingClipId: (exportingClipId) => set({ exportingClipId }),
+      setMorphTarget: (name, value) => set((s) => ({ morphTargets: { ...s.morphTargets, [name]: value } })),
+      resetMorphTargets: () => set({ morphTargets: {} }),
+      setSkinColor: (skinColor) => set({ skinColor }),
+      setCustomizeMode: (customizeMode) => set({ customizeMode, panelMode: customizeMode ? 'customize' : 'skeleton' }),
+      setPanelMode: (panelMode) => set({ panelMode, customizeMode: panelMode === 'customize' }),
+      equipItem: (item) => set((s) => ({ equippedItems: { ...s.equippedItems, [item.slot]: item } })),
+      unequipSlot: (slot) => set((s) => {
+        const next = { ...s.equippedItems };
+        delete next[slot];
+        return { equippedItems: next };
+      }),
+      clearWardrobe: () => set({ equippedItems: {} }),
     }),
     { name: 'character-store' }
   )
 );
-=======
->>>>>>> feature/docs-examples-misc

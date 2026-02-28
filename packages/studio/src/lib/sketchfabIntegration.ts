@@ -54,7 +54,7 @@ export interface SketchfabSearchParams {
 // ─── API Configuration ───────────────────────────────────────────────────────
 
 /**
- * Get Sketchfab API key from localStorage (user's own key - BYOK model)
+ * Get Sketchfab API key from localStorage (third-party integration)
  */
 function getSketchfabAPIKey(): string {
   if (typeof window === 'undefined') return '';
@@ -64,7 +64,7 @@ function getSketchfabAPIKey(): string {
 /**
  * Sketchfab API configuration
  * Docs: https://docs.sketchfab.com/data-api/v3/index.html
- * Uses localStorage for API key (Bring Your Own Keys model)
+ * Uses localStorage for API key (third-party integration)
  */
 function getSketchfabAPI() {
   return {

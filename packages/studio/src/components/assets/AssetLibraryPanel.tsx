@@ -2,13 +2,16 @@
 
 /**
  * AssetLibraryPanel — right-rail v2 asset browser.
- * Browsable grid of GLTF models and HDR environments with import-to-scene feature.
+ * Two tabs: "Local Packs" (original curated packs) and "Poly Haven" (15K+ CC0 assets).
  */
 
 import { useState, useEffect } from 'react';
-import { Library, X, Search, ChevronLeft, ChevronRight, Download, ExternalLink, Box, Sun, Image } from 'lucide-react';
+import { Library, X, Search, ChevronLeft, ChevronRight, Download, ExternalLink, Box, Sun, Image, Globe2 } from 'lucide-react';
 import { useAssetLibrary, type AssetCategory, type Asset } from '@/hooks/useAssetLibrary';
 import { useSceneStore } from '@/lib/store';
+import { PolyHavenBrowser } from './PolyHavenBrowser';
+
+type Tab = 'local' | 'polyhaven';
 
 const CATEGORIES: { id: AssetCategory | ''; label: string; icon: React.ReactNode }[] = [
   { id: '', label: 'All', icon: null },
@@ -62,6 +65,7 @@ function AssetCard({ asset, onImport }: { asset: Asset; onImport: (a: Asset) => 
 interface AssetLibraryPanelProps { onClose: () => void; }
 
 export function AssetLibraryPanel({ onClose }: AssetLibraryPanelProps) {
+  const [tab, setTab] = useState<Tab>('polyhaven');
   const [q, setQ] = useState('');
   const { results, total, page, pages, loading, search, setPage } = useAssetLibrary();
   const appendCode = useSceneStore((s) => s.setCode);
@@ -78,57 +82,86 @@ export function AssetLibraryPanel({ onClose }: AssetLibraryPanelProps) {
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5">
         <Library className="h-4 w-4 text-studio-accent" />
         <span className="text-[12px] font-semibold">Asset Library</span>
-        <span className="ml-1 rounded-full bg-studio-surface px-1.5 py-0.5 text-[9px] text-studio-muted">{total}</span>
         <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Search */}
-      <div className="shrink-0 border-b border-studio-border p-2.5 space-y-2">
-        <div className="flex items-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5">
-          <Search className="h-3.5 w-3.5 text-studio-muted" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search(q)}
-            placeholder="Search assets…" className="flex-1 bg-transparent text-[11px] outline-none placeholder-studio-muted/40" />
-        </div>
-        {/* Category pills */}
-        <div className="flex gap-1 flex-wrap">
-          {CATEGORIES.map((c) => (
-            <button key={c.id}
-              onClick={() => search(q, c.id as AssetCategory | '')}
-              className="flex items-center gap-1 rounded-full border border-studio-border bg-studio-surface px-2 py-0.5 text-[9px] text-studio-muted hover:text-studio-accent hover:border-studio-accent/40 transition">
-              {c.icon}{c.label}
-            </button>
-          ))}
-        </div>
+      {/* Tab switcher */}
+      <div className="shrink-0 flex border-b border-studio-border">
+        <button
+          onClick={() => setTab('local')}
+          className={`flex-1 py-1.5 text-[10px] font-semibold text-center border-b-2 transition ${
+            tab === 'local'
+              ? 'border-studio-accent text-studio-accent'
+              : 'border-transparent text-studio-muted hover:text-studio-text'
+          }`}
+        >
+          📦 Local Packs
+        </button>
+        <button
+          onClick={() => setTab('polyhaven')}
+          className={`flex-1 py-1.5 text-[10px] font-semibold text-center border-b-2 transition ${
+            tab === 'polyhaven'
+              ? 'border-studio-accent text-studio-accent'
+              : 'border-transparent text-studio-muted hover:text-studio-text'
+          }`}
+        >
+          <Globe2 className="inline h-3 w-3 mr-1" />Poly Haven
+        </button>
       </div>
 
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto p-2.5">
-        {loading && (
-          <div className="flex h-32 items-center justify-center text-[10px] text-studio-muted animate-pulse">Loading assets…</div>
-        )}
-        {!loading && results.length === 0 && (
-          <p className="py-8 text-center text-[10px] text-studio-muted">No assets found.</p>
-        )}
-        <div className="grid grid-cols-1 gap-2">
-          {results.map((a) => <AssetCard key={a.id} asset={a} onImport={handleImport} />)}
-        </div>
-      </div>
+      {tab === 'polyhaven' ? (
+        <PolyHavenBrowser />
+      ) : (
+        <>
+          {/* Search (local) */}
+          <div className="shrink-0 border-b border-studio-border p-2.5 space-y-2">
+            <div className="flex items-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5">
+              <Search className="h-3.5 w-3.5 text-studio-muted" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search(q)}
+                placeholder="Search assets…" className="flex-1 bg-transparent text-[11px] outline-none placeholder-studio-muted/40" />
+            </div>
+            {/* Category pills */}
+            <div className="flex gap-1 flex-wrap">
+              {CATEGORIES.map((c) => (
+                <button key={c.id}
+                  onClick={() => search(q, c.id as AssetCategory | '')}
+                  className="flex items-center gap-1 rounded-full border border-studio-border bg-studio-surface px-2 py-0.5 text-[9px] text-studio-muted hover:text-studio-accent hover:border-studio-accent/40 transition">
+                  {c.icon}{c.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {/* Pagination */}
-      {pages > 1 && (
-        <div className="shrink-0 flex items-center justify-between border-t border-studio-border px-3 py-2">
-          <button onClick={() => setPage(page - 1)} disabled={page <= 1}
-            className="rounded p-1 text-studio-muted hover:text-studio-text disabled:opacity-30">
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="text-[10px] text-studio-muted">Page {page} / {pages}</span>
-          <button onClick={() => setPage(page + 1)} disabled={page >= pages}
-            className="rounded p-1 text-studio-muted hover:text-studio-text disabled:opacity-30">
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+          {/* Grid (local) */}
+          <div className="flex-1 overflow-y-auto p-2.5">
+            {loading && (
+              <div className="flex h-32 items-center justify-center text-[10px] text-studio-muted animate-pulse">Loading assets…</div>
+            )}
+            {!loading && results.length === 0 && (
+              <p className="py-8 text-center text-[10px] text-studio-muted">No assets found.</p>
+            )}
+            <div className="grid grid-cols-1 gap-2">
+              {results.map((a) => <AssetCard key={a.id} asset={a} onImport={handleImport} />)}
+            </div>
+          </div>
+
+          {/* Pagination (local) */}
+          {pages > 1 && (
+            <div className="shrink-0 flex items-center justify-between border-t border-studio-border px-3 py-2">
+              <button onClick={() => setPage(page - 1)} disabled={page <= 1}
+                className="rounded p-1 text-studio-muted hover:text-studio-text disabled:opacity-30">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-[10px] text-studio-muted">Page {page} / {pages}</span>
+              <button onClick={() => setPage(page + 1)} disabled={page >= pages}
+                className="rounded p-1 text-studio-muted hover:text-studio-text disabled:opacity-30">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

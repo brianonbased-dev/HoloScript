@@ -130,7 +130,7 @@ export function CharacterCreationModal({
           <div>
             <h2 className="text-2xl font-bold text-white">Create Character</h2>
             <p className="mt-1 text-sm text-studio-muted">
-              <span className="text-purple-400">Bring Your Own Keys</span> — HoloScript is the spatial IDE
+              <span className="text-purple-400">HoloScript Cloud</span> — Create characters with our AI vision model (Pro) or bring your own assets
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -638,8 +638,8 @@ function AIGenerationTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSe
             <div className="flex-1">
               <h4 className="text-lg font-bold text-white">🔑 API Key Required</h4>
               <p className="mt-2 text-sm text-studio-muted leading-relaxed">
-                <span className="text-purple-400 font-semibold">Bring Your Own Keys</span> — HoloScript is the spatial IDE.
-                Configure your own AI generation API keys to use this feature.
+                <span className="text-purple-400 font-semibold">HoloScript Cloud</span> — AI character generation is available with a Pro subscription.
+                Subscribe to access our vision model for creating characters, creatures, and avatars.
               </p>
               <p className="mt-3 text-sm text-white">
                 <strong>Supported providers:</strong>
@@ -1497,7 +1497,7 @@ function SketchfabTab({ onCharacterCreated, isLoading, setIsLoading, onOpenSetti
             <div className="flex-1">
               <h4 className="text-lg font-bold text-white">🔑 Optional: Configure API Key</h4>
               <p className="mt-2 text-sm text-studio-muted leading-relaxed">
-                <span className="text-purple-400 font-semibold">Bring Your Own Keys</span> — You can search Sketchfab without an API key,
+                <span className="text-purple-400 font-semibold">Sketchfab Integration</span> — You can search Sketchfab without an API key,
                 but downloads require authentication. Configure your Sketchfab API key for automatic downloads.
               </p>
               <p className="mt-3 text-sm text-white">

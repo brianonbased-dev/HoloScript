@@ -7,8 +7,8 @@
  *
  *  ┌──────────────┬─────────────────────────────────┬──────────────┐
  *  │ SkeletonPanel│      Viewport (R3F Canvas)       │  ClipLibrary │
- *  │  bone tree   │  model + skeleton + gizmo        │  + Built-in  │
- *  │  FK select   │  GlbDropZone (when no model)     │  animations  │
+ *  │  OR Customize│  model + skeleton + gizmo        │  + Built-in  │
+ *  │  OR Wardrobe │  GlbDropZone (when no model)     │  animations  │
  *  └──────────────┴─────────────────────────────────┴──────────────┘
  */
 
@@ -19,6 +19,10 @@ import { useCharacterStore } from '@/lib/store';
 import { SkeletonPanel } from '@/components/character/SkeletonPanel';
 import { ClipLibrary } from '@/components/character/ClipLibrary';
 import { GlbDropZone } from '@/components/character/GlbDropZone';
+import { CharacterCustomizer } from '@/components/character/CharacterCustomizer';
+import { MorphTargetController } from '@/components/character/MorphTargetController';
+import { WardrobePanel } from '@/components/character/WardrobePanel';
+import { Bone, Sliders, Shirt } from 'lucide-react';
 
 // Dynamically import the R3F viewer to avoid SSR issues
 // MEME-012: Using OptimizedGlbViewer for <500ms load times
@@ -40,6 +44,8 @@ function LoadingSpinner() {
 
 function Viewport() {
   const glbUrl = useCharacterStore((s) => s.glbUrl);
+  const panelMode = useCharacterStore((s) => s.panelMode);
+  const setPanelMode = useCharacterStore((s) => s.setPanelMode);
 
   if (!glbUrl) {
     return <GlbDropZone />;
@@ -55,14 +61,41 @@ function Viewport() {
       >
         <Suspense fallback={null}>
           <GlbViewer url={glbUrl} />
+          {panelMode === 'customize' && <MorphTargetController />}
         </Suspense>
       </Canvas>
 
-      {/* Overlay: model info bar */}
-      <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-studio-border bg-studio-panel/80 px-3 py-1 backdrop-blur">
-        <p className="text-[10px] text-studio-muted">
-          Orbit: drag • Zoom: scroll • FK: select bone & drag gizmo
-        </p>
+      {/* Overlay: mode toggle */}
+      <div className="pointer-events-auto absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2">
+        <div className="flex rounded-full border border-studio-border bg-studio-panel/90 backdrop-blur overflow-hidden">
+          <button
+            onClick={() => setPanelMode('skeleton')}
+            className={`flex items-center gap-1 px-3 py-1 text-[10px] transition ${
+              panelMode === 'skeleton' ? 'bg-purple-500/20 text-purple-300' : 'text-studio-muted hover:text-studio-text'
+            }`}
+            title="Skeleton / FK mode"
+          >
+            <Bone className="h-3 w-3" /> Skeleton
+          </button>
+          <button
+            onClick={() => setPanelMode('customize')}
+            className={`flex items-center gap-1 px-3 py-1 text-[10px] transition ${
+              panelMode === 'customize' ? 'bg-purple-500/20 text-purple-300' : 'text-studio-muted hover:text-studio-text'
+            }`}
+            title="Character customizer mode"
+          >
+            <Sliders className="h-3 w-3" /> Customize
+          </button>
+          <button
+            onClick={() => setPanelMode('wardrobe')}
+            className={`flex items-center gap-1 px-3 py-1 text-[10px] transition ${
+              panelMode === 'wardrobe' ? 'bg-purple-500/20 text-purple-300' : 'text-studio-muted hover:text-studio-text'
+            }`}
+            title="Wardrobe mode"
+          >
+            <Shirt className="h-3 w-3" /> Wardrobe
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -74,10 +107,18 @@ interface CharacterLayoutProps {
 }
 
 export function CharacterLayout({ viewportSlot: _unused }: CharacterLayoutProps) {
+  const panelMode = useCharacterStore((s) => s.panelMode);
+
+  const LeftPanel = {
+    skeleton: SkeletonPanel,
+    customize: CharacterCustomizer,
+    wardrobe: WardrobePanel,
+  }[panelMode];
+
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Left: Skeleton panel */}
-      <SkeletonPanel />
+      {/* Left panel: context-dependent */}
+      <LeftPanel />
 
       {/* Center: 3D Viewport */}
       <div className="relative flex-1 overflow-hidden bg-studio-bg">

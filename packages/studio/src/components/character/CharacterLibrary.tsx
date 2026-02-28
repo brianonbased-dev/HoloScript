@@ -20,7 +20,6 @@ import {
   type MemeTemplate,
   getPopularTemplates,
   searchTemplates,
-  getTemplatesByCategory,
 } from '@/lib/memeTemplates';
 
 interface CharacterLibraryProps {
@@ -49,7 +48,7 @@ export function CharacterLibrary({
 
     // Apply category filter
     if (categoryFilter !== 'all') {
-      results = getTemplatesByCategory(categoryFilter);
+      results = results.filter((t) => t.category === categoryFilter);
     }
 
     // Apply search filter
@@ -57,8 +56,7 @@ export function CharacterLibrary({
       results = searchTemplates(searchQuery.trim());
       // If category filter is active, intersect results
       if (categoryFilter !== 'all') {
-        const categoryIds = new Set(getTemplatesByCategory(categoryFilter).map((t) => t.id));
-        results = results.filter((t) => categoryIds.has(t.id));
+        results = results.filter((t) => t.category === categoryFilter);
       }
     }
 

@@ -5,7 +5,7 @@ export interface SceneTemplate {
   id: string;
   name: string;
   emoji: string;
-  category: 'game' | 'social' | 'art' | 'tabletop';
+  category: 'game' | 'social' | 'art' | 'tabletop' | 'education' | 'healthcare' | 'ecommerce' | 'industrial' | 'sports';
   desc: string;
   tags: string[];
   code: string;
@@ -289,6 +289,309 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
   }
 }`,
   },
+
+  // ── EDUCATION ─────────────────────────────────────────────────────────────
+  {
+    id: 'vr-classroom',
+    name: 'VR Classroom',
+    emoji: '🎓',
+    category: 'education',
+    desc: 'Virtual classroom with whiteboard, seats, and student interactions',
+    tags: ['Education', 'VR', 'School'],
+    code: `world "VR Classroom" {
+  @setting("modern_interior")
+  @skybox("clear_day")
+  @lighting("bright_natural")
+  @max_players(30)
+
+  object "Whiteboard" { @position(0, 2, -8) @writable @size(6, 3, 0.1) @interactive }
+  object "TeacherDesk" { @position(0, 0, -6) @interactive }
+  object "StudentDesks" { @count(25) @grid(5, 5) @spacing(2.5) @seating(1) }
+  object "ProjectionScreen" { @position(0, 3, -8.5) @media_player @size(5, 3, 0.05) }
+  object "GlobeModel" { @position(-5, 1, -6) @interactive @rotate_drag }
+  object "BookShelf" { @position(6, 0, -7) @loot_table("textbooks") }
+
+  npc "Teacher" { @position(0, 0, -5) @dialogue("lesson_01") @role("Instructor") }
+}`,
+  },
+  {
+    id: 'science-lab',
+    name: 'Science Lab Simulator',
+    emoji: '🔬',
+    category: 'education',
+    desc: 'Interactive chemistry and physics lab with experiments',
+    tags: ['Education', 'Science', 'Simulation'],
+    code: `world "Science Lab" {
+  @setting("laboratory")
+  @skybox("neutral")
+  @lighting("fluorescent")
+  @max_players(12)
+
+  object "LabBench_Center" { @position(0, 0, 0) @interactive @size(4, 1, 2) }
+  object "BunsenBurner" { @position(-1, 1, 0) @interactive @fire_sim @temperature_control }
+  object "Beakers" { @count(6) @position(0, 1, 0) @interactive @fluid_sim }
+  object "Microscope" { @position(2, 1, 0) @interactive @zoom_view }
+  object "PeriodicTable" { @position(0, 2, -5) @readable @interactive }
+  object "SafetyShower" { @position(5, 0, -4) @interactive @emergency }
+  object "FumeHood" { @position(-5, 0, -4) @interior @ventilation }
+
+  game_logic {
+    @experiment_system
+    @safety_score
+    @lab_report_generator
+  }
+}`,
+  },
+
+  // ── HEALTHCARE ────────────────────────────────────────────────────────────
+  {
+    id: 'medical-training',
+    name: 'Medical Training Suite',
+    emoji: '🏥',
+    category: 'healthcare',
+    desc: 'VR medical training room with patient simulator and vital monitors',
+    tags: ['Healthcare', 'Medical', 'Training'],
+    code: `world "Medical Training Suite" {
+  @setting("hospital")
+  @skybox("neutral")
+  @lighting("clinical")
+  @max_players(6)
+
+  object "PatientBed" { @position(0, 0, 0) @interactive }
+  object "PatientMannequin" { @position(0, 1, 0) @interactive @vital_signs @anatomy_overlay }
+  object "VitalMonitor" { @position(2, 1.5, 0) @ui_element @real_time_data }
+  object "MedicalCart" { @position(-2, 0, 0) @loot_table("medical_tools") @interactive }
+  object "Defibrillator" { @position(-2, 1, 0.5) @interactive @emergency_tool }
+  object "XRayViewer" { @position(0, 2, -4) @media_player @interactive }
+  object "HandSanitizer" { @position(3, 1, -3) @interactive }
+
+  npc "Instructor" { @position(3, 0, 2) @dialogue("procedure_guide") @role("Supervisor") }
+}`,
+  },
+  {
+    id: 'anatomy-explorer',
+    name: 'Anatomy Explorer',
+    emoji: '🫀',
+    category: 'healthcare',
+    desc: 'Interactive 3D human anatomy with layered systems',
+    tags: ['Healthcare', 'Anatomy', 'VR'],
+    code: `world "Anatomy Explorer" {
+  @setting("void")
+  @skybox("dark_studio")
+  @lighting("soft_directional")
+  @max_players(10)
+
+  object "SkeletalSystem" { @position(0, 0, 0) @layer("skeleton") @transparent @interactive }
+  object "MuscularSystem" { @position(0, 0, 0) @layer("muscles") @transparent @interactive }
+  object "CirculatorySystem" { @position(0, 0, 0) @layer("circulatory") @animated @interactive }
+  object "NervousSystem" { @position(0, 0, 0) @layer("nervous") @transparent @interactive }
+  object "OrganSystem" { @position(0, 0, 0) @layer("organs") @interactive }
+  object "InfoPanel" { @position(3, 2, 0) @ui_element @context_sensitive }
+  object "LayerControl" { @position(-3, 2, 0) @ui_element @toggle_layers }
+
+  game_logic {
+    @quiz_mode
+    @layer_isolation
+    @label_system
+  }
+}`,
+  },
+
+  // ── E-COMMERCE ────────────────────────────────────────────────────────────
+  {
+    id: 'virtual-store',
+    name: 'Virtual Storefront',
+    emoji: '🛍️',
+    category: 'ecommerce',
+    desc: '3D product showroom with interactive shelves and checkout',
+    tags: ['E-commerce', 'Shopping', 'VR'],
+    code: `world "Virtual Store" {
+  @setting("modern_retail")
+  @skybox("bright_studio")
+  @lighting("retail_lighting")
+  @max_players(50)
+
+  object "Entrance" { @position(0, 0, 15) @door @automatic }
+  object "ShelfRow_A" { @position(-6, 0, 0) @display_shelf @count(4) @spacing(3) }
+  object "ShelfRow_B" { @position(6, 0, 0) @display_shelf @count(4) @spacing(3) }
+  object "FeaturedDisplay" { @position(0, 1.5, -5) @pedestal @spotlight @rotating }
+  object "PriceTag" { @count(20) @auto_place @ui_element @purchase }
+  object "ShoppingCart" { @position(0, 0, 12) @interactive @inventory_ui }
+  object "Checkout" { @position(0, 0, -12) @interactive @payment_flow }
+
+  npc "StoreAssistant" { @position(4, 0, 8) @dialogue("help") @role("Friendly") }
+}`,
+  },
+  {
+    id: 'product-configurator',
+    name: 'Product Configurator',
+    emoji: '🚗',
+    category: 'ecommerce',
+    desc: 'Interactive 3D product customizer with color/material options',
+    tags: ['E-commerce', 'Configurator', '3D'],
+    code: `world "Product Configurator" {
+  @setting("minimal_studio")
+  @skybox("bright_studio")
+  @lighting("three_point")
+  @max_players(1)
+
+  object "ProductModel" { @position(0, 0.5, 0) @interactive @rotate_drag @configurable }
+  object "ColorPicker" { @position(-3, 1.5, 0) @ui_element @color_palette }
+  object "MaterialPicker" { @position(-3, 0.5, 0) @ui_element @material_options }
+  object "TurntableBase" { @position(0, 0, 0) @rotating @speed(10) }
+  object "CameraPresets" { @ui_element @camera_positions(["front", "side", "top", "detail"]) }
+  object "SpecSheet" { @position(3, 1.5, 0) @ui_element @product_details }
+  object "AddToCartBtn" { @position(3, 0.5, 0) @ui_element @purchase }
+}`,
+  },
+
+  // ── INDUSTRIAL ────────────────────────────────────────────────────────────
+  {
+    id: 'factory-floor',
+    name: 'Smart Factory Floor',
+    emoji: '🏭',
+    category: 'industrial',
+    desc: 'Industrial IoT digital twin with conveyor belts and robot arms',
+    tags: ['Industrial', 'IoT', 'Digital Twin'],
+    code: `world "Smart Factory" {
+  @setting("industrial")
+  @skybox("overcast")
+  @lighting("industrial_harsh")
+  @max_players(10)
+
+  object "ConveyorBelt_Main" { @position(0, 0.5, 0) @animated @speed(2) @size(20, 0.5, 2) }
+  object "RobotArm_A" { @position(-5, 0, 2) @interactive @iot_sensor @articulated }
+  object "RobotArm_B" { @position(5, 0, 2) @interactive @iot_sensor @articulated }
+  object "QualityCamera" { @position(0, 3, 2) @camera @ai_inspection }
+  object "ControlPanel" { @position(-8, 0, -3) @ui_element @real_time_data @interactive }
+  object "StorageRack" { @position(10, 0, -5) @inventory @count(4) }
+  object "SafetyBarrier" { @position(0, 0, 4) @barrier @warning_stripe }
+
+  game_logic {
+    @telemetry_dashboard
+    @alert_system
+    @production_counter
+  }
+}`,
+  },
+  {
+    id: 'warehouse-sim',
+    name: 'Warehouse Simulator',
+    emoji: '📦',
+    category: 'industrial',
+    desc: 'Logistics training with forklift controls and inventory management',
+    tags: ['Industrial', 'Logistics', 'Training'],
+    code: `world "Warehouse Simulator" {
+  @setting("warehouse")
+  @skybox("overcast")
+  @lighting("industrial")
+  @max_players(4)
+
+  object "ShelvingUnit" { @count(12) @grid(4, 3) @spacing(5) @size(3, 6, 1) }
+  object "Forklift" { @position(0, 0, 10) @drivable @physics_vehicle @interactive }
+  object "LoadingDock" { @position(0, 0, -15) @zone @truck_bay }
+  object "PalletStack" { @count(20) @random_scatter @physics_object }
+  object "InventoryTerminal" { @position(-10, 1.5, 0) @interactive @ui_element @inventory }
+  object "SafetyVest_Pickup" { @position(-12, 1, 5) @pickup @required }
+
+  game_logic {
+    @order_system
+    @timer
+    @accuracy_score
+    @safety_violations
+  }
+}`,
+  },
+
+  // ── SPORTS ────────────────────────────────────────────────────────────────
+  {
+    id: 'sports-arena',
+    name: 'Sports Arena',
+    emoji: '🏟️',
+    category: 'sports',
+    desc: 'Multiplayer sports arena with scoreboard and spectator stands',
+    tags: ['Sports', 'Multiplayer', 'Arena'],
+    code: `world "Sports Arena" {
+  @setting("stadium")
+  @skybox("clear_day")
+  @lighting("stadium_lights")
+  @max_players(22)
+
+  object "Field" { @position(0, 0, 0) @size(50, 0.1, 30) @ground @markings }
+  object "GoalA" { @position(-25, 0, 0) @goal @team("A") }
+  object "GoalB" { @position(25, 0, 0) @goal @team("B") }
+  object "Ball" { @position(0, 0.5, 0) @physics_object @kickable }
+  object "Scoreboard" { @position(0, 12, -16) @ui_element @auto_score }
+  object "SpectatorStands" { @position(0, 3, -18) @seating(500) @crowd_audio }
+  object "JumboScreen" { @position(0, 10, -17) @media_player @sync_to_game }
+
+  game_logic {
+    @match_timer(5400)
+    @team_scoreboard
+    @offside_detection
+    @replay_system
+  }
+}`,
+  },
+  {
+    id: 'racing-track',
+    name: 'Racing Circuit',
+    emoji: '🏎️',
+    category: 'sports',
+    desc: 'Vehicle racing with checkpoints, power-ups, and lap timer',
+    tags: ['Sports', 'Racing', 'Vehicles'],
+    code: `world "Racing Circuit" {
+  @setting("outdoor_track")
+  @skybox("sunset")
+  @lighting("golden_hour")
+  @max_players(8)
+
+  object "TrackSurface" { @position(0, 0, 0) @spline_path @width(12) @length(2000) }
+  object "StartGrid" { @position(0, 0, 0) @spawn @grid(2, 4) @spacing(3) }
+  object "Checkpoint_1" { @checkpoint(1) @position(200, 0, 100) }
+  object "Checkpoint_2" { @checkpoint(2) @position(400, 0, -50) }
+  object "Checkpoint_3" { @checkpoint(3) @position(600, 0, 100) }
+  object "FinishLine" { @position(0, 0, 0) @finish @lap_counter }
+  object "SpeedBoost" { @count(4) @random_scatter @power_up @boost }
+  object "Barrier" { @count(20) @along_path @destructible }
+
+  game_logic {
+    @lap_count(3)
+    @timer
+    @leaderboard("fastest_lap")
+    @collision_physics
+  }
+}`,
+  },
+  {
+    id: 'fitness-gym',
+    name: 'VR Fitness Gym',
+    emoji: '💪',
+    category: 'sports',
+    desc: 'Virtual gym with exercise stations and rep tracking',
+    tags: ['Sports', 'Fitness', 'Health'],
+    code: `world "VR Fitness Gym" {
+  @setting("modern_gym")
+  @skybox("bright_studio")
+  @lighting("bright_natural")
+  @max_players(10)
+
+  object "TreadmillRow" { @position(-6, 0, 0) @count(4) @spacing(2) @interactive @cardio }
+  object "WeightRack" { @position(6, 0, -5) @interactive @weight_selection }
+  object "YogaMat" { @position(0, 0, 5) @count(6) @grid(3, 2) @spacing(2) }
+  object "PunchingBag" { @position(-8, 1.5, 5) @physics_object @interactive }
+  object "Mirror" { @position(8, 1.5, -8) @reflective @size(4, 3, 0.1) }
+  object "Scoreboard" { @position(0, 3, -8) @ui_element @rep_counter @calorie_tracker }
+  object "WaterStation" { @position(-10, 0, 0) @interactive @heal }
+
+  game_logic {
+    @workout_plan
+    @rep_tracking
+    @achievement_system
+    @heart_rate_sync
+  }
+}`,
+  },
 ];
 
 export const TEMPLATE_CATEGORIES = [
@@ -296,4 +599,10 @@ export const TEMPLATE_CATEGORIES = [
   { id: 'social', label: 'Social', emoji: '🎉' },
   { id: 'art', label: 'Art', emoji: '🎨' },
   { id: 'tabletop', label: 'Tabletop', emoji: '🎲' },
+  { id: 'education', label: 'Education', emoji: '🎓' },
+  { id: 'healthcare', label: 'Healthcare', emoji: '🏥' },
+  { id: 'ecommerce', label: 'E-Commerce', emoji: '🛍️' },
+  { id: 'industrial', label: 'Industrial', emoji: '🏭' },
+  { id: 'sports', label: 'Sports', emoji: '🏟️' },
 ] as const;
+

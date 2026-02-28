@@ -1,7 +1,6 @@
 'use client';
 
-<<<<<<< HEAD
-import { ArrowLeft, Glasses, Upload, Zap, BarChart2, X } from 'lucide-react';
+import { ArrowLeft, Glasses, Upload, Zap, BarChart2, X, BookOpen, HelpCircle, Sparkles, Server, Workflow, GitBranch, Users, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAIStore, useSceneStore, useEditorStore } from '@/lib/store';
@@ -11,9 +10,24 @@ import { xrStore } from '@/components/vr/VREditSession';
 import { StudioModeSwitcher } from '@/components/StudioModeSwitcher';
 import dynamic from 'next/dynamic';
 import { useGlobalHotkeys } from '@/hooks/useGlobalHotkeys';
+import { useOrchestrationKeyboard } from '@/hooks/useOrchestrationKeyboard';
+import { useOrchestrationAutoSave } from '@/hooks/useOrchestrationAutoSave';
 
 const PublishPanel = dynamic(() => import('@/components/publish/PublishPanel').then((m) => ({ default: m.PublishPanel })), { ssr: false });
 const BenchmarkScene = dynamic(() => import('@/components/perf/BenchmarkScene'), { ssr: false });
+
+// Lazy-load panels to avoid SSR issues and reduce initial bundle
+const ExampleGallery = dynamic(() => import('@/components/gallery/ExampleGallery').then((m) => ({ default: m.ExampleGallery })), { ssr: false });
+const FirstLaunchTutorial = dynamic(() => import('@/components/wizard/FirstLaunchTutorial').then((m) => ({ default: m.FirstLaunchTutorial })), { ssr: false });
+const PromptLibrary = dynamic(() => import('@/components/ai/PromptLibrary').then((m) => ({ default: m.PromptLibrary })), { ssr: false });
+
+// Orchestration panels
+const MCPServerConfigPanel = dynamic(() => import('@/components/orchestration').then((m) => ({ default: m.MCPServerConfigPanel })), { ssr: false });
+const AgentOrchestrationGraphEditor = dynamic(() => import('@/components/orchestration').then((m) => ({ default: m.AgentOrchestrationGraphEditor })), { ssr: false });
+const BehaviorTreeVisualEditor = dynamic(() => import('@/components/orchestration').then((m) => ({ default: m.BehaviorTreeVisualEditor })), { ssr: false });
+const DesktopAgentEnsemble = dynamic(() => import('@/components/orchestration').then((m) => ({ default: m.DesktopAgentEnsemble })), { ssr: false });
+const AgentEventMonitorPanel = dynamic(() => import('@/components/orchestration').then((m) => ({ default: m.AgentEventMonitorPanel })), { ssr: false });
+const ToolCallGraphVisualizer = dynamic(() => import('@/components/orchestration').then((m) => ({ default: m.ToolCallGraphVisualizer })), { ssr: false });
 
 export function StudioHeader() {
   const ollamaStatus = useAIStore((s) => s.ollamaStatus);
@@ -30,10 +44,47 @@ export function StudioHeader() {
   const [xrSupported, setXrSupported] = useState(false);
   const [xrActive, setXrActive] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [examplesOpen, setExamplesOpen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
+  const [promptsOpen, setPromptsOpen] = useState(false);
+
+  // ── Orchestration panel toggles ──────────────────────────────────────────────
+  const [mcpConfigOpen, setMcpConfigOpen] = useState(false);
+  const [agentWorkflowOpen, setAgentWorkflowOpen] = useState(false);
+  const [behaviorTreeOpen, setBehaviorTreeOpen] = useState(false);
+  const [agentEnsembleOpen, setAgentEnsembleOpen] = useState(false);
+  const [eventMonitorOpen, setEventMonitorOpen] = useState(false);
+  const [toolCallGraphOpen, setToolCallGraphOpen] = useState(false);
+
+  // ── First-launch detection ──────────────────────────────────────────────────
+  useEffect(() => {
+    try {
+      const done = localStorage.getItem('holoscript-studio-tutorial-complete');
+      if (!done) setShowTutorial(true);
+    } catch {}
+  }, []);
+
+  const dismissTutorial = () => {
+    setShowTutorial(false);
+    try { localStorage.setItem('holoscript-studio-tutorial-complete', 'true'); } catch {}
+  };
 
   // ── Global keyboard shortcuts ───────────────────────────────────────────────
   useGlobalHotkeys({ onOpenHelp: () => setHotkeyOverlayOpen((v) => !v) });
+
+  // ── Orchestration keyboard shortcuts ────────────────────────────────────────
+  useOrchestrationKeyboard({
+    onToggleMCP: () => setMcpConfigOpen((v) => !v),
+    onToggleWorkflow: () => setAgentWorkflowOpen((v) => !v),
+    onToggleBehaviorTree: () => setBehaviorTreeOpen((v) => !v),
+    onToggleEventMonitor: () => setEventMonitorOpen((v) => !v),
+    onToggleToolCallGraph: () => setToolCallGraphOpen((v) => !v),
+    onToggleAgentEnsemble: () => setAgentEnsembleOpen((v) => !v),
+  });
+
+  // ── Orchestration auto-save ─────────────────────────────────────────────────
+  useOrchestrationAutoSave();
 
   const isExpert = studioMode === 'expert';
 
@@ -64,65 +115,10 @@ export function StudioHeader() {
           HoloScript <span className="text-studio-accent">Studio</span>
         </span>
         <span className="text-xs text-studio-muted hidden sm:inline shrink-0">|</span>
-=======
-import { Save, Download, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
-import { useAIStore, useSceneStore } from '@/lib/store';
-import { saveProject } from '@/lib/storage';
-import { generateId } from '@/lib/storage';
-import { useCallback, useState } from 'react';
-
-export function StudioHeader() {
-  const ollamaStatus = useAIStore((s) => s.ollamaStatus);
-  const code = useSceneStore((s) => s.code);
-  const metadata = useSceneStore((s) => s.metadata);
-  const isDirty = useSceneStore((s) => s.isDirty);
-  const markClean = useSceneStore((s) => s.markClean);
-  const setMetadata = useSceneStore((s) => s.setMetadata);
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = useCallback(async () => {
-    if (!code) return;
-    setSaving(true);
-    const id = metadata.id || generateId();
-    if (!metadata.id) setMetadata({ id });
-    await saveProject({
-      id,
-      name: metadata.name,
-      code,
-      metadata: { ...metadata, id, updatedAt: new Date().toISOString() },
-    });
-    markClean();
-    setSaving(false);
-  }, [code, metadata, markClean, setMetadata]);
-
-  const handleDownload = useCallback(() => {
-    if (!code) return;
-    const blob = new Blob([code], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${metadata.name.replace(/\s+/g, '-').toLowerCase()}.holo`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [code, metadata.name]);
-
-  return (
-    <header className="flex h-12 items-center justify-between border-b border-studio-border bg-studio-panel px-4">
-      <div className="flex items-center gap-3">
-        <Link href="/" className="text-studio-muted transition hover:text-studio-text">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <span className="text-sm font-semibold">
-          HoloScript <span className="text-studio-accent">Studio</span>
-        </span>
-        <span className="text-xs text-studio-muted">|</span>
->>>>>>> feature/docs-examples-misc
         <input
           type="text"
           value={metadata.name}
           onChange={(e) => setMetadata({ name: e.target.value })}
-<<<<<<< HEAD
           className="min-w-0 w-28 bg-transparent text-sm text-studio-text outline-none truncate"
           placeholder="Untitled Scene"
         />
@@ -136,27 +132,12 @@ export function StudioHeader() {
         <StudioModeSwitcher />
       </div>
 
-      {/* Right: status + Expert tools + VR + collab + save */}
-      <div className="flex items-center justify-end gap-3">
+      {/* Right: status + tools + VR + collab + save */}
+      <div className="flex items-center justify-end gap-2">
         {/* Ollama status */}
         <div className="flex items-center gap-1.5 text-xs text-studio-muted">
           <span
             className={`h-2 w-2 rounded-full shrink-0 ${
-=======
-          className="bg-transparent text-sm text-studio-text outline-none"
-          placeholder="Untitled Scene"
-        />
-        {isDirty && (
-          <span className="h-2 w-2 rounded-full bg-studio-warning" title="Unsaved changes" />
-        )}
-      </div>
-
-      <div className="flex items-center gap-3">
-        {/* Ollama status */}
-        <div className="flex items-center gap-1.5 text-xs text-studio-muted">
-          <span
-            className={`h-2 w-2 rounded-full ${
->>>>>>> feature/docs-examples-misc
               ollamaStatus === 'connected'
                 ? 'bg-studio-success'
                 : ollamaStatus === 'checking'
@@ -164,7 +145,6 @@ export function StudioHeader() {
                   : 'bg-studio-error'
             }`}
           />
-<<<<<<< HEAD
           <span className="hidden lg:inline">
             {ollamaStatus === 'connected'
               ? 'AI Ready'
@@ -174,7 +154,115 @@ export function StudioHeader() {
           </span>
         </div>
 
-        {/* ── Expert-only tools ─────────────────────────────────── */}
+        {/* ── Examples button ────────────────────────────────── */}
+        <button
+          onClick={() => setExamplesOpen(true)}
+          title="Browse Examples"
+          className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-studio-accent/40 hover:text-studio-accent"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Examples</span>
+        </button>
+
+        {/* ── Prompts button ──────────────────────────────────── */}
+        <button
+          onClick={() => setPromptsOpen(true)}
+          title="AI Prompt Library"
+          className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1 text-xs font-medium text-studio-muted transition hover:border-amber-500/40 hover:text-amber-400"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Prompts</span>
+        </button>
+
+        {/* ── Help / Tour button ─────────────────────────────── */}
+        <button
+          onClick={() => setShowTutorial(true)}
+          title="Guided Tour"
+          className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2 py-1 text-xs font-medium text-studio-muted transition hover:border-studio-accent/40 hover:text-studio-accent"
+        >
+          <HelpCircle className="h-3.5 w-3.5" />
+        </button>
+
+        {/* ── Orchestration tools ────────────────────────────── */}
+        <button
+          onClick={() => setMcpConfigOpen(!mcpConfigOpen)}
+          title="MCP Servers"
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+            mcpConfigOpen
+              ? 'border-blue-500/40 bg-blue-500/20 text-blue-300'
+              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-blue-500/40 hover:text-blue-400'
+          }`}
+        >
+          <Server className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">MCP</span>
+        </button>
+
+        <button
+          onClick={() => setAgentWorkflowOpen(!agentWorkflowOpen)}
+          title="Agent Orchestration"
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+            agentWorkflowOpen
+              ? 'border-purple-500/40 bg-purple-500/20 text-purple-300'
+              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-purple-500/40 hover:text-purple-400'
+          }`}
+        >
+          <Workflow className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Workflow</span>
+        </button>
+
+        <button
+          onClick={() => setBehaviorTreeOpen(!behaviorTreeOpen)}
+          title="Behavior Tree"
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+            behaviorTreeOpen
+              ? 'border-green-500/40 bg-green-500/20 text-green-300'
+              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-green-500/40 hover:text-green-400'
+          }`}
+        >
+          <GitBranch className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">BT</span>
+        </button>
+
+        <button
+          onClick={() => setAgentEnsembleOpen(!agentEnsembleOpen)}
+          title="Agent Ensemble"
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+            agentEnsembleOpen
+              ? 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300'
+              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-cyan-500/40 hover:text-cyan-400'
+          }`}
+        >
+          <Users className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Agents</span>
+        </button>
+
+        <button
+          onClick={() => setEventMonitorOpen(!eventMonitorOpen)}
+          title="Event Monitor"
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+            eventMonitorOpen
+              ? 'border-orange-500/40 bg-orange-500/20 text-orange-300'
+              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-orange-500/40 hover:text-orange-400'
+          }`}
+        >
+          <Activity className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Events</span>
+        </button>
+
+        <button
+          onClick={() => setToolCallGraphOpen(!toolCallGraphOpen)}
+          title="Tool Call Graph"
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+            toolCallGraphOpen
+              ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-amber-500/40 hover:text-amber-400'
+          }`}
+        >
+          <Zap className="h-3.5 w-3.5" />
+          <span className="hidden lg:inline">Tools</span>
+        </button>
+
+        {/* ── Expert-only tools ─────────────────────────────── */}
         {isExpert && (
           <>
             {/* Perf Overlay toggle */}
@@ -238,6 +326,29 @@ export function StudioHeader() {
 
     {publishOpen && <PublishPanel onClose={() => setPublishOpen(false)} />}
 
+    {/* ── Examples drawer (right side panel) ──────────────────── */}
+    {examplesOpen && (
+      <div className="fixed right-0 top-12 bottom-0 z-40 w-80 border-l border-studio-border shadow-2xl">
+        <ExampleGallery onClose={() => setExamplesOpen(false)} />
+      </div>
+    )}
+
+    {/* ── Prompts drawer (right side panel) ───────────────────── */}
+    {promptsOpen && (
+      <div className="fixed right-0 top-12 bottom-0 z-40 w-80 border-l border-studio-border shadow-2xl">
+        <PromptLibrary
+          onClose={() => setPromptsOpen(false)}
+          onUsePrompt={(prompt) => {
+            window.dispatchEvent(new CustomEvent('brittney-prompt', { detail: prompt }));
+            setPromptsOpen(false);
+          }}
+        />
+      </div>
+    )}
+
+    {/* ── First-launch tutorial ────────────────────────────────── */}
+    {showTutorial && <FirstLaunchTutorial onClose={dismissTutorial} />}
+
     {/* ── Benchmark drawer (full-screen overlay, Expert mode) ───── */}
     {showBenchmark && (
       <div className="fixed inset-0 z-50 flex flex-col bg-studio-bg/95 backdrop-blur-sm">
@@ -258,34 +369,60 @@ export function StudioHeader() {
         </div>
       </div>
     )}
-  </>
-=======
-          {ollamaStatus === 'connected'
-            ? 'AI Ready'
-            : ollamaStatus === 'checking'
-              ? 'Checking...'
-              : 'AI Offline'}
-        </div>
 
-        {/* Actions */}
-        <button
-          onClick={handleSave}
-          disabled={!code || saving}
-          className="flex items-center gap-1.5 rounded-md bg-studio-surface px-3 py-1.5 text-xs text-studio-text transition hover:bg-studio-border disabled:opacity-30"
-        >
-          <Save className="h-3.5 w-3.5" />
-          {saving ? 'Saving...' : 'Save'}
-        </button>
-        <button
-          onClick={handleDownload}
-          disabled={!code}
-          className="flex items-center gap-1.5 rounded-md bg-studio-surface px-3 py-1.5 text-xs text-studio-text transition hover:bg-studio-border disabled:opacity-30"
-        >
-          <Download className="h-3.5 w-3.5" />
-          .holo
-        </button>
+    {/* ── Orchestration Panels ─────────────────────────────────── */}
+
+    {/* MCP Server Config (right sidebar) */}
+    {mcpConfigOpen && (
+      <div className="fixed right-0 top-12 bottom-0 z-40 w-96 border-l border-studio-border shadow-2xl">
+        <MCPServerConfigPanel onClose={() => setMcpConfigOpen(false)} />
       </div>
-    </header>
->>>>>>> feature/docs-examples-misc
+    )}
+
+    {/* Agent Workflow Editor (full-screen modal) */}
+    {agentWorkflowOpen && (
+      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+        <div className="absolute inset-4 bg-studio-panel rounded-xl border border-studio-border">
+          <AgentOrchestrationGraphEditor
+            workflowId="default"
+            onClose={() => setAgentWorkflowOpen(false)}
+          />
+        </div>
+      </div>
+    )}
+
+    {/* Behavior Tree Editor (full-screen modal) */}
+    {behaviorTreeOpen && (
+      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+        <div className="absolute inset-4 bg-studio-panel rounded-xl border border-studio-border">
+          <BehaviorTreeVisualEditor
+            treeId="default"
+            onClose={() => setBehaviorTreeOpen(false)}
+          />
+        </div>
+      </div>
+    )}
+
+    {/* Desktop Agent Ensemble (right sidebar, wider) */}
+    {agentEnsembleOpen && (
+      <div className="fixed right-0 top-12 bottom-0 z-40 w-[600px] border-l border-studio-border shadow-2xl">
+        <DesktopAgentEnsemble onClose={() => setAgentEnsembleOpen(false)} />
+      </div>
+    )}
+
+    {/* Event Monitor (right sidebar) */}
+    {eventMonitorOpen && (
+      <div className="fixed right-0 top-12 bottom-0 z-40 w-96 border-l border-studio-border shadow-2xl">
+        <AgentEventMonitorPanel onClose={() => setEventMonitorOpen(false)} />
+      </div>
+    )}
+
+    {/* Tool Call Graph (right sidebar) */}
+    {toolCallGraphOpen && (
+      <div className="fixed right-0 top-12 bottom-0 z-40 w-96 border-l border-studio-border shadow-2xl">
+        <ToolCallGraphVisualizer onClose={() => setToolCallGraphOpen(false)} />
+      </div>
+    )}
+  </>
   );
 }

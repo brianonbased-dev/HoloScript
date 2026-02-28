@@ -15,7 +15,7 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // We mock VRRRuntime to simulate real-world IoT sensor data streams 
 // bound to the @sensor_stream trait logic inside HoloScript arrays.
@@ -46,10 +46,18 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
     });
   });
 
+  afterEach(() => {
+    // Clean up VRRRuntime intervals to prevent timer leaks into other test files
+    if (vrr && typeof (vrr as any).destroy === 'function') {
+      (vrr as any).destroy();
+    }
+    vi.restoreAllMocks();
+  });
+
   it('maps IoT Sensor Array telemetry bounds via @sensor_stream', async () => {
     // Surgeon binds the patient's heart rate monitor to a HoloScript overlay.
     // Ensure the syncIoTSensor hook accurately propagates the telemetry.
-    mockFetch.mockResolvedValueOnce({
+    mockFetch.mockResolvedValue({
       json: async () => ({
         heart_rate: 85,
         spo2: 98,
@@ -70,7 +78,7 @@ describe('Scenario: Healthcare Operating Room Simulation', () => {
 
   it('triggers @hardware_fault behaviors on anomaly detection', async () => {
     // Simulate a hardware fault where the sensor goes completely offline
-    mockFetch.mockRejectedValueOnce(new Error('Network disconnected'));
+    mockFetch.mockRejectedValue(new Error('Network disconnected'));
 
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 

@@ -3,8 +3,10 @@
  *
  * MEME-018: Settings panel for third-party API keys
  *
- * "Bring Your Own Keys" model - HoloScript is the spatial IDE,
- * users configure their own integrations (like VSCode/Cursor)
+ * Third-party API keys for AI orchestrations in Hololand.
+ * BYOK (Bring Your Own Keys) lets users configure their own AI providers
+ * for building orchestrations in their Hololand setups.
+ * Character creation uses the HoloScript Cloud vision model (Pro subscription).
  *
  * Features:
  * - Secure API key input (password fields)
@@ -143,9 +145,9 @@ export default function APIKeysPanel({ onClose, autoFocus }: APIKeysPanelProps) 
 
       <div className="panel-description">
         <p>
-          <strong>Bring Your Own Keys</strong> — HoloScript is the spatial IDE.
+          <strong>AI Orchestration Keys</strong> — Configure your own AI providers for building orchestrations in Hololand.
           <br />
-          Configure your own API integrations (like VSCode or Cursor).
+          Character creation is powered by the HoloScript Cloud vision model (Pro subscription).
         </p>
         <p className="privacy-note">
           🔒 <strong>Privacy:</strong> Keys stored locally in your browser. Never sent to HoloScript servers.

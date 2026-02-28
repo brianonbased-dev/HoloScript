@@ -27,13 +27,19 @@ interface PublishedPayload {
   };
 }
 
-export default function ViewPage({ params }: { params: { id: string } }) {
+export default function ViewPage({ params }: { params: Promise<{ id: string }> }) {
   const [payload, setPayload] = useState<PublishedPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sceneId, setSceneId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/publish?id=${params.id}`)
+    params.then(({ id }) => setSceneId(id));
+  }, [params]);
+
+  useEffect(() => {
+    if (!sceneId) return;
+    fetch(`/api/publish?id=${sceneId}`)
       .then((r) => {
         if (!r.ok) throw new Error('Scene not found');
         return r.json() as Promise<PublishedPayload>;
@@ -43,7 +49,7 @@ export default function ViewPage({ params }: { params: { id: string } }) {
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [sceneId]);
 
   if (loading) {
     return (

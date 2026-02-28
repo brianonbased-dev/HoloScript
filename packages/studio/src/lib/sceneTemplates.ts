@@ -602,6 +602,66 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
   }
 } `,
   },
+
+  // ── Holographic UI Lab ─────────────────────────────────────────────────────
+  {
+    id: 'holo-ui',
+    name: 'Holographic UI Lab',
+    description: 'Floating holographic panels and controls for XR interface prototyping',
+    thumbnail: '🖥️',
+    tags: ['xr', 'ui', 'holographic', 'prototype'],
+    category: 'AI Builder',
+    code: `composition "Holographic UI Lab" {
+  environment {
+    skybox: "night"
+    ambient_light: 0.1
+  }
+
+  object "MainPanel" {
+    @billboard @glowing
+    geometry: "plane"
+    position: [0, 1.5, -1.5]
+    scale: [1.6, 1, 0.01]
+    color: "#0a1028"
+    emissive: "#1144aa"
+    emissiveIntensity: 0.3
+    opacity: 0.85
+    label: "System Status"
+  }
+
+  object "SidePanel" {
+    @billboard @glowing
+    geometry: "plane"
+    position: [-1.2, 1.5, -1]
+    rotation: [0, 25, 0]
+    scale: [0.8, 0.6, 0.01]
+    color: "#0a1028"
+    emissive: "#00cc66"
+    emissiveIntensity: 0.3
+    opacity: 0.8
+    label: "Metrics"
+  }
+
+  object "ControlOrb" {
+    @glowing
+    geometry: "sphere"
+    position: [0.8, 1, -0.8]
+    scale: [0.12, 0.12, 0.12]
+    color: "#00aaff"
+    emissive: "#00aaff"
+    emissiveIntensity: 2.0
+
+    animation hover {
+      property: "position.y"
+      from: 1.0
+      to: 1.15
+      duration: 1500
+      loop: infinite
+      easing: "easeInOut"
+    }
+  }
+}`,
+  },
 ];
 
 // ─── Search ───────────────────────────────────────────────────────────────────

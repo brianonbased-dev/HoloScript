@@ -36,7 +36,7 @@ export interface GenerationStatus {
 // ─── API Configuration ───────────────────────────────────────────────────────
 
 /**
- * Get API key from localStorage (user's own keys - BYOK model)
+ * Get API key from localStorage (transitioning to HoloScript Cloud Pro subscription)
  */
 function getAPIKey(service: 'meshy' | 'rodin'): string {
   if (typeof window === 'undefined') return '';
@@ -50,7 +50,7 @@ function getAPIKey(service: 'meshy' | 'rodin'): string {
 
 /**
  * API configuration
- * Uses localStorage for API keys (Bring Your Own Keys model)
+ * Uses localStorage for API keys (transitioning to HoloScript Cloud vision model)
  */
 function getAPIConfig() {
   return {

@@ -113,6 +113,16 @@ export function BrittneyChatPanel() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Listen for external prompt injection (from Prompt Library panel)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const prompt = (e as CustomEvent<string>).detail;
+      if (prompt) setInput(prompt);
+    };
+    window.addEventListener('brittney-prompt', handler);
+    return () => window.removeEventListener('brittney-prompt', handler);
+  }, []);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isThinking) return;
