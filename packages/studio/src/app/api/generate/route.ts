@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generateMockScene, refineMockScene } from '@/lib/mock-generator';
 
-<<<<<<< HEAD
 // ─── Starter Templates metadata (matching mock-generator template IDs) ─────────
 
 const STARTER_TEMPLATES = [
@@ -17,11 +16,10 @@ export function GET() {
   return NextResponse.json({ templates: STARTER_TEMPLATES });
 }
 
-
-=======
->>>>>>> feature/docs-examples-misc
+const BRITTNEY_SERVICE_URL = process.env.BRITTNEY_SERVICE_URL || '';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
 const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL || 'http://localhost:8000';
+
 
 const SYSTEM_PROMPT = `You are a HoloScript expert. Generate valid HoloScript code from user descriptions.
 
@@ -70,7 +68,11 @@ export async function POST(request: Request) {
       fullPrompt = `Here is the current HoloScript scene:\n\n${existingCode}\n\nModify it according to this instruction: ${prompt}\n\nReturn the COMPLETE updated HoloScript code.`;
     }
 
-    // Try LLM service first
+    // Try Brittney Cloud Service first (GPU inference)
+    const brittneyResult = await tryBrittneyCloud(fullPrompt);
+    if (brittneyResult) return NextResponse.json(brittneyResult);
+
+    // Try LLM service next
     const llmResult = await tryLLMService(fullPrompt);
     if (llmResult) return NextResponse.json(llmResult);
 
@@ -85,6 +87,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, code: mockCode, source: 'mock' });
   } catch (err) {
     return NextResponse.json({ success: false, code: '', error: String(err) }, { status: 500 });
+  }
+}
+
+async function tryBrittneyCloud(prompt: string) {
+  if (!BRITTNEY_SERVICE_URL) return null;
+  try {
+    const res = await fetch(`${BRITTNEY_SERVICE_URL}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, context: 'holoscript' }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.success && data.code) {
+      return { success: true, code: data.code, source: 'brittney-cloud' };
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 

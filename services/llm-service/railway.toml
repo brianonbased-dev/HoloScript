@@ -1,14 +1,15 @@
+# Brittney Cloud Service — Railway Deployment Config
+# Lightweight API gateway proxying to GPU inference (Fireworks/Together)
+
 [build]
 builder = "NIXPACKS"
-buildCommand = "pnpm install && pnpm --filter holoscript-llm-service build"
-watchPatterns = ["services/llm-service/**"]
 
 [deploy]
-startCommand = "pnpm --filter holoscript-llm-service start"
 healthcheckPath = "/api/health"
-healthcheckTimeout = 100
+healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
+restartPolicyMaxRetries = 3
+startCommand = "node dist/server.js"
 
-[env]
-NODE_VERSION = "20"
+[service]
+internalPort = 8000

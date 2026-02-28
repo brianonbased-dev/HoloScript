@@ -1,7 +1,7 @@
 {
-  "name": "holoscript-llm-service",
-  "version": "3.0.0",
-  "description": "Standalone local LLM service for HoloScript - users log in and build",
+  "name": "brittney-service",
+  "version": "1.0.0",
+  "description": "Brittney Cloud Service — AI-powered HoloScript spatial intelligence gateway",
   "private": true,
   "type": "module",
   "main": "dist/server.js",

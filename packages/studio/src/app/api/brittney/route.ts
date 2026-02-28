@@ -9,8 +9,10 @@
  *   - tool_call events (executed server-side, result sent to client)
  *   - done event
  *
- * Provider: Ollama (local) by default.
- * Set OPENAI_API_KEY env var to switch to OpenAI gpt-4o.
+ * Provider priority:
+ *   1. Brittney Cloud Service (BRITTNEY_SERVICE_URL) — GPU inference
+ *   2. Ollama (local) — dev fallback
+ *   3. OpenAI (OPENAI_API_KEY) — user-provided key for alt AI
  */
 
 import { NextRequest } from 'next/server';
@@ -36,6 +38,50 @@ Rules:
 - If you need more info (e.g. which object to modify), ask once concisely
 - Match the user's energy: casual and fast if they're fast, detailed if they ask for it
 - Never apologize excessively or pad your responses`;
+
+const BRITTNEY_SERVICE_URL = process.env.BRITTNEY_SERVICE_URL || '';
+
+// ─── Brittney Cloud provider ──────────────────────────────────────────────────
+
+async function* streamBrittneyCloud(
+  messages: BrittneyMessage[],
+  scene: string
+): AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }> {
+  const response = await fetch(`${BRITTNEY_SERVICE_URL}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, sceneContext: scene }),
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Brittney Cloud error: ${response.status} ${response.statusText}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      const trimmed = line.replace(/^data: /, '').trim();
+      if (!trimmed) continue;
+      try {
+        const event = JSON.parse(trimmed) as { type: 'text' | 'tool_call' | 'done'; payload: unknown };
+        yield event;
+        if (event.type === 'done') return;
+      } catch {
+        // partial chunk
+      }
+    }
+  }
+}
 
 // ─── Ollama provider ──────────────────────────────────────────────────────────
 
@@ -225,8 +271,19 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        const provider = process.env.OPENAI_API_KEY ? streamOpenAI : streamOllama;
-        const gen = provider(messages, sceneContext);
+        // Provider priority: Brittney Cloud → Ollama → OpenAI
+        let gen: AsyncGenerator<{ type: 'text' | 'tool_call' | 'done'; payload: unknown }>;
+        if (BRITTNEY_SERVICE_URL) {
+          try {
+            gen = streamBrittneyCloud(messages, sceneContext);
+          } catch {
+            gen = process.env.OPENAI_API_KEY ? streamOpenAI(messages, sceneContext) : streamOllama(messages, sceneContext);
+          }
+        } else if (process.env.OPENAI_API_KEY) {
+          gen = streamOpenAI(messages, sceneContext);
+        } else {
+          gen = streamOllama(messages, sceneContext);
+        }
 
         for await (const event of gen) {
           send(event);

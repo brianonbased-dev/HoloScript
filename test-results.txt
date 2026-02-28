@@ -1,0 +1,216 @@
+Scope: 39 of 40 workspace projects
+packages/compiler-wasm test$ cargo test || echo 'cargo not installed, skipping WASM tests'
+packages/adapter-postgres test$ vitest run
+packages/formatter test$ vitest run
+packages/core test$ vitest run
+packages/compiler-wasm test: warning: field `source` is never read
+packages/compiler-wasm test:  --> packages\compiler-wasm\src\lexer.rs:7:5
+packages/compiler-wasm test:   |
+packages/compiler-wasm test: 6 | pub struct Lexer<'a> {
+packages/compiler-wasm test:   |            ----- field in this struct
+packages/compiler-wasm test: 7 |     source: &'a str,
+packages/compiler-wasm test:   |     ^^^^^^
+packages/compiler-wasm test:   |
+packages/compiler-wasm test:   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+packages/compiler-wasm test: warning: field `source` is never read
+packages/compiler-wasm test:   --> packages\compiler-wasm\src\parser.rs:29:5
+packages/compiler-wasm test:    |
+packages/compiler-wasm test: 26 | pub struct Parser<'a> {
+packages/compiler-wasm test:    |            ------ field in this struct
+packages/compiler-wasm test: ...
+packages/compiler-wasm test: 29 |     source: &'a str,
+packages/compiler-wasm test:    |     ^^^^^^
+packages/compiler-wasm test: warning: enum `HoloType` is never used
+packages/compiler-wasm test:  --> packages\compiler-wasm\src\types.rs:9:10
+packages/compiler-wasm test:   |
+packages/compiler-wasm test: 9 | pub enum HoloType {
+packages/compiler-wasm test:   |          ^^^^^^^^
+packages/compiler-wasm test: warning: methods `is_assignable_to` and `to_string` are never used
+packages/compiler-wasm test:   --> packages\compiler-wasm\src\types.rs:43:12
+packages/compiler-wasm test:    |
+packages/compiler-wasm test: 41 | impl HoloType {
+packages/compiler-wasm test:    | ------------- methods in this implementation
+packages/compiler-wasm test: 42 |     /// Check if this type is assignable to another type
+packages/compiler-wasm test: 43 |     pub fn is_assignable_to(&self, other: &HoloType) -> bool {
+packages/compiler-wasm test:    |            ^^^^^^^^^^^^^^^^
+packages/compiler-wasm test: ...
+packages/compiler-wasm test: 73 |     pub fn to_string(&self) -> String {
+packages/compiler-wasm test:    |            ^^^^^^^^^
+packages/compiler-wasm test: warning: struct `TraitDefinition` is never constructed
+packages/compiler-wasm test:    --> packages\compiler-wasm\src\types.rs:109:12
+packages/compiler-wasm test:     |
+packages/compiler-wasm test: 109 | pub struct TraitDefinition {
+packages/compiler-wasm test:     |            ^^^^^^^^^^^^^^^
+packages/compiler-wasm test: warning: function `get_builtin_traits` is never used
+packages/compiler-wasm test:    --> packages\compiler-wasm\src\types.rs:115:8
+packages/compiler-wasm test:     |
+packages/compiler-wasm test: 115 | pub fn get_builtin_traits() -> Vec<TraitDefinition> {
+packages/compiler-wasm test:     |        ^^^^^^^^^^^^^^^^^^
+packages/compiler-wasm test: warning: `holoscript-wasm` (lib) generated 6 warnings
+packages/compiler-wasm test: warning: `holoscript-wasm` (lib test) generated 4 warnings (4 duplicates)
+packages/compiler-wasm test:     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.26s
+packages/compiler-wasm test:      Running unittests src\lib.rs (C:\Users\josep\Documents\GitHub\HoloScript\target\debug\deps\holoscript_wasm-0226baff4dd18b6b.exe)
+packages/compiler-wasm test: running 34 tests
+packages/compiler-wasm test: test lexer::tests::test_number_literal ... ok
+packages/compiler-wasm test: test lexer::tests::test_comments ... ok
+packages/compiler-wasm test: test lexer::tests::test_simple_tokens ... ok
+packages/compiler-wasm test: test lexer::tests::test_trait ... ok
+packages/compiler-wasm test: test parser::tests::test_invalid_syntax ... ok
+packages/compiler-wasm test: test tests::test_parse_logic_block ... ok
+packages/compiler-wasm test: test parser::tests::test_parse_array ... ok
+packages/compiler-wasm test: test parser::tests::test_parse_simple_orb ... ok
+packages/compiler-wasm test: test parser::tests::test_parse_composition ... ok
+packages/compiler-wasm test: test parser::tests::test_parse_traits ... ok
+packages/compiler-wasm test: test parser::tests::test_parse_talent_tree ... ok
+packages/compiler-wasm test: test lexer::tests::test_string_literal ... ok
+packages/compiler-wasm test: test tests::test_parse_composition ... ok
+packages/compiler-wasm test: test tests::test_parse_multiple_traits ... ok
+packages/compiler-wasm test: test parser::tests::test_parse_state_machine ... ok
+packages/compiler-wasm test: test tests::test_parse_npc_dialogue ... ok
+packages/compiler-wasm test: test tests::test_parse_pretty_formatting ... ok
+packages/compiler-wasm test: test tests::test_parse_nested_objects ... ok
+packages/compiler-wasm test: test tests::test_parse_simple_orb ... ok
+packages/compiler-wasm test: test tests::test_parse_returns_json ... ok
+packages/compiler-wasm test: test tests::test_parse_syntax_error_returns_error_json ... ok
+packages/compiler-wasm test: test tests::test_parse_state_machine ... ok
+packages/compiler-wasm test: test tests::test_parse_pretty_valid_json ... ok
+packages/compiler-wasm test: test tests::test_validate_detailed_error_has_location ... ok
+packages/compiler-wasm test: test tests::test_parse_template_usage ... ok
+packages/compiler-wasm test: test tests::test_validate_detailed_invalid ... ok
+packages/compiler-wasm test: test tests::test_validate_detailed_valid ... ok
+packages/compiler-wasm test: test tests::test_validate_empty_source ... ok
+packages/compiler-wasm test: test tests::test_validate_invalid_source ... ok
+packages/compiler-wasm test: test tests::test_validate_unbalanced_braces ... ok
+packages/compiler-wasm test: test tests::test_version_returns_string ... ok
+packages/compiler-wasm test: test tests::test_validate_valid_source ... ok
+packages/compiler-wasm test: test types::tests::test_type_assignability ... ok
+packages/compiler-wasm test: test types::tests::test_type_to_string ... ok
+packages/compiler-wasm test: test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+packages/compiler-wasm test:    Doc-tests holoscript_wasm
+packages/adapter-postgres test: [1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/josep/Documents/GitHub/HoloScript/packages/adapter-postgres[39m
+packages/compiler-wasm test: running 0 tests
+packages/compiler-wasm test: test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+packages/core test: [1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/josep/Documents/GitHub/HoloScript/packages/core[39m
+packages/formatter test: [1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/josep/Documents/GitHub/HoloScript/packages/formatter[39m
+packages/compiler-wasm test: Done
+packages/fs test$ vitest run --passWithNoTests
+packages/adapter-postgres test: [90mstderr[2m | src/__tests__/Sprint47.test.ts[2m > [22m[2mPostgresHoloAdapter.saveExecution()[2m > [22m[2mdoes not throw when the underlying query fails (silent logging)
+packages/adapter-postgres test: [22m[39mDatabase Query Error: Error: DB connection failed
+packages/adapter-postgres test:     at C:/Users/josep/Documents/GitHub/HoloScript/packages/adapter-postgres/src/__tests__/Sprint47.test.ts:137:37
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:915:26
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
+packages/adapter-postgres test:     at new Promise (<anonymous>)
+packages/adapter-postgres test:     at runWithTimeout (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1209:10)
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
+packages/adapter-postgres test:     at Traces.$ (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/vitest@4.0.18_@types+node@24.10.13_jsdom@28.0.0/node_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27)
+packages/adapter-postgres test:     at trace (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/vitest@4.0.18_@types+node@24.10.13_jsdom@28.0.0/node_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21)
+packages/adapter-postgres test:     at runTest (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1653:12)
+packages/adapter-postgres test: [90mstderr[2m | src/__tests__/PostgresHoloAdapter.test.ts[2m > [22m[2mPostgresHoloAdapter[2m > [22m[2mquery[2m > [22m[2mshould handle query errors
+packages/adapter-postgres test: [22m[39mDatabase Query Error: Error: DB Error
+packages/adapter-postgres test:     at C:/Users/josep/Documents/GitHub/HoloScript/packages/adapter-postgres/src/__tests__/PostgresHoloAdapter.test.ts:115:35
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:915:26
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
+packages/adapter-postgres test:     at new Promise (<anonymous>)
+packages/adapter-postgres test:     at runWithTimeout (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1209:10)
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
+packages/adapter-postgres test:     at Traces.$ (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/vitest@4.0.18_@types+node@24.10.13_jsdom@28.0.0/node_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27)
+packages/adapter-postgres test:     at trace (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/vitest@4.0.18_@types+node@24.10.13_jsdom@28.0.0/node_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21)
+packages/adapter-postgres test:     at runTest (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1653:12)
+packages/adapter-postgres test: [90mstderr[2m | src/__tests__/Sprint47.test.ts[2m > [22m[2mPostgresHoloAdapter.saveExecution()[2m > [22m[2mdoes not throw when the underlying query fails (silent logging)
+packages/adapter-postgres test: [22m[39mFailed to save HoloScript execution log: Error: DB connection failed
+packages/adapter-postgres test:     at C:/Users/josep/Documents/GitHub/HoloScript/packages/adapter-postgres/src/__tests__/Sprint47.test.ts:137:37
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:915:26
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1243:20
+packages/adapter-postgres test:     at new Promise (<anonymous>)
+packages/adapter-postgres test:     at runWithTimeout (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1209:10)
+packages/adapter-postgres test:     at file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1653:37
+packages/adapter-postgres test:     at Traces.$ (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/vitest@4.0.18_@types+node@24.10.13_jsdom@28.0.0/node_modules/[4mvitest[24m/dist/chunks/traces.CCmnQaNT.js:142:27)
+packages/adapter-postgres test:     at trace (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/vitest@4.0.18_@types+node@24.10.13_jsdom@28.0.0/node_modules/[4mvitest[24m/dist/chunks/test.B8ej_ZHS.js:239:21)
+packages/adapter-postgres test:     at runTest (file:///C:/Users/josep/Documents/GitHub/HoloScript/node_modules/[4m.pnpm[24m/@vitest+runner@4.0.18/node_modules/[4m@vitest/runner[24m/dist/index.js:1653:12)
+packages/adapter-postgres test:  [32m✓[39m src/__tests__/Sprint47.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+packages/adapter-postgres test:  [32m✓[39m src/__tests__/PostgresHoloAdapter.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+packages/adapter-postgres test: [2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+packages/adapter-postgres test: [2m      Tests [22m [1m[32m26 passed[39m[22m[90m (26)[39m
+packages/adapter-postgres test: [2m   Start at [22m 19:25:46
+packages/adapter-postgres test: [2m   Duration [22m 805ms[2m (transform 231ms, setup 0ms, import 316ms, tests 47ms, environment 0ms)[22m
+packages/adapter-postgres test: Done
+packages/holoscript-cdn test$ vitest run
+packages/holoscript-cdn test: 'vitest' is not recognized as an internal or external command,
+packages/holoscript-cdn test: operable program or batch file.
+packages/holoscript-cdn test: Failed
+C:\Users\josep\Documents\GitHub\HoloScript\packages\holoscript-cdn:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @holoscript/cdn@1.0.0 test: `vitest run`
+Exit status 1
+packages/holoscript-component test$ cargo test || exit 0
+packages/formatter test:  [32m✓[39m src/__tests__/RangeFormatting.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+packages/formatter test:  [32m✓[39m src/__tests__/Sprint34.test.ts [2m([22m[2m41 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+packages/formatter test:  [32m✓[39m src/__tests__/Formatter.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+packages/formatter test:  [32m✓[39m src/__tests__/FormatterSnapshots.test.ts [2m([22m[2m31 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+packages/formatter test: [2m Test Files [22m [1m[32m4 passed[39m[22m[90m (4)[39m
+packages/formatter test: [2m      Tests [22m [1m[32m77 passed[39m[22m[90m (77)[39m
+packages/formatter test: [2m   Start at [22m 19:25:47
+packages/formatter test: [2m   Duration [22m 514ms[2m (transform 224ms, setup 0ms, import 489ms, tests 94ms, environment 1ms)[22m
+packages/formatter test: Done
+packages/llm-provider test$ vitest run
+packages/holoscript-component test:    Compiling holoscript-component v3.0.0 (C:\Users\josep\Documents\GitHub\HoloScript\packages\holoscript-component)
+packages/holoscript-component test: error: failed to resolve directory while parsing WIT for path [\\?\C:\Users\josep\Documents\GitHub\HoloScript\packages\holoscript-component\wit]
+packages/holoscript-component test:        
+packages/holoscript-component test:        Caused by:
+packages/holoscript-component test:          failed to parse package: \\?\C:\Users\josep\Documents\GitHub\HoloScript\packages\holoscript-component\wit
+packages/holoscript-component test:        
+packages/holoscript-component test:        Caused by:
+packages/holoscript-component test:          expected `world`, `interface` or `use`, found keyword `record`
+packages/holoscript-component test:             --> \\?\C:\Users\josep\Documents\GitHub\HoloScript\packages\holoscript-component\wit\holoscript.wit:13:1
+packages/holoscript-component test:              |
+packages/holoscript-component test:           13 | record position {
+packages/holoscript-component test:              | ^-----
+packages/holoscript-component test:   --> src\lib.rs:17:1
+packages/holoscript-component test:    |
+packages/holoscript-component test: 17 | / generate!({
+packages/holoscript-component test: 18 | |     world: "holoscript-runtime",
+packages/holoscript-component test: 19 | |     path: "wit",
+packages/holoscript-component test: 20 | | });
+packages/holoscript-component test:    | |__^
+packages/holoscript-component test:    |
+packages/holoscript-component test:    = note: this error originates in the macro `generate` (in Nightly builds, run with -Z macro-backtrace for more info)
+packages/holoscript-component test: error[E0433]: failed to resolve: could not find `exports` in the crate root
+packages/holoscript-component test:  --> src\compiler.rs:3:12
+packages/holoscript-component test:   |
+packages/holoscript-component test: 3 | use crate::exports::holoscript::core::parser::{
+packages/holoscript-component test:   |            ^^^^^^^ could not find `exports` in the crate root
+packages/holoscript-component test: error[E0433]: failed to resolve: could not find `exports` in the crate root
+packages/holoscript-component test:  --> src\parser.rs:4:12
+packages/holoscript-component test:   |
+packages/holoscript-component test: 4 | use crate::exports::holoscript::core::parser::{
+packages/holoscript-component test:   |            ^^^^^^^ could not find `exports` in the crate root
+packages/holoscript-component test: error[E0433]: failed to resolve: could not find `exports` in the crate root
+packages/holoscript-component test:  --> src\traits.rs:3:12
+packages/holoscript-component test:   |
+packages/holoscript-component test: 3 | use crate::exports::holoscript::core::validator::TraitDef;
+packages/holoscript-component test:   |            ^^^^^^^ could not find `exports` in the crate root
+packages/holoscript-component test: error[E0433]: failed to resolve: use of unresolved module or unlinked crate `exports`
+packages/holoscript-component test:   --> src\lib.rs:27:5
+packages/holoscript-component test:    |
+packages/holoscript-component test: 27 | use exports::holoscript::core::{
+packages/holoscript-component test:    |     ^^^^^^^ use of unresolved module or unlinked crate `exports`
+packages/holoscript-component test:    |
+packages/holoscript-component test:    = help: if you wanted to use a crate named `exports`, use `cargo add exports` to add it to your `Cargo.toml`
+packages/holoscript-component test: error[E0432]: unresolved import `exports`
+packages/holoscript-component test:   --> src\lib.rs:35:16
+packages/holoscript-component test:    |
+packages/holoscript-component test: 35 | pub(crate) use exports;
+packages/holoscript-component test:    |                ^^^^^^^ no external crate `exports`
+packages/holoscript-component test: error: cannot find macro `export` in this scope
+packages/holoscript-component test:   --> src\lib.rs:24:1
+packages/holoscript-component test:    |
+packages/holoscript-component test: 24 | export!(HoloscriptComponent);
+packages/holoscript-component test:    | ^^^^^^
+packages/fs test: [1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/josep/Documents/GitHub/HoloScript/packages/fs[39m
+packages/holoscript-component test: Some errors have detailed explanations: E0432, E0433.
+packages/holoscript-component test: For more information about an error, try `rustc --explain E0432`.
+packages/holoscript-component test: error: could not compile `holoscript-component` (lib test) due to 7 previous errors
+packages/holoscript-component test: Done
+packages/registry test$ vitest run --passWithNoTests

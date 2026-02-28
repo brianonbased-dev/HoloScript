@@ -1,0 +1,14 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/josep/Documents/GitHub/HoloScript/packages/marketplace-api[39m
+
+ [31mΓ¥»[39m src/__tests__/x402PaymentService.test.ts [2m([22m[2m4 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 18[2mms[22m[39m
+[31m     [31m├ù[31m should return 402 Payment Required for unauthenticated requests[39m[32m 14[2mms[22m[39m
+     [32mΓ£ô[39m should call next() if payment receipt is valid[32m 1[2mms[22m[39m
+     [32mΓ£ô[39m processRevenueSplit divides revenue 80/10/10 between Creators, Platform, and Agents[32m 1[2mms[22m[39m
+     [32mΓ£ô[39m processRevenueSplit defaults to 80/20 if no executing agent was used[32m 0[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m3 passed[39m[22m[90m (4)[39m
+[2m   Start at [22m 21:05:44
+[2m   Duration [22m 303ms[2m (transform 55ms, setup 0ms, import 75ms, tests 18ms, environment 0ms)[22m
+
