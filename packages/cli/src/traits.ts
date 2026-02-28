@@ -15,7 +15,8 @@ export interface TraitInfo {
     | 'behavior'
     | 'spatial'
     | 'audio'
-    | 'state';
+    | 'state'
+    | 'industrial';
   description: string;
   params?: Record<string, string>;
   example: string;
@@ -662,6 +663,85 @@ export const TRAITS: Record<string, TraitInfo> = {
   state { active: true }
 }`,
   },
+
+  // =====================================================
+  // INDUSTRIAL / IoT TRAITS (6)
+  // =====================================================
+  conveyor_belt: {
+    name: 'conveyor_belt',
+    category: 'industrial',
+    description: 'Animated conveyor belt that transports physics objects along a direction.',
+    params: {
+      speed: 'Belt speed in m/s (default: 1.0)',
+      direction: 'Transport axis: "x", "y", or "z" (default: "x")',
+    },
+    example: `object "MainBelt" {
+  @conveyor_belt(speed: 2, direction: "x")
+  @size(10, 0.5, 2)
+}`,
+  },
+  robot_arm: {
+    name: 'robot_arm',
+    category: 'industrial',
+    description: 'Articulated robotic arm with configurable degrees of freedom and reach.',
+    params: {
+      dof: 'Degrees of freedom / joints (default: 6)',
+      reach: 'Maximum reach in meters (default: 1.0)',
+    },
+    example: `object "PickPlace" {
+  @robot_arm(dof: 6, reach: 1.2)
+  @sensor(type: "proximity")
+}`,
+  },
+  safety_fence: {
+    name: 'safety_fence',
+    category: 'industrial',
+    description: 'Safety barrier / fence for industrial exclusion zones.',
+    params: {
+      height: 'Fence height in meters (default: 2)',
+      color: 'Fence color hex (default: "#ff6600")',
+    },
+    example: `object "Perimeter" {
+  @safety_fence(height: 2.5, color: "#ffcc00")
+  @position(0, 0, 10)
+}`,
+  },
+  sensor: {
+    name: 'sensor',
+    category: 'industrial',
+    description: 'IoT sensor that emits telemetry data. Supports multiple sensor types.',
+    params: {
+      type: 'Sensor type: "proximity", "temp", "pressure", "camera", "gas", "particle", "counter", "airflow"',
+    },
+    example: `object "TempProbe" {
+  @sensor(type: "temp")
+  @real_time_data
+}`,
+  },
+  emergency_stop: {
+    name: 'emergency_stop',
+    category: 'industrial',
+    description: 'Emergency stop button that halts all equipment within a radius.',
+    params: {
+      radius: 'Effect radius in meters (default: 5)',
+    },
+    example: `object "EStop" {
+  @emergency_stop(radius: 10)
+  @interactive
+}`,
+  },
+  process_time: {
+    name: 'process_time',
+    category: 'industrial',
+    description: 'Processing time for a work station, used in throughput simulation.',
+    params: {
+      seconds: 'Processing time per item in seconds',
+    },
+    example: `object "AssemblyStation" {
+  @process_time(30)
+  @sensor(type: "counter")
+}`,
+  },
 };
 
 /**
@@ -784,6 +864,12 @@ export async function suggestTraits(description: string): Promise<TraitInfo[]> {
     equippable: ['equip', 'wear', 'weapon', 'armor', 'tool'],
     consumable: ['consume', 'eat', 'drink', 'potion', 'health'],
     portal: ['portal', 'teleport', 'door', 'gate', 'travel'],
+    conveyor_belt: ['conveyor', 'belt', 'transport', 'assembly line', 'production line'],
+    robot_arm: ['robot', 'arm', 'pick and place', 'articulated', 'manipulator'],
+    safety_fence: ['fence', 'barrier', 'safety', 'exclusion', 'perimeter'],
+    sensor: ['sensor', 'iot', 'telemetry', 'monitor', 'detector', 'probe'],
+    emergency_stop: ['emergency', 'stop', 'e-stop', 'halt', 'shutdown'],
+    process_time: ['process', 'throughput', 'station', 'manufacturing', 'production'],
   };
 
   for (const [traitName, words] of Object.entries(keywords)) {

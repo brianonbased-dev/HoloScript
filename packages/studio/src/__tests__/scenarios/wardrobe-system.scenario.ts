@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Scenario: Wardrobe System (Phase 2)
  *
@@ -8,6 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import React from 'react';
 
 const { useCharacterStore } = await import('@/lib/store');
 const { BUILTIN_ITEMS } = await import('@/components/character/WardrobePanel');

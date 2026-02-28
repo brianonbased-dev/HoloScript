@@ -4,6 +4,8 @@
  * This file demonstrates how to use the export functions with sample data.
  */
 
+import { describe, it, expect } from 'vitest';
+
 import type { AgentWorkflow, BTNode, AgentEvent } from './orchestrationStore';
 import {
   exportWorkflow,
@@ -124,35 +126,41 @@ const sampleEvents: AgentEvent[] = [
 ];
 
 // ============================================================================
-// USAGE EXAMPLES
+// TESTS
 // ============================================================================
 
-console.log('=== Export Utility Function Examples ===\n');
+describe('Export Utility Functions', () => {
+  it('exportWorkflow() returns valid JSON string', () => {
+    const json = exportWorkflow(sampleWorkflow);
+    expect(json.length).toBeGreaterThan(0);
+    const parsed = JSON.parse(json);
+    expect(parsed.name).toBe('Scene Generation Pipeline');
+  });
 
-// 1. Workflow Export (JSON)
-console.log('1. Workflow JSON Export:');
-const workflowJSON = exportWorkflow(sampleWorkflow);
-console.log(workflowJSON.substring(0, 200) + '...\n');
+  it('exportWorkflowAsTS() returns TypeScript code', () => {
+    const ts = exportWorkflowAsTS(sampleWorkflow);
+    expect(ts.length).toBeGreaterThan(0);
+    expect(ts).toContain('Scene Generation Pipeline');
+  });
 
-// 2. Workflow Export (TypeScript)
-console.log('2. Workflow TypeScript Export:');
-const workflowTS = exportWorkflowAsTS(sampleWorkflow);
-console.log(workflowTS.substring(0, 200) + '...\n');
+  it('exportBehaviorTree() returns valid JSON with nodes', () => {
+    const json = exportBehaviorTree(sampleBehaviorTree);
+    const parsed = JSON.parse(json);
+    expect(parsed).toHaveLength(3);
+  });
 
-// 3. Behavior Tree Export
-console.log('3. Behavior Tree JSON Export:');
-const btJSON = exportBehaviorTree(sampleBehaviorTree);
-console.log(btJSON.substring(0, 200) + '...\n');
+  it('exportEventsAsCSV() returns CSV with header row', () => {
+    const csv = exportEventsAsCSV(sampleEvents);
+    expect(csv.length).toBeGreaterThan(0);
+    expect(csv.split('\n').length).toBeGreaterThan(1);
+  });
 
-// 4. Events CSV Export
-console.log('4. Events CSV Export:');
-const eventsCSV = exportEventsAsCSV(sampleEvents);
-console.log(eventsCSV.substring(0, 300) + '...\n');
-
-// 5. Events JSON Export
-console.log('5. Events JSON Export:');
-const eventsJSON = exportEventsAsJSON(sampleEvents);
-console.log(eventsJSON.substring(0, 200) + '...\n');
+  it('exportEventsAsJSON() returns valid JSON array', () => {
+    const json = exportEventsAsJSON(sampleEvents);
+    const parsed = JSON.parse(json);
+    expect(parsed).toHaveLength(3);
+  });
+});
 
 // ============================================================================
 // DOWNLOAD EXAMPLES (commented out to prevent browser interaction in tests)
@@ -182,55 +190,6 @@ downloadEventsJSON(sampleEvents);
 // Custom filenames
 downloadWorkflowJSON(sampleWorkflow, 'my-custom-workflow.json');
 downloadEventsCSV(sampleEvents, 'event-log-backup.csv');
-*/
-
-// ============================================================================
-// INTEGRATION EXAMPLE WITH ORCHESTRATION STORE
-// ============================================================================
-
-/*
-// Example of integrating with React component using orchestrationStore
-
-import { useOrchestrationStore } from './orchestrationStore';
-import { downloadWorkflowJSON, downloadEventsCSV } from './exporters';
-
-function WorkflowExportButton() {
-  const workflows = useOrchestrationStore((state) => state.workflows);
-  const activeWorkflow = useOrchestrationStore((state) => state.activeWorkflow);
-
-  const handleExport = () => {
-    if (!activeWorkflow) return;
-    const workflow = workflows.get(activeWorkflow);
-    if (workflow) {
-      downloadWorkflowJSON(workflow);
-    }
-  };
-
-  return (
-    <button onClick={handleExport} disabled={!activeWorkflow}>
-      Export Workflow
-    </button>
-  );
-}
-
-function EventLogExportButton() {
-  const events = useOrchestrationStore((state) => state.events);
-
-  const handleExportCSV = () => {
-    downloadEventsCSV(events);
-  };
-
-  const handleExportJSON = () => {
-    downloadEventsJSON(events);
-  };
-
-  return (
-    <div>
-      <button onClick={handleExportCSV}>Export Events (CSV)</button>
-      <button onClick={handleExportJSON}>Export Events (JSON)</button>
-    </div>
-  );
-}
 */
 
 export {

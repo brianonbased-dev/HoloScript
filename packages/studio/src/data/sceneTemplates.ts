@@ -459,29 +459,32 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
   @lighting("industrial_harsh")
   @max_players(10)
 
-  object "ConveyorBelt_Main" { @position(0, 0.5, 0) @animated @speed(2) @size(20, 0.5, 2) }
-  object "RobotArm_A" { @position(-5, 0, 2) @interactive @iot_sensor @articulated }
-  object "RobotArm_B" { @position(5, 0, 2) @interactive @iot_sensor @articulated }
-  object "QualityCamera" { @position(0, 3, 2) @camera @ai_inspection }
+  object "ConveyorBelt_Main" { @position(0, 0.5, 0) @conveyor_belt(speed: 2, direction: "x") @size(20, 0.5, 2) }
+  object "ConveyorBelt_Branch" { @position(8, 0.5, -4) @conveyor_belt(speed: 1.5, direction: "z") @size(8, 0.5, 2) }
+  object "RobotArm_A" { @position(-5, 0, 2) @robot_arm(dof: 6, reach: 1.2) @sensor(type: "proximity") }
+  object "RobotArm_B" { @position(5, 0, 2) @robot_arm(dof: 4, reach: 0.8) @sensor(type: "camera") }
+  object "QualityCamera" { @position(0, 3, 2) @sensor(type: "camera") @ai_inspection }
   object "ControlPanel" { @position(-8, 0, -3) @ui_element @real_time_data @interactive }
   object "StorageRack" { @position(10, 0, -5) @inventory @count(4) }
-  object "SafetyBarrier" { @position(0, 0, 4) @barrier @warning_stripe }
+  object "SafetyFence_Perimeter" { @position(0, 0, 6) @safety_fence(height: 2, color: "#ff6600") }
+  object "SafetyFence_RobotZone" { @position(-5, 0, 4) @safety_fence(height: 1.5, color: "#ffcc00") }
 
   game_logic {
     @telemetry_dashboard
     @alert_system
     @production_counter
+    @emergency_stop(radius: 5)
   }
 }`,
   },
   {
-    id: 'warehouse-sim',
-    name: 'Warehouse Simulator',
+    id: 'warehouse-layout',
+    name: 'Warehouse Layout',
     emoji: '📦',
     category: 'industrial',
     desc: 'Logistics training with forklift controls and inventory management',
     tags: ['Industrial', 'Logistics', 'Training'],
-    code: `world "Warehouse Simulator" {
+    code: `world "Warehouse Layout" {
   @setting("warehouse")
   @skybox("overcast")
   @lighting("industrial")
@@ -493,12 +496,71 @@ export const SCENE_TEMPLATES: SceneTemplate[] = [
   object "PalletStack" { @count(20) @random_scatter @physics_object }
   object "InventoryTerminal" { @position(-10, 1.5, 0) @interactive @ui_element @inventory }
   object "SafetyVest_Pickup" { @position(-12, 1, 5) @pickup @required }
+  object "WarehouseFence" { @position(0, 0, -18) @safety_fence(height: 2.5, color: "#cccccc") }
 
   game_logic {
     @order_system
     @timer
     @accuracy_score
     @safety_violations
+  }
+}`,
+  },
+  {
+    id: 'clean-room-lab',
+    name: 'Clean Room Lab',
+    emoji: '🔬',
+    category: 'industrial',
+    desc: 'ISO Class 5 cleanroom for semiconductor or pharma simulation',
+    tags: ['Industrial', 'Cleanroom', 'Semiconductor'],
+    code: `world "Clean Room Lab" {
+  @setting("cleanroom")
+  @skybox("white")
+  @lighting("clinical_white")
+  @max_players(6)
+
+  object "AirShower" { @position(0, 0, -8) @interactive @decontamination }
+  object "LaminarFlowHood" { @position(-4, 0, 0) @sensor(type: "airflow") @clean_zone }
+  object "Microscope" { @position(2, 1, -2) @interactive @zoom(100) }
+  object "WaferStage" { @position(0, 0.5, 0) @conveyor_belt(speed: 0.1, direction: "x") }
+  object "GloveBox" { @position(4, 0, 0) @interactive @sealed_environment }
+  object "ParticleSensor" { @position(0, 3, 0) @sensor(type: "particle") @real_time_data }
+  object "Airlock" { @position(0, 0, -10) @safety_fence(height: 3, color: "#0066ff") }
+
+  game_logic {
+    @contamination_tracking
+    @gowning_protocol
+    @particle_count_monitor
+  }
+}`,
+  },
+  {
+    id: 'oil-refinery-sim',
+    name: 'Oil Refinery Simulation',
+    emoji: '⛽',
+    category: 'industrial',
+    desc: 'Process plant with pipelines, reactors, and safety systems',
+    tags: ['Industrial', 'Oil & Gas', 'Process'],
+    code: `world "Oil Refinery" {
+  @setting("industrial_outdoor")
+  @skybox("overcast")
+  @lighting("dramatic")
+  @max_players(8)
+
+  object "DistillationColumn" { @position(0, 0, 0) @size(4, 20, 4) @sensor(type: "temp") @sensor(type: "pressure") }
+  object "Pipeline_Main" { @position(-10, 2, 0) @conveyor_belt(speed: 3, direction: "x") @size(30, 0.5, 0.5) }
+  object "ReactorVessel" { @position(10, 0, 0) @size(3, 8, 3) @sensor(type: "temp") }
+  object "StorageTank" { @position(-15, 0, 10) @count(3) @spacing(8) @size(6, 10, 6) }
+  object "FlareTower" { @position(20, 0, -10) @size(1, 30, 1) @particle_emitter }
+  object "ControlRoom" { @position(-20, 0, 0) @interior @interactive @ui_element }
+  object "PerimeterFence" { @position(0, 0, 25) @safety_fence(height: 3, color: "#ff0000") }
+  object "GasDetector" { @count(6) @random_scatter @sensor(type: "gas") @alarm }
+
+  game_logic {
+    @process_monitoring
+    @emergency_shutdown
+    @environmental_compliance
+    @shift_handover
   }
 }`,
   },
