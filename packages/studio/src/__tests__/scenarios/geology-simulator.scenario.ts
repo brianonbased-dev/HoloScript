@@ -10,7 +10,8 @@ import {
   getMineralByHardness, canScratch, classifyRock, rocksByType,
   pWaveSpeed, sWaveSpeed, seismicArrivalTime,
   plateDisplacementOverTime, earthquakeMagnitudeEnergy,
-  MOHS_SCALE,
+  periodByAge, periodsByEra, layerAtDepth,
+  MOHS_SCALE, GEOLOGICAL_TIMELINE, EARTH_LAYERS,
   type RockSample,
 } from '@/lib/geologySimulator';
 
@@ -95,6 +96,32 @@ describe('Scenario: Geology — Seismic Waves', () => {
     expect(e7 / e5).toBeGreaterThan(900); // ~1000× per 2 magnitudes
   });
 
-  it.todo('cross-section renderer — Earth layer visualization with wave paths');
-  it.todo('geological time scale — era/period/epoch timeline with fossil markers');
+  it('cross-section — Earth layer at depth', () => {
+    expect(EARTH_LAYERS).toHaveLength(5);
+    const crust = layerAtDepth(20);
+    expect(crust!.name).toBe('Crust');
+    expect(crust!.state).toBe('solid');
+
+    const outerCore = layerAtDepth(3500);
+    expect(outerCore!.name).toBe('Outer Core');
+    expect(outerCore!.state).toBe('liquid'); // S-waves can't pass
+
+    const innerCore = layerAtDepth(5500);
+    expect(innerCore!.name).toBe('Inner Core');
+    expect(innerCore!.temperatureC).toBe(5500);
+  });
+
+  it('geological time scale — era/period/epoch timeline with fossils', () => {
+    expect(GEOLOGICAL_TIMELINE.length).toBeGreaterThanOrEqual(9);
+
+    // Dinosaurs died in Cretaceous (~66 Mya)
+    const cretaceous = periodByAge(80);
+    expect(cretaceous!.name).toBe('Cretaceous');
+    expect(cretaceous!.era).toBe('Mesozoic');
+    expect(cretaceous!.fossilMarkers).toContain('T. rex');
+
+    // Mesozoic has 3 periods
+    const mesozoic = periodsByEra('Mesozoic');
+    expect(mesozoic).toHaveLength(3);
+  });
 });

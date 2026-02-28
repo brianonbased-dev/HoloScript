@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   dominantBand, totalPower, relativePower, detectCognitiveState,
   getRegionById, regionsByFunction, regionsByHemisphere, pathwayStrength,
+  fmriBoldResponse, connectomeMatrix,
   EEG_BANDS, BRAIN_REGIONS,
   type BandPower, type NeuralPathway,
 } from '@/lib/neuroscienceViz';
@@ -93,6 +94,27 @@ describe('Scenario: Neuroscience — Cognitive States', () => {
     expect(pathwayStrength(pathways)).toBeCloseTo(0.7, 1);
   });
 
-  it.todo('fMRI heatmap — overlay blood oxygen level on 3D brain model');
-  it.todo('connectome graph — visualize full neural connectivity matrix');
+  it('fMRI BOLD response — hemodynamic response to stimulus', () => {
+    const bold = fmriBoldResponse(5, 10, 0.8, 1);
+    expect(bold.length).toBeGreaterThan(20);
+    // Before stimulus onset, activation should be 0
+    const preStim = bold.filter(s => s.timeSeconds < 5);
+    expect(preStim.every(s => s.activation === 0)).toBe(true);
+    // During/after stimulus, some activation > 0
+    const postStim = bold.filter(s => s.timeSeconds >= 5 && s.timeSeconds <= 15);
+    expect(postStim.some(s => s.activation > 0)).toBe(true);
+  });
+
+  it('connectome matrix — neural connectivity mapping', () => {
+    const pathways: NeuralPathway[] = [
+      { id: 'p1', name: 'Arc', source: 'broca', target: 'wernicke', strength: 0.8, neurotransmitter: 'glutamate' },
+      { id: 'p2', name: 'NS', source: 'broca', target: 'motor', strength: 0.5, neurotransmitter: 'dopamine' },
+      { id: 'p3', name: 'Vis', source: 'visual', target: 'parietal', strength: 0.9, neurotransmitter: 'glutamate' },
+    ];
+    const matrix = connectomeMatrix(pathways);
+    expect(matrix.get('broca')!.get('wernicke')).toBe(0.8);
+    expect(matrix.get('broca')!.get('motor')).toBe(0.5);
+    expect(matrix.get('visual')!.get('parietal')).toBe(0.9);
+    expect(matrix.has('wernicke')).toBe(false); // no outgoing
+  });
 });

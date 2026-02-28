@@ -11,6 +11,7 @@ import {
   waterDensity, simpleTide, tidePhase,
   speciesInZone, canSurviveAtDepth, canSurviveTemperature,
   endangeredSpecies, totalPopulation,
+  adcpCurrentProfile, coralBleachingRisk,
   type MarineSpecies,
 } from '@/lib/oceanography';
 
@@ -110,6 +111,24 @@ describe('Scenario: Oceanography — Marine Ecology', () => {
     expect(totalPopulation(species)).toBe(160000);
   });
 
-  it.todo('ADCP profiling — acoustic Doppler current profiler visualization');
-  it.todo('coral bleaching model — temperature stress and recovery timeline');
+  it('ADCP profiling — acoustic Doppler current profiler', () => {
+    const profile = adcpCurrentProfile(1.5, 180, 40, 8);
+    expect(profile.length).toBeGreaterThan(0);
+    // Speed decreases with depth
+    expect(profile[0].currentSpeedMs).toBeGreaterThanOrEqual(profile[profile.length - 1].currentSpeedMs);
+    // Ekman spiral rotates direction
+    expect(profile[profile.length - 1].directionDeg).not.toBe(180);
+  });
+
+  it('coral bleaching model — temperature stress and recovery', () => {
+    // Normal temps — no bleaching
+    const safe = coralBleachingRisk([28, 28.5, 28, 27.5]);
+    expect(safe.bleachingRisk).toBe('none');
+
+    // Sustained high temps — alert
+    const danger = coralBleachingRisk([30, 31, 31.5, 32, 31, 30.5, 31, 32, 30, 31, 31, 30]);
+    expect(danger.degreeHeatingWeeks).toBeGreaterThan(4);
+    expect(['warning', 'alert-1', 'alert-2']).toContain(danger.bleachingRisk);
+    expect(danger.recoveryTimeDays).toBeGreaterThan(0);
+  });
 });

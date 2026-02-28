@@ -10,6 +10,7 @@ import {
   pairingScore, bestPairing, cellarValue, cellarTotalBottles,
   winesAtPeak, winesPastPrime, agingPotential,
   servingTemperatureC, decantTimeMinutes,
+  blindTastingScore, terroirIndex,
   type WineProfile, type CellarEntry,
 } from '@/lib/wineSommelier';
 
@@ -90,6 +91,27 @@ describe('Scenario: Wine Sommelier — Aging & Service', () => {
     expect(decantTimeMinutes(1, 2020, 2024)).toBe(0);
   });
 
-  it.todo('blind tasting — feature extraction from aroma/palate descriptors');
-  it.todo('terroir map — soil type × altitude × microclimate visualization');
+  it('blind tasting — feature extraction from aroma/palate descriptors', () => {
+    // Cabernet-like notes → should predict red/cabernet
+    const result = blindTastingScore(['blackberry', 'pepper', 'oak', 'tobacco']);
+    expect(result.predictedColor).toBe('red');
+    expect(result.predictedVarietal).toBe('cabernet-sauvignon');
+    expect(result.confidencePct).toBeGreaterThan(50);
+    expect(result.matchingNotes.length).toBeGreaterThanOrEqual(3);
+
+    // Riesling-like notes
+    const rieslingResult = blindTastingScore(['citrus', 'peach', 'honey', 'mineral']);
+    expect(rieslingResult.predictedColor).toBe('white');
+    expect(rieslingResult.predictedVarietal).toBe('riesling');
+  });
+
+  it('terroir map — soil/altitude/microclimate score', () => {
+    // Ideal terroir: great drainage, right altitude, good sun, moderate rain
+    const ideal = terroirIndex(8, 400, 8, 600);
+    expect(ideal).toBeGreaterThan(60);
+
+    // Poor terroir: bad drainage, low altitude, little sun, heavy rain
+    const poor = terroirIndex(2, 50, 3, 1500);
+    expect(poor).toBeLessThan(ideal);
+  });
 });

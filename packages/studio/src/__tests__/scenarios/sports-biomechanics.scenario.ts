@@ -11,6 +11,7 @@ import {
   momentOfInertia, strideFrequency, groundContactTime,
   peakForce, averageForce, loadRate,
   fatigueIndex, injuryRiskScore, vo2AtIntensity, caloriesBurned,
+  gaitSymmetryIndex,
   type ForceData,
 } from '@/lib/sportsBiomechanics';
 
@@ -93,5 +94,18 @@ describe('Scenario: Biomechanics — Fatigue & Injury', () => {
   });
 
   it.todo('motion capture replay — 3D skeleton playback with joint annotation');
-  it.todo('gait analysis — step symmetry and pronation tracking');
+
+  it('gait analysis — step symmetry and pronation tracking', () => {
+    // Symmetric gait (equal left/right)
+    const symmetric = gaitSymmetryIndex(250, 250, 1.2, 1.2, 170);
+    expect(symmetric.symmetryIndex).toBe(100);
+    expect(symmetric.contactTimeAsymmetry).toBe(0);
+    expect(symmetric.cadenceStepsPerMin).toBe(170);
+
+    // Asymmetric gait (limping)
+    const asymmetric = gaitSymmetryIndex(200, 280, 0.9, 1.3, 140, -5);
+    expect(asymmetric.symmetryIndex).toBeLessThan(85);
+    expect(asymmetric.contactTimeAsymmetry).toBeGreaterThan(10);
+    expect(asymmetric.supinationAngleDeg).toBe(-5); // pronation
+  });
 });
