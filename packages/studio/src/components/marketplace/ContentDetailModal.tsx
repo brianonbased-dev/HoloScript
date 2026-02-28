@@ -4,7 +4,7 @@
  * ContentDetailModal - Full content item details with reviews
  */
 
-import { X, Download, Heart, Star, Eye, Calendar, Package, ExternalLink, CheckCircle } from 'lucide-react';
+import { X, Download, Heart, Star, Eye, Calendar, Package, ExternalLink, CheckCircle, Sparkles } from 'lucide-react';
 import type { MarketplaceItem } from '@/lib/marketplace/types';
 import { CONTENT_TYPE_METADATA } from '@/lib/marketplace/types';
 import * as LucideIcons from 'lucide-react';
@@ -14,6 +14,7 @@ interface ContentDetailModalProps {
   onClose: () => void;
   onDownload: (id: string) => void;
   onFavorite: (id: string) => void;
+  onRemix?: (item: MarketplaceItem) => void;
   isFavorited: boolean;
 }
 
@@ -22,6 +23,7 @@ export function ContentDetailModal({
   onClose,
   onDownload,
   onFavorite,
+  onRemix,
   isFavorited,
 }: ContentDetailModalProps) {
   const metadata = CONTENT_TYPE_METADATA[item.type];
@@ -119,6 +121,15 @@ export function ContentDetailModal({
                   <Heart className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`} />
                   {isFavorited ? 'Favorited' : 'Add to Favorites'}
                 </button>
+                {onRemix && (
+                  <button
+                    onClick={() => onRemix(item)}
+                    className="flex items-center justify-center gap-2 rounded-lg bg-purple-500/20 px-4 py-3 font-medium text-purple-400 hover:bg-purple-500/30 transition-colors"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Remix
+                  </button>
+                )}
               </div>
 
               {/* Stats */}

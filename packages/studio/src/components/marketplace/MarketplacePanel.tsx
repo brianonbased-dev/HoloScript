@@ -17,6 +17,7 @@ import type { ContentType, MarketplaceItem } from '@/lib/marketplace/types';
 import { ContentCard } from './ContentCard';
 import { ContentTypeFilter } from './ContentTypeFilter';
 import { ContentDetailModal } from './ContentDetailModal';
+import { UploadWizard } from './UploadWizard';
 
 interface MarketplacePanelProps {
   onClose: () => void;
@@ -29,6 +30,8 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
   const [showFilters, setShowFilters] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedItem, setSelectedItem] = useState<MarketplaceItem | null>(null);
+  const [showUploadWizard, setShowUploadWizard] = useState(false);
+  const [remixItem, setRemixItem] = useState<MarketplaceItem | null>(null);
 
   // Hooks
   const { items, loading, error, hasMore, loadMore, refresh } = useMarketplace({
@@ -152,6 +155,16 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
             <List className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Upload button */}
+        <button
+          onClick={() => setShowUploadWizard(true)}
+          className="flex items-center gap-2 rounded-lg bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/30"
+          title="Upload content"
+        >
+          <Upload className="h-4 w-4" />
+          <span className="hidden sm:inline">Upload</span>
+        </button>
 
         {/* Filter toggle */}
         <button
@@ -327,6 +340,17 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
           onDownload={handleDownload}
           onFavorite={handleFavoriteToggle}
           isFavorited={isFavorite(selectedItem.id)}
+        />
+      )}
+
+      {/* Upload wizard */}
+      {showUploadWizard && (
+        <UploadWizard
+          onClose={() => setShowUploadWizard(false)}
+          onSuccess={() => {
+            setShowUploadWizard(false);
+            refresh(); // Refresh marketplace after successful upload
+          }}
         />
       )}
     </div>

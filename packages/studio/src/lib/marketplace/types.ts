@@ -125,6 +125,7 @@ export interface ContentUpload {
   thumbnail?: File;
   license?: 'MIT' | 'CC0' | 'CC-BY' | 'CC-BY-SA' | 'Commercial';
   version?: string;
+  remixOf?: string; // ID of original content if this is a remix
 }
 
 export interface ContentReview {
