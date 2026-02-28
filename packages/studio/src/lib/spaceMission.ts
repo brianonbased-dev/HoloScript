@@ -112,3 +112,57 @@ export function missionProgress(events: MissionEvent[]): number {
   if (events.length === 0) return 0;
   return events.filter(e => e.completed).length / events.length;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Gravity Assist
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Calculates the delta-v gained from a gravity assist (slingshot) flyby.
+ * Uses the hyperbolic excess velocity and apply the turning angle.
+ * @param vInfKms - hyperbolic excess velocity relative to body (km/s)
+ * @param periapsisKm - closest approach distance from body center
+ * @param bodyMuKm3s2 - gravitational parameter of the body
+ * @returns delta-v magnitude (km/s) gained from the assist
+ */
+export function gravityAssistDeltaV(vInfKms: number, periapsisKm: number, bodyMuKm3s2: number): number {
+  // Turning angle: δ = 2 × arcsin(1 / (1 + rp × v∞² / μ))
+  const ecc = 1 + (periapsisKm * vInfKms ** 2) / bodyMuKm3s2;
+  const turningAngle = 2 * Math.asin(1 / ecc);
+  // ΔV = 2 × v∞ × sin(δ/2)
+  return 2 * vInfKms * Math.sin(turningAngle / 2);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Re-entry Heating
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Sutton-Graves approximation for peak stagnation-point heat flux.
+ * q = k × sqrt(ρ / rn) × v³   (simplified)
+ * @param velocityKms - re-entry velocity (km/s)
+ * @param noseRadiusM - vehicle nose radius (m)
+ * @param altitudeKm - altitude at peak heating (km)
+ * @returns peak heat flux in W/cm²
+ */
+export function reentryPeakHeatFlux(velocityKms: number, noseRadiusM: number, altitudeKm: number): number {
+  // Exponential atmosphere model: ρ ≈ 1.225 × exp(-h/8.5)
+  const rho = 1.225 * Math.exp(-altitudeKm / 8.5); // kg/m³
+  const k = 1.7415e-4; // Sutton-Graves constant for Earth (W·s³/m³·kg^0.5)
+  const vMs = velocityKms * 1000; // convert to m/s
+  const qWm2 = k * Math.sqrt(rho / noseRadiusM) * vMs ** 3;
+  return qWm2 / 1e4; // Convert W/m² to W/cm²
+}
+
+/**
+ * Estimates total heat load during re-entry using simplified model.
+ * @param velocityKms - entry velocity (km/s)
+ * @param massKg - vehicle mass
+ * @returns total heat load in MJ
+ */
+export function reentryTotalHeatLoad(velocityKms: number, massKg: number): number {
+  // Q ≈ 0.5 × m × v² (kinetic energy converted to heat)
+  const vMs = velocityKms * 1000;
+  return (0.5 * massKg * vMs ** 2) / 1e6; // MJ
+}
+

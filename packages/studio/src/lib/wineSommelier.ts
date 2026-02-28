@@ -118,3 +118,80 @@ export function decantTimeMinutes(tannins: number, vintage: number, currentYear:
   if (tannins >= 2) return 30;
   return 0;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Blind Tasting
+// ═══════════════════════════════════════════════════════════════════
+
+export interface BlindTastingResult {
+  predictedColor: WineColor;
+  predictedVarietal: GrapeVarietal;
+  confidencePct: number;
+  matchingNotes: TastingNote[];
+}
+
+const VARIETAL_SIGNATURES: Record<GrapeVarietal, TastingNote[]> = {
+  'cabernet-sauvignon': ['blackberry', 'pepper', 'oak', 'tobacco', 'leather'],
+  'merlot': ['plum', 'cherry', 'vanilla', 'earth'],
+  'pinot-noir': ['cherry', 'earth', 'floral', 'leather'],
+  'chardonnay': ['apple', 'citrus', 'vanilla', 'oak'],
+  'sauvignon-blanc': ['citrus', 'mineral', 'floral'],
+  'riesling': ['citrus', 'peach', 'honey', 'mineral'],
+  'syrah': ['blackberry', 'pepper', 'leather', 'earth'],
+  'tempranillo': ['cherry', 'vanilla', 'tobacco', 'leather'],
+  'nebbiolo': ['cherry', 'earth', 'tobacco', 'floral'],
+  'sangiovese': ['cherry', 'plum', 'earth', 'pepper'],
+};
+
+/**
+ * Blind tasting feature extraction: given aroma/palate descriptors,
+ * predicts the most likely varietal by matching tasting note signatures.
+ */
+export function blindTastingScore(observedNotes: TastingNote[]): BlindTastingResult {
+  let bestVarietal: GrapeVarietal = 'cabernet-sauvignon';
+  let bestCount = 0;
+  let bestMatches: TastingNote[] = [];
+
+  for (const [varietal, sig] of Object.entries(VARIETAL_SIGNATURES) as [GrapeVarietal, TastingNote[]][]) {
+    const matching = observedNotes.filter(n => sig.includes(n));
+    if (matching.length > bestCount) {
+      bestCount = matching.length;
+      bestVarietal = varietal;
+      bestMatches = matching;
+    }
+  }
+
+  const confidence = observedNotes.length > 0 ? (bestCount / observedNotes.length) * 100 : 0;
+  const isRed = ['cabernet-sauvignon', 'merlot', 'pinot-noir', 'syrah', 'tempranillo', 'nebbiolo', 'sangiovese'].includes(bestVarietal);
+
+  return {
+    predictedColor: isRed ? 'red' : 'white',
+    predictedVarietal: bestVarietal,
+    confidencePct: Math.round(confidence),
+    matchingNotes: bestMatches,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Terroir
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Terroir index: composite score from soil quality, altitude, and microclimate.
+ * Higher = more favorable for wine production.
+ */
+export function terroirIndex(
+  soilDrainage: number,       // 1-10 (well-drained is higher)
+  altitudeM: number,          // meters above sea level
+  avgSunshineHrsDay: number,  // hours of sun per day
+  annualRainfallMm: number    // mm per year
+): number {
+  // Optimal: well-drained soil, moderate altitude (200-600m),
+  // good sun (6-10h), moderate rain (400-800mm)
+  let score = 0;
+  score += soilDrainage * 10; // max 100
+  score += altitudeM >= 200 && altitudeM <= 600 ? 25 : altitudeM >= 100 && altitudeM <= 800 ? 15 : 5;
+  score += avgSunshineHrsDay >= 6 && avgSunshineHrsDay <= 10 ? 25 : 10;
+  score += annualRainfallMm >= 400 && annualRainfallMm <= 800 ? 25 : 10;
+  return Math.min(100, Math.round(score / 1.75));
+}

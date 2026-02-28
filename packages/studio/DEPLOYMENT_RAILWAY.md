@@ -20,19 +20,23 @@ Railway is a Platform-as-a-Service that handles all infrastructure automatically
 ## Cost Breakdown (Realistic)
 
 ### Small Deployment (10-100 users)
+
 | Service | Railway Cost | AWS Equivalent |
 |---------|-------------|----------------|
+| Studio Frontend (Next.js) | $8-15/month | $30-50/month |
 | PostgreSQL (1GB) | $5-8/month | $15-25/month |
 | Redis (256MB) | $2-5/month | $10-15/month |
 | WebSocket Server | $5-10/month | $20-40/month |
 | Marketplace API | $5-10/month | $20-40/month |
 | Cloud Deploy API | $5-10/month | $20-40/month |
-| **TOTAL** | **$22-43/month** | **$85-160/month** |
+| **TOTAL** | **$30-58/month** | **$115-210/month** |
 
 ### Development (Free Tier)
-- Railway Free: $5 credit/month (enough for testing)
-- Vercel Free: Frontend hosting
-- **Total: $0/month** ✅
+
+- Railway Free: $5 credit/month
+  - Can run 1-2 services (frontend + database OR websocket + database)
+  - Perfect for testing and development
+- **Total: $0/month** ✅ (with careful resource management)
 
 ### Medium Deployment (100-1000 users)
 - Railway Pro: ~$50-80/month
@@ -264,36 +268,43 @@ NODE_ENV=production
 
 ### Service 4: Studio Frontend (Next.js)
 
-**Option A: Vercel (Recommended - FREE)**
+**Deploy to Railway:**
 
 ```bash
 cd packages/studio
-npm install -g vercel
-vercel login
-vercel --prod
 
-# Set custom domain in Vercel dashboard
-# studio.holoscript.net
-```
-
-**Environment Variables (Vercel):**
-```
-NEXT_PUBLIC_MARKETPLACE_URL=https://marketplace.holoscript.net/api
-NEXT_PUBLIC_CLOUD_API_URL=https://cloud.holoscript.net/api
-NEXT_PUBLIC_COLLABORATION_WS=wss://collab.holoscript.net
-```
-
-**Cost:** $0/month (Vercel Hobby tier)
-
-**Option B: Railway**
-
-```bash
+# Deploy
 railway up
+
+# Set custom domain
 railway domain
 # Enter: studio.holoscript.net
 ```
 
-**Cost:** ~$5-10/month
+**Environment Variables (Railway Dashboard):**
+```
+NEXT_PUBLIC_MARKETPLACE_URL=https://marketplace.holoscript.net/api
+NEXT_PUBLIC_CLOUD_API_URL=https://cloud.holoscript.net/api
+NEXT_PUBLIC_COLLABORATION_WS=wss://collab.holoscript.net
+NODE_ENV=production
+```
+
+**railway.json (optional - for optimization):**
+```json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm run build"
+  },
+  "deploy": {
+    "startCommand": "npm start",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
+```
+
+**Cost:** ~$8-15/month (Next.js can use more RAM)
 
 ---
 
@@ -301,15 +312,16 @@ railway domain
 
 ```
 holoscript-studio/
+├── studio-frontend    ($8-15/month) - Next.js
 ├── collab-ws          ($5-10/month)
 ├── marketplace-api    ($5-10/month)
 ├── cloud-api          ($5-10/month)
 ├── postgres           ($5-8/month)
-├── redis              ($2-5/month)
-└── [studio-frontend]  (Vercel: $0/month)
+└── redis              ($2-5/month)
 ```
 
-**Total:** ~$22-43/month (vs $150-200 on AWS)
+**Total:** ~$30-58/month (vs $150-200 on AWS)
+**Savings:** Still 70-80% cheaper than AWS!
 
 ---
 

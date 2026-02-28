@@ -126,3 +126,51 @@ export function pathwayStrength(pathways: NeuralPathway[]): number {
   if (pathways.length === 0) return 0;
   return pathways.reduce((sum, p) => sum + p.strength, 0) / pathways.length;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// fMRI — Blood Oxygen Level (BOLD)
+// ═══════════════════════════════════════════════════════════════════
+
+export interface BOLDSignal {
+  regionId: string;
+  activation: number;  // 0-1 normalized
+  timeSeconds: number;
+}
+
+/**
+ * Simulates BOLD signal for a brain region given stimulus.
+ * Uses canonical hemodynamic response function (HRF).
+ */
+export function fmriBoldResponse(
+  stimulusOnsetSec: number,
+  durationSec: number,
+  regionActivation: number,
+  sampleRateHz: number = 1
+): BOLDSignal[] {
+  const signals: BOLDSignal[] = [];
+  const totalTime = stimulusOnsetSec + durationSec + 20; // 20s for response to decay
+  for (let t = 0; t < totalTime; t += 1 / sampleRateHz) {
+    const tRel = t - stimulusOnsetSec;
+    let activation = 0;
+    if (tRel >= 0 && tRel < durationSec + 10) {
+      // Gamma-function HRF approximation: peak at ~5s, undershoot at ~15s
+      const peak = regionActivation * (tRel / 5) * Math.exp(-(tRel - 5) / 3);
+      activation = Math.max(0, Math.min(1, peak));
+    }
+    signals.push({ regionId: '', activation, timeSeconds: t });
+  }
+  return signals;
+}
+
+/**
+ * Builds a connectivity matrix from neural pathways.
+ * Returns source→target strength mapping.
+ */
+export function connectomeMatrix(pathways: NeuralPathway[]): Map<string, Map<string, number>> {
+  const matrix = new Map<string, Map<string, number>>();
+  for (const p of pathways) {
+    if (!matrix.has(p.source)) matrix.set(p.source, new Map());
+    matrix.get(p.source)!.set(p.target, p.strength);
+  }
+  return matrix;
+}

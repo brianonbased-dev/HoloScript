@@ -129,3 +129,46 @@ export function caloriesBurned(vo2Ml: number, durationMin: number, massKg: numbe
   // kcal ≈ VO₂ (L/min) × 5.0 × duration
   return (vo2Ml / 1000) * 5.0 * durationMin;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Gait Analysis
+// ═══════════════════════════════════════════════════════════════════
+
+export interface GaitMetrics {
+  symmetryIndex: number;        // 0-100% (100 = perfect symmetry)
+  cadenceStepsPerMin: number;
+  strideLengthM: number;
+  supinationAngleDeg: number;   // 0 neutral, + supination, - pronation
+  contactTimeAsymmetry: number; // % difference between left/right
+}
+
+/**
+ * Gait symmetry analysis — compares left/right step characteristics.
+ * Robinson Symmetry Index: SI = 100 × (1 - |L-R| / max(L,R))
+ */
+export function gaitSymmetryIndex(
+  leftContactTimeMs: number,
+  rightContactTimeMs: number,
+  leftStrideLengthM: number,
+  rightStrideLengthM: number,
+  stepsPerMin: number,
+  footAngleDeg: number = 0
+): GaitMetrics {
+  const maxContact = Math.max(leftContactTimeMs, rightContactTimeMs);
+  const contactSymmetry = maxContact > 0 ? 100 * (1 - Math.abs(leftContactTimeMs - rightContactTimeMs) / maxContact) : 100;
+
+  const maxStride = Math.max(leftStrideLengthM, rightStrideLengthM);
+  const strideSymmetry = maxStride > 0 ? 100 * (1 - Math.abs(leftStrideLengthM - rightStrideLengthM) / maxStride) : 100;
+
+  const symmetryIndex = (contactSymmetry + strideSymmetry) / 2;
+  const avgStride = (leftStrideLengthM + rightStrideLengthM) / 2;
+  const contactAsymmetry = maxContact > 0 ? (Math.abs(leftContactTimeMs - rightContactTimeMs) / maxContact) * 100 : 0;
+
+  return {
+    symmetryIndex: Math.round(symmetryIndex * 10) / 10,
+    cadenceStepsPerMin: stepsPerMin,
+    strideLengthM: Math.round(avgStride * 100) / 100,
+    supinationAngleDeg: footAngleDeg,
+    contactTimeAsymmetry: Math.round(contactAsymmetry * 10) / 10,
+  };
+}

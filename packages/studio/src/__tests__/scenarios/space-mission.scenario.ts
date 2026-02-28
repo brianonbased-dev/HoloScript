@@ -10,6 +10,7 @@ import {
   orbitalPeriod, orbitalVelocity, escapeVelocity,
   hohmannDeltaV, hohmannTransferTime, tsiolkovskyDeltaV,
   fuelRequired, totalMissionDeltaV, missionProgress,
+  gravityAssistDeltaV, reentryPeakHeatFlux, reentryTotalHeatLoad,
   BODY_DATA,
   type MissionEvent,
 } from '@/lib/spaceMission';
@@ -101,6 +102,20 @@ describe('Scenario: Space Mission — Spacecraft', () => {
     expect(missionProgress(events)).toBeCloseTo(0.667, 1);
   });
 
-  it.todo('gravity assist — slingshot trajectory around Jupiter');
-  it.todo('re-entry heating — ablative heatshield thermal profile');
+  it('gravity assist — slingshot trajectory around Jupiter', () => {
+    // v∞ ≈ 10 km/s approach to Jupiter, periapsis at 1.5 radii
+    const dv = gravityAssistDeltaV(10, BODY_DATA.jupiter.radiusKm * 1.5, BODY_DATA.jupiter.muKm3s2);
+    // Jupiter's immense gravity gives a significant boost
+    expect(dv).toBeGreaterThan(5);
+    expect(dv).toBeLessThan(20);
+  });
+
+  it('re-entry heating — ablative heatshield thermal profile', () => {
+    // Apollo-style re-entry: 11 km/s, 2m nose radius, 60km altitude
+    const flux = reentryPeakHeatFlux(11, 2.0, 60);
+    expect(flux).toBeGreaterThan(0);
+    // Total heat load for 5000 kg capsule at 11 km/s
+    const load = reentryTotalHeatLoad(11, 5000);
+    expect(load).toBeGreaterThan(100); // > 100 MJ
+  });
 });

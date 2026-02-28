@@ -119,3 +119,75 @@ export function endangeredSpecies(species: MarineSpecies[]): MarineSpecies[] {
 export function totalPopulation(species: MarineSpecies[]): number {
   return species.reduce((sum, s) => sum + s.population, 0);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// ADCP — Acoustic Doppler Current Profiler
+// ═══════════════════════════════════════════════════════════════════
+
+export interface ADCPBin {
+  depthM: number;
+  currentSpeedMs: number;
+  directionDeg: number;
+  backscatterDb: number;
+}
+
+/**
+ * Simulates an ADCP profile — velocity typically decreases
+ * logarithmically with depth and backscatter increases.
+ */
+export function adcpCurrentProfile(
+  surfaceSpeedMs: number,
+  surfaceDirectionDeg: number,
+  maxDepthM: number,
+  binSizeM: number = 4
+): ADCPBin[] {
+  const bins: ADCPBin[] = [];
+  for (let d = binSizeM; d <= maxDepthM; d += binSizeM) {
+    const fraction = d / maxDepthM;
+    // Log profile: speed decreases with depth
+    const speed = surfaceSpeedMs * Math.max(0, 1 - Math.log(1 + 2 * fraction));
+    // Ekman spiral: direction rotates ~45° over depth
+    const dir = (surfaceDirectionDeg + 45 * fraction) % 360;
+    // Backscatter increases then drops
+    const bs = 40 + 20 * Math.exp(-fraction * 3) + 5 * Math.random();
+    bins.push({ depthM: d, currentSpeedMs: Math.max(0, speed), directionDeg: dir, backscatterDb: bs });
+  }
+  return bins;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Coral Bleaching Model
+// ═══════════════════════════════════════════════════════════════════
+
+export interface BleachingAssessment {
+  degreeHeatingWeeks: number;   // DHW — accumulated thermal stress
+  bleachingRisk: 'none' | 'watch' | 'warning' | 'alert-1' | 'alert-2';
+  recoveryTimeDays: number;
+}
+
+/**
+ * Calculates coral bleaching risk based on Degree Heating Weeks (DHW).
+ * DHW = sum of weekly temps above bleaching threshold (typically 1°C above max monthly mean)
+ */
+export function coralBleachingRisk(
+  weeklyTemps: number[],
+  bleachingThresholdC: number = 29.0
+): BleachingAssessment {
+  let dhw = 0;
+  for (const t of weeklyTemps) {
+    const hotspot = t - bleachingThresholdC;
+    if (hotspot > 0) dhw += hotspot;
+  }
+
+  let risk: BleachingAssessment['bleachingRisk'];
+  if (dhw < 1) risk = 'none';
+  else if (dhw < 4) risk = 'watch';
+  else if (dhw < 8) risk = 'warning';
+  else if (dhw < 12) risk = 'alert-1';
+  else risk = 'alert-2';
+
+  // Recovery time: ~6 months per DHW above 4, minimum 30 days
+  const recoveryTimeDays = dhw > 4 ? Math.round((dhw - 4) * 180 + 30) : dhw > 1 ? 30 : 0;
+
+  return { degreeHeatingWeeks: dhw, bleachingRisk: risk, recoveryTimeDays };
+}
