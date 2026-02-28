@@ -316,3 +316,201 @@ export function polycultureDiversityScore(plants: FoodForestPlant[]): number {
   const uniqueLayers = new Set(plants.map(p => p.layer));
   return uniqueLayers.size / 7; // 7 possible layers
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// IoT — Sensor Types & Devices
+// ═══════════════════════════════════════════════════════════════════
+
+export type IoTSensorType = 'soil-moisture' | 'temperature' | 'humidity' | 'light' | 'ph' | 'ec';
+export type DeviceStatus = 'online' | 'offline' | 'low-battery' | 'error';
+
+export interface IoTSensor {
+  id: string;
+  name: string;
+  type: IoTSensorType;
+  position: Vec2;
+  bedId?: string;              // Associated planting bed
+  status: DeviceStatus;
+  batteryPercent: number;      // 0-100
+  lastReading: number;         // Latest sensor value
+  lastReadingTime: number;     // Unix timestamp
+  unit: string;                // e.g., '%', '°C', 'lux', 'pH', 'mS/cm'
+}
+
+export interface SensorReading {
+  sensorId: string;
+  value: number;
+  timestamp: number;
+  quality: 'good' | 'degraded' | 'suspect';
+}
+
+export interface SensorAlert {
+  sensorId: string;
+  type: 'low' | 'high' | 'offline' | 'battery';
+  value: number;
+  threshold: number;
+  message: string;
+  timestamp: number;
+  acknowledged: boolean;
+}
+
+export interface SensorThreshold {
+  sensorType: IoTSensorType;
+  min: number;
+  max: number;
+  unit: string;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// IoT — Weather Station
+// ═══════════════════════════════════════════════════════════════════
+
+export interface WeatherStation {
+  id: string;
+  position: Vec2;
+  temperature: number;         // °C
+  humidity: number;            // %
+  windSpeedKmh: number;
+  rainfall24h: number;         // mm
+  uvIndex: number;             // 0-11+
+  barometricPressure: number;  // hPa
+  status: DeviceStatus;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// IoT — Smart Irrigation
+// ═══════════════════════════════════════════════════════════════════
+
+export interface IrrigationTrigger {
+  bedId: string;
+  moistureSensorId: string;
+  thresholdPercent: number;    // Trigger when soil moisture drops below
+  durationMinutes: number;
+  enabled: boolean;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// IoT — Thresholds & Defaults
+// ═══════════════════════════════════════════════════════════════════
+
+export const DEFAULT_SENSOR_THRESHOLDS: SensorThreshold[] = [
+  { sensorType: 'soil-moisture', min: 30, max: 80, unit: '%' },
+  { sensorType: 'temperature', min: 5, max: 40, unit: '°C' },
+  { sensorType: 'humidity', min: 30, max: 90, unit: '%' },
+  { sensorType: 'light', min: 200, max: 100000, unit: 'lux' },
+  { sensorType: 'ph', min: 5.5, max: 7.5, unit: 'pH' },
+  { sensorType: 'ec', min: 0.5, max: 3.0, unit: 'mS/cm' },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// IoT — Core Functions
+// ═══════════════════════════════════════════════════════════════════
+
+export function checkSensorAlerts(
+  sensor: IoTSensor,
+  thresholds: SensorThreshold[]
+): SensorAlert[] {
+  const alerts: SensorAlert[] = [];
+  const now = Date.now();
+
+  // Battery alert
+  if (sensor.batteryPercent < 15) {
+    alerts.push({
+      sensorId: sensor.id, type: 'battery', value: sensor.batteryPercent,
+      threshold: 15, message: `${sensor.name} battery low (${sensor.batteryPercent}%)`,
+      timestamp: now, acknowledged: false,
+    });
+  }
+
+  // Offline alert (no reading in 30 minutes)
+  if (now - sensor.lastReadingTime > 30 * 60 * 1000) {
+    alerts.push({
+      sensorId: sensor.id, type: 'offline', value: 0,
+      threshold: 30, message: `${sensor.name} offline — no data for 30+ min`,
+      timestamp: now, acknowledged: false,
+    });
+  }
+
+  // Value threshold alerts
+  const threshold = thresholds.find(t => t.sensorType === sensor.type);
+  if (threshold) {
+    if (sensor.lastReading < threshold.min) {
+      alerts.push({
+        sensorId: sensor.id, type: 'low', value: sensor.lastReading,
+        threshold: threshold.min, message: `${sensor.name} below minimum (${sensor.lastReading} ${sensor.unit})`,
+        timestamp: now, acknowledged: false,
+      });
+    }
+    if (sensor.lastReading > threshold.max) {
+      alerts.push({
+        sensorId: sensor.id, type: 'high', value: sensor.lastReading,
+        threshold: threshold.max, message: `${sensor.name} above maximum (${sensor.lastReading} ${sensor.unit})`,
+        timestamp: now, acknowledged: false,
+      });
+    }
+  }
+
+  return alerts;
+}
+
+export function shouldTriggerIrrigation(
+  trigger: IrrigationTrigger,
+  moistureReading: number
+): boolean {
+  return trigger.enabled && moistureReading < trigger.thresholdPercent;
+}
+
+export function sensorsByType(sensors: IoTSensor[], type: IoTSensorType): IoTSensor[] {
+  return sensors.filter(s => s.type === type);
+}
+
+export function onlineSensors(sensors: IoTSensor[]): IoTSensor[] {
+  return sensors.filter(s => s.status === 'online');
+}
+
+export function offlineSensors(sensors: IoTSensor[]): IoTSensor[] {
+  return sensors.filter(s => s.status === 'offline' || s.status === 'error');
+}
+
+export function averageSensorValue(sensors: IoTSensor[]): number {
+  if (sensors.length === 0) return 0;
+  return sensors.reduce((sum, s) => sum + s.lastReading, 0) / sensors.length;
+}
+
+export function fleetHealthPercent(sensors: IoTSensor[]): number {
+  if (sensors.length === 0) return 100;
+  const healthy = sensors.filter(s => s.status === 'online' && s.batteryPercent >= 15).length;
+  return (healthy / sensors.length) * 100;
+}
+
+export function growingDegreeDays(
+  readings: SensorReading[],
+  baseTemperatureC: number
+): number {
+  // Sum of (daily avg temp - base temp) for each reading above base
+  let gdd = 0;
+  for (const r of readings) {
+    if (r.value > baseTemperatureC) {
+      gdd += r.value - baseTemperatureC;
+    }
+  }
+  return gdd;
+}
+
+export function frostWarning(weather: WeatherStation): boolean {
+  return weather.temperature <= 2;
+}
+
+export function evapotranspirationEstimate(
+  temperatureC: number,
+  humidityPercent: number,
+  windSpeedKmh: number,
+  uvIndex: number
+): number {
+  // Simplified Penman-Monteith-inspired ET₀ in mm/day
+  const tempFactor = Math.max(0, (temperatureC - 10) * 0.2);
+  const humidityFactor = (100 - humidityPercent) / 100;
+  const windFactor = 1 + windSpeedKmh * 0.01;
+  const uvFactor = uvIndex * 0.3;
+  return tempFactor * humidityFactor * windFactor + uvFactor;
+}

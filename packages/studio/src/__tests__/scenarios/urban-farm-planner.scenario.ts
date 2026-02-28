@@ -16,8 +16,13 @@ import {
   guildNitrogenFixers, guildDynamicAccumulators, guildLayerCoverage,
   soilHealthScore, coverCropNitrogenValue, rotationPlan,
   compostDecompositionRate, polycultureDiversityScore,
-  CROP_DATABASE, FOOD_FOREST_LAYERS, THREE_SISTERS_GUILD, APPLE_GUILD, COVER_CROPS,
-  type PlantingBed, type SoilHealthProfile,
+  checkSensorAlerts, shouldTriggerIrrigation, sensorsByType,
+  onlineSensors, offlineSensors, averageSensorValue, fleetHealthPercent,
+  growingDegreeDays, frostWarning, evapotranspirationEstimate,
+  CROP_DATABASE, FOOD_FOREST_LAYERS, THREE_SISTERS_GUILD, APPLE_GUILD,
+  COVER_CROPS, DEFAULT_SENSOR_THRESHOLDS,
+  type PlantingBed, type SoilHealthProfile, type IoTSensor,
+  type IrrigationTrigger, type WeatherStation, type SensorReading,
 } from '@/lib/urbanFarmPlanner';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -248,5 +253,138 @@ describe('Scenario: Urban Farm — Cover Crops & Rotation (Restorative)', () => 
   });
 
   it.todo('mycorrhizal network — simulate underground fungal nutrient sharing');
-  it.todo('rainwater harvesting — calculate catchment area and storage needs');
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 8. IoT — Sensor Alerts
+// ═══════════════════════════════════════════════════════════════════
+
+describe('Scenario: Urban Farm — IoT Sensor Alerts', () => {
+  const now = Date.now();
+  const healthySensor: IoTSensor = {
+    id: 's1', name: 'Bed A Moisture', type: 'soil-moisture', position: { x: 1, y: 1 },
+    bedId: 'b1', status: 'online', batteryPercent: 85, lastReading: 55,
+    lastReadingTime: now, unit: '%',
+  };
+
+  it('healthy sensor generates no alerts', () => {
+    expect(checkSensorAlerts(healthySensor, DEFAULT_SENSOR_THRESHOLDS)).toHaveLength(0);
+  });
+
+  it('low battery (<15%) triggers battery alert', () => {
+    const lowBat = { ...healthySensor, batteryPercent: 8 };
+    const alerts = checkSensorAlerts(lowBat, DEFAULT_SENSOR_THRESHOLDS);
+    expect(alerts.some(a => a.type === 'battery')).toBe(true);
+  });
+
+  it('stale reading (>30 min) triggers offline alert', () => {
+    const stale = { ...healthySensor, lastReadingTime: now - 45 * 60 * 1000 };
+    const alerts = checkSensorAlerts(stale, DEFAULT_SENSOR_THRESHOLDS);
+    expect(alerts.some(a => a.type === 'offline')).toBe(true);
+  });
+
+  it('reading below threshold triggers low alert', () => {
+    const dry = { ...healthySensor, lastReading: 15 }; // min is 30%
+    const alerts = checkSensorAlerts(dry, DEFAULT_SENSOR_THRESHOLDS);
+    expect(alerts.some(a => a.type === 'low')).toBe(true);
+  });
+
+  it('reading above threshold triggers high alert', () => {
+    const saturated = { ...healthySensor, lastReading: 95 }; // max is 80%
+    const alerts = checkSensorAlerts(saturated, DEFAULT_SENSOR_THRESHOLDS);
+    expect(alerts.some(a => a.type === 'high')).toBe(true);
+  });
+
+  it('DEFAULT_SENSOR_THRESHOLDS has 6 sensor types', () => {
+    expect(DEFAULT_SENSOR_THRESHOLDS).toHaveLength(6);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 9. IoT — Smart Irrigation & Fleet
+// ═══════════════════════════════════════════════════════════════════
+
+describe('Scenario: Urban Farm — IoT Irrigation & Fleet', () => {
+  const trigger: IrrigationTrigger = {
+    bedId: 'b1', moistureSensorId: 's1', thresholdPercent: 35,
+    durationMinutes: 15, enabled: true,
+  };
+
+  it('shouldTriggerIrrigation() fires when moisture below threshold', () => {
+    expect(shouldTriggerIrrigation(trigger, 25)).toBe(true);
+  });
+
+  it('shouldTriggerIrrigation() does NOT fire when moisture above threshold', () => {
+    expect(shouldTriggerIrrigation(trigger, 50)).toBe(false);
+  });
+
+  it('shouldTriggerIrrigation() does NOT fire when disabled', () => {
+    expect(shouldTriggerIrrigation({ ...trigger, enabled: false }, 10)).toBe(false);
+  });
+
+  const now = Date.now();
+  const sensors: IoTSensor[] = [
+    { id: 's1', name: 'Moisture 1', type: 'soil-moisture', position: { x: 0, y: 0 }, status: 'online', batteryPercent: 90, lastReading: 55, lastReadingTime: now, unit: '%' },
+    { id: 's2', name: 'Temp 1', type: 'temperature', position: { x: 1, y: 0 }, status: 'online', batteryPercent: 70, lastReading: 22, lastReadingTime: now, unit: '°C' },
+    { id: 's3', name: 'Moisture 2', type: 'soil-moisture', position: { x: 2, y: 0 }, status: 'offline', batteryPercent: 5, lastReading: 0, lastReadingTime: now - 3600000, unit: '%' },
+    { id: 's4', name: 'Light 1', type: 'light', position: { x: 3, y: 0 }, status: 'online', batteryPercent: 50, lastReading: 45000, lastReadingTime: now, unit: 'lux' },
+  ];
+
+  it('sensorsByType(soil-moisture) returns 2 sensors', () => {
+    expect(sensorsByType(sensors, 'soil-moisture')).toHaveLength(2);
+  });
+
+  it('onlineSensors() returns 3 sensors', () => {
+    expect(onlineSensors(sensors)).toHaveLength(3);
+  });
+
+  it('offlineSensors() returns 1 sensor', () => {
+    expect(offlineSensors(sensors)).toHaveLength(1);
+  });
+
+  it('averageSensorValue() calculates mean of moisture sensors', () => {
+    const moisture = sensorsByType(sensors, 'soil-moisture');
+    expect(averageSensorValue(moisture)).toBeCloseTo(27.5, 0); // (55+0)/2
+  });
+
+  it('fleetHealthPercent() = 75% (3 healthy out of 4)', () => {
+    expect(fleetHealthPercent(sensors)).toBe(75);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 10. IoT — Weather & Growing Conditions
+// ═══════════════════════════════════════════════════════════════════
+
+describe('Scenario: Urban Farm — IoT Weather & Growing', () => {
+  it('growingDegreeDays() accumulates above base temp', () => {
+    const readings: SensorReading[] = [
+      { sensorId: 't1', value: 20, timestamp: 1, quality: 'good' },
+      { sensorId: 't1', value: 25, timestamp: 2, quality: 'good' },
+      { sensorId: 't1', value: 8, timestamp: 3, quality: 'good' },  // below base
+    ];
+    const gdd = growingDegreeDays(readings, 10);
+    expect(gdd).toBe(25); // (20-10) + (25-10) + 0
+  });
+
+  it('frostWarning() triggers at ≤2°C', () => {
+    const warm: WeatherStation = { id: 'w1', position: { x: 0, y: 0 }, temperature: 15, humidity: 60, windSpeedKmh: 10, rainfall24h: 0, uvIndex: 5, barometricPressure: 1013, status: 'online' };
+    const cold: WeatherStation = { ...warm, temperature: 1 };
+    expect(frostWarning(warm)).toBe(false);
+    expect(frostWarning(cold)).toBe(true);
+  });
+
+  it('evapotranspirationEstimate() increases with heat and wind', () => {
+    const cool = evapotranspirationEstimate(15, 80, 5, 3);
+    const hot = evapotranspirationEstimate(35, 30, 20, 9);
+    expect(hot).toBeGreaterThan(cool);
+  });
+
+  it('evapotranspirationEstimate() returns 0+ even in cool conditions', () => {
+    const et = evapotranspirationEstimate(10, 90, 0, 0);
+    expect(et).toBeGreaterThanOrEqual(0);
+  });
+
+  it.todo('LoRaWAN mesh — long-range IoT connectivity for field sensors');
+  it.todo('drone survey — automated NDVI crop health imaging');
 });
