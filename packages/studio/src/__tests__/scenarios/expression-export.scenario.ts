@@ -17,7 +17,7 @@ import {
   lerpPresets,
   type ExpressionPreset,
 } from '../../lib/ExpressionPresets';
-import { buildCharacterCard } from '../../components/character/ExportPanel';
+import { buildCharacterCard } from '../../components/character/export/ExportPanel';
 
 const { useCharacterStore } = await import('@/lib/store');
 
