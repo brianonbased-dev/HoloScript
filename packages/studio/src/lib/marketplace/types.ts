@@ -1,8 +1,38 @@
 /**
- * Marketplace types for community templates
+ * Marketplace types for community content
  */
 
-export interface MarketplaceTemplate {
+/**
+ * All supported content types in HoloScript marketplace
+ */
+export type ContentType =
+  // AI Orchestration
+  | 'workflow'           // Agent workflows
+  | 'behavior_tree'      // Behavior trees
+  // 3D Content
+  | 'scene'              // Complete 3D scenes (.hsplus)
+  | 'composition'        // Compositions (.holo)
+  | 'character'          // VRM characters
+  | 'model'              // 3D models (GLTF/GLB)
+  // Visual Programming
+  | 'shader_graph'       // Shader node graphs
+  | 'material'           // Materials/shaders
+  | 'node_graph'         // Generic node graphs
+  // Animation & Physics
+  | 'animation'          // Animation sequences
+  | 'physics_preset'     // Physics configurations
+  // Audio
+  | 'audio'              // Sound effects
+  | 'music'              // Music tracks
+  // VR/AR
+  | 'vr_environment'     // Complete VR experiences
+  | 'ar_marker'          // AR markers/targets
+  // Utilities
+  | 'plugin'             // Studio plugins
+  | 'script'             // Custom scripts
+  | 'preset';            // General presets
+
+export interface MarketplaceItem {
   id: string;
   name: string;
   description: string;
@@ -11,32 +41,69 @@ export interface MarketplaceTemplate {
     name: string;
     avatar?: string;
   };
-  type: 'workflow' | 'behavior_tree';
+  type: ContentType;
   tags: string[];
   category: string;
   rating: number;
   downloadCount: number;
+  viewCount: number;
   createdAt: number;
   updatedAt: number;
   thumbnailUrl?: string;
   previewUrl?: string;
   featured?: boolean;
+  verified?: boolean; // Verified by HoloScript team
+  license?: 'MIT' | 'CC0' | 'CC-BY' | 'CC-BY-SA' | 'Commercial';
+  fileSize?: number; // bytes
+  version?: string;
+  compatibility?: string; // "HoloScript 3.42.0+"
 }
 
 export interface MarketplaceCategory {
   id: string;
   name: string;
   description: string;
-  templateCount: number;
+  itemCount: number;
+  icon?: string; // Icon name (lucide-react)
+  parentId?: string; // For nested categories
 }
+
+/**
+ * Predefined categories matching HoloScript Studio features
+ */
+export const MARKETPLACE_CATEGORIES = {
+  // AI Orchestration
+  AI_WORKFLOWS: 'ai-workflows',
+  BEHAVIOR_TREES: 'behavior-trees',
+  // 3D Content
+  SCENES: 'scenes',
+  CHARACTERS: 'characters',
+  MODELS: 'models',
+  MATERIALS: 'materials',
+  // Animation & Physics
+  ANIMATIONS: 'animations',
+  PHYSICS: 'physics',
+  // Audio
+  AUDIO: 'audio',
+  MUSIC: 'music',
+  // VR/AR
+  VR_ENVIRONMENTS: 'vr-environments',
+  AR_EXPERIENCES: 'ar-experiences',
+  // Development
+  PLUGINS: 'plugins',
+  SCRIPTS: 'scripts',
+  PRESETS: 'presets',
+} as const;
 
 export interface MarketplaceFilter {
   category?: string;
   tags?: string[];
-  type?: 'workflow' | 'behavior_tree';
+  type?: ContentType | ContentType[];
   minRating?: number;
   search?: string;
-  sortBy?: 'popular' | 'recent' | 'rating' | 'downloads';
+  sortBy?: 'popular' | 'recent' | 'rating' | 'downloads' | 'views';
+  license?: string;
+  verified?: boolean; // Only verified content
   page?: number;
   limit?: number;
 }
@@ -48,22 +115,194 @@ export interface MarketplaceResponse<T> {
   limit: number;
 }
 
-export interface TemplateUpload {
+export interface ContentUpload {
   name: string;
   description: string;
-  type: 'workflow' | 'behavior_tree';
+  type: ContentType;
   tags: string[];
   category: string;
-  content: string; // JSON stringified template
+  content: string | File; // JSON string or binary file
   thumbnail?: File;
+  license?: 'MIT' | 'CC0' | 'CC-BY' | 'CC-BY-SA' | 'Commercial';
+  version?: string;
 }
 
-export interface TemplateReview {
+export interface ContentReview {
   id: string;
-  templateId: string;
+  contentId: string;
   userId: string;
   userName: string;
   rating: number;
   comment: string;
   createdAt: number;
+  helpful?: number; // Upvotes
 }
+
+/**
+ * Content type metadata (for UI display)
+ */
+export interface ContentTypeMetadata {
+  type: ContentType;
+  label: string;
+  description: string;
+  icon: string; // lucide-react icon name
+  fileExtension?: string;
+  category: string;
+}
+
+/**
+ * Metadata for each content type
+ */
+export const CONTENT_TYPE_METADATA: Record<ContentType, ContentTypeMetadata> = {
+  // AI Orchestration
+  workflow: {
+    type: 'workflow',
+    label: 'Agent Workflow',
+    description: 'Multi-agent orchestration workflows',
+    icon: 'Workflow',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.AI_WORKFLOWS,
+  },
+  behavior_tree: {
+    type: 'behavior_tree',
+    label: 'Behavior Tree',
+    description: 'AI behavior tree logic',
+    icon: 'GitBranch',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.BEHAVIOR_TREES,
+  },
+  // 3D Content
+  scene: {
+    type: 'scene',
+    label: '3D Scene',
+    description: 'Complete 3D scenes with objects and lighting',
+    icon: 'Box',
+    fileExtension: '.hsplus',
+    category: MARKETPLACE_CATEGORIES.SCENES,
+  },
+  composition: {
+    type: 'composition',
+    label: 'Composition',
+    description: 'Multi-scene compositions',
+    icon: 'Layers',
+    fileExtension: '.holo',
+    category: MARKETPLACE_CATEGORIES.SCENES,
+  },
+  character: {
+    type: 'character',
+    label: 'Character',
+    description: 'VRM characters and avatars',
+    icon: 'User',
+    fileExtension: '.vrm',
+    category: MARKETPLACE_CATEGORIES.CHARACTERS,
+  },
+  model: {
+    type: 'model',
+    label: '3D Model',
+    description: 'GLTF/GLB 3D models',
+    icon: 'Package',
+    fileExtension: '.glb',
+    category: MARKETPLACE_CATEGORIES.MODELS,
+  },
+  // Visual Programming
+  shader_graph: {
+    type: 'shader_graph',
+    label: 'Shader Graph',
+    description: 'Visual shader node graphs',
+    icon: 'Network',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.MATERIALS,
+  },
+  material: {
+    type: 'material',
+    label: 'Material',
+    description: 'Custom materials and shaders',
+    icon: 'Palette',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.MATERIALS,
+  },
+  node_graph: {
+    type: 'node_graph',
+    label: 'Node Graph',
+    description: 'Visual programming graphs',
+    icon: 'GitBranch',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.SCRIPTS,
+  },
+  // Animation & Physics
+  animation: {
+    type: 'animation',
+    label: 'Animation',
+    description: 'Animation sequences and clips',
+    icon: 'Zap',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.ANIMATIONS,
+  },
+  physics_preset: {
+    type: 'physics_preset',
+    label: 'Physics Preset',
+    description: 'Physics configurations and constraints',
+    icon: 'Orbit',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.PHYSICS,
+  },
+  // Audio
+  audio: {
+    type: 'audio',
+    label: 'Sound Effect',
+    description: 'Sound effects and audio clips',
+    icon: 'Volume2',
+    fileExtension: '.mp3',
+    category: MARKETPLACE_CATEGORIES.AUDIO,
+  },
+  music: {
+    type: 'music',
+    label: 'Music',
+    description: 'Background music tracks',
+    icon: 'Music',
+    fileExtension: '.mp3',
+    category: MARKETPLACE_CATEGORIES.MUSIC,
+  },
+  // VR/AR
+  vr_environment: {
+    type: 'vr_environment',
+    label: 'VR Environment',
+    description: 'Complete VR experiences',
+    icon: 'Glasses',
+    fileExtension: '.hsplus',
+    category: MARKETPLACE_CATEGORIES.VR_ENVIRONMENTS,
+  },
+  ar_marker: {
+    type: 'ar_marker',
+    label: 'AR Marker',
+    description: 'AR markers and targets',
+    icon: 'Scan',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.AR_EXPERIENCES,
+  },
+  // Utilities
+  plugin: {
+    type: 'plugin',
+    label: 'Plugin',
+    description: 'Studio plugins and extensions',
+    icon: 'Puzzle',
+    fileExtension: '.js',
+    category: MARKETPLACE_CATEGORIES.PLUGINS,
+  },
+  script: {
+    type: 'script',
+    label: 'Script',
+    description: 'Custom scripts and utilities',
+    icon: 'FileCode',
+    fileExtension: '.js',
+    category: MARKETPLACE_CATEGORIES.SCRIPTS,
+  },
+  preset: {
+    type: 'preset',
+    label: 'Preset',
+    description: 'General configuration presets',
+    icon: 'Settings',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.PRESETS,
+  },
+};

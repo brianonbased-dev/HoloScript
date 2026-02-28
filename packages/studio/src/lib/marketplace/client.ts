@@ -2,19 +2,25 @@
  * Marketplace API client
  *
  * Handles all HTTP requests to the HoloScript marketplace backend.
- * Supports browsing, searching, downloading, and uploading templates.
+ * Universal marketplace for all HoloScript content types:
+ * - AI Orchestration (workflows, behavior trees)
+ * - 3D Content (scenes, characters, models)
+ * - Visual Programming (shader graphs, materials)
+ * - Animation & Physics
+ * - Audio (sound effects, music)
+ * - VR/AR Environments
+ * - Plugins & Scripts
  */
 
 import type {
-  MarketplaceTemplate,
+  MarketplaceItem,
   MarketplaceCategory,
   MarketplaceFilter,
   MarketplaceResponse,
-  TemplateUpload,
-  TemplateReview,
+  ContentUpload,
+  ContentReview,
+  ContentType,
 } from './types';
-import type { AgentWorkflow } from '@/lib/orchestrationStore';
-import type { BTNode } from '@/lib/orchestrationStore';
 
 export interface MarketplaceClientConfig {
   baseUrl?: string;
@@ -87,73 +93,113 @@ export class MarketplaceClient {
     return response.json();
   }
 
-  // ── Template Discovery ────────────────────────────────────────────────────
+  // ── Content Discovery ─────────────────────────────────────────────────────
 
   /**
-   * Browse templates with filters
+   * Browse content with filters
    */
-  async browseTemplates(
+  async browse(
     filter: MarketplaceFilter = {}
-  ): Promise<MarketplaceResponse<MarketplaceTemplate[]>> {
-    return this.get<MarketplaceResponse<MarketplaceTemplate[]>>('/templates', filter);
+  ): Promise<MarketplaceResponse<MarketplaceItem[]>> {
+    return this.get<MarketplaceResponse<MarketplaceItem[]>>('/content', filter);
   }
 
   /**
-   * Search templates by query
+   * Search content by query
    */
-  async searchTemplates(
+  async search(
     query: string,
     filter: Omit<MarketplaceFilter, 'search'> = {}
-  ): Promise<MarketplaceResponse<MarketplaceTemplate[]>> {
-    return this.get<MarketplaceResponse<MarketplaceTemplate[]>>('/templates/search', {
+  ): Promise<MarketplaceResponse<MarketplaceItem[]>> {
+    return this.get<MarketplaceResponse<MarketplaceItem[]>>('/content/search', {
       ...filter,
       search: query,
     });
   }
 
   /**
-   * Get featured templates
+   * Get featured content
    */
-  async getFeaturedTemplates(): Promise<MarketplaceTemplate[]> {
-    const response = await this.get<MarketplaceResponse<MarketplaceTemplate[]>>(
-      '/templates/featured'
+  async getFeatured(type?: ContentType): Promise<MarketplaceItem[]> {
+    const response = await this.get<MarketplaceResponse<MarketplaceItem[]>>(
+      '/content/featured',
+      type ? { type } : {}
     );
     return response.data;
   }
 
   /**
-   * Get trending templates (most downloads in last 7 days)
+   * Get trending content (most downloads in last 7 days)
    */
-  async getTrendingTemplates(limit = 10): Promise<MarketplaceTemplate[]> {
-    const response = await this.get<MarketplaceResponse<MarketplaceTemplate[]>>(
-      '/templates/trending',
-      { limit }
+  async getTrending(limit = 10, type?: ContentType): Promise<MarketplaceItem[]> {
+    const response = await this.get<MarketplaceResponse<MarketplaceItem[]>>(
+      '/content/trending',
+      { limit, ...(type ? { type } : {}) }
     );
     return response.data;
   }
 
   /**
-   * Get template by ID
+   * Get content item by ID
    */
-  async getTemplate(id: string): Promise<MarketplaceTemplate> {
-    return this.get<MarketplaceTemplate>(`/templates/${id}`);
+  async getItem(id: string): Promise<MarketplaceItem> {
+    return this.get<MarketplaceItem>(`/content/${id}`);
   }
 
-  // ── Template Download ─────────────────────────────────────────────────────
+  /**
+   * Get content by type
+   */
+  async getByType(
+    type: ContentType,
+    filter: Omit<MarketplaceFilter, 'type'> = {}
+  ): Promise<MarketplaceResponse<MarketplaceItem[]>> {
+    return this.get<MarketplaceResponse<MarketplaceItem[]>>('/content', {
+      ...filter,
+      type,
+    });
+  }
+
+  // ── Content Download ──────────────────────────────────────────────────────
 
   /**
-   * Download template content
+   * Download content (returns parsed JSON for JSON content, blob URL for binary)
    */
-  async downloadTemplate(id: string): Promise<AgentWorkflow | BTNode[]> {
-    const response = await this.get<{ content: string }>(`/templates/${id}/download`);
+  async download(id: string): Promise<any> {
+    const item = await this.getItem(id);
+
+    // For binary content (models, audio, etc.), return blob URL
+    if (this.isBinaryContent(item.type)) {
+      const response = await fetch(`${this.baseUrl}/content/${id}/download`, {
+        headers: this.getHeaders(),
+      });
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
+    }
+
+    // For JSON content, parse and return
+    const response = await this.get<{ content: string }>(`/content/${id}/download`);
     return JSON.parse(response.content);
+  }
+
+  /**
+   * Check if content type is binary
+   */
+  private isBinaryContent(type: ContentType): boolean {
+    return ['model', 'character', 'audio', 'music'].includes(type);
   }
 
   /**
    * Track download (increment download count)
    */
   async trackDownload(id: string): Promise<void> {
-    await this.post(`/templates/${id}/download-count`, {});
+    await this.post(`/content/${id}/download-count`, {});
+  }
+
+  /**
+   * Track view (increment view count)
+   */
+  async trackView(id: string): Promise<void> {
+    await this.post(`/content/${id}/view-count`, {});
   }
 
   // ── Categories ────────────────────────────────────────────────────────────
@@ -166,13 +212,13 @@ export class MarketplaceClient {
   }
 
   /**
-   * Get templates by category
+   * Get content by category
    */
-  async getTemplatesByCategory(
+  async getByCategory(
     categoryId: string,
     filter: Omit<MarketplaceFilter, 'category'> = {}
-  ): Promise<MarketplaceResponse<MarketplaceTemplate[]>> {
-    return this.get<MarketplaceResponse<MarketplaceTemplate[]>>('/templates', {
+  ): Promise<MarketplaceResponse<MarketplaceItem[]>> {
+    return this.get<MarketplaceResponse<MarketplaceItem[]>>('/content', {
       ...filter,
       category: categoryId,
     });
@@ -181,10 +227,10 @@ export class MarketplaceClient {
   // ── Reviews & Ratings ─────────────────────────────────────────────────────
 
   /**
-   * Get reviews for a template
+   * Get reviews for content
    */
-  async getReviews(templateId: string, page = 1, limit = 10): Promise<MarketplaceResponse<TemplateReview[]>> {
-    return this.get<MarketplaceResponse<TemplateReview[]>>(`/templates/${templateId}/reviews`, {
+  async getReviews(contentId: string, page = 1, limit = 10): Promise<MarketplaceResponse<ContentReview[]>> {
+    return this.get<MarketplaceResponse<ContentReview[]>>(`/content/${contentId}/reviews`, {
       page,
       limit,
     });
@@ -194,36 +240,57 @@ export class MarketplaceClient {
    * Submit a review
    */
   async submitReview(
-    templateId: string,
+    contentId: string,
     rating: number,
     comment: string
-  ): Promise<TemplateReview> {
-    return this.post<TemplateReview>(`/templates/${templateId}/reviews`, {
+  ): Promise<ContentReview> {
+    return this.post<ContentReview>(`/content/${contentId}/reviews`, {
       rating,
       comment,
     });
   }
 
-  // ── Template Upload ───────────────────────────────────────────────────────
+  /**
+   * Mark review as helpful
+   */
+  async markReviewHelpful(reviewId: string): Promise<void> {
+    await this.post(`/reviews/${reviewId}/helpful`, {});
+  }
+
+  // ── Content Upload ────────────────────────────────────────────────────────
 
   /**
-   * Upload a new template
+   * Upload new content
    */
-  async uploadTemplate(upload: TemplateUpload): Promise<MarketplaceTemplate> {
-    // For file uploads (thumbnail), we need multipart/form-data
+  async upload(upload: ContentUpload): Promise<MarketplaceItem> {
+    // For file uploads (binary content + thumbnail), we need multipart/form-data
     const formData = new FormData();
     formData.append('name', upload.name);
     formData.append('description', upload.description);
     formData.append('type', upload.type);
     formData.append('category', upload.category);
     formData.append('tags', JSON.stringify(upload.tags));
-    formData.append('content', upload.content);
+
+    if (upload.license) {
+      formData.append('license', upload.license);
+    }
+
+    if (upload.version) {
+      formData.append('version', upload.version);
+    }
+
+    // Content can be string (JSON) or File (binary)
+    if (typeof upload.content === 'string') {
+      formData.append('content', upload.content);
+    } else {
+      formData.append('file', upload.content);
+    }
 
     if (upload.thumbnail) {
       formData.append('thumbnail', upload.thumbnail);
     }
 
-    const response = await fetch(`${this.baseUrl}/templates/upload`, {
+    const response = await fetch(`${this.baseUrl}/content/upload`, {
       method: 'POST',
       headers: {
         // Don't set Content-Type for FormData - browser will set it with boundary
@@ -240,52 +307,58 @@ export class MarketplaceClient {
   }
 
   /**
-   * Update existing template
+   * Update existing content
    */
-  async updateTemplate(id: string, updates: Partial<TemplateUpload>): Promise<MarketplaceTemplate> {
-    return this.post<MarketplaceTemplate>(`/templates/${id}`, updates);
+  async update(id: string, updates: Partial<ContentUpload>): Promise<MarketplaceItem> {
+    return this.post<MarketplaceItem>(`/content/${id}`, updates);
   }
 
   /**
-   * Delete template (requires auth + ownership)
+   * Delete content (requires auth + ownership)
    */
-  async deleteTemplate(id: string): Promise<void> {
-    await fetch(`${this.baseUrl}/templates/${id}`, {
+  async delete(id: string): Promise<void> {
+    await fetch(`${this.baseUrl}/content/${id}`, {
       method: 'DELETE',
       headers: this.getHeaders(),
     });
   }
 
-  // ── User Templates ────────────────────────────────────────────────────────
+  // ── User Content ──────────────────────────────────────────────────────────
 
   /**
-   * Get user's uploaded templates
+   * Get user's uploaded content
    */
-  async getMyTemplates(): Promise<MarketplaceTemplate[]> {
-    const response = await this.get<MarketplaceResponse<MarketplaceTemplate[]>>('/templates/mine');
+  async getMyContent(type?: ContentType): Promise<MarketplaceItem[]> {
+    const response = await this.get<MarketplaceResponse<MarketplaceItem[]>>(
+      '/content/mine',
+      type ? { type } : {}
+    );
     return response.data;
   }
 
   /**
-   * Get user's favorited templates
+   * Get user's favorited content
    */
-  async getFavorites(): Promise<MarketplaceTemplate[]> {
-    const response = await this.get<MarketplaceResponse<MarketplaceTemplate[]>>('/templates/favorites');
+  async getFavorites(type?: ContentType): Promise<MarketplaceItem[]> {
+    const response = await this.get<MarketplaceResponse<MarketplaceItem[]>>(
+      '/content/favorites',
+      type ? { type } : {}
+    );
     return response.data;
   }
 
   /**
-   * Add template to favorites
+   * Add content to favorites
    */
-  async addFavorite(templateId: string): Promise<void> {
-    await this.post(`/templates/${templateId}/favorite`, {});
+  async addFavorite(contentId: string): Promise<void> {
+    await this.post(`/content/${contentId}/favorite`, {});
   }
 
   /**
-   * Remove template from favorites
+   * Remove content from favorites
    */
-  async removeFavorite(templateId: string): Promise<void> {
-    await fetch(`${this.baseUrl}/templates/${templateId}/favorite`, {
+  async removeFavorite(contentId: string): Promise<void> {
+    await fetch(`${this.baseUrl}/content/${contentId}/favorite`, {
       method: 'DELETE',
       headers: this.getHeaders(),
     });
@@ -297,12 +370,52 @@ export class MarketplaceClient {
    * Get marketplace statistics
    */
   async getStats(): Promise<{
-    totalTemplates: number;
+    totalContent: number;
     totalDownloads: number;
     totalAuthors: number;
+    totalViews: number;
     popularTags: Array<{ tag: string; count: number }>;
+    contentByType: Record<ContentType, number>;
   }> {
     return this.get('/stats');
+  }
+
+  /**
+   * Get stats for specific content type
+   */
+  async getTypeStats(type: ContentType): Promise<{
+    total: number;
+    downloads: number;
+    views: number;
+    averageRating: number;
+  }> {
+    return this.get(`/stats/${type}`);
+  }
+
+  // ── Collections & Bundles ─────────────────────────────────────────────────
+
+  /**
+   * Get curated collections (e.g., "Starter Pack", "Advanced VR")
+   */
+  async getCollections(): Promise<Array<{
+    id: string;
+    name: string;
+    description: string;
+    items: MarketplaceItem[];
+  }>> {
+    return this.get('/collections');
+  }
+
+  /**
+   * Get collection by ID
+   */
+  async getCollection(id: string): Promise<{
+    id: string;
+    name: string;
+    description: string;
+    items: MarketplaceItem[];
+  }> {
+    return this.get(`/collections/${id}`);
   }
 }
 

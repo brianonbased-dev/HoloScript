@@ -17,54 +17,104 @@ Phase 3 transforms HoloScript Studio into a platform with:
 
 ---
 
-## Task 1: Community Marketplace (6 weeks)
+## Task 1: Universal Content Marketplace (6 weeks)
 
-### ✅ 1.1 Marketplace Backend (Week 1-2) - COMPLETE
+### ✅ 1.1 Marketplace Backend (Week 1-2) - COMPLETE ✨ EXPANDED
+
+**Scope:** Universal marketplace supporting ALL HoloScript content types (not just AI orchestration)
 
 **Files Created:**
-- ✅ `src/lib/marketplace/types.ts` (75 lines)
-- ✅ `src/lib/marketplace/client.ts` (300 lines)
-- ✅ `src/lib/marketplace/hooks.ts` (400 lines)
+- ✅ `src/lib/marketplace/types.ts` (230 lines) - **EXPANDED**
+- ✅ `src/lib/marketplace/client.ts` (350 lines) - **EXPANDED**
+- ✅ `src/lib/marketplace/hooks.ts` (450 lines) - **EXPANDED**
 - ✅ `src/lib/marketplace/index.ts` (export barrel)
 
-**Features Implemented:**
+**Content Types Supported (17 types):**
+
+**AI Orchestration:**
+- `workflow` - Agent workflows
+- `behavior_tree` - Behavior trees
+
+**3D Content:**
+- `scene` - Complete 3D scenes (.hsplus)
+- `composition` - Multi-scene compositions (.holo)
+- `character` - VRM characters
+- `model` - 3D models (GLTF/GLB)
+
+**Visual Programming:**
+- `shader_graph` - Shader node graphs
+- `material` - Materials/shaders
+- `node_graph` - Generic node graphs
+
+**Animation & Physics:**
+- `animation` - Animation sequences
+- `physics_preset` - Physics configurations
+
+**Audio:**
+- `audio` - Sound effects
+- `music` - Music tracks
+
+**VR/AR:**
+- `vr_environment` - Complete VR experiences
+- `ar_marker` - AR markers/targets
+
+**Utilities:**
+- `plugin` - Studio plugins
+- `script` - Custom scripts
+- `preset` - General presets
 
 **Types:**
-- `MarketplaceTemplate` - Template metadata with author, ratings, downloads
-- `MarketplaceCategory` - Category organization
-- `MarketplaceFilter` - Search/filter parameters
-- `TemplateUpload` - Upload payload structure
-- `TemplateReview` - User reviews
+- `MarketplaceItem` - Universal content item with metadata
+- `ContentType` - 17 supported types
+- `CONTENT_TYPE_METADATA` - Display metadata for each type
+- `MarketplaceCategory` - Category organization (14 predefined)
+- `MarketplaceFilter` - Advanced filtering (type, category, tags, license, verified)
+- `ContentUpload` - Upload payload (JSON or binary files)
+- `ContentReview` - User reviews with helpfulness voting
 
-**Client (MarketplaceClient class):**
-- `browseTemplates()` - Browse with filters
-- `searchTemplates()` - Full-text search
-- `getFeaturedTemplates()` - Featured/curated templates
-- `getTrendingTemplates()` - Most downloaded (last 7 days)
-- `downloadTemplate()` - Get template content (JSON)
-- `uploadTemplate()` - Upload new template with thumbnail
-- `getCategories()` - List all categories
-- `getReviews()` / `submitReview()` - Rating system
+**Client (MarketplaceClient class) - 30+ methods:**
+- `browse()` / `search()` - Universal content browsing
+- `getFeatured()` / `getTrending()` - Curated & popular content
+- `getByType()` - Filter by specific content type
+- `download()` - Smart download (JSON or blob URL)
+- `upload()` - Upload with multipart support
+- `getCategories()` / `getByCategory()` - Category navigation
+- `getReviews()` / `submitReview()` / `markReviewHelpful()` - Review system
 - `addFavorite()` / `removeFavorite()` - User favorites
-- `getMyTemplates()` - User's uploaded templates
-- `getStats()` - Marketplace statistics
+- `getMyContent()` - User's uploaded content
+- `getStats()` / `getTypeStats()` - Marketplace analytics
+- `getCollections()` - Curated content bundles
+- `trackDownload()` / `trackView()` - Usage analytics
 
-**React Hooks:**
-- `useMarketplaceTemplates()` - Browse with pagination
+**React Hooks - 10 hooks:**
+- `useMarketplace()` - Universal browse with pagination
+- `useMarketplaceByType()` - Type-specific browsing
 - `useMarketplaceSearch()` - Search with debouncing
-- `useFeaturedTemplates()` - Featured templates
-- `useTrendingTemplates()` - Trending templates
+- `useFeatured()` - Featured content (optional type filter)
+- `useTrending()` - Trending content (optional type filter)
 - `useMarketplaceCategories()` - Category list
-- `useTemplateDownload()` - Download with tracking
-- `useTemplateUpload()` - Upload with progress
-- `useFavorites()` - Manage user favorites
+- `useDownload()` - Download with tracking
+- `useUpload()` - Upload with progress bar
+- `useFavorites()` - Manage favorites (optional type filter)
+- `useCollections()` - Curated collections
 
 **API Integration:**
 - Base URL: `https://marketplace.holoscript.xyz/api`
+- Endpoints: `/content/*` (universal, not `/templates/*`)
 - Auth: Bearer token in `Authorization` header
 - Pagination: `page` + `limit` parameters
-- Filtering: category, tags, type, minRating, sortBy
-- Multipart upload: Supports thumbnail images
+- Filtering: category, tags, type, minRating, license, verified, sortBy
+- Multipart upload: Supports binary files + thumbnails
+- Binary content: Returns blob URLs for models, audio, VRM files
+- JSON content: Returns parsed objects
+
+**Advanced Features:**
+- License support (MIT, CC0, CC-BY, CC-BY-SA, Commercial)
+- Verified content badge (HoloScript team verified)
+- Collections/bundles (e.g., "VR Starter Pack")
+- View tracking + download tracking
+- File size metadata
+- Version compatibility strings
 
 **Next:** 1.2 Marketplace UI (Week 3-4)
 

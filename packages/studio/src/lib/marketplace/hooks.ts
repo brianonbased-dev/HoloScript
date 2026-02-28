@@ -1,21 +1,22 @@
 /**
  * React hooks for marketplace integration
+ * Universal hooks for all HoloScript content types
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { getMarketplaceClient } from './client';
 import type {
-  MarketplaceTemplate,
+  MarketplaceItem,
   MarketplaceCategory,
   MarketplaceFilter,
-  MarketplaceResponse,
-  TemplateUpload,
+  ContentUpload,
+  ContentType,
 } from './types';
 
-// ── Browse Templates Hook ─────────────────────────────────────────────────
+// ── Browse Content Hook ───────────────────────────────────────────────────
 
-export interface UseMarketplaceTemplatesResult {
-  templates: MarketplaceTemplate[];
+export interface UseMarketplaceResult {
+  items: MarketplaceItem[];
   total: number;
   page: number;
   loading: boolean;
@@ -25,41 +26,41 @@ export interface UseMarketplaceTemplatesResult {
   refresh: () => Promise<void>;
 }
 
-export function useMarketplaceTemplates(
+export function useMarketplace(
   filter: MarketplaceFilter = {}
-): UseMarketplaceTemplatesResult {
-  const [templates, setTemplates] = useState<MarketplaceTemplate[]>([]);
+): UseMarketplaceResult {
+  const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(filter.page || 1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const limit = filter.limit || 20;
-  const hasMore = templates.length < total;
+  const hasMore = items.length < total;
 
-  const fetchTemplates = useCallback(
+  const fetchContent = useCallback(
     async (currentPage: number, append = false) => {
       setLoading(true);
       setError(null);
 
       try {
         const client = getMarketplaceClient();
-        const response = await client.browseTemplates({
+        const response = await client.browse({
           ...filter,
           page: currentPage,
           limit,
         });
 
         if (append) {
-          setTemplates((prev) => [...prev, ...response.data]);
+          setItems((prev) => [...prev, ...response.data]);
         } else {
-          setTemplates(response.data);
+          setItems(response.data);
         }
 
         setTotal(response.total);
         setPage(currentPage);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load templates');
+        setError(err instanceof Error ? err.message : 'Failed to load content');
       } finally {
         setLoading(false);
       }
@@ -69,20 +70,20 @@ export function useMarketplaceTemplates(
 
   const loadMore = useCallback(async () => {
     if (!loading && hasMore) {
-      await fetchTemplates(page + 1, true);
+      await fetchContent(page + 1, true);
     }
-  }, [loading, hasMore, page, fetchTemplates]);
+  }, [loading, hasMore, page, fetchContent]);
 
   const refresh = useCallback(async () => {
-    await fetchTemplates(1, false);
-  }, [fetchTemplates]);
+    await fetchContent(1, false);
+  }, [fetchContent]);
 
   useEffect(() => {
-    fetchTemplates(1, false);
-  }, [fetchTemplates]);
+    fetchContent(1, false);
+  }, [fetchContent]);
 
   return {
-    templates,
+    items,
     total,
     page,
     loading,
@@ -93,10 +94,17 @@ export function useMarketplaceTemplates(
   };
 }
 
-// ── Search Templates Hook ─────────────────────────────────────────────────
+/**
+ * Browse content by specific type
+ */
+export function useMarketplaceByType(type: ContentType, filter: MarketplaceFilter = {}) {
+  return useMarketplace({ ...filter, type });
+}
+
+// ── Search Content Hook ───────────────────────────────────────────────────
 
 export function useMarketplaceSearch(query: string, filter: MarketplaceFilter = {}) {
-  const [results, setResults] = useState<MarketplaceTemplate[]>([]);
+  const [results, setResults] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -111,7 +119,7 @@ export function useMarketplaceSearch(query: string, filter: MarketplaceFilter = 
 
     try {
       const client = getMarketplaceClient();
-      const response = await client.searchTemplates(query, filter);
+      const response = await client.search(query, filter);
       setResults(response.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed');
@@ -127,10 +135,10 @@ export function useMarketplaceSearch(query: string, filter: MarketplaceFilter = 
   return { results, loading, error, search };
 }
 
-// ── Featured Templates Hook ───────────────────────────────────────────────
+// ── Featured Content Hook ─────────────────────────────────────────────────
 
-export function useFeaturedTemplates() {
-  const [templates, setTemplates] = useState<MarketplaceTemplate[]>([]);
+export function useFeatured(type?: ContentType) {
+  const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -140,14 +148,14 @@ export function useFeaturedTemplates() {
     async function fetchFeatured() {
       try {
         const client = getMarketplaceClient();
-        const data = await client.getFeaturedTemplates();
+        const data = await client.getFeatured(type);
         if (mounted) {
-          setTemplates(data);
+          setItems(data);
           setError(null);
         }
       } catch (err) {
         if (mounted) {
-          setError(err instanceof Error ? err.message : 'Failed to load featured templates');
+          setError(err instanceof Error ? err.message : 'Failed to load featured content');
         }
       } finally {
         if (mounted) {
@@ -161,15 +169,15 @@ export function useFeaturedTemplates() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [type]);
 
-  return { templates, loading, error };
+  return { items, loading, error };
 }
 
-// ── Trending Templates Hook ───────────────────────────────────────────────
+// ── Trending Content Hook ─────────────────────────────────────────────────
 
-export function useTrendingTemplates(limit = 10) {
-  const [templates, setTemplates] = useState<MarketplaceTemplate[]>([]);
+export function useTrending(limit = 10, type?: ContentType) {
+  const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -179,14 +187,14 @@ export function useTrendingTemplates(limit = 10) {
     async function fetchTrending() {
       try {
         const client = getMarketplaceClient();
-        const data = await client.getTrendingTemplates(limit);
+        const data = await client.getTrending(limit, type);
         if (mounted) {
-          setTemplates(data);
+          setItems(data);
           setError(null);
         }
       } catch (err) {
         if (mounted) {
-          setError(err instanceof Error ? err.message : 'Failed to load trending templates');
+          setError(err instanceof Error ? err.message : 'Failed to load trending content');
         }
       } finally {
         if (mounted) {
@@ -200,9 +208,9 @@ export function useTrendingTemplates(limit = 10) {
     return () => {
       mounted = false;
     };
-  }, [limit]);
+  }, [limit, type]);
 
-  return { templates, loading, error };
+  return { items, loading, error };
 }
 
 // ── Categories Hook ───────────────────────────────────────────────────────
@@ -244,20 +252,20 @@ export function useMarketplaceCategories() {
   return { categories, loading, error };
 }
 
-// ── Download Template Hook ────────────────────────────────────────────────
+// ── Download Content Hook ─────────────────────────────────────────────────
 
-export function useTemplateDownload() {
+export function useDownload() {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const download = useCallback(async (templateId: string) => {
+  const download = useCallback(async (contentId: string) => {
     setDownloading(true);
     setError(null);
 
     try {
       const client = getMarketplaceClient();
-      const content = await client.downloadTemplate(templateId);
-      await client.trackDownload(templateId);
+      const content = await client.download(contentId);
+      await client.trackDownload(contentId);
       return content;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Download failed');
@@ -270,14 +278,14 @@ export function useTemplateDownload() {
   return { download, downloading, error };
 }
 
-// ── Upload Template Hook ──────────────────────────────────────────────────
+// ── Upload Content Hook ───────────────────────────────────────────────────
 
-export function useTemplateUpload() {
+export function useUpload() {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const upload = useCallback(async (templateData: TemplateUpload) => {
+  const upload = useCallback(async (contentData: ContentUpload) => {
     setUploading(true);
     setProgress(0);
     setError(null);
@@ -288,7 +296,7 @@ export function useTemplateUpload() {
       // Simulate progress for UX (real progress would need XMLHttpRequest)
       setProgress(30);
 
-      const result = await client.uploadTemplate(templateData);
+      const result = await client.upload(contentData);
 
       setProgress(100);
       return result;
@@ -306,8 +314,8 @@ export function useTemplateUpload() {
 
 // ── Favorites Hook ────────────────────────────────────────────────────────
 
-export function useFavorites() {
-  const [favorites, setFavorites] = useState<MarketplaceTemplate[]>([]);
+export function useFavorites(type?: ContentType) {
+  const [favorites, setFavorites] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -315,7 +323,7 @@ export function useFavorites() {
     setLoading(true);
     try {
       const client = getMarketplaceClient();
-      const data = await client.getFavorites();
+      const data = await client.getFavorites(type);
       setFavorites(data);
       setError(null);
     } catch (err) {
@@ -323,13 +331,13 @@ export function useFavorites() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [type]);
 
   const addFavorite = useCallback(
-    async (templateId: string) => {
+    async (contentId: string) => {
       try {
         const client = getMarketplaceClient();
-        await client.addFavorite(templateId);
+        await client.addFavorite(contentId);
         await fetchFavorites();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to add favorite');
@@ -340,10 +348,10 @@ export function useFavorites() {
   );
 
   const removeFavorite = useCallback(
-    async (templateId: string) => {
+    async (contentId: string) => {
       try {
         const client = getMarketplaceClient();
-        await client.removeFavorite(templateId);
+        await client.removeFavorite(contentId);
         await fetchFavorites();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to remove favorite');
@@ -358,7 +366,7 @@ export function useFavorites() {
   }, [fetchFavorites]);
 
   const isFavorite = useCallback(
-    (templateId: string) => favorites.some((t) => t.id === templateId),
+    (contentId: string) => favorites.some((item) => item.id === contentId),
     [favorites]
   );
 
@@ -371,4 +379,48 @@ export function useFavorites() {
     isFavorite,
     refresh: fetchFavorites,
   };
+}
+
+// ── Collections Hook ──────────────────────────────────────────────────────
+
+export function useCollections() {
+  const [collections, setCollections] = useState<Array<{
+    id: string;
+    name: string;
+    description: string;
+    items: MarketplaceItem[];
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchCollections() {
+      try {
+        const client = getMarketplaceClient();
+        const data = await client.getCollections();
+        if (mounted) {
+          setCollections(data);
+          setError(null);
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load collections');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchCollections();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return { collections, loading, error };
 }
