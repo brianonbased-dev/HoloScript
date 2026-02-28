@@ -53,6 +53,10 @@ pnpm-debug.log*
 # Test coverage
 coverage/
 
+# Build artifact management
+.build-archives/
+.build-logs/
+
 # AI Workspace (Proprietary Research)
 .ai-workspace/
 

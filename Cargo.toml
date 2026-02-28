@@ -3,7 +3,7 @@
 
 [workspace]
 members = [
-    "packages/compiler-wasm",
+    "packages/compiler-wasm", "packages/spatial-engine",
     # TODO: holoscript-component disabled until WIT bindings are properly configured
     # "packages/holoscript-component",
 ]

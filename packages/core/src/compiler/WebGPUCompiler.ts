@@ -23,6 +23,7 @@ import type {
   HoloCamera,
   HoloValue,
 } from '../parser/HoloCompositionTypes';
+import { CompilerBase } from './CompilerBase';
 
 export interface WebGPUCompilerOptions {
   entryPoint?: string;
@@ -31,13 +32,15 @@ export interface WebGPUCompilerOptions {
   indent?: string;
 }
 
-export class WebGPUCompiler {
+export class WebGPUCompiler extends CompilerBase {
+  protected readonly compilerName = 'WebGPUCompiler';
   private options: Required<WebGPUCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
   private objectIndex: number = 0;
 
   constructor(options: WebGPUCompilerOptions = {}) {
+    super();
     this.options = {
       entryPoint: options.entryPoint || 'main',
       enableCompute: options.enableCompute ?? true,
@@ -46,7 +49,10 @@ export class WebGPUCompiler {
     };
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    // ─── Agent Identity Verification ───────────────────────────────────────
+    this.validateCompilerAccess(agentToken, outputPath);
+    // ───────────────────────────────────────────────────────────────────────
     this.lines = [];
     this.indentLevel = 0;
     this.objectIndex = 0;

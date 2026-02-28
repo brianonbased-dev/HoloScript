@@ -16,11 +16,10 @@
  * @see https://datatracker.ietf.org/doc/html/draft-goswami-agentic-jwt-00
  */
 
-import crypto from 'crypto';
-import { generateKeyPair } from 'crypto';
+import * as crypto from 'crypto';
 import { promisify } from 'util';
 
-const generateKeyPairAsync = promisify(generateKeyPair);
+const generateKeyPairAsync = promisify(crypto.generateKeyPair);
 
 /**
  * Agent roles in the HoloScript compiler pipeline
@@ -159,6 +158,9 @@ export interface IntentTokenPayload {
   cnf?: {
     jkt: string; // JWK SHA-256 thumbprint
   };
+
+  /** Ed25519 public key for PoP verification (PEM format) */
+  publicKey?: string;
 }
 
 /**
@@ -230,10 +232,17 @@ export async function generateAgentKeyPair(
   const kid = `agent:${agentRole}#${ts.toISOString()}`;
 
   // Calculate JWK thumbprint (SHA-256 of canonical JWK)
+  // Extract public key bytes from PEM format
+  const pubKeyObject = crypto.createPublicKey(publicKey);
+  const pubKeyDer = pubKeyObject.export({ type: 'spki', format: 'der' });
+
+  // For Ed25519, the public key is the last 32 bytes of the DER encoding
+  const pubKeyBytes = pubKeyDer.slice(-32);
+
   const jwk = {
     kty: 'OKP',
     crv: 'Ed25519',
-    x: publicKey.toString('base64url'),
+    x: pubKeyBytes.toString('base64url'),
   };
   const thumbprint = crypto
     .createHash('sha256')
@@ -241,8 +250,8 @@ export async function generateAgentKeyPair(
     .digest('base64url');
 
   return {
-    publicKey: publicKey.toString(),
-    privateKey: privateKey.toString(),
+    publicKey,
+    privateKey,
     kid,
     thumbprint,
   };

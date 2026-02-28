@@ -332,6 +332,18 @@ export {
   type PerformanceMetrics,
   type DashboardData,
 } from './compiler/CircuitBreakerMonitor';
+
+// Compiler State Monitor (Memory Budget Management)
+export {
+  CompilerStateMonitor,
+  createCompilerStateMonitor,
+  type MemoryThresholds,
+  type MemoryStats,
+  type MemoryAlert,
+  type CompilerStateMonitorOptions,
+  type PruningResult,
+} from './compiler/CompilerStateMonitor';
+
 export {
   DTDLCompiler,
   type DTDLCompilerOptions,
@@ -2001,6 +2013,26 @@ export { createEmptySceneGraph, createEmptyNode, createDefaultMaterial } from '.
 
 // USDZ Pipeline
 export { USDZPipeline, type USDZPipelineOptions } from './compiler/USDZPipeline';
+
+// Semantic Caching System
+export {
+  SemanticCache,
+  createSemanticCache,
+  getGlobalSemanticCache,
+  hashSourceCode,
+  hashASTSubtree,
+  serializeASTNode,
+  cacheCompiledModule,
+  getCachedCompiledModule,
+  cacheASTSubtree,
+  getCachedASTSubtree,
+  type SemanticCacheEntryType,
+  type SemanticCacheEntry,
+  type CacheLookupResult,
+  type SemanticCacheStats,
+  type SemanticCacheOptions,
+  type RedisClient,
+} from './compiler/SemanticCache';
 
 // =============================================================================
 // HITL Backend Service (v3.3 Sprint 3: Safety & Testing)

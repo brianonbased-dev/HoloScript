@@ -6,29 +6,29 @@
  */
 import { logger } from '../utils/logger';
 export class AuthService {
-  constructor(storage) {
-    this.validUsers = new Map([['user', 'password']]);
-    this.storage = storage;
-  }
-  async authenticate(username, password) {
-    const correctPassword = this.validUsers.get(username);
-    if (!correctPassword) {
-      logger.warn(`[Auth] Failed login attempt for user: ${username}`);
-      return false;
+    constructor(storage) {
+        this.validUsers = new Map([['user', 'password']]);
+        this.storage = storage;
     }
-    if (correctPassword !== password) {
-      logger.warn(`[Auth] Invalid password for user: ${username}`);
-      return false;
+    async authenticate(username, password) {
+        const correctPassword = this.validUsers.get(username);
+        if (!correctPassword) {
+            logger.warn(`[Auth] Failed login attempt for user: ${username}`);
+            return false;
+        }
+        if (correctPassword !== password) {
+            logger.warn(`[Auth] Invalid password for user: ${username}`);
+            return false;
+        }
+        logger.info(`[Auth] Successful login for user: ${username}`);
+        return true;
     }
-    logger.info(`[Auth] Successful login for user: ${username}`);
-    return true;
-  }
-  async registerUser(username, password) {
-    if (this.validUsers.has(username)) {
-      return false;
+    async registerUser(username, password) {
+        if (this.validUsers.has(username)) {
+            return false;
+        }
+        this.validUsers.set(username, password);
+        logger.info(`[Auth] New user registered: ${username}`);
+        return true;
     }
-    this.validUsers.set(username, password);
-    logger.info(`[Auth] New user registered: ${username}`);
-    return true;
-  }
 }

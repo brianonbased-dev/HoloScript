@@ -6,9 +6,9 @@
  */
 import { StorageService } from './StorageService';
 export declare class AuthService {
-  private storage;
-  private validUsers;
-  constructor(storage: StorageService);
-  authenticate(username: string, password: string): Promise<boolean>;
-  registerUser(username: string, password: string): Promise<boolean>;
+    private storage;
+    private validUsers;
+    constructor(storage: StorageService);
+    authenticate(username: string, password: string): Promise<boolean>;
+    registerUser(username: string, password: string): Promise<boolean>;
 }

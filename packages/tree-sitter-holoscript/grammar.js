@@ -93,7 +93,7 @@ module.exports = grammar({
       ),
 
     // Environment block
-    environment: ($) => seq('environment', '{', repeat($.property), '}'),
+    environment: ($) => seq('environment', '{', repeat(seq($.property, optional(','))), '}'),
 
     // Spatial group for organizing objects
     spatial_group: ($) =>
@@ -114,7 +114,7 @@ module.exports = grammar({
     timeline_action: ($) => choice($.animate_action, $.emit_action, $.call_action),
 
     animate_action: ($) =>
-      seq('animate', field('target', $.identifier), '{', repeat($.property), '}'),
+      seq('animate', field('target', $.identifier), '{', repeat(seq($.property, optional(','))), '}'),
 
     emit_action: ($) =>
       seq('emit', field('event', $.string), optional(seq('(', sepBy($.argument, ','), ')'))),
@@ -198,7 +198,7 @@ module.exports = grammar({
 
     _entity_content: ($) => choice($.property, $.component, $.state_block, $.event_handler),
 
-    component: ($) => seq('component', field('name', $.identifier), '{', repeat($.property), '}'),
+    component: ($) => seq('component', field('name', $.identifier), '{', repeat(seq($.property, optional(','))), '}'),
 
     // =========================================================================
     // TRAITS
@@ -226,14 +226,14 @@ module.exports = grammar({
     // STATE & NETWORKING
     // =========================================================================
 
-    state_block: ($) => seq('state', '{', repeat($.property), '}'),
+    state_block: ($) => seq('state', '{', repeat(seq($.property, optional(','))), '}'),
 
     networked_block: ($) => seq('networked', '{', repeat($.networked_property), '}'),
 
     networked_property: ($) =>
       seq(field('name', $.identifier), ':', choice('synced', 'owner_only', 'interpolated')),
 
-    physics_block: ($) => seq('physics', ':', '{', repeat($.property), '}'),
+    physics_block: ($) => seq('physics', ':', '{', repeat(seq($.property, optional(','))), '}'),
 
     // =========================================================================
     // ANIMATIONS
@@ -287,7 +287,7 @@ module.exports = grammar({
         choice('light', 'directional_light', 'point_light', 'spot_light'),
         optional(field('name', $.string)),
         '{',
-        repeat($.property),
+        repeat(seq($.property, optional(','))),
         '}'
       ),
 
@@ -296,7 +296,7 @@ module.exports = grammar({
         choice('camera', 'perspective_camera', 'orthographic_camera'),
         optional(field('name', $.string)),
         '{',
-        repeat($.property),
+        repeat(seq($.property, optional(','))),
         '}'
       ),
 
@@ -304,7 +304,7 @@ module.exports = grammar({
     // PROPERTIES
     // =========================================================================
 
-    property: ($) => seq(field('key', $.identifier), ':', field('value', $._value), optional(',')),
+    property: ($) => seq(field('key', $.identifier), ':', field('value', $._value)),
 
     // =========================================================================
     // BLOCKS & STATEMENTS
@@ -522,10 +522,9 @@ module.exports = grammar({
 
     identifier: ($) => /[a-zA-Z_][a-zA-Z0-9_]*/,
 
-    comment: ($) => choice($.line_comment, $.block_comment),
-
-    line_comment: ($) => seq('//', /.*/),
-
-    block_comment: ($) => seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/'),
+    comment: ($) => token(choice(
+      seq('//', /.*/),
+      seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/')
+    )),
   },
 });

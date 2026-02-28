@@ -3,7 +3,7 @@
     {
       "target_name": "tree_sitter_holoscript_binding",
       "include_dirs": [
-        "<!(node -e \"require('node-addon-api').include\")",
+        "<!@(node -p \"require('node-addon-api').include\")",
         "src"
       ],
       "sources": [
@@ -14,7 +14,8 @@
         "-std=c11"
       ],
       "defines": [
-        "NAPI_VERSION=<(napi_build_version)"
+        "NAPI_VERSION=<(napi_build_version)",
+        "NAPI_DISABLE_CPP_EXCEPTIONS"
       ]
     }
   ]

@@ -94,10 +94,14 @@
   },
   "peerDependencies": {
     "@pixiv/three-vrm": "^2.0.0",
+    "ioredis": "^5.3.0",
     "puppeteer": "^23.0.0"
   },
   "peerDependenciesMeta": {
     "@pixiv/three-vrm": {
+      "optional": true
+    },
+    "ioredis": {
       "optional": true
     },
     "puppeteer": {

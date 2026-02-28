@@ -50,6 +50,17 @@ Expert topics: custom traits, procedural generation, agent systems.
 | 7 | [Spatial Context](/academy/level-3-advanced/07-spatial-context) | Environment awareness |
 | 8 | [Consensus Systems](/academy/level-3-advanced/08-consensus) | Distributed coordination |
 
+### Level 4: Autonomous Systems (New in v3.43)
+
+Bleeding-edge topics covering the new V43 Swarm and Mesh capabilities.
+
+| # | Lesson | Topics |
+|---|--------|--------|
+| 1 | [V43 Local Inference](/academy/level-4-autonomous/01-v43-local-inference) | Running Brittney locally, GGUF |
+| 2 | [Authoritative Mesh](/academy/level-4-autonomous/02-authoritative-mesh) | WebSockets, CRDTs, Sync |
+| 3 | [MCP Studio Integration](/academy/level-4-autonomous/03-mcp-integration) | JSON-RPC, Scene Generation |
+| 4 | [Experience Replay](/academy/level-4-autonomous/04-experience-replay) | Memory Consolidation, RAG |
+
 ## Quick Reference
 
 Not a tutorial person? Jump straight to the reference:

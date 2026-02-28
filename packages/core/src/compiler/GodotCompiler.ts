@@ -29,6 +29,7 @@ import type {
   HoloEffects,
   HoloValue,
 } from '../parser/HoloCompositionTypes';
+import { CompilerBase } from './CompilerBase';
 
 export interface GodotCompilerOptions {
   className?: string;
@@ -36,12 +37,14 @@ export interface GodotCompilerOptions {
   godotVersion?: '4.0' | '4.1' | '4.2' | '4.3';
 }
 
-export class GodotCompiler {
+export class GodotCompiler extends CompilerBase {
+  protected readonly compilerName = 'GodotCompiler';
   private options: Required<GodotCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
   constructor(options: GodotCompilerOptions = {}) {
+    super();
     this.options = {
       className: options.className || 'GeneratedScene',
       indent: options.indent || '\t',
@@ -49,7 +52,10 @@ export class GodotCompiler {
     };
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    // ─── Agent Identity Verification ───────────────────────────────────────
+    this.validateCompilerAccess(agentToken, outputPath);
+    // ───────────────────────────────────────────────────────────────────────
     this.lines = [];
     this.indentLevel = 0;
 

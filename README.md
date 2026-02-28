@@ -1,4 +1,4 @@
-# HoloScript v3.42.0
+# HoloScript v3.43.0
 
 ## The Commons-Based Meta-Framework for Spatial Computing
 
@@ -10,7 +10,7 @@ HoloScript is a complete spatial computing stack: **declarative language + runti
 
 Perfect for VR/AR platforms, corporate training, robotics, games, digital twins, and more.
 
-![version-badge](https://img.shields.io/badge/version-v3.42.0-green?style=for-the-badge)
+![version-badge](https://img.shields.io/badge/version-v3.43.0-green?style=for-the-badge)
 ![Quickstart Badge](https://img.shields.io/badge/Quickstart-5_min-blue?style=for-the-badge)
 ![Traits Badge](https://img.shields.io/badge/traits-1800+-orange?style=for-the-badge)
 [![codecov](https://codecov.io/gh/brianonbased-dev/HoloScript/branch/main/graph/badge.svg?style=for-the-badge)](https://codecov.io/gh/brianonbased-dev/HoloScript)
@@ -207,7 +207,7 @@ narrative "Tutorial" {
 - **HoloScript Studio** - AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
 - **Plugin System** - Sandboxed plugin API with PluginLoader, ModRegistry, and permission-based asset/event access.
 - **VS Code Extension** - Syntax highlighting and trait IntelliSense.
-- **MCP Server** - Give your AI agents the power to build spatial worlds. **[Full guide →](./docs/MCP_SERVER_GUIDE.md)**
+- **MCP Server** - Give your AI agents the power to build spatial worlds (Default Orchestrator Port: `5567`). **[Full guide →](./docs/MCP_SERVER_GUIDE.md)**
 - **HoloScript CLI** - Parse, validate, and compile from your terminal.
 
 ### Companion Repositories
@@ -219,7 +219,16 @@ narrative "Tutorial" {
 
 ---
 
-## � New in v3.4: Scientific Computing & Robotics
+## 🧠 New in v3.43: AI Persistence & Autonomous Evolution
+
+HoloScript v3.43.0 marks the completion of the Autonomize Roadmap (Phases 5-11):
+- **CRDT State Syncing**: Distributed, conflict-free state resolution avoiding data partitioning natively.
+- **Native Semantic Memory Distillation**: Squashes chronological patterns into aggregated scalars, coupled with native RAG implementations.
+- **Procedural Code Compilation**: Transforms raw LLM agent output safely into rigorous .holo logic blocks with semantic bounding.
+
+---
+
+## 🔬 New in v3.4: Scientific Computing & Robotics
 
 ### Scientific Computing (24 traits)
 

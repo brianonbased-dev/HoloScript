@@ -10,6 +10,13 @@ See individual guides for detailed implementation strategies.
 
 1. **[FILE_TYPES.md](FILE_TYPES.md)** - Understanding `.holo`, `.hs`, and `.hsplus` file extensions
 
+### AI & Agents
+
+1. **[AI_TRAITS_REFERENCE.md](AI_TRAITS_REFERENCE.md)** - Comprehensive guide to LLM agents, uAA2++ protocol, and observability
+2. **[AI_QUICK_REF.md](AI_QUICK_REF.md)** - One-page cheat sheet for AI agents working with HoloScript
+3. **[AGENT_API_REFERENCE.md](AGENT_API_REFERENCE.md)** - Multi-agent orchestration APIs (AgentRegistry, Choreography, Negotiation)
+4. **[MCP_SERVER_GUIDE.md](MCP_SERVER_GUIDE.md)** - Configure Claude, Cursor, or any MCP-compatible agent
+
 ### Deployment & Architecture
 
 1. **[DEPLOYMENT.md](../DEPLOYMENT.md)** - Multi-channel deployment

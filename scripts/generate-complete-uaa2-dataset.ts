@@ -175,9 +175,9 @@ const MCP_SERVERS = ['brittney-hololand', 'holoscript-language', 'uaa2-service',
 for (let i = 0; i < 4000; i++) {
   const server = MCP_SERVERS[i % MCP_SERVERS.length];
   allExamples.push({
-    instruction: \`Call MCP tool from \${server} server\`,
+    instruction: `Call MCP tool from ${server} server`,
     input: '',
-    output: \`// MCP Orchestration: \${server}
+    output: `// MCP Orchestration: ${server}
 const result = await fetch('http://localhost:5567/tools/call', {
   method: 'POST',
   headers: {
@@ -185,7 +185,7 @@ const result = await fetch('http://localhost:5567/tools/call', {
     'x-mcp-api-key': process.env.MCP_API_KEY
   },
   body: JSON.stringify({
-    server: '\${server}',
+    server: '${server}',
     tool: 'execute_task',
     args: {
       task: 'analyze',
@@ -198,7 +198,7 @@ const result = await fetch('http://localhost:5567/tools/call', {
 });
 
 const data = await result.json();
-console.log('MCP Result:', data);\`
+console.log('MCP Result:', data);`
   });
 }
 
@@ -213,17 +213,17 @@ const AGENT_TYPES = ['research', 'build', 'test', 'deploy', 'monitor'];
 for (let i = 0; i < 4000; i++) {
   const agentType = AGENT_TYPES[i % AGENT_TYPES.length];
   allExamples.push({
-    instruction: \`Register and manage \${agentType} agent lifecycle\`,
+    instruction: `Register and manage ${agentType} agent lifecycle`,
     input: '',
-    output: \`// Agent Lifecycle: \${agentType}
+    output: `// Agent Lifecycle: ${agentType}
 // 1. Register
 const agent = await fetch('/api/agent/register', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    type: '\${agentType}',
-    name: '\${agentType}-agent-\${Date.now()}',
-    capabilities: ['\${agentType}_analysis', '\${agentType}_execution'],
+    type: '${agentType}',
+    name: '${agentType}-agent-${Date.now()}',
+    capabilities: ['${agentType}_analysis', '${agentType}_execution'],
     config: {
       maxConcurrent: 5,
       timeout: 30000
@@ -256,7 +256,7 @@ await fetch('/api/agent/complete', {
       success: result.success
     }
   })
-});\`
+});`
   });
 }
 
@@ -270,7 +270,7 @@ for (let i = 0; i < 4000; i++) {
   allExamples.push({
     instruction: 'Create monitoring service with metrics collection',
     input: '',
-    output: \`// Monitoring Service
+    output: `// Monitoring Service
 import { EventEmitter } from 'events';
 
 class MonitoringService extends EventEmitter {
@@ -302,7 +302,7 @@ class MonitoringService extends EventEmitter {
       count: values.length
     };
   }
-}\`
+}`
   });
 }
 
@@ -317,17 +317,17 @@ async function writeDataset() {
   const outputFile = path.join(__dirname, '../datasets/uaa2-complete.jsonl');
   const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
 
-  await writeFile(outputFile, jsonlLines.join('\\n') + '\\n', 'utf-8');
+  await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 
-  const sizeMB = (Buffer.byteLength(jsonlLines.join('\\n'), 'utf-8') / 1024 / 1024).toFixed(2);
+  const sizeMB = (Buffer.byteLength(jsonlLines.join('\n'), 'utf-8') / 1024 / 1024).toFixed(2);
 
   console.log();
   console.log('='.repeat(80));
   console.log('✅ uAA2++ DATASET COMPLETE');
   console.log('='.repeat(80));
-  console.log(\`  Total examples: \${allExamples.length.toLocaleString()}\`);
-  console.log(\`  File: \${outputFile}\`);
-  console.log(\`  Size: \${sizeMB} MB\`);
+  console.log(`  Total examples: ${allExamples.length.toLocaleString()}`);
+  console.log(`  File: ${outputFile}`);
+  console.log(`  Size: ${sizeMB} MB`);
   console.log();
   console.log('Breakdown:');
   console.log('  Autonomous Loops: 4,000');

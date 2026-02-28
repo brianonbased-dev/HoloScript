@@ -14,7 +14,7 @@
  */
 
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import {
   AgentRole,
   AgentConfig,
@@ -187,6 +187,9 @@ export class AgentTokenIssuer {
       cnf: {
         jkt: keyPair.thumbprint,
       },
+
+      // Ed25519 public key for HTTP Message Signature verification
+      publicKey: keyPair.publicKey,
     };
 
     // Sign token

@@ -55,6 +55,13 @@ import { MultiLayerCompiler } from './MultiLayerCompiler';
 import { IncrementalCompiler } from './IncrementalCompiler';
 import { StateCompiler } from './StateCompiler';
 import { TraitCompositionCompiler } from './TraitCompositionCompiler';
+import {
+  CompilerStateMonitor,
+  createCompilerStateMonitor,
+  type MemoryAlert,
+  type MemoryStats,
+  type CompilerStateMonitorOptions,
+} from './CompilerStateMonitor';
 
 // =============================================================================
 // TYPES
@@ -71,6 +78,10 @@ export interface ExportOptions {
   circuitConfig?: Partial<CircuitBreakerConfig>;
   /** Target-specific compiler options */
   compilerOptions?: Record<string, any>;
+  /** Enable memory monitoring (default: true) */
+  useMemoryMonitoring?: boolean;
+  /** Custom memory monitor config */
+  memoryMonitorConfig?: CompilerStateMonitorOptions;
 }
 
 export interface ExportResult {
@@ -83,6 +94,8 @@ export interface ExportResult {
   warnings: string[];
   metrics: CircuitMetrics;
   executionTime: number;
+  /** Memory stats at completion (if memory monitoring enabled) */
+  memoryStats?: MemoryStats;
 }
 
 export interface BatchExportResult {
@@ -183,7 +196,7 @@ class CompilerFactory {
 // =============================================================================
 
 /**
- * Main export manager with circuit breaker integration
+ * Main export manager with circuit breaker integration and memory monitoring
  */
 export class ExportManager {
   private circuitRegistry: CircuitBreakerRegistry;
@@ -191,6 +204,7 @@ export class ExportManager {
   private compilerFactory: CompilerFactory;
   private eventListeners: Map<ExportEventType, Set<ExportEventListener>> = new Map();
   private defaultOptions: Required<ExportOptions>;
+  private memoryMonitor: CompilerStateMonitor | null = null;
 
   constructor(options: Partial<ExportOptions> = {}) {
     this.defaultOptions = {
@@ -199,6 +213,8 @@ export class ExportManager {
       throwOnError: options.throwOnError ?? false,
       circuitConfig: options.circuitConfig ?? {},
       compilerOptions: options.compilerOptions ?? {},
+      useMemoryMonitoring: options.useMemoryMonitoring ?? true,
+      memoryMonitorConfig: options.memoryMonitorConfig ?? {},
     };
 
     this.circuitRegistry = new CircuitBreakerRegistry({
@@ -223,6 +239,48 @@ export class ExportManager {
 
     this.referenceRegistry = new ReferenceExporterRegistry();
     this.compilerFactory = new CompilerFactory();
+
+    // Initialize memory monitor if enabled
+    if (this.defaultOptions.useMemoryMonitoring) {
+      this.memoryMonitor = createCompilerStateMonitor({
+        enabled: true,
+        ...this.defaultOptions.memoryMonitorConfig,
+        onAlert: (alert: MemoryAlert) => {
+          // Log memory alerts
+          console.warn(
+            `[ExportManager] Memory Alert [${alert.level}]: ${alert.message}`,
+            alert.stats
+          );
+
+          // Call user-provided callback if exists
+          if (this.defaultOptions.memoryMonitorConfig?.onAlert) {
+            this.defaultOptions.memoryMonitorConfig.onAlert(alert);
+          }
+        },
+      });
+    }
+  }
+
+  /**
+   * Get memory monitor instance
+   */
+  getMemoryMonitor(): CompilerStateMonitor | null {
+    return this.memoryMonitor;
+  }
+
+  /**
+   * Get current memory statistics
+   */
+  getMemoryStats(): MemoryStats | null {
+    return this.memoryMonitor?.captureMemoryStats() ?? null;
+  }
+
+  /**
+   * Dispose export manager and clean up resources
+   */
+  dispose(): void {
+    this.memoryMonitor?.dispose();
+    this.eventListeners.clear();
   }
 
   /**
@@ -395,9 +453,21 @@ export class ExportManager {
   ): Promise<ExportResult> {
     const breaker = this.circuitRegistry.getBreaker(target);
 
+    // Update memory monitor with current AST
+    if (this.memoryMonitor) {
+      this.memoryMonitor.setAST(composition);
+      this.memoryMonitor.checkMemoryStatus();
+    }
+
     // Define main export operation
     const exportOperation = async () => {
       const compiler = this.compilerFactory.createCompiler(target, options.compilerOptions);
+
+      // If compiler is IncrementalCompiler, attach memory monitor
+      if (compiler instanceof IncrementalCompiler && this.memoryMonitor) {
+        this.memoryMonitor.setIncrementalCompiler(compiler);
+      }
+
       const output = await compiler.compile(composition);
       return output;
     };
@@ -421,6 +491,9 @@ export class ExportManager {
     // Execute with circuit breaker
     const circuitResult = await breaker.execute(exportOperation, fallbackOperation);
 
+    // Capture memory stats after compilation
+    const memoryStats = this.memoryMonitor?.captureMemoryStats();
+
     const result: ExportResult = {
       target,
       success: circuitResult.success,
@@ -431,6 +504,7 @@ export class ExportManager {
       warnings: [],
       metrics: circuitResult.metrics,
       executionTime: Date.now() - startTime,
+      memoryStats,
     };
 
     if (circuitResult.success) {
@@ -452,8 +526,23 @@ export class ExportManager {
     startTime: number
   ): Promise<ExportResult> {
     try {
+      // Update memory monitor with current AST
+      if (this.memoryMonitor) {
+        this.memoryMonitor.setAST(composition);
+        this.memoryMonitor.checkMemoryStatus();
+      }
+
       const compiler = this.compilerFactory.createCompiler(target, options.compilerOptions);
+
+      // If compiler is IncrementalCompiler, attach memory monitor
+      if (compiler instanceof IncrementalCompiler && this.memoryMonitor) {
+        this.memoryMonitor.setIncrementalCompiler(compiler);
+      }
+
       const output = await compiler.compile(composition);
+
+      // Capture memory stats after compilation
+      const memoryStats = this.memoryMonitor?.captureMemoryStats();
 
       const result: ExportResult = {
         target,
@@ -464,6 +553,7 @@ export class ExportManager {
         warnings: [],
         metrics: this.circuitRegistry.getBreaker(target).getMetrics(),
         executionTime: Date.now() - startTime,
+        memoryStats,
       };
 
       this.emitEvent({
@@ -484,6 +574,8 @@ export class ExportManager {
             timestamp: Date.now(),
           });
 
+          const memoryStats = this.memoryMonitor?.captureMemoryStats();
+
           return {
             target,
             success: true,
@@ -493,6 +585,7 @@ export class ExportManager {
             warnings: refResult.warnings,
             metrics: this.circuitRegistry.getBreaker(target).getMetrics(),
             executionTime: Date.now() - startTime,
+            memoryStats,
           };
         }
       }

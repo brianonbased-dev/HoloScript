@@ -29,6 +29,7 @@ import type {
   HoloValue,
   HoloEffects,
 } from '../parser/HoloCompositionTypes';
+import { CompilerBase } from './CompilerBase';
 
 export interface UnityCompilerOptions {
   namespace?: string;
@@ -37,12 +38,14 @@ export interface UnityCompilerOptions {
   indent?: string;
 }
 
-export class UnityCompiler {
+export class UnityCompiler extends CompilerBase {
+  protected readonly compilerName = 'UnityCompiler';
   private options: Required<UnityCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
   constructor(options: UnityCompilerOptions = {}) {
+    super();
     this.options = {
       namespace: options.namespace || 'HoloScene',
       className: options.className || 'GeneratedScene',
@@ -51,7 +54,14 @@ export class UnityCompiler {
     };
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    // ─── Agent Identity Verification ───────────────────────────────────────
+    // Validate agent has permission to:
+    // 1. Read HoloComposition AST
+    // 2. Generate Unity C# code
+    // 3. Write to output path (if specified)
+    this.validateCompilerAccess(agentToken, outputPath);
+    // ───────────────────────────────────────────────────────────────────────
     this.lines = [];
     this.indentLevel = 0;
 

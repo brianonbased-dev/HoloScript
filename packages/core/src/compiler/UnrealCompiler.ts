@@ -25,6 +25,7 @@ import type {
   HoloTransition,
   HoloValue,
 } from '../parser/HoloCompositionTypes';
+import { CompilerBase } from './CompilerBase';
 
 export interface UnrealCompilerOptions {
   moduleName?: string;
@@ -41,7 +42,8 @@ export interface UnrealCompileResult {
   blueprintJson?: string;
 }
 
-export class UnrealCompiler {
+export class UnrealCompiler extends CompilerBase {
+  protected readonly compilerName = 'UnrealCompiler';
   private options: Required<UnrealCompilerOptions>;
   private headerLines: string[] = [];
   private sourceLines: string[] = [];
@@ -49,6 +51,7 @@ export class UnrealCompiler {
   private currentFile: 'header' | 'source' = 'header';
 
   constructor(options: UnrealCompilerOptions = {}) {
+    super();
     this.options = {
       moduleName: options.moduleName || 'HoloWorld',
       className: options.className || 'AGeneratedScene',
@@ -59,7 +62,10 @@ export class UnrealCompiler {
     };
   }
 
-  compile(composition: HoloComposition): UnrealCompileResult {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): UnrealCompileResult {
+    // ─── Agent Identity Verification ───────────────────────────────────────
+    this.validateCompilerAccess(agentToken, outputPath);
+    // ───────────────────────────────────────────────────────────────────────
     this.headerLines = [];
     this.sourceLines = [];
     this.indentLevel = 0;

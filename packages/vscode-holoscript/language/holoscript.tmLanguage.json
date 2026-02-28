@@ -30,7 +30,7 @@
       "patterns": [
         {
           "name": "keyword.control.holoscript",
-          "match": "\\b(scene|object|let|const|if|else|for|while|return|import|export|from|extends|implements|interface|type|enum|class|new|this|super)\\b"
+          "match": "\\b(scene|object|let|const|if|else|for|while|return|import|export|from|extends|implements|interface|type|enum|class|new|this|super|memory)\\b"
         },
         {
           "name": "keyword.other.holoscript",
@@ -38,7 +38,7 @@
         },
         {
           "name": "storage.type.holoscript",
-          "match": "\\b(string|number|boolean|vec2|vec3|vec4|color|asset|fn|void)\\b"
+          "match": "\\b(string|number|boolean|vec2|vec3|vec4|color|asset|fn|void|SemanticMemory|EpisodicMemory|ProceduralMemory)\\b"
         }
       ]
     },

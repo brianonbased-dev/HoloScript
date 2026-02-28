@@ -32,6 +32,7 @@ import type {
   HoloEffects,
 } from '../parser/HoloCompositionTypes';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
+import { CompilerBase } from './CompilerBase';
 
 export interface BabylonCompilerOptions {
   className?: string;
@@ -56,12 +57,14 @@ const SHAPE_TO_MESH: Record<string, string> = {
   disc: 'CreateDisc',
 };
 
-export class BabylonCompiler {
+export class BabylonCompiler extends CompilerBase {
+  protected readonly compilerName = 'BabylonCompiler';
   private options: Required<BabylonCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
 
   constructor(options: BabylonCompilerOptions = {}) {
+    super();
     this.options = {
       className: options.className || 'GeneratedScene',
       useHavok: options.useHavok ?? true,
@@ -70,7 +73,10 @@ export class BabylonCompiler {
     };
   }
 
-  compile(composition: HoloComposition): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    // ─── Agent Identity Verification ───────────────────────────────────────
+    this.validateCompilerAccess(agentToken, outputPath);
+    // ───────────────────────────────────────────────────────────────────────
     this.lines = [];
     this.indentLevel = 0;
 

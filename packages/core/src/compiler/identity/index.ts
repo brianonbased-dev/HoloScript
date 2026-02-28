@@ -63,3 +63,44 @@ export {
   getRBAC,
   resetRBAC,
 } from './AgentRBAC';
+
+// Proof-of-Possession (PoP) HTTP Message Signatures
+export {
+  type SignatureComponents,
+  type SignatureMetadata,
+  type HTTPSignature,
+  type SignatureVerificationResult,
+  generateNonce,
+  calculateContentDigest,
+  constructSignatureBase,
+  signRequest,
+  verifySignature,
+  derivePublicKey,
+  formatSignatureHeaders,
+  parseSignatureHeaders,
+} from './AgentPoP';
+
+// PoP middleware (Express-compatible)
+export {
+  type HttpRequest,
+  type HttpResponse,
+  type NextFunction,
+  type PopMiddlewareConfig,
+  type AuthenticatedRequest,
+  createPopMiddleware,
+  requirePermission,
+  requireWorkflowStep,
+} from './PopMiddleware';
+
+// PoP utility functions
+export {
+  serializeComponent,
+  validateComponents,
+  extractComponentsFromRequest,
+  buildSignatureParams,
+  parseSignatureParams,
+  normalizeHeaderName,
+  extractNonce,
+  hasSignatureHeaders,
+  formatSignatureError,
+} from './PopUtils';

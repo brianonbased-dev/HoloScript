@@ -26,6 +26,13 @@ import {
   type ImportResolutionResult,
   type ImportResolutionError,
 } from '../parser/ImportResolver';
+import {
+  SemanticCache,
+  createSemanticCache,
+  hashSourceCode,
+  hashASTSubtree,
+  type SemanticCacheStats,
+} from './SemanticCache';
 
 /**
  * Types of changes detected during AST diff
@@ -105,6 +112,23 @@ export interface IncrementalCompileOptions {
    * @see ReadFileFn in HoloCompositionTypes.ts
    */
   readFile?: ReadFileFn;
+  // ── Semantic Caching ───────────────────────────────────────────────────────
+  /**
+   * Enable semantic caching with Redis backend.
+   * Falls back to in-memory cache if Redis unavailable.
+   * @default false
+   */
+  enableSemanticCache?: boolean;
+  /**
+   * Redis connection URL for semantic cache.
+   * @default 'redis://localhost:6379'
+   */
+  redisUrl?: string;
+  /**
+   * Cache TTL in seconds.
+   * @default 604800 (7 days)
+   */
+  cacheTTL?: number;
 }
 
 /**
@@ -193,9 +217,31 @@ export class IncrementalCompiler {
   private stateSnapshot: StateSnapshot | null = null;
   private dependencyGraph: Map<string, Set<string>> = new Map();
   private traitGraph: TraitDependencyGraph;
+  private semanticCache: SemanticCache | null = null;
 
-  constructor(traitGraph?: TraitDependencyGraph) {
+  constructor(
+    traitGraph?: TraitDependencyGraph,
+    options?: {
+      enableSemanticCache?: boolean;
+      redisUrl?: string;
+      cacheTTL?: number;
+    }
+  ) {
     this.traitGraph = traitGraph || globalTraitGraph;
+
+    // Initialize semantic cache if enabled
+    if (options?.enableSemanticCache) {
+      this.semanticCache = createSemanticCache({
+        redisUrl: options.redisUrl,
+        ttl: options.cacheTTL,
+        debug: false,
+      });
+      // Initialize async
+      this.semanticCache.initialize().catch((err) => {
+        console.warn(`Semantic cache initialization failed: ${err}`);
+        this.semanticCache = null;
+      });
+    }
   }
 
   /**
@@ -717,11 +763,11 @@ export class IncrementalCompiler {
   /**
    * Perform incremental compilation
    */
-  compile(
+  async compile(
     newAST: HoloComposition,
     compileObject: (obj: HoloObjectDecl) => string,
     options: IncrementalCompileOptions = {}
-  ): IncrementalCompileResult {
+  ): Promise<IncrementalCompileResult> {
     const { preserveState = true, forceRecompile = [], skipUnchanged = true } = options;
 
     // Diff with previous AST
@@ -764,6 +810,21 @@ export class IncrementalCompiler {
       });
 
       if (skipUnchanged && !recompileSet.has(name)) {
+        // Try semantic cache first (if enabled)
+        if (this.semanticCache) {
+          const astHash = hashASTSubtree(obj);
+          const semanticResult = await this.semanticCache.get<string>(
+            astHash,
+            'compiled-object'
+          );
+          if (semanticResult.hit) {
+            cachedObjects.push(name);
+            compiledParts.push(semanticResult.entry!.data);
+            continue;
+          }
+        }
+
+        // Fallback to in-memory cache
         const cached = this.getCached(name, hash);
         if (cached) {
           cachedObjects.push(name);
@@ -777,8 +838,17 @@ export class IncrementalCompiler {
       recompiledObjects.push(name);
       compiledParts.push(compiled);
 
-      // Update cache
+      // Update in-memory cache
       this.setCached(name, hash, compiled, []);
+
+      // Update semantic cache (if enabled)
+      if (this.semanticCache) {
+        const astHash = hashASTSubtree(obj);
+        await this.semanticCache.set(astHash, 'compiled-object', compiled, {
+          sourcePath: newAST.name,
+          dependencies: [],
+        });
+      }
     }
 
     // Update previous AST
@@ -807,7 +877,7 @@ export class IncrementalCompiler {
   /**
    * Get cache statistics including trait graph info
    */
-  getStats(): {
+  async getStats(): Promise<{
     cacheSize: number;
     objectsCached: string[];
     dependencyEdges: number;
@@ -817,18 +887,58 @@ export class IncrementalCompiler {
       sourceCount: number;
       dependencyEdges: number;
     };
-  } {
+    semanticCache?: SemanticCacheStats;
+  }> {
     let dependencyEdges = 0;
     for (const deps of this.dependencyGraph.values()) {
       dependencyEdges += deps.size;
     }
 
-    return {
+    const stats = {
       cacheSize: this.cache.size,
       objectsCached: Array.from(this.cache.keys()),
       dependencyEdges,
       traitGraphStats: this.traitGraph.getStats(),
     };
+
+    // Add semantic cache stats if enabled
+    if (this.semanticCache) {
+      const semanticStats = await this.semanticCache.getStats();
+      return {
+        ...stats,
+        semanticCache: semanticStats,
+      };
+    }
+
+    return stats;
+  }
+
+  /**
+   * Get semantic cache statistics
+   */
+  async getSemanticCacheStats(): Promise<SemanticCacheStats | null> {
+    if (!this.semanticCache) {
+      return null;
+    }
+    return this.semanticCache.getStats();
+  }
+
+  /**
+   * Clear semantic cache
+   */
+  async clearSemanticCache(): Promise<void> {
+    if (this.semanticCache) {
+      await this.semanticCache.clear();
+    }
+  }
+
+  /**
+   * Close semantic cache connection
+   */
+  async closeSemanticCache(): Promise<void> {
+    if (this.semanticCache) {
+      await this.semanticCache.close();
+    }
   }
 
   /**

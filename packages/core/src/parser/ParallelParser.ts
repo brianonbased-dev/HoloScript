@@ -8,13 +8,16 @@
  * - Graceful fallback to sequential parsing
  * - Memory-bounded operation
  * - Browser-compatible (falls back to sequential parsing)
+ * - Hybrid chunking support (structure/fixed/semantic strategies)
  *
- * @version 1.1.0
+ * @version 1.2.0 - Added HybridChunker integration
  */
 
 import { HoloScriptPlusParser } from './HoloScriptPlusParser';
+import { HybridChunker, createHybridChunker } from './HybridChunker';
 import type { HSPlusParserOptions } from '../types/AdvancedTypeSystem';
 import type { ParseTaskData, ParseTaskResult } from './ParseWorker';
+import type { ChunkingOptions, SourceChunk } from './HybridChunker';
 
 // Environment detection
 const isBrowser = typeof window !== 'undefined' && typeof window.document !== 'undefined';
@@ -146,6 +149,10 @@ export interface ParallelParserOptions {
   fallbackToSequential?: boolean;
   /** Debug logging */
   debug?: boolean;
+  /** Enable hybrid chunking (structure/fixed/semantic strategies) */
+  enableHybridChunking?: boolean;
+  /** Chunking options for HybridChunker */
+  chunkingOptions?: ChunkingOptions;
 }
 
 export interface ParseProgress {
@@ -167,6 +174,7 @@ export class ParallelParser extends SimpleEventEmitter {
   private isInitialized: boolean = false;
   private fallbackParser: HoloScriptPlusParser | null = null;
   private nodeModules: Awaited<ReturnType<typeof loadNodeModules>> = null;
+  private hybridChunker: HybridChunker | null = null;
 
   constructor(options: ParallelParserOptions = {}) {
     super();
@@ -181,7 +189,18 @@ export class ParallelParser extends SimpleEventEmitter {
       enableProgress: options.enableProgress ?? true,
       fallbackToSequential: options.fallbackToSequential ?? true,
       debug: options.debug ?? false,
+      enableHybridChunking: options.enableHybridChunking ?? true,
+      chunkingOptions: options.chunkingOptions ?? {},
     };
+
+    // Initialize HybridChunker if enabled
+    if (this.options.enableHybridChunking) {
+      this.hybridChunker = createHybridChunker({
+        ...this.options.chunkingOptions,
+        debug: this.options.debug,
+      });
+      this.log('HybridChunker enabled for optimized file parsing');
+    }
   }
 
   /**
@@ -249,6 +268,40 @@ export class ParallelParser extends SimpleEventEmitter {
   }
 
   /**
+   * Pre-chunk files using HybridChunker for optimal worker distribution
+   */
+  private prechunkFiles(files: FileInput[]): FileInput[] {
+    if (!this.hybridChunker) {
+      return files;
+    }
+
+    const chunkedFiles: FileInput[] = [];
+
+    for (const file of files) {
+      const chunks = this.hybridChunker.chunk(file.content, file.path);
+
+      // If file was split into multiple chunks, create separate FileInputs
+      if (chunks.length > 1) {
+        this.log(
+          `Pre-chunked ${file.path} into ${chunks.length} chunks (strategy: ${chunks[0].strategy})`
+        );
+
+        for (const chunk of chunks) {
+          chunkedFiles.push({
+            path: `${file.path}#chunk${chunk.id}`,
+            content: chunk.content,
+          });
+        }
+      } else {
+        // Single chunk, use original file
+        chunkedFiles.push(file);
+      }
+    }
+
+    return chunkedFiles;
+  }
+
+  /**
    * Parse multiple files in parallel
    */
   async parseFiles(files: FileInput[]): Promise<ParallelParseResult> {
@@ -259,8 +312,19 @@ export class ParallelParser extends SimpleEventEmitter {
       await this.initialize();
     }
 
+    // Pre-chunk files using HybridChunker if enabled
+    let processFiles = files;
+    if (this.options.enableHybridChunking) {
+      processFiles = this.prechunkFiles(files);
+      this.log(
+        `Hybrid chunking: ${files.length} files → ${processFiles.length} chunks`
+      );
+    }
+
     // Sort files by size (largest first for better load balancing)
-    const sortedFiles = [...files].sort((a, b) => b.content.length - a.content.length);
+    const sortedFiles = [...processFiles].sort(
+      (a, b) => b.content.length - a.content.length
+    );
 
     // Use fallback if no worker pool
     if (!this.workerPool && this.fallbackParser) {

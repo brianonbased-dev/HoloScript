@@ -8,6 +8,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as http from 'http';
 import { HoloScriptPreviewPanel } from './previewPanel';
 
 export interface AgentCommand {
@@ -58,6 +59,10 @@ export class HoloScriptAgentAPI {
   }
 
   private registerAgentCommands(context: vscode.ExtensionContext): void {
+    
+    // Broadcast initialization telemetry
+    this.broadcastAgentTelemetry({ type: 'init', status: 'online' });
+
     // Command: Create new HoloScript file
     context.subscriptions.push(
       vscode.commands.registerCommand(
@@ -181,6 +186,8 @@ export class HoloScriptAgentAPI {
       if (openPreview && this.context) {
         HoloScriptPreviewPanel.createOrShow(this.context.extensionUri, doc);
       }
+      
+      this.broadcastAgentTelemetry({ type: 'file_created', filePath });
 
       return { success: true, data: { filePath, opened: true, previewOpened: openPreview } };
     } catch (error) {
@@ -508,6 +515,32 @@ export class HoloScriptAgentAPI {
       document.languageId === 'holoscriptplus' ||
       /\.(holo|hsplus|hs)$/.test(document.fileName)
     );
+  }
+
+  /**
+   * Pushes IDE interaction telemetry to the running uAA2-service Quantum Mesh
+   */
+  private broadcastAgentTelemetry(payload: any): void {
+    const postData = JSON.stringify({ source: 'vscode-agent-api', timestamp: Date.now(), data: payload });
+    const req = http.request({
+      hostname: 'localhost',
+      port: 5555,
+      path: '/telemetry/ide',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      },
+      timeout: 2000
+    });
+    
+    req.on('error', (e) => {
+      // Background silent progression on telemetry failure
+      console.warn('[HoloScriptAgentAPI] Mesh disconnected: ' + e.message);
+    });
+    
+    req.write(postData);
+    req.end();
   }
 }
 

@@ -12,7 +12,7 @@
  * @version 1.0.0
  */
 
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { AgentRole, AgentKeyPair, generateAgentKeyPair } from './AgentIdentity';
 
 /**

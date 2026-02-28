@@ -128,7 +128,7 @@
       "patterns": [
         {
           "name": "support.type.primitive.holoscript",
-          "match": "\\b(orb|sphere|cube|box|cylinder|cone|plane|mesh|avatar|dna|splat|nerf|volumetric_video|light|camera|scene|group|text|panel|button|slider|zone)\\b"
+          "match": "\\b(orb|sphere|cube|box|cylinder|cone|plane|mesh|avatar|dna|splat|nerf|volumetric_video|light|camera|scene|group|text|panel|button|slider|zone|memory|SemanticMemory|EpisodicMemory|ProceduralMemory)\\b"
         }
       ]
     },
@@ -136,7 +136,7 @@
       "patterns": [
         {
           "name": "keyword.control.holoscript",
-          "match": "\\b(function|connect|gate|stream|const|let|return|import|export|scale|focus|environment)\\b"
+          "match": "\\b(function|connect|gate|stream|const|let|return|import|export|scale|focus|environment|semantic|episodic|procedural)\\b"
         },
         {
           "name": "constant.language.holoscript",
