@@ -1,10 +1,6 @@
 'use client';
 
-<<<<<<< HEAD
 import { useMemo, Suspense, lazy } from 'react';
-=======
-import { useMemo, Suspense } from 'react';
->>>>>>> feature/docs-examples-misc
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Stars, Environment, Text, Sparkles } from '@react-three/drei';
 import {
@@ -15,14 +11,11 @@ import {
 } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
 
-<<<<<<< HEAD
 // VR edit session — lazy loaded to avoid SSR issues
 const VREditSession = lazy(() =>
   import('@/components/vr/VREditSession').then((m) => ({ default: m.VREditSession }))
 );
 
-=======
->>>>>>> feature/docs-examples-misc
 // ─── Geometry mapper ────────────────────────────────────────────────────────
 
 function getGeometry(hsType: string, size: number) {
@@ -134,11 +127,7 @@ function EmbedNodeRenderer({
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
 }) {
-<<<<<<< HEAD
   const children = node.children?.map((child: R3FNode, i: number) => (
-=======
-  const children = node.children?.map((child, i) => (
->>>>>>> feature/docs-examples-misc
     <EmbedNodeRenderer
       key={child.id || `child-${i}`}
       node={child}
@@ -255,22 +244,14 @@ function SceneContent({
   onSelect?: (id: string | null) => void;
 }) {
   const hasLights = r3fTree.children?.some(
-<<<<<<< HEAD
     (c: R3FNode) =>
-=======
-    (c) =>
->>>>>>> feature/docs-examples-misc
       c.type === 'ambientLight' ||
       c.type === 'directionalLight' ||
       c.type === 'pointLight' ||
       c.type === 'spotLight' ||
       c.type === 'hemisphereLight'
   );
-<<<<<<< HEAD
   const hasEnv = r3fTree.children?.some((c: R3FNode) => c.type === 'Environment');
-=======
-  const hasEnv = r3fTree.children?.some((c) => c.type === 'Environment');
->>>>>>> feature/docs-examples-misc
 
   return (
     <group onClick={() => onSelect?.(null)}>
@@ -428,14 +409,11 @@ export function SceneViewer({
         {showStars && (
           <Stars radius={80} depth={50} count={2000} factor={3} saturation={0.1} fade speed={0.5} />
         )}
-<<<<<<< HEAD
 
         {/* VR Edit Session — mounts inside Canvas so XR hooks work */}
         <Suspense fallback={null}>
           <VREditSession />
         </Suspense>
-=======
->>>>>>> feature/docs-examples-misc
       </Canvas>
 
       {showObjectCount && r3fTree?.children && (

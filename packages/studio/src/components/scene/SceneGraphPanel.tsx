@@ -19,23 +19,23 @@ import { useSceneGraphStore } from '@/lib/store';
 import { useEditorStore } from '@/lib/store';
 import type { SceneNode } from '@/lib/store';
 
-const NODE_ICONS: Record<string, React.ElementType> = {
+const NODE_ICONS = {
   mesh: Box,
   light: Lightbulb,
   camera: Camera,
   audio: Music,
   group: Folder,
   splat: Layers,
-};
+} as const;
 
-const NODE_COLORS: Record<string, string> = {
+const NODE_COLORS = {
   mesh: 'text-blue-400',
   light: 'text-yellow-400',
   camera: 'text-green-400',
   audio: 'text-pink-400',
   group: 'text-gray-400',
   splat: 'text-purple-400',
-};
+} as const;
 
 // ─── Context Menu ─────────────────────────────────────────────────────────────
 
@@ -100,8 +100,19 @@ function TreeNode({
   const isSelected = selectedId === node.id;
   const children = allNodes.filter((n) => n.parentId === node.id);
   const hasChildren = children.length > 0;
-  const Icon = NODE_ICONS[node.type] as React.ElementType;
-  const iconColor = NODE_COLORS[node.type];
+
+  // Get icon and color with proper typing
+  const getIcon = () => {
+    const iconKey = node.type as keyof typeof NODE_ICONS;
+    return NODE_ICONS[iconKey] ?? Box;
+  };
+  const getIconColor = () => {
+    const colorKey = node.type as keyof typeof NODE_COLORS;
+    return NODE_COLORS[colorKey] ?? 'text-gray-400';
+  };
+
+  const Icon = getIcon();
+  const iconColor = getIconColor();
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
