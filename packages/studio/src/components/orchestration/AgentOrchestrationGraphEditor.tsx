@@ -29,6 +29,10 @@ import {
   trackUndoPerformed,
   trackRedoPerformed,
 } from '@/lib/analytics/orchestration';
+import { CollaborationToolbar } from '@/components/collaboration/CollaborationToolbar';
+import { UserCursors } from '@/components/collaboration/UserCursor';
+import { usePresence } from '@/hooks/usePresence';
+import type { User } from '@/lib/collaboration/types';
 
 // Node component for Agent nodes
 function AgentNode({ data }: { data: AgentNodeData }) {
@@ -145,6 +149,17 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
   const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
+
+  // Mock current user (in production, this would come from auth)
+  const currentUser: User = {
+    id: `user_${Date.now()}`,
+    name: 'You',
+    email: 'user@example.com',
+    color: '#3b82f6', // blue-500
+  };
+
+  // Get presence for user cursors
+  const { users: remoteUsers } = usePresence();
 
   // Undo/Redo history
   const history = useOrchestrationHistory(
@@ -322,6 +337,12 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
       <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5 overflow-x-auto">
         <Workflow className="h-4 w-4 text-studio-accent flex-shrink-0" />
         <span className="text-[12px] font-semibold flex-shrink-0">{workflow.name}</span>
+
+        {/* Collaboration toolbar */}
+        <div className="ml-2 flex-shrink-0">
+          <CollaborationToolbar workflowId={workflowId} currentUser={currentUser} />
+        </div>
+
         <div className="ml-auto flex gap-1 flex-shrink-0">
           <button
             onClick={() => setShowTemplateBrowser(true)}
@@ -406,7 +427,7 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
       </div>
 
       {/* React Flow Canvas */}
-      <div className="flex-1">
+      <div className="flex-1 relative">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -420,6 +441,9 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
           <Controls className="!bg-studio-panel !border-studio-border !text-studio-text" />
           <MiniMap nodeColor="#6366f1" maskColor="rgba(10,10,18,0.8)" />
         </ReactFlow>
+
+        {/* Remote user cursors overlay */}
+        <UserCursors users={remoteUsers} />
       </div>
     </div>
   );
