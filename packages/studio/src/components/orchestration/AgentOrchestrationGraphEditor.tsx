@@ -7,17 +7,28 @@
  * Supports AgentNode, ToolNode, DecisionNode, ParallelNode, SequentialNode.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import ReactFlow, {
   Background, Controls, MiniMap, addEdge,
   BackgroundVariant, type Connection, type Edge, type Node, type NodeTypes,
   useNodesState, useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Play, Save, Workflow, X, GitBranch, Repeat, Layers, GitMerge, BookTemplate } from 'lucide-react';
+import { Play, Save, Workflow, X, GitBranch, Repeat, Layers, GitMerge, BookTemplate, Undo, Redo } from 'lucide-react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
 import type { WorkflowNode, AgentNodeData, ToolNodeData, DecisionNodeData, LoopNodeData, ParallelNodeData, MergeNodeData } from '@/lib/orchestrationStore';
 import { TemplateBrowserPanel } from './TemplateBrowserPanel';
+import { useOrchestrationHistory, useOrchestrationKeyboardShortcuts } from '@/hooks/useOrchestrationHistory';
+import {
+  trackWorkflowNodeAdded,
+  trackWorkflowSaved,
+  trackPanelOpened,
+  trackPanelClosed,
+  recordPanelOpenTime,
+  getPanelDuration,
+  trackUndoPerformed,
+  trackRedoPerformed,
+} from '@/lib/analytics/orchestration';
 
 // Node component for Agent nodes
 function AgentNode({ data }: { data: AgentNodeData }) {
@@ -135,6 +146,39 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
   const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
   const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
 
+  // Undo/Redo history
+  const history = useOrchestrationHistory(
+    () => ({ nodes, edges }),
+    (snapshot) => {
+      setNodes(snapshot.nodes);
+      setEdges(snapshot.edges);
+    },
+    { debounceMs: 500 } // Debounce to avoid excessive snapshots while dragging
+  );
+
+  // Keyboard shortcuts
+  useOrchestrationKeyboardShortcuts({
+    onUndo: history.undo,
+    onRedo: history.redo,
+    enabled: true,
+  });
+
+  // Push snapshot when nodes or edges change
+  useEffect(() => {
+    history.pushSnapshot({ nodes, edges });
+  }, [nodes, edges]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track panel open/close
+  useEffect(() => {
+    recordPanelOpenTime('workflow_editor');
+    trackPanelOpened('workflow_editor');
+
+    return () => {
+      const duration = getPanelDuration('workflow_editor');
+      trackPanelClosed('workflow_editor', duration);
+    };
+  }, []);
+
   const onConnect = useCallback(
     (connection: Connection) => {
       const edge = { ...connection, id: `edge_${Date.now()}`, animated: true };
@@ -164,6 +208,7 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
     if (workflow) {
       addWorkflowNode(workflow.id, node);
+      trackWorkflowNodeAdded(workflow.id, 'agent');
     }
   };
 
@@ -183,6 +228,7 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
     if (workflow) {
       addWorkflowNode(workflow.id, node);
+      trackWorkflowNodeAdded(workflow.id, 'decision');
     }
   };
 
@@ -202,6 +248,7 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
     if (workflow) {
       addWorkflowNode(workflow.id, node);
+      trackWorkflowNodeAdded(workflow.id, 'loop');
     }
   };
 
@@ -220,6 +267,7 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
     if (workflow) {
       addWorkflowNode(workflow.id, node);
+      trackWorkflowNodeAdded(workflow.id, 'parallel');
     }
   };
 
@@ -238,12 +286,14 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node.data }]);
     if (workflow) {
       addWorkflowNode(workflow.id, node);
+      trackWorkflowNodeAdded(workflow.id, 'merge');
     }
   };
 
   const handleSave = () => {
     if (workflow) {
       updateWorkflow(workflow.id, { nodes: nodes as any, edges: edges as any });
+      trackWorkflowSaved(workflow.id, nodes.length, edges.length);
     }
   };
 
@@ -321,6 +371,28 @@ export function AgentOrchestrationGraphEditor({ workflowId, onClose }: AgentOrch
             Merge
           </button>
         </div>
+        <button
+          onClick={() => {
+            history.undo();
+            trackUndoPerformed('workflow_editor', history.currentIndex);
+          }}
+          disabled={!history.canUndo}
+          className="rounded bg-studio-surface px-2 py-1 text-[9px] hover:bg-studio-border disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+          title="Undo (Ctrl+Z)"
+        >
+          <Undo className="inline h-3 w-3" />
+        </button>
+        <button
+          onClick={() => {
+            history.redo();
+            trackRedoPerformed('workflow_editor', history.currentIndex);
+          }}
+          disabled={!history.canRedo}
+          className="rounded bg-studio-surface px-2 py-1 text-[9px] hover:bg-studio-border disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+          title="Redo (Ctrl+Shift+Z)"
+        >
+          <Redo className="inline h-3 w-3" />
+        </button>
         <button
           onClick={handleSave}
           className="rounded bg-studio-accent px-2 py-1 text-[9px] text-white hover:opacity-90 flex-shrink-0"

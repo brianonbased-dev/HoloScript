@@ -7,17 +7,27 @@
  * Supports Sequence, Selector, Parallel, Action, Condition nodes.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import ReactFlow, {
   Background, Controls, MiniMap, addEdge,
   BackgroundVariant, type Connection, type NodeTypes,
   useNodesState, useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { GitBranch, X, Save, Plus, BookTemplate } from 'lucide-react';
+import { GitBranch, X, Save, Plus, BookTemplate, Undo, Redo } from 'lucide-react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
 import type { BTNode } from '@/lib/orchestrationStore';
 import { TemplateBrowserPanel } from './TemplateBrowserPanel';
+import { useOrchestrationHistory, useOrchestrationKeyboardShortcuts } from '@/hooks/useOrchestrationHistory';
+import {
+  trackBehaviorTreeNodeAdded,
+  trackPanelOpened,
+  trackPanelClosed,
+  recordPanelOpenTime,
+  getPanelDuration,
+  trackUndoPerformed,
+  trackRedoPerformed,
+} from '@/lib/analytics/orchestration';
 
 function SequenceNode({ data }: { data: any }) {
   return (
@@ -122,6 +132,39 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
   const [edges, setEdges, onEdgesChange] = useEdgesState(tree?.edges || []);
   const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
 
+  // Undo/Redo history
+  const history = useOrchestrationHistory(
+    () => ({ nodes, edges }),
+    (snapshot) => {
+      setNodes(snapshot.nodes);
+      setEdges(snapshot.edges);
+    },
+    { debounceMs: 500 }
+  );
+
+  // Keyboard shortcuts
+  useOrchestrationKeyboardShortcuts({
+    onUndo: history.undo,
+    onRedo: history.redo,
+    enabled: true,
+  });
+
+  // Push snapshot when nodes or edges change
+  useEffect(() => {
+    history.pushSnapshot({ nodes, edges });
+  }, [nodes, edges]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track panel open/close
+  useEffect(() => {
+    recordPanelOpenTime('behavior_tree_editor');
+    trackPanelOpened('behavior_tree_editor');
+
+    return () => {
+      const duration = getPanelDuration('behavior_tree_editor');
+      trackPanelClosed('behavior_tree_editor', duration);
+    };
+  }, []);
+
   const onConnect = useCallback(
     (connection: Connection) => {
       const edge = { ...connection, id: `edge_${Date.now()}`, type: 'smoothstep' };
@@ -143,6 +186,7 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
     };
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
     addBTNode(treeId, node);
+    trackBehaviorTreeNodeAdded(treeId, 'sequence');
   };
 
   const handleAddInverter = () => {
@@ -155,6 +199,7 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
     };
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
     addBTNode(treeId, node);
+    trackBehaviorTreeNodeAdded(treeId, 'inverter');
   };
 
   const handleAddRepeat = () => {
@@ -167,6 +212,7 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
     };
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
     addBTNode(treeId, node);
+    trackBehaviorTreeNodeAdded(treeId, 'repeat');
   };
 
   const handleAddRetry = () => {
@@ -179,6 +225,7 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
     };
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
     addBTNode(treeId, node);
+    trackBehaviorTreeNodeAdded(treeId, 'retry');
   };
 
   const handleAddGuard = () => {
@@ -191,6 +238,7 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
     };
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
     addBTNode(treeId, node);
+    trackBehaviorTreeNodeAdded(treeId, 'guard');
   };
 
   const handleAddTimeout = () => {
@@ -203,6 +251,7 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
     };
     setNodes((ns) => [...ns, { id: node.id, type: node.type, position: node.position, data: node }]);
     addBTNode(treeId, node);
+    trackBehaviorTreeNodeAdded(treeId, 'timeout');
   };
 
   if (!tree) {
@@ -278,6 +327,28 @@ export function BehaviorTreeVisualEditor({ treeId, onClose }: BehaviorTreeVisual
             Timeout
           </button>
         </div>
+        <button
+          onClick={() => {
+            history.undo();
+            trackUndoPerformed('behavior_tree_editor', history.currentIndex);
+          }}
+          disabled={!history.canUndo}
+          className="rounded bg-studio-surface px-2 py-1 text-[9px] hover:bg-studio-border disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Undo (Ctrl+Z)"
+        >
+          <Undo className="inline h-3 w-3" />
+        </button>
+        <button
+          onClick={() => {
+            history.redo();
+            trackRedoPerformed('behavior_tree_editor', history.currentIndex);
+          }}
+          disabled={!history.canRedo}
+          className="rounded bg-studio-surface px-2 py-1 text-[9px] hover:bg-studio-border disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Redo (Ctrl+Shift+Z)"
+        >
+          <Redo className="inline h-3 w-3" />
+        </button>
         <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
           <X className="h-4 w-4" />
         </button>

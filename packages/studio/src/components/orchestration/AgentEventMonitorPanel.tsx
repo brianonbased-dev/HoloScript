@@ -7,14 +7,22 @@
  * Optimized with virtual scrolling for handling 1000+ events smoothly.
  */
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Activity, X, Pause, Play, RotateCcw, Filter } from 'lucide-react';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
+import {
+  trackEventMonitorOpened,
+  trackEventMonitorFiltered,
+  trackEventMonitorCleared,
+  trackPanelClosed,
+  recordPanelOpenTime,
+  getPanelDuration,
+} from '@/lib/analytics/orchestration';
 
 function formatTime(timestamp: number): string {
   const date = new Date(timestamp);
-  return date.toLocaleTimeString('en-US', { hour12: false, fractional: 3 });
+  return date.toLocaleTimeString('en-US', { hour12: false, fractionalSecondDigits: 3 });
 }
 
 interface AgentEventMonitorPanelProps {
@@ -29,6 +37,24 @@ export function AgentEventMonitorPanel({ onClose }: AgentEventMonitorPanelProps)
 
   const [paused, setPaused] = useState(false);
   const [topicFilter, setTopicFilter] = useState('');
+
+  // Track panel open/close
+  useEffect(() => {
+    recordPanelOpenTime('event_monitor');
+    trackEventMonitorOpened(events.length);
+
+    return () => {
+      const duration = getPanelDuration('event_monitor');
+      trackPanelClosed('event_monitor', duration);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track filter changes
+  useEffect(() => {
+    if (topicFilter) {
+      trackEventMonitorFiltered('topic', topicFilter);
+    }
+  }, [topicFilter]);
 
   const filteredEvents = useMemo(() => {
     let filtered = events;
@@ -72,7 +98,11 @@ export function AgentEventMonitorPanel({ onClose }: AgentEventMonitorPanelProps)
           {paused ? <Play className="inline h-3 w-3" /> : <Pause className="inline h-3 w-3" />}
         </button>
         <button
-          onClick={clearEvents}
+          onClick={() => {
+            const eventCount = events.length;
+            clearEvents();
+            trackEventMonitorCleared(eventCount);
+          }}
           className="rounded bg-studio-surface px-2 py-1 text-[9px] hover:bg-studio-border"
         >
           <RotateCcw className="inline h-3 w-3 mr-1" />
