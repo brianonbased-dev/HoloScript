@@ -3,6 +3,7 @@
  *
  * Persona: Sage — urban farmer who plans rooftop/vertical farms,
  * simulates sunlight, manages crop rotation, and optimizes water usage.
+ * Extended with permaculture / restorative farming features.
  *
  * ✓ it(...)      = PASSING — feature exists
  */
@@ -12,9 +13,16 @@ import {
   sunPositionAtHour, dailySunHours, hasSufficientSun,
   getCropById, cropsForSeason, areCompanions, areIncompatible,
   bedArea, estimateYield, plantsPerBed, dailyWaterUsage,
-  CROP_DATABASE,
-  type PlantingBed,
+  guildNitrogenFixers, guildDynamicAccumulators, guildLayerCoverage,
+  soilHealthScore, coverCropNitrogenValue, rotationPlan,
+  compostDecompositionRate, polycultureDiversityScore,
+  CROP_DATABASE, FOOD_FOREST_LAYERS, THREE_SISTERS_GUILD, APPLE_GUILD, COVER_CROPS,
+  type PlantingBed, type SoilHealthProfile,
 } from '@/lib/urbanFarmPlanner';
+
+// ═══════════════════════════════════════════════════════════════════
+// 1. Sunlight Simulation
+// ═══════════════════════════════════════════════════════════════════
 
 describe('Scenario: Urban Farm — Sunlight Simulation', () => {
   it('sun is above horizon at noon (latitude 40°, summer)', () => {
@@ -44,6 +52,10 @@ describe('Scenario: Urban Farm — Sunlight Simulation', () => {
     expect(hasSufficientSun(4, tomato)).toBe(false);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// 2. Crop Management
+// ═══════════════════════════════════════════════════════════════════
 
 describe('Scenario: Urban Farm — Crop Management', () => {
   it('CROP_DATABASE has 6 crops', () => {
@@ -77,6 +89,10 @@ describe('Scenario: Urban Farm — Crop Management', () => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════
+// 3. Bed & Yield
+// ═══════════════════════════════════════════════════════════════════
+
 describe('Scenario: Urban Farm — Bed & Yield', () => {
   const bed: PlantingBed = { id: 'b1', position: { x: 0, y: 0 }, widthM: 1.2, lengthM: 4, soilType: 'loam', cropId: 'tomato', plantedDate: Date.now(), irrigationType: 'drip' };
 
@@ -102,7 +118,135 @@ describe('Scenario: Urban Farm — Bed & Yield', () => {
     const usage = dailyWaterUsage(beds);
     expect(usage).toBeGreaterThan(0);
   });
+});
 
-  it.todo('vertical farming LED spectrum — calculate optimal red/blue ratio');
-  it.todo('composting model — decomposition rate by temperature and moisture');
+// ═══════════════════════════════════════════════════════════════════
+// 4. Permaculture — Food Forest Layers
+// ═══════════════════════════════════════════════════════════════════
+
+describe('Scenario: Urban Farm — Food Forest (Permaculture)', () => {
+  it('food forest has 7 layers', () => {
+    expect(FOOD_FOREST_LAYERS).toHaveLength(7);
+  });
+
+  it('layers span from canopy (10-30m) to rhizosphere (<0m)', () => {
+    expect(FOOD_FOREST_LAYERS[0].layer).toBe('canopy');
+    expect(FOOD_FOREST_LAYERS[5].layer).toBe('rhizosphere');
+    expect(FOOD_FOREST_LAYERS[6].layer).toBe('climber');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 5. Permaculture — Plant Guilds
+// ═══════════════════════════════════════════════════════════════════
+
+describe('Scenario: Urban Farm — Plant Guilds (Permaculture)', () => {
+  it('Three Sisters guild has corn, bean, squash', () => {
+    expect(THREE_SISTERS_GUILD.members).toHaveLength(3);
+    expect(THREE_SISTERS_GUILD.centerPlant).toBe('corn');
+  });
+
+  it('Three Sisters bean is a nitrogen fixer', () => {
+    const fixers = guildNitrogenFixers(THREE_SISTERS_GUILD);
+    expect(fixers).toHaveLength(1);
+    expect(fixers[0].name).toBe('Climbing Bean');
+  });
+
+  it('Apple Guild has 5 members across 3 layers', () => {
+    expect(APPLE_GUILD.members).toHaveLength(5);
+    const layers = guildLayerCoverage(APPLE_GUILD);
+    expect(layers.length).toBe(3); // understory, herbaceous, groundcover
+  });
+
+  it('Apple Guild has comfrey as dynamic accumulator', () => {
+    const accumulators = guildDynamicAccumulators(APPLE_GUILD);
+    expect(accumulators).toHaveLength(1);
+    expect(accumulators[0].name).toBe('Comfrey');
+  });
+
+  it('Three Sisters covers 3 distinct layers', () => {
+    const layers = guildLayerCoverage(THREE_SISTERS_GUILD);
+    expect(layers).toContain('herbaceous');
+    expect(layers).toContain('climber');
+    expect(layers).toContain('groundcover');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 6. Restorative Farming — Soil Health
+// ═══════════════════════════════════════════════════════════════════
+
+describe('Scenario: Urban Farm — Soil Health (Restorative)', () => {
+  it('ideal soil scores 100', () => {
+    const ideal: SoilHealthProfile = {
+      organicMatterPercent: 4, ph: 6.5, nitrogenPPM: 40,
+      phosphorusPPM: 30, potassiumPPM: 200,
+      microbialDiversityIndex: 0.8, compactionPSI: 200, drainageRate: 'good',
+    };
+    expect(soilHealthScore(ideal)).toBe(100);
+  });
+
+  it('depleted soil scores low', () => {
+    const depleted: SoilHealthProfile = {
+      organicMatterPercent: 0.5, ph: 4.5, nitrogenPPM: 5,
+      phosphorusPPM: 5, potassiumPPM: 50,
+      microbialDiversityIndex: 0.1, compactionPSI: 500, drainageRate: 'poor',
+    };
+    expect(soilHealthScore(depleted)).toBe(0);
+  });
+
+  it('moderate soil scores in between', () => {
+    const moderate: SoilHealthProfile = {
+      organicMatterPercent: 2.5, ph: 5.8, nitrogenPPM: 20,
+      phosphorusPPM: 15, potassiumPPM: 100,
+      microbialDiversityIndex: 0.5, compactionPSI: 300, drainageRate: 'moderate',
+    };
+    const score = soilHealthScore(moderate);
+    expect(score).toBeGreaterThan(30);
+    expect(score).toBeLessThan(80);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 7. Restorative Farming — Cover Crops & Rotation
+// ═══════════════════════════════════════════════════════════════════
+
+describe('Scenario: Urban Farm — Cover Crops & Rotation (Restorative)', () => {
+  it('COVER_CROPS has 4 species', () => {
+    expect(COVER_CROPS).toHaveLength(4);
+  });
+
+  it('crimson clover fixes 130 kg N/ha', () => {
+    const clover = COVER_CROPS.find(c => c.id === 'crimson-clover')!;
+    expect(clover.nitrogenFixKgPerHa).toBe(130);
+  });
+
+  it('coverCropNitrogenValue() scales by area', () => {
+    const clover = COVER_CROPS[0]; // 130 kg/ha
+    expect(coverCropNitrogenValue(clover, 10000)).toBe(130); // 1 ha
+    expect(coverCropNitrogenValue(clover, 5000)).toBe(65);   // 0.5 ha
+  });
+
+  it('rotationPlan() generates 4-year rotation', () => {
+    const plan = rotationPlan(['leafy', 'root', 'fruit', 'legume']);
+    expect(plan).toHaveLength(4);
+    expect(plan[0]).toEqual(['leafy', 'root', 'fruit', 'legume']);
+    expect(plan[1][0]).toBe('root');
+  });
+
+  it('compostDecompositionRate() optimal at 55°C, 60% moisture', () => {
+    expect(compostDecompositionRate(55, 60)).toBe(1.0);
+  });
+
+  it('compostDecompositionRate() slow in cold/dry conditions', () => {
+    expect(compostDecompositionRate(10, 20)).toBe(0.09); // 0.3 * 0.3
+  });
+
+  it('polycultureDiversityScore() measures layer coverage', () => {
+    expect(polycultureDiversityScore(THREE_SISTERS_GUILD.members)).toBeCloseTo(3/7, 2);
+    expect(polycultureDiversityScore(APPLE_GUILD.members)).toBeCloseTo(3/7, 2);
+  });
+
+  it.todo('mycorrhizal network — simulate underground fungal nutrient sharing');
+  it.todo('rainwater harvesting — calculate catchment area and storage needs');
 });

@@ -153,3 +153,166 @@ export function dailyWaterUsage(beds: PlantingBed[]): number {
   }
   return total;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Permaculture — Food Forest Layers
+// ═══════════════════════════════════════════════════════════════════
+
+export type FoodForestLayer =
+  | 'canopy'         // Large fruit/nut trees (>10m)
+  | 'understory'     // Smaller trees (3-10m)
+  | 'shrub'          // Berry bushes, hazelnuts
+  | 'herbaceous'     // Herbs, perennial vegetables
+  | 'groundcover'    // Creeping plants, strawberries
+  | 'rhizosphere'    // Root crops, fungi
+  | 'climber';       // Vines, grapes, kiwifruit
+
+export interface FoodForestPlant {
+  id: string;
+  name: string;
+  layer: FoodForestLayer;
+  nitrogenFixer: boolean;    // Leguminous — enriches soil
+  dynamicAccumulator: boolean; // Deep roots bring up minerals
+  pollinator: boolean;        // Attracts bees/butterflies
+  edible: boolean;
+  perennial: boolean;
+}
+
+export const FOOD_FOREST_LAYERS: { layer: FoodForestLayer; heightM: string; description: string }[] = [
+  { layer: 'canopy',      heightM: '10-30m',  description: 'Tall fruit/nut trees — chestnuts, walnuts, mulberries' },
+  { layer: 'understory',  heightM: '3-10m',   description: 'Dwarf fruit trees — apples, peaches, figs, plums' },
+  { layer: 'shrub',       heightM: '1-3m',    description: 'Berry bushes — blueberry, currant, gooseberry, hazelnut' },
+  { layer: 'herbaceous',  heightM: '0.3-1m',  description: 'Herbs & perennials — comfrey, yarrow, rhubarb, mint' },
+  { layer: 'groundcover', heightM: '0-0.3m',  description: 'Spreading plants — strawberry, clover, creeping thyme' },
+  { layer: 'rhizosphere', heightM: '<0m',      description: 'Root layer — potato, garlic, ginger, mushrooms' },
+  { layer: 'climber',     heightM: 'vertical', description: 'Vines — grapes, kiwifruit, passionfruit, hops' },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// Permaculture — Plant Guilds
+// ═══════════════════════════════════════════════════════════════════
+
+export interface PlantGuild {
+  id: string;
+  name: string;
+  centerPlant: string;       // Anchor species (usually a tree)
+  members: FoodForestPlant[];
+  benefits: string[];        // Mutual benefits
+}
+
+export const THREE_SISTERS_GUILD: PlantGuild = {
+  id: 'three-sisters', name: 'Three Sisters (Corn-Bean-Squash)',
+  centerPlant: 'corn',
+  members: [
+    { id: 'corn', name: 'Corn', layer: 'herbaceous', nitrogenFixer: false, dynamicAccumulator: false, pollinator: false, edible: true, perennial: false },
+    { id: 'bean', name: 'Climbing Bean', layer: 'climber', nitrogenFixer: true, dynamicAccumulator: false, pollinator: true, edible: true, perennial: false },
+    { id: 'squash', name: 'Winter Squash', layer: 'groundcover', nitrogenFixer: false, dynamicAccumulator: false, pollinator: true, edible: true, perennial: false },
+  ],
+  benefits: ['Corn provides structure for beans', 'Beans fix nitrogen for all', 'Squash shades soil and suppresses weeds'],
+};
+
+export const APPLE_GUILD: PlantGuild = {
+  id: 'apple-guild', name: 'Apple Tree Guild',
+  centerPlant: 'apple',
+  members: [
+    { id: 'apple', name: 'Apple Tree', layer: 'understory', nitrogenFixer: false, dynamicAccumulator: false, pollinator: true, edible: true, perennial: true },
+    { id: 'comfrey', name: 'Comfrey', layer: 'herbaceous', nitrogenFixer: false, dynamicAccumulator: true, pollinator: true, edible: false, perennial: true },
+    { id: 'white-clover', name: 'White Clover', layer: 'groundcover', nitrogenFixer: true, dynamicAccumulator: false, pollinator: true, edible: false, perennial: true },
+    { id: 'nasturtium', name: 'Nasturtium', layer: 'groundcover', nitrogenFixer: false, dynamicAccumulator: false, pollinator: true, edible: true, perennial: false },
+    { id: 'chives', name: 'Chives', layer: 'herbaceous', nitrogenFixer: false, dynamicAccumulator: false, pollinator: true, edible: true, perennial: true },
+  ],
+  benefits: ['Clover fixes nitrogen', 'Comfrey mines deep minerals', 'Nasturtium traps aphids', 'Chives deter pests'],
+};
+
+export function guildNitrogenFixers(guild: PlantGuild): FoodForestPlant[] {
+  return guild.members.filter(m => m.nitrogenFixer);
+}
+
+export function guildDynamicAccumulators(guild: PlantGuild): FoodForestPlant[] {
+  return guild.members.filter(m => m.dynamicAccumulator);
+}
+
+export function guildLayerCoverage(guild: PlantGuild): FoodForestLayer[] {
+  return [...new Set(guild.members.map(m => m.layer))];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Restorative Farming — Soil Health
+// ═══════════════════════════════════════════════════════════════════
+
+export interface SoilHealthProfile {
+  organicMatterPercent: number;   // Ideal: 3-6%
+  ph: number;                      // 6.0-7.0 for most crops
+  nitrogenPPM: number;
+  phosphorusPPM: number;
+  potassiumPPM: number;
+  microbialDiversityIndex: number; // 0-1 (Shannon-Wiener normalized)
+  compactionPSI: number;           // <300 ideal
+  drainageRate: 'poor' | 'moderate' | 'good' | 'excessive';
+}
+
+export function soilHealthScore(soil: SoilHealthProfile): number {
+  let score = 0;
+  if (soil.organicMatterPercent >= 3 && soil.organicMatterPercent <= 6) score += 25;
+  else if (soil.organicMatterPercent >= 2) score += 15;
+  if (soil.ph >= 6.0 && soil.ph <= 7.0) score += 25;
+  else if (soil.ph >= 5.5 && soil.ph <= 7.5) score += 15;
+  if (soil.microbialDiversityIndex >= 0.7) score += 25;
+  else if (soil.microbialDiversityIndex >= 0.4) score += 15;
+  if (soil.drainageRate === 'good') score += 25;
+  else if (soil.drainageRate === 'moderate') score += 15;
+  return score;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Restorative Farming — Cover Crops & Rotation
+// ═══════════════════════════════════════════════════════════════════
+
+export interface CoverCrop {
+  id: string;
+  name: string;
+  nitrogenFixKgPerHa: number;    // Estimated nitrogen contribution
+  biomassKgPerHa: number;
+  season: Season;
+  terminationMethod: 'mow' | 'crimp' | 'till' | 'frost-kill';
+}
+
+export const COVER_CROPS: CoverCrop[] = [
+  { id: 'crimson-clover', name: 'Crimson Clover', nitrogenFixKgPerHa: 130, biomassKgPerHa: 4000, season: 'fall', terminationMethod: 'frost-kill' },
+  { id: 'winter-rye', name: 'Winter Rye', nitrogenFixKgPerHa: 0, biomassKgPerHa: 8000, season: 'fall', terminationMethod: 'crimp' },
+  { id: 'buckwheat', name: 'Buckwheat', nitrogenFixKgPerHa: 0, biomassKgPerHa: 3000, season: 'summer', terminationMethod: 'mow' },
+  { id: 'hairy-vetch', name: 'Hairy Vetch', nitrogenFixKgPerHa: 180, biomassKgPerHa: 5000, season: 'fall', terminationMethod: 'crimp' },
+];
+
+export function coverCropNitrogenValue(crop: CoverCrop, areaSqM: number): number {
+  return (crop.nitrogenFixKgPerHa * areaSqM) / 10000;
+}
+
+export function rotationPlan(categories: CropCategory[]): CropCategory[][] {
+  // 4-year rotation: cycle categories + fallow
+  const years: CropCategory[][] = [];
+  for (let y = 0; y < 4; y++) {
+    years.push(categories.map((_, i) => categories[(i + y) % categories.length]));
+  }
+  return years;
+}
+
+export function compostDecompositionRate(
+  temperatureC: number,
+  moisturePercent: number
+): number {
+  // Decomposition rate multiplier (1.0 = optimal at 55°C, 60% moisture)
+  const tempFactor = temperatureC >= 45 && temperatureC <= 65 ? 1.0
+    : temperatureC >= 30 ? 0.6
+    : 0.3;
+  const moistureFactor = moisturePercent >= 50 && moisturePercent <= 70 ? 1.0
+    : moisturePercent >= 40 ? 0.7
+    : 0.3;
+  return tempFactor * moistureFactor;
+}
+
+export function polycultureDiversityScore(plants: FoodForestPlant[]): number {
+  // Shannon-Wiener diversity index simplified: count unique layers covered
+  const uniqueLayers = new Set(plants.map(p => p.layer));
+  return uniqueLayers.size / 7; // 7 possible layers
+}

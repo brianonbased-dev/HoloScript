@@ -81,6 +81,12 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
     [download]
   );
 
+  const handleRemix = useCallback((item: MarketplaceItem) => {
+    setRemixItem(item);
+    setShowUploadWizard(true);
+    setSelectedItem(null); // Close detail modal
+  }, []);
+
   // Infinite scroll
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
@@ -339,6 +345,7 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
           onClose={() => setSelectedItem(null)}
           onDownload={handleDownload}
           onFavorite={handleFavoriteToggle}
+          onRemix={handleRemix}
           isFavorited={isFavorite(selectedItem.id)}
         />
       )}
@@ -346,11 +353,23 @@ export function MarketplacePanel({ onClose }: MarketplacePanelProps) {
       {/* Upload wizard */}
       {showUploadWizard && (
         <UploadWizard
-          onClose={() => setShowUploadWizard(false)}
+          onClose={() => {
+            setShowUploadWizard(false);
+            setRemixItem(null);
+          }}
           onSuccess={() => {
             setShowUploadWizard(false);
+            setRemixItem(null);
             refresh(); // Refresh marketplace after successful upload
           }}
+          remixFrom={remixItem ? {
+            id: remixItem.id,
+            name: remixItem.name,
+            description: remixItem.description,
+            type: remixItem.type,
+            thumbnailUrl: remixItem.thumbnailUrl,
+            author: remixItem.author,
+          } : undefined}
         />
       )}
     </div>
