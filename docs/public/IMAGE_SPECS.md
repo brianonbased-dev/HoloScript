@@ -28,7 +28,7 @@ One Language, Every Platform
 
 **Secondary Text:**
 ```
-1,525+ Semantic Traits
+1,800+ Semantic Traits
 25+ Compilation Targets
 AI-Powered Development
 ```
@@ -447,7 +447,7 @@ For each new tutorial page, add these meta tags:
 ## 14. Priority Action Items
 
 ### Immediate (This Week)
-1. **Update main OG image** with "1,525+ semantic traits, 25+ targets"
+1. **Update main OG image** with "1,800+ semantic traits, 25+ targets"
 2. **Create favicon suite** for better browser tab appearance
 3. **Add meta tags** to new tutorial pages (code-only, no images needed yet)
 

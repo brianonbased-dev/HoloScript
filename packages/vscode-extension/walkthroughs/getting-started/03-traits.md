@@ -55,7 +55,7 @@ object "BigRedButton" {
 
 ## Full Trait Library
 
-HoloScript includes **1,525+ traits** organized across 61 categories:
+HoloScript includes **1,800+ traits** organized across 74 categories:
 
 - **Core VR**: grabbable, throwable, pointable, hoverable, ...
 - **Game Mechanics**: collectible, destructible, lootable, quest_item, ...

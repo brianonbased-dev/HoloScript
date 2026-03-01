@@ -2,9 +2,9 @@
 
 ## Beyond VR: IoT, Robotics, and Digital Twins
 
-**Research Date**: 2026-02-05
-**Protocol**: uAA2++ v3.3
-**Status**: Strategic Planning Phase
+**Research Date**: 2026-02-05 (Updated: 2026-03-01)
+**Protocol**: uAA2++ v3.42
+**Status**: Partially Implemented — See Implementation Status below
 
 ---
 
@@ -34,7 +34,9 @@ HoloScript is uniquely positioned to expand beyond VR into IoT, robotics, and di
 
 ## Existing HoloScript Capabilities
 
-### Already Implemented (165+ Traits)
+### Already Implemented (1,800+ Traits)
+
+> **Note**: Since this roadmap was written (Feb 2026), substantial implementation has occurred. See [Implementation Status](#implementation-status) below.
 
 ```holoscript
 // Digital Twin & IoT traits (ALREADY EXIST)
@@ -53,6 +55,28 @@ model#factory @usd @gltf @scene_graph @portable {
   // Cross-platform export
 }
 ```
+
+---
+
+## Implementation Status (as of v3.42.0)
+
+| Roadmap Item | Status | Evidence |
+|---|---|---|
+| **Robotics Traits** (213 total) | ✅ Implemented | `core/src/traits/constants/robotics-industrial.ts` (462 lines) |
+| **URDF Import/Export** | ✅ Implemented | `core/src/compiler/URDFCompiler.ts` + 5 test files |
+| **SDF Export** | ✅ Implemented | SDF compiler target shipped in v3.3 |
+| **DTDL Export** | ✅ Implemented | `industrialHelpers.ts` → `equipmentToDTDL()` function |
+| **IoT Library** (MQTT, BLE, Digital Twin) | ✅ Implemented | `studio/src/lib/iot.ts`, `iot-smart-farm.scenario.ts` (237 lines) |
+| **Healthcare Traits** (37 total) | ✅ Implemented | `core/src/traits/constants/healthcare-medical.ts` |
+| **Operating Room Simulation** | ✅ Implemented | `operating-room.scenario.ts` (VRRRuntime + IoT telemetry) |
+| **Industrial Plant Helpers** | ✅ Implemented | `studio/src/lib/industrialHelpers.ts`, `industrial-plant-designer.scenario.ts` (597 lines) |
+| **Robot Engineer Workflow** | ✅ Implemented | `robot-engineer.scenario.ts` (586 lines), `@/lib/robotHelpers` |
+| `@wot_thing` (W3C Thing Description) | ❌ Not started | — |
+| `@mqtt_source` / `@mqtt_sink` (protocol-level) | ❌ Not started | Library exists, not as compiler traits |
+| `@opc_ua` / `@modbus` (industrial protocols) | ❌ Not started | — |
+| WasmEdge IoT compilation target | ❌ Not started | — |
+| ROS 2 bridge proof of concept | ❌ Not started | — |
+| Smart Building integration | ❌ Not started | No `smart_building` files found |
 
 ---
 

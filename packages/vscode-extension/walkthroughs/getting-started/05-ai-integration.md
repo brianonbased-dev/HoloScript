@@ -41,7 +41,7 @@ Claude and other agents can use these tools:
 - `generate_scene` - Create complete compositions
 - `suggest_traits` - Get recommended VR traits
 - `validate` - Check code for errors
-- `list_traits` - Show all 49 available traits
+- `list_traits` - Show all 1,800+ available traits
 
 Click **Next** to see next steps!
 

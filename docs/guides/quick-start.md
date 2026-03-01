@@ -83,7 +83,7 @@ holoscript compile hello.holo --target urdf
 
 ## What's Next?
 
-- [Traits Reference](./traits) - 1,525 traits across 61 categories
+- [Traits Reference](./traits) - 1,800+ traits across 74 categories
 - [Compositions](./compositions) - Build complex multi-object scenes
 - [Best Practices](./best-practices) - Learn the 10 rules for great VR experiences
 - [AI Integration](./ai-agents) - Use MCP server with Claude, GPT, or Brittney

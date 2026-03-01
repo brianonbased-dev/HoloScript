@@ -1,6 +1,6 @@
 # HoloScript VR Traits Reference
 
-Complete API reference for all **1,525+ VR traits** in HoloScript v3.3.0. Traits are now modularized into 61 specialized categories (Physics, AI, Magic, etc.).
+Complete API reference for all **1,800+ VR traits** in HoloScript v3.42.0. Traits are now modularized into 74 specialized categories (Physics, AI, Magic, etc.).
 
 ---
 
@@ -1919,4 +1919,4 @@ object Chair @anchor @occlusion @light_estimation {
 | 3.0.5   | Added Visual and Advanced traits (71 traits total) |
 | 3.0.4   | All 38 trait handlers fully implemented            |
 | 3.0.0   | Initial trait system with 12 handlers              |
-| 2.0.0   | Parser support for all 49 traits                   |
+| 2.0.0   | Parser support for all 49 traits (now 1,800+)      |

@@ -6,13 +6,13 @@ A comprehensive audit of HoloScript v3.3.0 documentation against actual implemen
 
 | Category                  | Status        | Notes                                                   |
 | ------------------------- | ------------- | ------------------------------------------------------- |
-| **Core Parser**           | ✅ Working    | Parses composition/template/object, all 49 VR traits    |
+| **Core Parser**           | ✅ Working    | Parses composition/template/object, 1,800+ VR traits    |
 | **Runtime Execution**     | ✅ Working    | Control flow (for/while/if/match), state machines, orbs |
 | **Browser Compatibility** | ✅ Fixed      | Dynamic imports for Node.js modules, fallback storage   |
 | **MCP Server**            | ✅ Fixed      | Generates modern syntax (composition pattern)           |
 | **Three.js Rendering**    | ✅ Working    | BrowserRuntime with template trait inheritance          |
 | **VRChat/Unity Export**   | ⚠️ Documented | Packages exist but not fully wired to parser            |
-| **49 VR Traits**          | ✅ Complete   | All 38 non-trivial trait handlers fully implemented     |
+| **1,800+ VR Traits**      | ✅ Complete   | All 38 non-trivial trait handlers fully implemented     |
 | **Graphics Traits**       | ✅ Working    | MaterialTrait, LightingTrait, RenderingTrait complete   |
 
 ---
@@ -24,7 +24,7 @@ A comprehensive audit of HoloScript v3.3.0 documentation against actual implemen
 - ✅ `composition`, `template`, `object` syntax
 - ✅ `environment`, `system`, `core_config` blocks
 - ✅ Control flow: `@for`, `@forEach`, `@while`, `@if`/`@else`
-- ✅ All 49 VR trait annotations (`@grabbable`, `@physics`, etc.)
+- ✅ All 1,800+ VR trait annotations (`@grabbable`, `@physics`, etc.)
 - ✅ State declarations, reactive bindings
 - ✅ Narrative/quest/dialogue structures
 - ✅ Import/export (parsed, not executed)

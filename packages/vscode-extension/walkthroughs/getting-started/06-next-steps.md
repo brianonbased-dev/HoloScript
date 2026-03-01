@@ -10,7 +10,7 @@ Open the Command Palette (`Ctrl+Shift+P`) and type:
 
 ## Learn More
 
-- [Full Traits Reference](https://holoscript.net/api/traits) - All 49 VR traits
+- [Full Traits Reference](https://holoscript.net/api/traits) - All 1,800+ VR traits
 - [Composition Guide](https://holoscript.net/guides/compositions) - Complex scenes
 - [Best Practices](https://holoscript.net/guides/best-practices) - 10 rules for great VR
 - [API Reference](https://holoscript.net/api/) - Complete documentation

@@ -86,4 +86,4 @@ composition "Hello World" {
 
 - [Quick Start Guide](./quick-start) - Build your first HoloScript app
 - [File Formats](./file-formats) - Deep dive into .hs, .hsplus, and .holo
-- [Traits Reference](./traits) - 1,525 traits across 61 categories
+- [Traits Reference](./traits) - 1,800+ traits across 74 categories

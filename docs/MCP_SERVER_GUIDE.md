@@ -66,7 +66,7 @@ validate_holoscript({ code: "composition test { @unknownTrait }" })
 
 | Tool             | Input               | Output                          |
 | ---------------- | ------------------- | ------------------------------- |
-| `list_traits`    | Category (optional) | All 49 VR traits                |
+| `list_traits`    | Category (optional) | All 1,800+ VR traits            |
 | `explain_trait`  | Trait name          | Full documentation with example |
 | `suggest_traits` | Object description  | Recommended traits              |
 

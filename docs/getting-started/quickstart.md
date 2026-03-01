@@ -71,6 +71,6 @@ holoscript compile hello.holo --target ios
 
 ## 5. Next Steps
 
-- 📖 **[Traits Reference](../TRAITS_REFERENCE.md)** - Explore all 1,525+ VR traits.
+- 📖 **[Traits Reference](../TRAITS_REFERENCE.md)** - Explore all 1,800+ VR traits.
 - 🎓 **[Academy](../academy/README.md)** - Step-by-step interactive lessons.
 - 🛠️ **[Platform Guides](../platforms/README.md)** - Deep dives into Unreal, Unity, and VRChat setup.

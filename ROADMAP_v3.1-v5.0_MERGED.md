@@ -1,8 +1,8 @@
 # HoloScript Roadmap v3.0.x – v5.0 (Merged)
 
-**Generated**: 2026-02-07  
+**Generated**: 2026-02-07 (Revised: 2026-03-01)  
 **Source**: uAA2++ Research Protocol + Codebase Cross-Reference (92% Alignment)  
-**Status**: Consolidated with Gap Implementations + Maturity Assessment
+**Status**: Consolidated — v3.0–v3.42 sections verified ✅ | v4.0+ see main [ROADMAP.md](docs/strategy/ROADMAP.md)
 
 ---
 
@@ -460,10 +460,13 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 | v3.3       | Q2 2026     | Spatial Export       | USDZ (Apple Vision Pro), Render Network (real API), KTX2+Draco   | ✅     |
 | v3.4–v3.5  | Q2 2026     | Rendering + DX       | LOD streaming, GPU culling, Visual Shader Editor, 38 packages     | ✅     |
 | v3.6–v3.42 | Q2 2026     | IDE + AI + DX        | IntelliJ/Neovim/VSCode plugins, MCP server, AI autocomplete, WASM | ✅     |
-| **v4.0**   | **Q3 2026** | **Privacy & AI**     | `@zkPrivate` (Aztec Noir), Enhanced LLMAgent, HITL v2.0          | 🟡 Next |
+| **v4.0**   | **Q3 2026** | **Privacy & AI**     | `@zkPrivate` (Aztec Noir), Enhanced LLMAgent, HITL v2.0          | ⏸️ See Note |
 | v4.1       | Q4 2026     | Volumetric Media     | Gaussian Splatting v2 (Levy flight), NeRF rendering               | ⬜     |
 | v4.2       | Q1 2027     | Enterprise           | Multi-tenant, SSO, analytics, adapter-postgres                    | ⬜     |
 | v5.0       | H1 2027     | Autonomous           | Cross-scene agent networks, economic primitives                   | ⬜     |
+
+> [!IMPORTANT]
+> **v4.0 Scope Update (March 2026)**: The main [ROADMAP.md](docs/strategy/ROADMAP.md) now defines v4.0 as **x402 Protocol + StoryWeaver AI**, while this file listed `@zkPrivate` + Enhanced LLMAgent. The main ROADMAP.md is the source of truth for v4.0+ planning. The 8 AI traits originally planned for v4.0 were completed as part of v3.x.
 
 ---
 

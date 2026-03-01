@@ -35,7 +35,7 @@ npx tsx packages/mcp-server/src/index.ts
 - `parse_hs` - Parse .hs/.hsplus
 - `parse_holo` - Parse .holo
 - `validate_holoscript` - Syntax validation
-- `list_traits` - List 49 VR traits
+- `list_traits` - List 1,800+ VR traits
 - `explain_trait` - Trait documentation
 - `suggest_traits` - AI trait suggestions
 - `generate_object` - NL → object

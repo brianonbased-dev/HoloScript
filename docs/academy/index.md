@@ -65,6 +65,6 @@ Bleeding-edge topics covering the new V43 Swarm and Mesh capabilities.
 
 Not a tutorial person? Jump straight to the reference:
 
-- [Traits Reference](/traits/) — All 1,525+ semantic traits across 74 categories
+- [Traits Reference](/traits/) — All 1,800+ semantic traits across 74 categories
 - [Compiler Targets](/compilers/) — 25+ compilation targets (18 documented)
 - [Quick Start](/guides/quick-start) — 5-minute intro

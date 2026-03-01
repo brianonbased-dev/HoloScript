@@ -34,7 +34,7 @@
                     │                              │
          ┌──────────▼──────────┐        ┌─────────▼──────────┐
          │  Compiler Registry  │        │  Runtime Registry  │
-         │  15+ Targets        │        │  Runtimes + Render │
+         │  18+ Targets        │        │  Runtimes + Render │
          └──────────┬──────────┘        └─────────┬──────────┘
                     │                              │
                     │                              │
@@ -135,7 +135,7 @@
 - **Status**: ✅ Complete
 
 #### 3. Compiler Registry (`packages/core/src/compiler/`)
-- **Purpose**: Code generation for 15+ targets
+- **Purpose**: Code generation for 18+ targets
 - **Size**: 15 compilers, ~50,000 lines
 - **Knowledge Base**: Material presets, type mappings, platform APIs
 - **Status**: ✅ Complete
@@ -246,7 +246,7 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 ✅ **Execute** - Runtime platform execution
 ✅ **Render** - Real-time 3D rendering with PBR
 ✅ **Simulate** - Physics, particles, structural mechanics
-✅ **Export** - Code generation for 15+ targets
+✅ **Export** - Code generation for 18+ targets
 ✅ **Test** - 800+ automated tests
 ✅ **Secure** - Security sandbox, hallucination detection
 ✅ **Benchmark** - Performance comparisons vs Unity/glTF
@@ -261,7 +261,7 @@ Extracted from `R3FCompiler.ts` and reused at runtime:
 | **Visual Editor** | ✅ Unity Editor | 🚧 Hololand (planned) |
 | **Physics** | ✅ PhysX | ✅ Custom physics |
 | **Rendering** | ✅ Built-in RP | ✅ Three.js/WebGL |
-| **Export Targets** | ❌ Unity only | ✅ 15+ targets |
+| **Export Targets** | ❌ Unity only | ✅ 18+ targets |
 | **Web Native** | ❌ WebGL export | ✅ Native web |
 | **Material Library** | ✅ Standard Assets | ✅ 80+ PBR presets |
 | **Particle Systems** | ✅ Shuriken | ✅ 120K particles |

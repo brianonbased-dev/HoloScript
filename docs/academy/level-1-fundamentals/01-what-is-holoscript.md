@@ -12,7 +12,7 @@ By the end of this lesson, you will:
 
 ## What is HoloScript?
 
-**HoloScript** is a full programming language designed specifically for creating VR and XR (Extended Reality) experiences. Purpose-built for spatial computing, HoloScript features a dual parser (TypeScript + Rust/WASM), its own AST, type system, standard library, LSP, package ecosystem, and compiles to 15+ targets:
+**HoloScript** is a full programming language designed specifically for creating VR and XR (Extended Reality) experiences. Purpose-built for spatial computing, HoloScript features a dual parser (TypeScript + Rust/WASM), its own AST, type system, standard library, LSP, package ecosystem, and compiles to 18+ targets:
 
 - **Declarative 3D scenes** - Describe what you want, not how to build it
 - **Built-in VR interactions** - Grabbing, pointing, and physics out of the box

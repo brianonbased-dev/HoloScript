@@ -1,6 +1,6 @@
 # HoloScript Language Features
 
-> **Version**: v4.1 | **Status**: Production Ready
+> **Version**: v3.43.0 | **Status**: Production Ready
 
 This document covers the core language-level features of HoloScript beyond the trait library.
 

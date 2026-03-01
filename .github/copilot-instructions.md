@@ -281,7 +281,7 @@ onTriggerEnter: {
 
 ---
 
-## 1,525+ Traits — Key Categories
+## 1,800+ Traits — Key Categories
 
 Full reference: [docs/traits/index.md](../docs/traits/index.md) (13 categories)
 
@@ -406,7 +406,7 @@ object Portal @collidable {
 
 | Package                      | Purpose                                      |
 | ---------------------------- | -------------------------------------------- |
-| `@holoscript/core`           | Parser, AST, 1,525+ traits, 18+ compilers    |
+| `@holoscript/core`           | Parser, AST, 1,800+ traits, 20+ compilers    |
 | `@holoscript/mcp-server`     | 34 MCP tools for AI agents                   |
 | `@holoscript/cli`            | holo build · holo compile · holo validate    |
 | `@holoscript/runtime`        | Scene execution runtime                      |

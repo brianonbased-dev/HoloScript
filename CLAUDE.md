@@ -102,7 +102,7 @@ Step 2: explain_trait({ name: "<trait name>" })
 
 ```
 REPO        pnpm workspaces monorepo, packages/, TypeScript + vitest + tsup
-TRAITS      1,525+ traits in 13 categories — ALL in @holoscript/core (no separate package)
+TRAITS      1,800+ traits in 13 categories — ALL in @holoscript/core (no separate package)
 COMPILERS   18+ targets — ALL in @holoscript/core (no separate @holoscript/compiler)
 MCP         packages/mcp-server/ — 34 tools — start with: npx tsx packages/mcp-server/src/index.ts
 BRITTNEY    ../Hololand/packages/brittney/mcp-server/ — runtime AI, optional
@@ -115,7 +115,7 @@ ARCHIVE     UPPERCASE .md → docs/_archive/ | lowercase .md → docs/[section]/
 
 ### Packages Quick Map
 ```
-@holoscript/core             Parser · AST · 1,525+ traits · 18+ compilers
+@holoscript/core             Parser · AST · 1,800+ traits · 18+ compilers
 @holoscript/mcp-server       34 AI tools (parse, validate, generate, compile)
 @holoscript/cli              holo build · holo compile · holo validate
 @holoscript/runtime          Scene execution runtime

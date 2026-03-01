@@ -1,8 +1,8 @@
 # Traits Reference
 
-HoloScript includes **1,563 built-in traits** across **68 categories** that cover VR/AR interaction, physics, networking, audio, AI, robotics, IoT, and more. Add traits with the `@` prefix.
+HoloScript includes **1,800+ built-in traits** across **68 categories** that cover VR/AR interaction, physics, networking, audio, AI, robotics, IoT, and more. Add traits with the `@` prefix.
 
-> **Note:** This page shows a curated selection of commonly used traits. The full 1,572 traits are organized in 73 category modules in the HoloScript core package. Use `holoscript list-traits` or the MCP tool `list_traits` to browse all available traits.
+> **Note:** This page shows a curated selection of commonly used traits. The full 1,800+ traits are organized in 68+ category modules in the HoloScript core package. Use `holoscript list-traits` or the MCP tool `list_traits` to browse all available traits.
 
 ## Trait Categories Overview
 

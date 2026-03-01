@@ -129,7 +129,7 @@ The component exposes four interfaces defined in WIT:
 - `validate(source: string) -> validation-result` - Validate source code
 - `trait-exists(name: string) -> bool` - Check if a trait exists
 - `get-trait(name: string) -> option<trait-def>` - Get trait definition
-- `list-traits() -> list<trait-def>` - List all 49 VR traits
+- `list-traits() -> list<trait-def>` - List all 1,800+ VR traits
 - `list-traits-by-category(category: string) -> list<trait-def>` - Filter by category
 
 ### holoscript:core/compiler

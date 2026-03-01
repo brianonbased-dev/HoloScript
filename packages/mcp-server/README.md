@@ -61,7 +61,7 @@ See [COMPILER_TOOLS.md](./COMPILER_TOOLS.md) for detailed documentation.
 | `parse_hs`             | Parse .hs or .hsplus code into AST              |
 | `parse_holo`           | Parse .holo composition files                   |
 | `validate_holoscript`  | Validate syntax with AI-friendly error messages |
-| `list_traits`          | List all 1,535 VR traits by category            |
+| `list_traits`          | List all 1,800+ VR traits by category            |
 | `explain_trait`        | Get detailed trait documentation                |
 | `suggest_traits`       | Suggest traits from natural language            |
 | `generate_object`      | Generate objects from descriptions              |

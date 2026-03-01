@@ -169,7 +169,7 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 ✅ **Validate** types and traits
 ✅ **Execute** runtime platform (physics simulation)
 ✅ **Render** real-time 3D with PBR materials
-✅ **Export** code to 15+ targets (Unity, Unreal, WebXR, etc.)
+✅ **Export** code to 18+ targets (Unity, Unreal, WebXR, etc.)
 ✅ **Test** 800+ automated tests
 ✅ **Benchmark** performance vs Unity/glTF
 ✅ **Secure** sandboxing and validation

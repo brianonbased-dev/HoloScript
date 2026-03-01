@@ -332,14 +332,14 @@ getErrors(): ErrorReport {
 
 ## Trait Validation
 
-The error recovery system validates traits against **VR_TRAITS** (1,525+ traits across 61 category modules). The trait source is modularized under `traits/constants/` with a barrel `index.ts` that combines all categories. The `constants.ts` file re-exports the combined set.
+The error recovery system validates traits against **VR_TRAITS** (1,800+ traits across 74 category modules). The trait source is modularized under `traits/constants/` with a barrel `index.ts` that combines all categories. The `constants.ts` file re-exports the combined set.
 
 When an unknown trait is encountered, `ErrorRecovery` uses Levenshtein distance to suggest the closest valid trait from the full VR_TRAITS vocabulary.
 
 ## References
 
 - **ErrorRecovery module**: Error patterns, suggestions, validation keywords
-- **Trait constants**: `src/traits/constants/` (61 category files, barrel index.ts)
+- **Trait constants**: `src/traits/constants/` (74 category files, barrel index.ts)
 - **SynchronizationStrategies**: Token synchronization and recovery points
 - **LSP standard**: Diagnostic format for IDE integration
 - **Related**: Spread operator validation, null coalescing assignment

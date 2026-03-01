@@ -9,7 +9,7 @@ HoloScript ships with a Model Context Protocol (MCP) server at `@holoscript/mcp-
 - Suggest appropriate traits for objects
 - Generate complete `.holo` compositions from descriptions
 - Validate code and fix errors
-- Search the traits catalog (1,525+ traits)
+- Search the traits catalog (1,800+ traits)
 - Create shareable playground links
 
 ## Setup
@@ -59,7 +59,7 @@ Add to your MCP settings:
 | `generate_object` | Creates a single HoloScript object |
 | `generate_scene` | Creates a complete composition |
 | `validate_holoscript` | Checks code for errors + suggestions |
-| `list_traits` | Browse 1,525+ traits by category |
+| `list_traits` | Browse 1,800+ traits by category |
 | `explain_trait` | Detailed docs for a single trait |
 | `compile_to_target` | Compile to Unity, Godot, VRChat, etc. |
 | `create_share_link` | Generate a playground URL |
