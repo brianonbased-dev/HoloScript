@@ -75,4 +75,5 @@ export default [
       environment: 'node',
     },
   },
+  'packages/collab-server/vitest.config.ts',
 ];
