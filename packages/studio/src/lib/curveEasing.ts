@@ -3,6 +3,24 @@
  *
  * Standard easing curves for animations and transitions.
  * All functions take t in [0, 1] and return a value in [0, 1].
+ *
+ * @see ./animation/curveEasing.ts for track-level easing (applyEasing, insertKeyframeSorted)
+ */
+
+// Re-export animation-level easing utilities (no name conflicts)
+export {
+  easeInOutElastic,
+  cubicBezier,
+  CSS_EASE,
+  CSS_EASE_IN,
+  CSS_EASE_OUT,
+  CSS_EASE_IN_OUT,
+  applyEasing,
+  evaluateTrackWithEasing,
+  insertKeyframeSorted,
+} from './animation/curveEasing';
+
+/*
  */
 
 export type EasingName =

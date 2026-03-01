@@ -30,6 +30,8 @@
   "dependencies": {
     "@holoscript/core": "workspace:*",
     "@holoscript/linter": "workspace:*",
+    "tree-sitter": "^0.21.1",
+    "tree-sitter-holoscript": "workspace:*",
     "vscode-debugadapter": "^1.51.0",
     "vscode-debugprotocol": "^1.51.0",
     "vscode-languageserver": "^9.0.1",

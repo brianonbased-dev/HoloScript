@@ -5,6 +5,9 @@
  * Supports IndexedDB (browser), JSON file export, and compressed binary.
  */
 
+// Re-export scene serialization (serializeScene, deserializeScene, etc.)
+export * from './scene/serializer';
+
 export interface SceneNode {
   id: string;
   name: string;

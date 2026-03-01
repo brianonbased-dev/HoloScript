@@ -286,6 +286,17 @@ export { VRRCompiler, type VRRCompilerOptions, type VRRCompilationResult } from 
 export { ARCompiler, type ARCompilerOptions, type ARCompilationResult } from './compiler/ARCompiler';
 export { MultiLayerCompiler, type MultiLayerCompilerOptions, type MultiLayerCompilationResult } from './compiler/MultiLayerCompiler';
 
+// HoloScript TSL Compiler (Trait Shader Language — trait-to-shader code generation)
+export {
+  TSLCompiler,
+  type TSLCompilerOptions,
+  type TSLCompilationResult,
+  type TSLObjectOutput,
+  type TSLTraitShaderContribution,
+  type TSLUniform,
+  type TSLDataType,
+} from './compiler/TSLCompiler';
+
 // HoloScript Robotics & IoT Compilers (Sprint 3)
 export {
   URDFCompiler,

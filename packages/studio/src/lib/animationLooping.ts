@@ -4,6 +4,18 @@
  * Loop modes, blending, crossfading, and animation queue management.
  */
 
+// Re-export auto-loop detection & seamless loop generation
+export {
+  type LoopAnalysis,
+  type LoopOptions,
+  analyzeLoop,
+  generateSeamlessLoop,
+  reverseAnimation,
+  createPalindromeLoop,
+  extendAnimation,
+  getLoopRecommendations,
+} from './animation/animationLooping';
+
 export type LoopMode = 'once' | 'loop' | 'ping-pong' | 'clamp';
 
 export interface AnimationState {

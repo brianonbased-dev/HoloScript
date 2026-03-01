@@ -3,6 +3,7 @@
 import type { R3FNode } from '@holoscript/core';
 import { Text, Sparkles, Environment } from '@react-three/drei';
 import { MeshNode } from './MeshNode';
+import { AnimatedMeshNode } from './AnimatedMeshNode';
 
 interface R3FNodeRendererProps {
   node: R3FNode;
@@ -16,13 +17,25 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
   const { props } = node;
 
   switch (node.type) {
-    case 'mesh':
+    case 'mesh': {
+      // Check if this mesh has keyframe animations
+      const hasKeyframes = props.keyframes && Array.isArray(props.keyframes) && props.keyframes.length > 0;
+      // Non-mesh children (lights, effects) still render via R3FNodeRenderer
+      const nonMeshChildren = node.children
+        ?.filter((c: R3FNode) => c.type !== 'mesh')
+        .map((child: R3FNode, i: number) => (
+          <R3FNodeRenderer key={child.id || `non-mesh-${i}`} node={child} />
+        ));
       return (
         <group>
-          <MeshNode node={node} />
-          {children}
+          {hasKeyframes
+            ? <AnimatedMeshNode node={node} />
+            : <MeshNode node={node} />
+          }
+          {nonMeshChildren}
         </group>
       );
+    }
 
     case 'group':
       return (

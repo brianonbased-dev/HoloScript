@@ -4,6 +4,9 @@
  * Node-based shader composition for non-programmers.
  */
 
+// Re-export canonical ShaderGraph class and related types
+export * from './shader/shaderGraph';
+
 export interface ShaderNode {
   id: string;
   type: ShaderNodeType;
@@ -27,7 +30,8 @@ export interface ShaderEdge {
   to: { nodeId: string; port: string };
 }
 
-export interface ShaderGraph {
+/** Legacy data-only shader graph shape (see ShaderGraph class for full implementation) */
+export interface ShaderGraphData {
   id: string;
   name: string;
   nodes: ShaderNode[];
@@ -44,7 +48,7 @@ export type ShaderNodeType =
 /**
  * Create a default empty shader graph.
  */
-export function createShaderGraph(name: string): ShaderGraph {
+export function createShaderGraph(name: string): ShaderGraphData {
   const outputNode: ShaderNode = {
     id: 'output-0',
     type: 'output',
@@ -68,7 +72,7 @@ export function createShaderGraph(name: string): ShaderGraph {
 /**
  * Add a node to the graph.
  */
-export function addNode(graph: ShaderGraph, node: ShaderNode): ShaderGraph {
+export function addNode(graph: ShaderGraphData, node: ShaderNode): ShaderGraphData {
   return { ...graph, nodes: [...graph.nodes, node] };
 }
 
@@ -76,10 +80,10 @@ export function addNode(graph: ShaderGraph, node: ShaderNode): ShaderGraph {
  * Connect two ports.
  */
 export function connectPorts(
-  graph: ShaderGraph,
+  graph: ShaderGraphData,
   fromNodeId: string, fromPort: string,
   toNodeId: string, toPort: string
-): ShaderGraph {
+): ShaderGraphData {
   const edge: ShaderEdge = {
     id: `edge-${Date.now().toString(36)}`,
     from: { nodeId: fromNodeId, port: fromPort },
@@ -91,7 +95,7 @@ export function connectPorts(
 /**
  * Remove a node (and its edges) from the graph.
  */
-export function removeNode(graph: ShaderGraph, nodeId: string): ShaderGraph {
+export function removeNode(graph: ShaderGraphData, nodeId: string): ShaderGraphData {
   return {
     ...graph,
     nodes: graph.nodes.filter(n => n.id !== nodeId),
@@ -102,7 +106,7 @@ export function removeNode(graph: ShaderGraph, nodeId: string): ShaderGraph {
 /**
  * Check if the graph has cycles (invalid for shader compilation).
  */
-export function hasCycles(graph: ShaderGraph): boolean {
+export function hasCycles(graph: ShaderGraphData): boolean {
   const adj = new Map<string, string[]>();
   for (const node of graph.nodes) adj.set(node.id, []);
   for (const edge of graph.edges) {
@@ -132,14 +136,14 @@ export function hasCycles(graph: ShaderGraph): boolean {
 /**
  * Count total connections in the graph.
  */
-export function connectionCount(graph: ShaderGraph): number {
+export function connectionCount(graph: ShaderGraphData): number {
   return graph.edges.length;
 }
 
 /**
  * Get unconnected input ports (potential issues).
  */
-export function unconnectedInputs(graph: ShaderGraph): Array<{ nodeId: string; port: string }> {
+export function unconnectedInputs(graph: ShaderGraphData): Array<{ nodeId: string; port: string }> {
   const connected = new Set(graph.edges.map(e => `${e.to.nodeId}:${e.to.port}`));
   const unconnected: Array<{ nodeId: string; port: string }> = [];
   for (const node of graph.nodes) {

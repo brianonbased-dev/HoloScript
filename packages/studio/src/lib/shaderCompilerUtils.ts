@@ -4,6 +4,9 @@
  * Parse, validate, and optimize shader source code for the WebGPU pipeline.
  */
 
+// Re-export GLSL/WGSL/HLSL transpiler utilities
+export * from './shader/shaderCompilerUtils';
+
 export interface ShaderSource {
   code: string;
   language: 'wgsl' | 'glsl' | 'hlsl';

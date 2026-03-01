@@ -55,6 +55,7 @@ import { MultiLayerCompiler } from './MultiLayerCompiler';
 import { IncrementalCompiler } from './IncrementalCompiler';
 import { StateCompiler } from './StateCompiler';
 import { TraitCompositionCompiler } from './TraitCompositionCompiler';
+import { TSLCompiler } from './TSLCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -185,6 +186,8 @@ class CompilerFactory {
         return new StateCompiler(options);
       case 'trait-composition':
         return new TraitCompositionCompiler(options);
+      case 'tsl':
+        return new TSLCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
@@ -433,6 +436,7 @@ export class ExportManager {
       'incremental',
       'state',
       'trait-composition',
+      'tsl',
     ];
   }
 

@@ -4,6 +4,15 @@
  * ARKit-compatible blendshape presets for character facial animation.
  */
 
+// Re-export emotion/viseme presets and blending utilities
+export {
+  EMOTION_PRESETS,
+  VISEME_PRESETS,
+  ALL_PRESETS,
+  applyPresetWeights,
+  lerpPresets,
+} from './character/ExpressionPresets';
+
 export interface ExpressionPreset {
   name: string;
   category: 'emotion' | 'viseme' | 'custom';

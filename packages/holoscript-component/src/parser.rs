@@ -286,7 +286,7 @@ impl<'a> Parser<'a> {
     }
     
     fn parse_object(&mut self) -> Result<ObjectNode, Diagnostic> {
-        // object "Name" @traits { ... }
+        // object "Name" @traits { properties... children... keyframes... }
         self.advance(); // consume 'object'
         
         let name = match self.current() {
@@ -319,19 +319,183 @@ impl<'a> Parser<'a> {
         
         self.expect_token(&Token::LBrace)?;
         
-        // Parse properties
+        // Parse properties (stops at non-Identifier tokens like 'object' or '}')
         let properties = self.parse_properties()?;
         
+        // Parse nested child objects (native asset composition)
+        let mut children = Vec::new();
+        while matches!(self.current(), Some(SpannedToken { token: Token::Object, .. })) {
+            children.push(self.parse_object()?);
+        }
+        
+        // Parse keyframes blocks (animation data)
+        let mut keyframes_list: Vec<serde_json::Value> = Vec::new();
+        while matches!(self.current(), Some(SpannedToken { token: Token::Keyframes, .. })) {
+            keyframes_list.push(self.parse_keyframes()?);
+        }
+        
         self.expect_token(&Token::RBrace)?;
+        
+        // Serialize children + keyframes as JSON (WIT recursive type workaround)
+        let children_json = if children.is_empty() && keyframes_list.is_empty() {
+            String::new()
+        } else {
+            let children_data = Self::serialize_children_json(&children);
+            if keyframes_list.is_empty() {
+                children_data
+            } else {
+                // Combine children and keyframes into a JSON object
+                let combined = serde_json::json!({
+                    "__children": serde_json::from_str::<serde_json::Value>(&children_data).unwrap_or(serde_json::json!([])),
+                    "__keyframes": keyframes_list,
+                });
+                serde_json::to_string(&combined).unwrap_or_else(|_| "{}".to_string())
+            }
+        };
         
         Ok(ObjectNode {
             name,
             traits,
             template,
             properties,
-            children_json: String::new(),
+            children_json,
             span: None,
         })
+    }
+    
+    /// Parse a keyframes block: `keyframes "name" { 0%: {...} 50%: {...} duration: 2000 }`
+    fn parse_keyframes(&mut self) -> Result<serde_json::Value, Diagnostic> {
+        self.advance(); // consume 'keyframes'
+        
+        // Parse name
+        let name = match self.current() {
+            Some(SpannedToken { token: Token::String(n), .. }) |
+            Some(SpannedToken { token: Token::SingleQuoteString(n), .. }) |
+            Some(SpannedToken { token: Token::Identifier(n), .. }) => {
+                let n = n.clone();
+                self.advance();
+                n
+            }
+            _ => return Err(self.error("Expected keyframes name")),
+        };
+        
+        self.expect_token(&Token::LBrace)?;
+        
+        let mut stops: Vec<serde_json::Value> = Vec::new();
+        let mut duration: u32 = 1000;
+        let mut easing = "linear".to_string();
+        let mut loop_anim = false;
+        
+        while let Some(tok) = self.current() {
+            if matches!(tok.token, Token::RBrace) {
+                break;
+            }
+            
+            match &tok.token {
+                // Percentage stop: `0%: { ... }` or `50%: { ... }`
+                Token::Number(n) => {
+                    let pct = *n;
+                    self.advance();
+                    
+                    // Expect % then :
+                    if matches!(self.current(), Some(SpannedToken { token: Token::Percent, .. })) {
+                        self.advance(); // consume %
+                    }
+                    self.expect_token(&Token::Colon)?;
+                    
+                    // Parse the property block { rotation: [...], position: [...] }
+                    self.expect_token(&Token::LBrace)?;
+                    let stop_props = self.parse_properties()?;
+                    self.expect_token(&Token::RBrace)?;
+                    
+                    // Convert properties to JSON
+                    let mut prop_map = serde_json::Map::new();
+                    prop_map.insert("percent".to_string(), serde_json::json!(pct));
+                    for p in &stop_props {
+                        let val = match &p.value {
+                            PropertyValue::StringVal(s) => serde_json::json!(s),
+                            PropertyValue::NumberVal(n) => serde_json::json!(n),
+                            PropertyValue::BooleanVal(b) => serde_json::json!(b),
+                            PropertyValue::NullVal => serde_json::Value::Null,
+                            PropertyValue::ArrayVal(a) => {
+                                serde_json::from_str(a).unwrap_or(serde_json::json!(a))
+                            }
+                            PropertyValue::ObjectVal(o) => {
+                                serde_json::from_str(o).unwrap_or(serde_json::json!(o))
+                            }
+                        };
+                        prop_map.insert(p.name.clone(), val);
+                    }
+                    
+                    stops.push(serde_json::Value::Object(prop_map));
+                }
+                // Metadata properties: duration, easing, loop
+                Token::Identifier(id) => {
+                    let id = id.clone();
+                    self.advance();
+                    self.expect_token(&Token::Colon)?;
+                    
+                    match id.as_str() {
+                        "duration" => {
+                            if let Ok(PropertyValue::NumberVal(n)) = self.parse_value() {
+                                duration = n as u32;
+                            }
+                        }
+                        "easing" => {
+                            if let Ok(PropertyValue::StringVal(s)) = self.parse_value() {
+                                easing = s;
+                            }
+                        }
+                        "loop" => {
+                            if let Ok(PropertyValue::BooleanVal(b)) = self.parse_value() {
+                                loop_anim = b;
+                            }
+                        }
+                        _ => {
+                            // Skip unknown properties
+                            let _ = self.parse_value();
+                        }
+                    }
+                }
+                _ => break,
+            }
+        }
+        
+        self.expect_token(&Token::RBrace)?;
+        
+        Ok(serde_json::json!({
+            "name": name,
+            "stops": stops,
+            "duration": duration,
+            "easing": easing,
+            "loop": loop_anim,
+        }))
+    }
+    
+    /// Serialize child ObjectNodes to JSON string for the children_json WIT field.
+    /// Each child is encoded as a JSON object matching the ObjectNode WIT structure.
+    fn serialize_children_json(children: &[ObjectNode]) -> String {
+        let json_children: Vec<serde_json::Value> = children.iter().map(|c| {
+            let props: Vec<serde_json::Value> = c.properties.iter().map(|p| {
+                let val = match &p.value {
+                    PropertyValue::StringVal(s) => serde_json::json!({"tag": "string-val", "val": s}),
+                    PropertyValue::NumberVal(n) => serde_json::json!({"tag": "number-val", "val": n}),
+                    PropertyValue::BooleanVal(b) => serde_json::json!({"tag": "boolean-val", "val": b}),
+                    PropertyValue::NullVal => serde_json::json!({"tag": "null-val"}),
+                    PropertyValue::ArrayVal(a) => serde_json::json!({"tag": "array-val", "val": a}),
+                    PropertyValue::ObjectVal(o) => serde_json::json!({"tag": "object-val", "val": o}),
+                };
+                serde_json::json!({"name": p.name, "value": val})
+            }).collect();
+            serde_json::json!({
+                "name": c.name,
+                "template": c.template,
+                "traits": c.traits,
+                "properties": props,
+                "childrenJson": c.children_json,
+            })
+        }).collect();
+        serde_json::to_string(&json_children).unwrap_or_else(|_| "[]".to_string())
     }
     
     fn parse_properties(&mut self) -> Result<Vec<Property>, Diagnostic> {
@@ -844,5 +1008,88 @@ mod tests {
         
         let result = parse_holoscript(source);
         assert!(result.is_err());
+    }
+    
+    #[test]
+    fn test_parse_nested_objects() {
+        let source = r#"composition "Robot" {
+            object "Body" @physics {
+                geometry: "cube"
+                scale: [0.6, 0.8, 0.3]
+                object "Head" {
+                    geometry: "sphere"
+                    position: [0, 0.6, 0]
+                    scale: [0.4, 0.4, 0.4]
+                }
+                object "LeftArm" {
+                    geometry: "cylinder"
+                    position: [-0.5, 0, 0]
+                }
+            }
+        }"#;
+        
+        let result = parse_holoscript(source);
+        assert!(result.is_ok(), "Parse failed: {:?}", result.err());
+        
+        let comp = result.unwrap();
+        assert_eq!(comp.objects.len(), 1);
+        assert_eq!(comp.objects[0].name, "Body");
+        
+        // Verify children_json is populated
+        let children_json = &comp.objects[0].children_json;
+        assert!(!children_json.is_empty(), "children_json should not be empty");
+        
+        // Verify JSON is valid and contains both children
+        let children: Vec<serde_json::Value> = serde_json::from_str(children_json).unwrap();
+        assert_eq!(children.len(), 2);
+        assert_eq!(children[0]["name"], "Head");
+        assert_eq!(children[1]["name"], "LeftArm");
+    }
+    
+    #[test]
+    fn test_parse_keyframes() {
+        let source = r#"composition "AnimTest" {
+            object "Spinner" {
+                geometry: "cube"
+                position: [0, 1, 0]
+                
+                keyframes "rotate" {
+                    0%: { rotation: [0, 0, 0] }
+                    50%: { rotation: [0, 180, 0] }
+                    100%: { rotation: [0, 360, 0] }
+                    duration: 2000
+                    easing: "ease-in-out"
+                    loop: true
+                }
+            }
+        }"#;
+        
+        let result = parse_holoscript(source);
+        assert!(result.is_ok(), "Parse failed: {:?}", result.err());
+        
+        let comp = result.unwrap();
+        assert_eq!(comp.objects.len(), 1);
+        assert_eq!(comp.objects[0].name, "Spinner");
+        
+        // Verify children_json contains keyframes data
+        let cj = &comp.objects[0].children_json;
+        assert!(!cj.is_empty(), "children_json should contain keyframes");
+        
+        let parsed: serde_json::Value = serde_json::from_str(cj).unwrap();
+        
+        // Should have __keyframes array
+        let keyframes = parsed["__keyframes"].as_array().expect("should have __keyframes array");
+        assert_eq!(keyframes.len(), 1);
+        assert_eq!(keyframes[0]["name"], "rotate");
+        assert_eq!(keyframes[0]["duration"], 2000);
+        assert_eq!(keyframes[0]["easing"], "ease-in-out");
+        assert_eq!(keyframes[0]["loop"], true);
+        
+        // Check stops
+        let stops = keyframes[0]["stops"].as_array().expect("should have stops");
+        assert_eq!(stops.len(), 3);
+        assert_eq!(stops[0]["percent"], 0.0);
+        assert_eq!(stops[1]["percent"], 50.0);
+        assert_eq!(stops[2]["percent"], 100.0);
     }
 }

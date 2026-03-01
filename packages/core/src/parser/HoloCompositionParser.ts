@@ -304,6 +304,15 @@ const PRIMITIVE_SHAPES = new Set([
   'nerf',
 ]);
 
+// Light primitives handled as shorthand: point_light { ... }, ambient_light { ... }, etc.
+const LIGHT_PRIMITIVES = new Set([
+  'point_light',
+  'ambient_light',
+  'directional_light',
+  'spot_light',
+  'hemisphere_light',
+]);
+
 // =============================================================================
 // LEXER
 // =============================================================================
@@ -827,6 +836,8 @@ export class HoloCompositionParser {
           composition.talentTrees.push(this.parseTalentTree());
         } else if (this.check('COMMENT') || this.check('LINE_COMMENT')) {
           this.advance(); // skip comments
+        } else if (this.check('IDENTIFIER') && this.isLightPrimitive(this.current().value)) {
+          composition.lights.push(this.parseLightPrimitive());
         } else {
           // Skip unknown tokens at root level
           this.advance();
@@ -1040,6 +1051,9 @@ export class HoloCompositionParser {
           composition.spatialGroups.push(this.parseSpatialGroup());
         } else if (this.current().type.startsWith('UI_')) {
           composition.objects.push(this.parseSpatialObject(this.current().value.toLowerCase()));
+        } else if (this.check('IDENTIFIER') && this.isLightPrimitive(this.current().value)) {
+          // Handle point_light { }, ambient_light { }, directional_light { } syntax
+          composition.lights.push(this.parseLightPrimitive());
         } else if (this.check('IDENTIFIER') && this.isPrimitiveShape(this.current().value)) {
           // Handle primitive#id or primitive #id { } syntax
           composition.objects.push(this.parsePrimitiveObject());
@@ -3059,6 +3073,53 @@ export class HoloCompositionParser {
 
   private isPrimitiveShape(value: string): boolean {
     return PRIMITIVE_SHAPES.has(value.toLowerCase());
+  }
+
+  private isLightPrimitive(value: string): boolean {
+    return LIGHT_PRIMITIVES.has(value.toLowerCase());
+  }
+
+  /**
+   * Parse light shorthand: point_light { ... }, ambient_light { ... }, directional_light { ... }
+   */
+  private parseLightPrimitive(): HoloLight {
+    const lightPrimitive = this.current().value.toLowerCase();
+    this.advance(); // consume the light primitive identifier
+
+    const LIGHT_TYPE_MAP: Record<string, HoloLight['lightType']> = {
+      'point_light': 'point',
+      'ambient_light': 'ambient',
+      'directional_light': 'directional',
+      'spot_light': 'spot',
+      'hemisphere_light': 'hemisphere',
+    };
+    const lightType = LIGHT_TYPE_MAP[lightPrimitive] || 'point';
+
+    // Optional name
+    let name = `${lightPrimitive}_${Date.now()}`;
+    if (this.check('STRING')) {
+      name = this.parseValue() as string;
+    } else if (this.check('IDENTIFIER') && !this.check('LBRACE')) {
+      name = this.expectIdentifier();
+    }
+
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: HoloLightProperty[] = [];
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      const value = this.parseValue();
+      properties.push({ type: 'LightProperty', key, value });
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    return { type: 'Light', name, lightType, properties };
   }
 
   /**

@@ -34,6 +34,9 @@ pub enum Token {
     #[token("animation")]
     Animation,
     
+    #[token("keyframes")]
+    Keyframes,
+    
     #[token("spatial_group")]
     SpatialGroup,
     

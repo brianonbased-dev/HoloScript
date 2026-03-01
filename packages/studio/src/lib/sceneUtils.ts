@@ -4,6 +4,19 @@
  * Common utilities for scene graph manipulation, traversal, and queries.
  */
 
+// Re-export scene graph utilities (including duplicateNode which supersedes the local version)
+export {
+  duplicateNode,
+  groupNodes,
+  flattenSceneGraph,
+  getDescendants,
+  removeNodeWithDescendants,
+  reorderScenes,
+  duplicateScene,
+  sortScenesAlpha,
+  computeBounds,
+} from './scene/sceneUtils';
+
 import type { SceneNode } from './serializer';
 
 export interface BoundingBox {
@@ -137,14 +150,4 @@ export function removeNode(nodes: SceneNode[], id: string): SceneNode[] {
     .map(n => ({ ...n, children: removeNode(n.children, id) }));
 }
 
-/**
- * Duplicate a node (with new IDs).
- */
-export function duplicateNode(node: SceneNode): SceneNode {
-  return {
-    ...node,
-    id: `${node.id}-copy-${Date.now().toString(36).slice(-4)}`,
-    name: `${node.name} (Copy)`,
-    children: node.children.map(duplicateNode),
-  };
-}
+// duplicateNode is re-exported from ./scene/sceneUtils (flat parentId version)

@@ -67,15 +67,49 @@ import {
 } from '@holoscript/linter';
 import { SemanticCompletionProvider } from './SemanticCompletionProvider';
 import { AICompletionProvider } from './ai/AICompletionProvider';
+import { TreeSitterManager, type ContentChange } from './TreeSitterManager';
 
 // Create connection and document manager
 const connection = createConnection(ProposedFeatures.all);
-const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+
+/**
+ * Custom TextDocuments configuration that intercepts content changes.
+ * On every didChange notification the `update` method receives the raw
+ * TextDocumentContentChangeEvent array.  We stash a copy so that
+ * validateDocument can forward them to tree-sitter for incremental parsing.
+ */
+const pendingContentChanges = new Map<string, ContentChange[]>();
+
+const documents: TextDocuments<TextDocument> = new TextDocuments({
+  create(uri, languageId, version, content) {
+    return TextDocument.create(uri, languageId, version, content);
+  },
+  update(document, changes, version) {
+    // Stash the raw content changes for tree-sitter before applying
+    const tsChanges: ContentChange[] = changes.map((c) => {
+      if ('range' in c && c.range) {
+        return {
+          range: c.range,
+          rangeLength: (c as any).rangeLength as number | undefined,
+          text: c.text,
+        };
+      }
+      return { text: c.text };
+    });
+    pendingContentChanges.set(document.uri, tsChanges);
+
+    // Apply changes via the standard TextDocument update
+    return TextDocument.update(document, changes, version);
+  },
+});
 
 // Parser and validator instances
 const parser = new HoloScriptPlusParser();
 const _validator = new HoloScriptValidator();
 const linter = new HoloScriptLinter();
+
+// Tree-sitter incremental parsing
+const treeSitter = new TreeSitterManager();
 
 // Semantic intelligence
 let semanticCompletion: SemanticCompletionProvider | null = null;
@@ -93,6 +127,8 @@ const documentCache = new Map<
     version: number;
     symbols: Map<string, { node: HSPlusNode; line: number; column: number }>;
     typeChecker: HoloScriptTypeChecker;
+    /** tree-sitter concrete syntax tree (null when tree-sitter is unavailable) */
+    tsTree: import('tree-sitter').Tree | null;
   }
 >();
 
@@ -324,6 +360,10 @@ connection.onInitialize(async (_params: InitializeParams): Promise<InitializeRes
     }
   }
 
+  // Initialize tree-sitter incremental parsing (non-blocking, graceful degradation)
+  const tsReady = await treeSitter.initialize();
+  console.error(`[LSP] Tree-sitter incremental parsing: ${tsReady ? 'enabled' : 'disabled (native binding unavailable)'}`);
+
   return {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
@@ -351,15 +391,66 @@ documents.onDidChangeContent((change) => {
 });
 
 /**
- * Parse and validate a document, sending diagnostics
+ * Parse and validate a document, sending diagnostics.
+ *
+ * Uses a dual-parser strategy:
+ *   1. **tree-sitter** (incremental) -- fast concrete syntax tree with accurate
+ *      error-node ranges.  On each keystroke only the changed region is
+ *      re-parsed, making it O(edit-size) rather than O(file-size).
+ *   2. **HoloScriptPlusParser** (full) -- produces the typed AST used by the
+ *      type checker, symbol table, linter, and all other IDE features.
+ *
+ * tree-sitter diagnostics are tagged with source 'holoscript-ts' so they
+ * can be distinguished from the existing 'holoscript' parser diagnostics.
  */
 async function validateDocument(document: TextDocument): Promise<void> {
   const text = document.getText();
+  const uri = document.uri;
   const diagnostics: Diagnostic[] = [];
   const symbols = new Map<string, { node: HSPlusNode; line: number; column: number }>();
 
+  // ── Tree-sitter incremental parse ─────────────────────────────────────────
+  let tsTree: import('tree-sitter').Tree | null = null;
+
+  if (treeSitter.isReady()) {
+    try {
+      // Consume the stashed content changes (set by our custom TextDocuments
+      // configuration's `update` method).  If there are none this is either
+      // the first open or a full-document replacement, so we do a full parse.
+      const changes = pendingContentChanges.get(uri);
+      pendingContentChanges.delete(uri);
+
+      if (changes && changes.length > 0 && treeSitter.getTree(uri)) {
+        // Incremental re-parse: apply edits to old tree, then re-parse
+        tsTree = treeSitter.updateDocument(uri, text, document.version, changes);
+      } else {
+        // First open or no incremental changes available -- full parse
+        tsTree = treeSitter.openDocument(uri, text, document.version);
+      }
+
+      // Extract syntax error diagnostics from the tree-sitter CST
+      const tsDiags = treeSitter.extractDiagnostics(uri);
+      for (const d of tsDiags) {
+        diagnostics.push({
+          severity: d.severity === 'error' ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning,
+          range: {
+            start: { line: d.startLine, character: d.startCharacter },
+            end: { line: d.endLine, character: d.endCharacter },
+          },
+          message: d.message,
+          source: 'holoscript-ts',
+        });
+      }
+    } catch (tsErr) {
+      console.error(
+        `[TreeSitter] Parse failed for ${uri}: ${tsErr instanceof Error ? tsErr.message : tsErr}`,
+      );
+      // Non-fatal: fall through to HSPlus parser
+    }
+  }
+
+  // ── HSPlus parser (full re-parse for AST / type checking / symbols) ───────
   try {
-    // Parse the document using the new HSPlus parser
     const parseResult: HSPlusCompileResult = parser.parse(text);
 
     // 1. Handle Parse Errors (Integrated Multi-Error Reporting)
@@ -432,19 +523,20 @@ async function validateDocument(document: TextDocument): Promise<void> {
 
       // LRU eviction before adding new entry
       evictLRUDocuments();
-      touchDocument(document.uri);
+      touchDocument(uri);
 
-      // Cache the parsed result including the type checker
-      documentCache.set(document.uri, {
+      // Cache the parsed result including the type checker and tree-sitter tree
+      documentCache.set(uri, {
         ast: parseResult.ast,
         version: document.version,
         symbols,
         typeChecker,
+        tsTree,
       });
     }
 
     // 3. Linter Logic
-    const lintResult = linter.lint(text, document.uri);
+    const lintResult = linter.lint(text, uri);
     for (const diag of lintResult.diagnostics) {
       diagnostics.push({
         severity: mapLintSeverity(diag.severity),
@@ -470,7 +562,7 @@ async function validateDocument(document: TextDocument): Promise<void> {
   }
 
   // Send diagnostics to client
-  connection.sendDiagnostics({ uri: document.uri, diagnostics });
+  connection.sendDiagnostics({ uri, diagnostics });
 }
 
 /**
@@ -1212,6 +1304,8 @@ function mapLintSeverity(severity: LintSeverity): DiagnosticSeverity {
 documents.onDidClose((event) => {
   const uri = event.document.uri;
   documentCache.delete(uri);
+  pendingContentChanges.delete(uri);
+  treeSitter.closeDocument(uri);
   const index = documentAccessOrder.indexOf(uri);
   if (index > -1) {
     documentAccessOrder.splice(index, 1);

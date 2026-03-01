@@ -4,6 +4,25 @@
  * Pre-built and user-saved poses for character animation.
  */
 
+// Re-export viral pose library and utilities
+export {
+  type BonePose,
+  type ViralPose,
+  type PoseTransition,
+  VIRAL_POSES,
+  getAllPoses,
+  getPopularPoses,
+  getPosesByCategory,
+  getTrendingPoses,
+  getPoseById,
+  getRandomPose,
+  getPosesByDifficulty,
+  interpolatePoses,
+  searchPoses,
+  EASING_FUNCTIONS,
+  applyEasing,
+} from './character/poseLibrary';
+
 export interface Vec3 { x: number; y: number; z: number }
 
 export interface PoseData {
@@ -71,9 +90,9 @@ export function posesByCategory(category: PoseCategory, customPoses: PoseData[] 
 }
 
 /**
- * Search poses by name or tags.
+ * Search built-in poses by name or tags.
  */
-export function searchPoses(query: string, customPoses: PoseData[] = []): PoseData[] {
+export function searchBuiltInPoses(query: string, customPoses: PoseData[] = []): PoseData[] {
   const q = query.toLowerCase();
   return allPoses(customPoses).filter(p =>
     p.name.toLowerCase().includes(q) || p.tags.some(t => t.includes(q))

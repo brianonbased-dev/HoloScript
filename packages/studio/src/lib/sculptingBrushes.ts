@@ -4,6 +4,18 @@
  * Brush definitions, falloff curves, and stroke application for mesh sculpting.
  */
 
+// Re-export mesh sculpting brush functions
+export {
+  type BrushParameters,
+  applyGrabBrush,
+  applySmoothBrush,
+  applyInflateBrush,
+  applyCreaseBrush,
+  applySymmetryMirror,
+  subdivideMesh,
+  reduceMesh,
+} from './sculpt/sculptingBrushes';
+
 export interface Vec3 { x: number; y: number; z: number }
 
 export interface SculptBrush {

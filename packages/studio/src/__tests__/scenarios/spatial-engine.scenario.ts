@@ -299,7 +299,7 @@ describe('PhysicsStep', () => {
 // RenderGraph Tests
 // ============================================================================
 
-import { RenderGraph } from '../../../../core/src/render/RenderGraph';
+import { RenderGraph } from '../../../../core/src/rendering/RenderGraph';
 
 describe('RenderGraph', () => {
   it('topologically sorts passes by dependencies', () => {

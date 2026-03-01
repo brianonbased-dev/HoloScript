@@ -175,6 +175,7 @@ module.exports = grammar({
     _object_content: ($) =>
       choice(
         $.property,
+        $.object,
         $.state_block,
         $.networked_block,
         $.physics_block,

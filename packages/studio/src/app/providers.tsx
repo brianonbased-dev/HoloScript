@@ -5,6 +5,7 @@ import { useState, type ReactNode, createContext, useContext, useCallback } from
 import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AppShell } from '../components/AppShell';
+import { DevToolsInit } from '../components/DevToolsInit';
 
 // ═══════════════════════════════════════════════════════════════════
 // Theme Context
@@ -114,6 +115,7 @@ export function Providers({ children }: { children: ReactNode }) {
             <AppShell>{children}</AppShell>
           </ErrorBoundary>
           <ToastContainer toasts={toasts} onRemove={removeToast} />
+          <DevToolsInit />
         </ToastContext.Provider>
       </ThemeContext.Provider>
     </QueryClientProvider>

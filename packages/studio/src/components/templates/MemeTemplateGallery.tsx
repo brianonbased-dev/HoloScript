@@ -13,7 +13,6 @@ import { X, Search, Flame, TrendingUp, Star, Sparkles } from 'lucide-react';
 import {
   MEME_TEMPLATES,
   searchTemplates,
-  getTemplateConfiguration,
   type MemeTemplate,
 } from '@/lib/memeTemplates';
 import { useSceneStore } from '@/lib/store';
@@ -115,42 +114,8 @@ export function MemeTemplateGallery({ onClose, onApply }: MemeTemplateGalleryPro
   const setMetadata = useSceneStore((s) => s.setMetadata);
 
   const handleSelect = (meme: MemeTemplate) => {
-    const config = getTemplateConfiguration(meme);
-
-    // Generate HoloScript code that creates the character in the 3D viewport
-    const skinColor = meme.defaultMaterials?.skin === 'green-frog' ? '#4ade80'
-      : meme.defaultMaterials?.skin === 'pale-white' ? '#e5e7eb'
-      : meme.defaultMaterials?.skin === 'tan-alpha' ? '#d4a574'
-      : meme.defaultMaterials?.skin === 'shiba-fur' ? '#f59e0b'
-      : '#a3a3a3';
-
-    const traits = config.traits.map(t => `@${t.name}`).join(' ');
-
-    const holoCode = `scene "${meme.displayName}" {
-  // ${meme.description}
-  sphere "${meme.displayName} Head" ${traits}
-    position: 0 1.6 0
-    size: 0.8
-    color: ${skinColor}
-  cylinder "Body"
-    position: 0 0.8 0
-    radius: 0.3
-    height: 1.0
-    color: ${skinColor}
-  sphere "Left Eye"
-    position: -0.15 1.75 0.3
-    size: 0.12
-    color: #ffffff
-  sphere "Right Eye"
-    position: 0.15 1.75 0.3
-    size: 0.12
-    color: #ffffff
-  light type: ambient intensity: 0.5
-  light type: directional position: 3 5 3 intensity: 1.0
-  camera orbit distance: 4 auto-rotate: true
-}`;
-
-    setCode(holoCode);
+    // Use the real HoloScript composition code from the template
+    setCode(meme.holoScript);
     setMetadata({ name: meme.displayName });
     setApplied(meme.id);
     onApply?.(meme);

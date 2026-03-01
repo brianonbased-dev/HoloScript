@@ -5,6 +5,12 @@
  * for character posing and procedural animation.
  */
 
+// Re-export THREE.js IK solver class
+export { IKSolver } from './sculpt/ikSolver';
+
+/*
+ */
+
 export interface Vec3 { x: number; y: number; z: number }
 
 export interface IKJoint {

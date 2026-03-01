@@ -65,7 +65,8 @@ export type ExportTarget =
   | 'multi-layer' // Multi-layer compositions
   | 'incremental' // Incremental compilation
   | 'state'       // State machine compilation
-  | 'trait-composition'; // Trait composition
+  | 'trait-composition' // Trait composition
+  | 'tsl';        // Trait Shader Language (trait-to-shader)
 
 /**
  * Circuit configuration per target

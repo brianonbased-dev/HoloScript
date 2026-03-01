@@ -5,6 +5,19 @@
  * distance-based simplification for sketch, paint, and path tools.
  */
 
+// Re-export 3D stroke smoothing utilities (strokeLength supersedes the local Vec2 version)
+export {
+  type Vec3,
+  catmullRomPoint,
+  catmullRomInterpolate,
+  strokeLength,
+  resampleStroke,
+  gaussianSmoothStroke,
+} from './sculpt/strokeSmoothing';
+
+/*
+ */
+
 export interface Vec2 { x: number; y: number }
 
 export interface StrokePoint {
@@ -98,18 +111,7 @@ function perpendicularDistance(point: Vec2, lineStart: Vec2, lineEnd: Vec2): num
   return Math.abs(dy * point.x - dx * point.y + lineEnd.x * lineStart.y - lineEnd.y * lineStart.x) / len;
 }
 
-/**
- * Calculate stroke length (sum of distances between consecutive points).
- */
-export function strokeLength(points: StrokePoint[]): number {
-  let len = 0;
-  for (let i = 1; i < points.length; i++) {
-    const dx = points[i].position.x - points[i - 1].position.x;
-    const dy = points[i].position.y - points[i - 1].position.y;
-    len += Math.sqrt(dx * dx + dy * dy);
-  }
-  return len;
-}
+// strokeLength is re-exported from ./sculpt/strokeSmoothing (Vec3 version)
 
 /**
  * Calculate average pressure along a stroke.

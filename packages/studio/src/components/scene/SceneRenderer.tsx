@@ -16,6 +16,9 @@ import { PhysicsDebugOverlay } from '@/components/physics/PhysicsDebugOverlay';
 import { usePhysicsStore } from '@/lib/physicsStore';
 import { SketchCanvas } from '@/components/sketch/SketchCanvas';
 import { SketchToolbar } from '@/components/sketch/SketchToolbar';
+import { useSceneGraphSync } from '@/hooks/useSceneGraphSync';
+import { useBuilderStore, snapToGrid } from '@/lib/stores/builderStore';
+import { BuilderHotbar } from '@/components/builder/BuilderHotbar';
 import * as THREE from 'three';
 
 interface SceneRendererProps {
@@ -75,6 +78,8 @@ function GizmoController() {
   const selectedId         = useEditorStore((s) => s.selectedObjectId);
   const gizmoMode          = useEditorStore((s) => s.gizmoMode);
   const updateNodeTransform = useSceneGraphStore((s) => s.updateNodeTransform);
+  const gridSnap           = useBuilderStore((s) => s.gridSnap);
+  const gridSize           = useBuilderStore((s) => s.gridSize);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
 
@@ -106,8 +111,114 @@ function GizmoController() {
       object={target}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mode={gizmoMode as any}
+      translationSnap={gridSnap ? gridSize : undefined}
+      rotationSnap={gridSnap ? Math.PI / 12 : undefined}
+      scaleSnap={gridSnap ? 0.25 : undefined}
       onObjectChange={handleChange}
     />
+  );
+}
+
+// ─── Placement System ────────────────────────────────────────────────────────
+
+/**
+ * GhostPreview — semi-transparent shape that follows the mouse on the ground
+ */
+function GhostPreview({ position }: { position: [number, number, number] }) {
+  const activeShape = useBuilderStore((s) => s.hotbarSlots[s.activeSlot]);
+  const builderMode = useBuilderStore((s) => s.builderMode);
+
+  if (builderMode !== 'place') return null;
+
+  const getGhostGeometry = () => {
+    switch (activeShape.geometry) {
+      case 'sphere':   return <sphereGeometry args={[0.5, 32, 32]} />;
+      case 'cylinder': return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
+      case 'cone':     return <coneGeometry args={[0.5, 1, 4]} />;
+      case 'torus':    return <torusGeometry args={[0.5, 0.15, 16, 32]} />;
+      case 'capsule':  return <capsuleGeometry args={[0.3, 0.5, 4, 16]} />;
+      case 'plane':    return <planeGeometry args={[1, 1]} />;
+      case 'ring':     return <ringGeometry args={[0.3, 0.5, 32]} />;
+      default:         return <boxGeometry args={[1, 1, 1]} />;
+    }
+  };
+
+  return (
+    <mesh position={position}>
+      {getGhostGeometry()}
+      <meshBasicMaterial
+        color={activeShape.color}
+        transparent
+        opacity={0.35}
+        wireframe={false}
+      />
+    </mesh>
+  );
+}
+
+/**
+ * PlacementPlane — invisible ground plane for click-to-place.
+ * In 'place' mode: click → create shape at snapped grid position.
+ * In 'break' mode: handled by MeshNode.
+ */
+function PlacementPlane() {
+  const builderMode  = useBuilderStore((s) => s.builderMode);
+  const gridSnap     = useBuilderStore((s) => s.gridSnap);
+  const gridSize     = useBuilderStore((s) => s.gridSize);
+  const addNode      = useSceneGraphStore((s) => s.addNode);
+  const getActiveShape = useBuilderStore((s) => s.getActiveShape);
+  const [ghostPos, setGhostPos] = useState<[number, number, number]>([0, 0.5, 0]);
+
+  const handlePointerMove = useCallback(
+    (e: any) => {
+      if (builderMode !== 'place') return;
+      e.stopPropagation();
+      const point = e.point as THREE.Vector3;
+      const x = gridSnap ? snapToGrid(point.x, gridSize) : point.x;
+      const z = gridSnap ? snapToGrid(point.z, gridSize) : point.z;
+      setGhostPos([x, 0.5, z]);
+    },
+    [builderMode, gridSnap, gridSize]
+  );
+
+  const handleClick = useCallback(
+    (e: any) => {
+      if (builderMode !== 'place') return;
+      e.stopPropagation();
+      const shape = getActiveShape();
+      const point = e.point as THREE.Vector3;
+      const x = gridSnap ? snapToGrid(point.x, gridSize) : point.x;
+      const z = gridSnap ? snapToGrid(point.z, gridSize) : point.z;
+      const nodeId = `placed-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      addNode({
+        id: nodeId,
+        name: `${shape.label}-${nodeId.slice(-4)}`,
+        type: 'mesh',
+        parentId: null,
+        traits: [],
+        position: [x, 0.5, z],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+      });
+    },
+    [builderMode, gridSnap, gridSize, addNode, getActiveShape]
+  );
+
+  return (
+    <>
+      {/* Invisible ground plane for raycasting */}
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0, 0]}
+        onPointerMove={handlePointerMove}
+        onClick={handleClick}
+        visible={false}
+      >
+        <planeGeometry args={[100, 100]} />
+        <meshBasicMaterial />
+      </mesh>
+      <GhostPreview position={ghostPos} />
+    </>
   );
 }
 
@@ -157,6 +268,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   const setGizmoMode     = useEditorStore((s) => s.setGizmoMode);
   const artMode          = useEditorStore((s) => s.artMode);
   const showPerfOverlay  = useEditorStore((s) => s.showPerfOverlay);
+
+  // Sync R3F tree → scene graph store (flattens nested native asset children)
+  useSceneGraphSync(r3fTree);
 
   // ─── XR support detection ──────────────────────────────────────────────────
   const [xrSupport, setXrSupport] = useState<{ vr: boolean; ar: boolean }>({ vr: false, ar: false });
@@ -265,8 +379,11 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         {/* Performance profiler overlay */}
         <PerformanceOverlay open={profilerOpen || showPerfOverlay} />
 
-        {/* Transform gizmo — must be inside Canvas */}
+        {/* Transform gizmo — must be inside Canvas (now with grid snap) */}
         <GizmoController />
+
+        {/* Placement system — ground plane + ghost preview */}
+        <PlacementPlane />
 
         {/* Sketch mode — freehand 3D strokes */}
         {artMode === 'sketch' && <SketchCanvas />}
@@ -300,6 +417,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
           <SketchToolbar />
         </div>
       )}
+
+      {/* Builder Hotbar — Minecraft-style bottom toolbar */}
+      <BuilderHotbar />
 
       {isDragOver && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded border-2 border-dashed border-studio-accent bg-studio-accent/10 backdrop-blur-[1px]">

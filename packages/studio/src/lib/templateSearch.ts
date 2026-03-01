@@ -4,6 +4,9 @@
  * Fuzzy search, scoring, and filtering for scene templates.
  */
 
+// Re-export scene template search utilities
+export * from './scene/templateSearch';
+
 import { SCENE_TEMPLATES, type SceneTemplate, type TemplateCategory } from './sceneTemplates';
 
 export interface SearchResult {

@@ -4,6 +4,21 @@
  * Generate character meshes, traits, and backstories from text prompts.
  */
 
+// Re-export AI generation service (Meshy/Rodin APIs)
+export {
+  type AIProvider,
+  type GenerationRequest,
+  type GenerationStatus,
+  startGeneration,
+  pollGenerationStatus,
+  cancelGeneration,
+  isAIGenerationAvailable,
+  getAvailableProviders,
+  estimateGenerationCost,
+  imageToDataUrl,
+  validatePrompt,
+} from './character/aiCharacterGeneration';
+
 export interface CharacterPrompt {
   description: string;
   style: 'realistic' | 'stylized' | 'anime' | 'pixel' | 'low-poly';

@@ -4,6 +4,9 @@
  * Build keyframe animations programmatically for scene objects.
  */
 
+// Re-export THREE.js animation builder (buildClipFromFrames, extractBuiltinAnimations)
+export * from './animation/animationBuilder';
+
 export interface Keyframe {
   time: number;           // seconds
   value: number | number[];

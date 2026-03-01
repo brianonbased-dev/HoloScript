@@ -2,7 +2,8 @@
 
 import type { R3FNode } from '@holoscript/core';
 import { MATERIAL_PRESETS } from '@holoscript/core';
-import { useEditorStore } from '@/lib/store';
+import { useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useBuilderStore } from '@/lib/stores/builderStore';
 
 interface MeshNodeProps {
   node: R3FNode;
@@ -70,6 +71,8 @@ function getMaterialProps(node: R3FNode) {
 export function MeshNode({ node }: MeshNodeProps) {
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
+  const removeNode = useSceneGraphStore((s) => s.removeNode);
+  const builderMode = useBuilderStore((s) => s.builderMode);
 
   const { props } = node;
   const hsType = props.hsType || 'box';
@@ -78,32 +81,60 @@ export function MeshNode({ node }: MeshNodeProps) {
   const rotation = props.rotation || [0, 0, 0];
   const scale = props.scale || [1, 1, 1];
   const isSelected = node.id === selectedId;
+  const isBreakMode = builderMode === 'break';
 
   const matProps = getMaterialProps(node);
 
+  // Recursively render nested children (native asset primitives)
+  const childMeshes = node.children
+    ?.filter((c: R3FNode) => c.type === 'mesh')
+    .map((child: R3FNode, i: number) => (
+      <MeshNode key={child.id || `child-${i}`} node={child} />
+    ));
+
   return (
-    <mesh
-      position={position}
-      rotation={rotation}
-      scale={typeof scale === 'number' ? [scale, scale, scale] : scale}
-      onClick={(e: any) => {
-        e.stopPropagation();
-        setSelectedId(node.id || null);
-      }}
-    >
-      {getGeometry(hsType, size)}
-      {/* Use string colors directly — R3F auto-converts them */}
-      <meshPhysicalMaterial
-        {...matProps}
-        emissive={matProps.emissive || undefined}
-        color={matProps.color}
-      />
-      {isSelected && (
-        <mesh>
-          {getGeometry(hsType, size * 1.05)}
-          <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
-        </mesh>
-      )}
-    </mesh>
+    <group>
+      <mesh
+        position={position}
+        rotation={rotation}
+        scale={typeof scale === 'number' ? [scale, scale, scale] : scale}
+        userData={{ nodeId: node.id }}
+        onClick={(e: any) => {
+          e.stopPropagation();
+          if (isBreakMode && node.id) {
+            // Break mode: delete on click
+            removeNode(node.id);
+          } else {
+            setSelectedId(node.id || null);
+          }
+        }}
+        onPointerOver={(e: any) => {
+          if (isBreakMode) {
+            e.stopPropagation();
+            document.body.style.cursor = 'crosshair';
+          }
+        }}
+        onPointerOut={() => {
+          if (isBreakMode) {
+            document.body.style.cursor = 'default';
+          }
+        }}
+      >
+        {getGeometry(hsType, size)}
+        <meshPhysicalMaterial
+          {...matProps}
+          emissive={isBreakMode ? '#ff4444' : (matProps.emissive || undefined)}
+          emissiveIntensity={isBreakMode ? 0.3 : (matProps.emissiveIntensity || 0)}
+          color={matProps.color}
+        />
+        {isSelected && !isBreakMode && (
+          <mesh>
+            {getGeometry(hsType, size * 1.05)}
+            <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
+          </mesh>
+        )}
+      </mesh>
+      {childMeshes}
+    </group>
   );
 }

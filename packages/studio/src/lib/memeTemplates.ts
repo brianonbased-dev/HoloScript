@@ -29,6 +29,9 @@ export interface MemeTemplate {
     mouth?: string;
   };
 
+  // HoloScript composition code (native asset)
+  holoScript: string;
+
   // Metadata
   tags: string[];
   popularity: 'viral' | 'trending' | 'classic' | 'niche';
@@ -78,6 +81,87 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
       eyes: 'pepe-eyes',
       mouth: 'smile-curve',
     },
+    holoScript: `composition "Pepe" {
+  object "Pepe" @animation {
+    position: [0, 0, 0]
+
+    object "Head" {
+      geometry: "sphere"
+      position: [0, 1.6, 0]
+      scale: [0.55, 0.5, 0.45]
+      color: "#4ade80"
+      material: { roughness: 0.6 }
+
+      object "LeftEye" {
+        geometry: "sphere"
+        position: [-0.15, 0.12, 0.35]
+        scale: [0.16, 0.2, 0.06]
+        color: "#ffffff"
+      }
+      object "LeftPupil" {
+        geometry: "sphere"
+        position: [-0.13, 0.12, 0.4]
+        scale: [0.06, 0.08, 0.04]
+        color: "#111111"
+      }
+      object "RightEye" {
+        geometry: "sphere"
+        position: [0.15, 0.12, 0.35]
+        scale: [0.16, 0.2, 0.06]
+        color: "#ffffff"
+      }
+      object "RightPupil" {
+        geometry: "sphere"
+        position: [0.13, 0.12, 0.4]
+        scale: [0.06, 0.08, 0.04]
+        color: "#111111"
+      }
+      object "Mouth" {
+        geometry: "torus"
+        position: [0, -0.1, 0.3]
+        rotation: [15, 0, 0]
+        scale: [0.2, 0.1, 0.05]
+        color: "#e74c3c"
+      }
+    }
+
+    object "Body" {
+      geometry: "sphere"
+      position: [0, 0.85, 0]
+      scale: [0.45, 0.55, 0.35]
+      color: "#4ade80"
+    }
+    object "LeftArm" {
+      geometry: "cylinder"
+      position: [-0.4, 0.9, 0]
+      rotation: [0, 0, 25]
+      scale: [0.08, 0.35, 0.08]
+      color: "#4ade80"
+    }
+    object "RightArm" {
+      geometry: "cylinder"
+      position: [0.4, 0.9, 0]
+      rotation: [0, 0, -25]
+      scale: [0.08, 0.35, 0.08]
+      color: "#4ade80"
+    }
+    object "LeftLeg" {
+      geometry: "cylinder"
+      position: [-0.15, 0.3, 0]
+      scale: [0.09, 0.35, 0.09]
+      color: "#4ade80"
+    }
+    object "RightLeg" {
+      geometry: "cylinder"
+      position: [0.15, 0.3, 0]
+      scale: [0.09, 0.35, 0.09]
+      color: "#4ade80"
+    }
+  }
+
+  ambient_light "Fill" { color: "#e0ffe0" intensity: 0.5 }
+  directional_light "Key" { color: "#ffffff" intensity: 1.0 position: [3, 5, 3] }
+}`,
     tags: ['classic', 'frog', '4chan', 'twitch'],
     popularity: 'classic',
     previewImage: '/assets/templates/pepe.png',
@@ -121,6 +205,77 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
       eyes: 'sad-eyes',
       mouth: 'frown',
     },
+    holoScript: `composition "Wojak" {
+  object "Wojak" @animation {
+    position: [0, 0, 0]
+
+    object "Head" {
+      geometry: "sphere"
+      position: [0, 1.6, 0]
+      scale: [0.5, 0.55, 0.45]
+      color: "#e5e7eb"
+      material: { roughness: 0.7 }
+
+      object "LeftEye" {
+        geometry: "sphere"
+        position: [-0.12, 0.08, 0.35]
+        scale: [0.06, 0.1, 0.04]
+        color: "#222222"
+      }
+      object "RightEye" {
+        geometry: "sphere"
+        position: [0.12, 0.08, 0.35]
+        scale: [0.06, 0.1, 0.04]
+        color: "#222222"
+      }
+      object "Mouth" {
+        geometry: "torus"
+        position: [0, -0.12, 0.3]
+        rotation: [-20, 0, 0]
+        scale: [0.12, 0.06, 0.03]
+        color: "#666666"
+      }
+      object "LeftTear" {
+        geometry: "sphere"
+        position: [-0.12, -0.02, 0.38]
+        scale: [0.03, 0.06, 0.02]
+        color: "#60a5fa"
+        material: { emissive: "#60a5fa", emissiveIntensity: 0.5, opacity: 0.7 }
+      }
+      object "RightTear" {
+        geometry: "sphere"
+        position: [0.12, -0.02, 0.38]
+        scale: [0.03, 0.06, 0.02]
+        color: "#60a5fa"
+        material: { emissive: "#60a5fa", emissiveIntensity: 0.5, opacity: 0.7 }
+      }
+    }
+
+    object "Body" {
+      geometry: "cylinder"
+      position: [0, 0.85, 0]
+      scale: [0.3, 0.55, 0.25]
+      color: "#d1d5db"
+    }
+    object "LeftArm" {
+      geometry: "cylinder"
+      position: [-0.35, 0.85, 0]
+      rotation: [0, 0, 15]
+      scale: [0.07, 0.35, 0.07]
+      color: "#d1d5db"
+    }
+    object "RightArm" {
+      geometry: "cylinder"
+      position: [0.35, 0.85, 0]
+      rotation: [0, 0, -15]
+      scale: [0.07, 0.35, 0.07]
+      color: "#d1d5db"
+    }
+  }
+
+  ambient_light "Fill" { color: "#e0e0ff" intensity: 0.5 }
+  directional_light "Key" { color: "#ffffff" intensity: 1.0 position: [3, 5, 3] }
+}`,
     tags: ['classic', 'feels', '4chan', 'relatable'],
     popularity: 'classic',
     previewImage: '/assets/templates/wojak.png',
@@ -163,6 +318,98 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
       eyes: 'chad-stare',
       mouth: 'smirk',
     },
+    holoScript: `composition "Gigachad" {
+  object "Chad" @physics @animation {
+    position: [0, 0, 0]
+
+    object "Head" {
+      geometry: "cube"
+      position: [0, 2.0, 0]
+      scale: [0.45, 0.5, 0.4]
+      color: "#d4a574"
+      material: { roughness: 0.6 }
+
+      object "Jaw" {
+        geometry: "cube"
+        position: [0, -0.2, 0.05]
+        scale: [0.5, 0.15, 0.35]
+        color: "#c49464"
+      }
+      object "LeftEye" {
+        geometry: "cube"
+        position: [-0.1, 0.05, 0.2]
+        scale: [0.08, 0.04, 0.02]
+        color: "#111111"
+      }
+      object "RightEye" {
+        geometry: "cube"
+        position: [0.1, 0.05, 0.2]
+        scale: [0.08, 0.04, 0.02]
+        color: "#111111"
+      }
+    }
+
+    object "Neck" {
+      geometry: "cylinder"
+      position: [0, 1.7, 0]
+      scale: [0.15, 0.15, 0.15]
+      color: "#d4a574"
+    }
+    object "Torso" {
+      geometry: "cube"
+      position: [0, 1.15, 0]
+      scale: [0.8, 0.9, 0.4]
+      color: "#333333"
+    }
+    object "LeftPec" {
+      geometry: "sphere"
+      position: [-0.2, 1.35, 0.15]
+      scale: [0.2, 0.15, 0.1]
+      color: "#333333"
+    }
+    object "RightPec" {
+      geometry: "sphere"
+      position: [0.2, 1.35, 0.15]
+      scale: [0.2, 0.15, 0.1]
+      color: "#333333"
+    }
+    object "LeftBicep" {
+      geometry: "sphere"
+      position: [-0.55, 1.25, 0]
+      scale: [0.18, 0.25, 0.18]
+      color: "#d4a574"
+    }
+    object "RightBicep" {
+      geometry: "sphere"
+      position: [0.55, 1.25, 0]
+      scale: [0.18, 0.25, 0.18]
+      color: "#d4a574"
+    }
+    object "LeftLeg" {
+      geometry: "cylinder"
+      position: [-0.2, 0.3, 0]
+      scale: [0.12, 0.55, 0.12]
+      color: "#2a2a2a"
+    }
+    object "RightLeg" {
+      geometry: "cylinder"
+      position: [0.2, 0.3, 0]
+      scale: [0.12, 0.55, 0.12]
+      color: "#2a2a2a"
+    }
+
+    object "Aura" {
+      geometry: "sphere"
+      position: [0, 1.2, 0]
+      scale: [1.2, 1.5, 1.0]
+      color: "#FFD700"
+      material: { emissive: "#FFD700", emissiveIntensity: 0.3, opacity: 0.08 }
+    }
+  }
+
+  ambient_light "Fill" { color: "#ffe8cc" intensity: 0.4 }
+  directional_light "Key" { color: "#ffffff" intensity: 1.2 position: [3, 5, 3] }
+}`,
     tags: ['sigma', 'based', 'alpha', 'meme-king'],
     popularity: 'viral',
     previewImage: '/assets/templates/chad.png',
@@ -205,6 +452,98 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
       skin: 'shiba-fur',
       eyes: 'dog-eyes',
     },
+    holoScript: `composition "Doge" {
+  object "Doge" @physics @animation {
+    position: [0, 0, 0]
+
+    object "Body" {
+      geometry: "sphere"
+      position: [0, 0.6, 0]
+      scale: [0.45, 0.4, 0.6]
+      color: "#f59e0b"
+      material: { roughness: 0.8 }
+    }
+    object "Head" {
+      geometry: "sphere"
+      position: [0, 1.0, 0.25]
+      scale: [0.35, 0.35, 0.3]
+      color: "#f59e0b"
+
+      object "Snout" {
+        geometry: "sphere"
+        position: [0, -0.08, 0.25]
+        scale: [0.15, 0.12, 0.15]
+        color: "#fbbf24"
+      }
+      object "Nose" {
+        geometry: "sphere"
+        position: [0, -0.02, 0.4]
+        scale: [0.06, 0.05, 0.04]
+        color: "#111111"
+      }
+      object "LeftEye" {
+        geometry: "sphere"
+        position: [-0.1, 0.08, 0.22]
+        scale: [0.06, 0.07, 0.04]
+        color: "#111111"
+      }
+      object "RightEye" {
+        geometry: "sphere"
+        position: [0.1, 0.08, 0.22]
+        scale: [0.06, 0.07, 0.04]
+        color: "#111111"
+      }
+      object "LeftEar" {
+        geometry: "cone"
+        position: [-0.2, 0.25, 0]
+        rotation: [0, 0, 20]
+        scale: [0.1, 0.2, 0.06]
+        color: "#d97706"
+      }
+      object "RightEar" {
+        geometry: "cone"
+        position: [0.2, 0.25, 0]
+        rotation: [0, 0, -20]
+        scale: [0.1, 0.2, 0.06]
+        color: "#d97706"
+      }
+    }
+    object "FrontLeftLeg" {
+      geometry: "cylinder"
+      position: [-0.15, 0.2, 0.2]
+      scale: [0.06, 0.25, 0.06]
+      color: "#f59e0b"
+    }
+    object "FrontRightLeg" {
+      geometry: "cylinder"
+      position: [0.15, 0.2, 0.2]
+      scale: [0.06, 0.25, 0.06]
+      color: "#f59e0b"
+    }
+    object "BackLeftLeg" {
+      geometry: "cylinder"
+      position: [-0.15, 0.2, -0.2]
+      scale: [0.06, 0.25, 0.06]
+      color: "#f59e0b"
+    }
+    object "BackRightLeg" {
+      geometry: "cylinder"
+      position: [0.15, 0.2, -0.2]
+      scale: [0.06, 0.25, 0.06]
+      color: "#f59e0b"
+    }
+    object "Tail" {
+      geometry: "cylinder"
+      position: [0, 0.75, -0.55]
+      rotation: [-40, 0, 0]
+      scale: [0.04, 0.25, 0.04]
+      color: "#fbbf24"
+    }
+  }
+
+  ambient_light "Fill" { color: "#fff5e0" intensity: 0.5 }
+  directional_light "Key" { color: "#ffffff" intensity: 1.0 position: [3, 5, 3] }
+}`,
     tags: ['classic', 'dog', 'crypto', 'wholesome'],
     popularity: 'classic',
     previewImage: '/assets/templates/doge.png',
@@ -231,6 +570,60 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
       },
     ],
     suggestedAnimations: ['Troll_Laugh', 'Troll_Problem', 'Troll_Dance'],
+    holoScript: `composition "Trollface" {
+  object "Trollface" @animation {
+    position: [0, 0, 0]
+
+    object "Head" {
+      geometry: "sphere"
+      position: [0, 1.5, 0]
+      scale: [0.6, 0.5, 0.4]
+      color: "#f0f0f0"
+
+      object "LeftEye" {
+        geometry: "sphere"
+        position: [-0.15, 0.1, 0.3]
+        scale: [0.1, 0.12, 0.05]
+        color: "#ffffff"
+      }
+      object "LeftPupil" {
+        geometry: "sphere"
+        position: [-0.15, 0.1, 0.35]
+        scale: [0.04, 0.06, 0.03]
+        color: "#111111"
+      }
+      object "RightEye" {
+        geometry: "sphere"
+        position: [0.18, 0.08, 0.3]
+        scale: [0.08, 0.1, 0.05]
+        color: "#ffffff"
+      }
+      object "RightPupil" {
+        geometry: "sphere"
+        position: [0.18, 0.08, 0.35]
+        scale: [0.03, 0.05, 0.03]
+        color: "#111111"
+      }
+      object "Grin" {
+        geometry: "torus"
+        position: [0.05, -0.15, 0.25]
+        rotation: [-10, 0, 5]
+        scale: [0.3, 0.12, 0.05]
+        color: "#333333"
+      }
+    }
+
+    object "Body" {
+      geometry: "cylinder"
+      position: [0, 0.8, 0]
+      scale: [0.25, 0.5, 0.2]
+      color: "#f0f0f0"
+    }
+  }
+
+  ambient_light "Fill" { color: "#ffffff" intensity: 0.5 }
+  directional_light "Key" { color: "#ffffff" intensity: 1.0 position: [3, 5, 3] }
+}`,
     tags: ['classic', 'rage', '2010s'],
     popularity: 'classic',
   },
@@ -257,6 +650,68 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
       },
     ],
     suggestedAnimations: ['Cat_Stare', 'Cat_Yell', 'Cat_Confusion'],
+    holoScript: `composition "SmudgeCat" {
+  object "Cat" @animation {
+    position: [0, 0, 0]
+
+    object "Body" {
+      geometry: "sphere"
+      position: [0, 0.5, 0]
+      scale: [0.35, 0.3, 0.5]
+      color: "#f5f0e8"
+      material: { roughness: 0.9 }
+    }
+    object "Head" {
+      geometry: "sphere"
+      position: [0, 0.9, 0.2]
+      scale: [0.35, 0.3, 0.3]
+      color: "#f5f0e8"
+
+      object "LeftEar" {
+        geometry: "cone"
+        position: [-0.15, 0.25, 0]
+        scale: [0.08, 0.15, 0.06]
+        color: "#e8d8c8"
+      }
+      object "RightEar" {
+        geometry: "cone"
+        position: [0.15, 0.25, 0]
+        scale: [0.08, 0.15, 0.06]
+        color: "#e8d8c8"
+      }
+      object "LeftEye" {
+        geometry: "sphere"
+        position: [-0.1, 0.05, 0.22]
+        scale: [0.07, 0.05, 0.04]
+        color: "#4ade80"
+        material: { emissive: "#4ade80", emissiveIntensity: 0.5 }
+      }
+      object "RightEye" {
+        geometry: "sphere"
+        position: [0.1, 0.05, 0.22]
+        scale: [0.07, 0.05, 0.04]
+        color: "#4ade80"
+        material: { emissive: "#4ade80", emissiveIntensity: 0.5 }
+      }
+      object "Nose" {
+        geometry: "sphere"
+        position: [0, -0.02, 0.28]
+        scale: [0.04, 0.03, 0.03]
+        color: "#ffaaaa"
+      }
+    }
+    object "Tail" {
+      geometry: "cylinder"
+      position: [0, 0.5, -0.45]
+      rotation: [-50, 0, 0]
+      scale: [0.04, 0.3, 0.04]
+      color: "#e8d8c8"
+    }
+  }
+
+  ambient_light "Fill" { color: "#fff5ee" intensity: 0.5 }
+  directional_light "Key" { color: "#ffffff" intensity: 1.0 position: [3, 5, 3] }
+}`,
     tags: ['viral', 'cat', '2019', 'wholesome'],
     popularity: 'viral',
   },
@@ -281,6 +736,98 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
       },
     ],
     suggestedAnimations: ['SpongeBob_Mock', 'SpongeBob_Laugh'],
+    holoScript: `composition "MockingSpongeBob" {
+  object "SpongeBob" @animation {
+    position: [0, 0, 0]
+
+    object "Body" {
+      geometry: "cube"
+      position: [0, 0.9, 0]
+      scale: [0.5, 0.7, 0.2]
+      color: "#FFD700"
+      material: { roughness: 0.8 }
+
+      object "Pants" {
+        geometry: "cube"
+        position: [0, -0.35, 0]
+        scale: [1.0, 0.3, 1.0]
+        color: "#8B4513"
+      }
+      object "Tie" {
+        geometry: "cube"
+        position: [0, -0.05, 0.11]
+        scale: [0.1, 0.2, 0.02]
+        color: "#ff0000"
+      }
+    }
+    object "Head" {
+      geometry: "cube"
+      position: [0, 1.55, 0]
+      scale: [0.45, 0.4, 0.2]
+      color: "#FFD700"
+
+      object "LeftEye" {
+        geometry: "sphere"
+        position: [-0.1, 0.05, 0.1]
+        scale: [0.1, 0.13, 0.05]
+        color: "#ffffff"
+      }
+      object "LeftPupil" {
+        geometry: "sphere"
+        position: [-0.1, 0.05, 0.14]
+        scale: [0.04, 0.05, 0.03]
+        color: "#2196F3"
+      }
+      object "RightEye" {
+        geometry: "sphere"
+        position: [0.1, 0.05, 0.1]
+        scale: [0.1, 0.13, 0.05]
+        color: "#ffffff"
+      }
+      object "RightPupil" {
+        geometry: "sphere"
+        position: [0.1, 0.05, 0.14]
+        scale: [0.04, 0.05, 0.03]
+        color: "#2196F3"
+      }
+      object "Nose" {
+        geometry: "sphere"
+        position: [0, -0.02, 0.12]
+        scale: [0.06, 0.06, 0.08]
+        color: "#FFD700"
+      }
+    }
+    object "LeftArm" {
+      geometry: "cylinder"
+      position: [-0.35, 0.9, 0]
+      rotation: [0, 0, 40]
+      scale: [0.04, 0.3, 0.04]
+      color: "#FFD700"
+    }
+    object "RightArm" {
+      geometry: "cylinder"
+      position: [0.35, 0.9, 0]
+      rotation: [0, 0, -40]
+      scale: [0.04, 0.3, 0.04]
+      color: "#FFD700"
+    }
+    object "LeftLeg" {
+      geometry: "cylinder"
+      position: [-0.1, 0.15, 0]
+      scale: [0.04, 0.25, 0.04]
+      color: "#FFD700"
+    }
+    object "RightLeg" {
+      geometry: "cylinder"
+      position: [0.1, 0.15, 0]
+      scale: [0.04, 0.25, 0.04]
+      color: "#FFD700"
+    }
+  }
+
+  ambient_light "Fill" { color: "#ffffcc" intensity: 0.5 }
+  directional_light "Key" { color: "#ffffff" intensity: 1.0 position: [3, 5, 3] }
+}`,
     tags: ['classic', 'nickelodeon', 'text-meme'],
     popularity: 'trending',
   },
@@ -307,6 +854,65 @@ export const MEME_TEMPLATES: MemeTemplate[] = [
       },
     ],
     suggestedAnimations: ['Brain_Expand', 'Brain_Glow', 'Brain_Shrink'],
+    holoScript: `composition "GalaxyBrain" {
+  object "Figure" @animation {
+    position: [0, 0, 0]
+
+    object "Head" {
+      geometry: "sphere"
+      position: [0, 1.6, 0]
+      scale: [0.4, 0.45, 0.4]
+      color: "#d1d5db"
+
+      object "Brain" {
+        geometry: "sphere"
+        position: [0, 0.2, 0]
+        scale: [0.5, 0.4, 0.45]
+        color: "#ff88cc"
+        material: { roughness: 0.6 }
+      }
+      object "BrainGlow" {
+        geometry: "sphere"
+        position: [0, 0.2, 0]
+        scale: [0.65, 0.55, 0.6]
+        color: "#cc44ff"
+        material: { emissive: "#cc44ff", emissiveIntensity: 2.0, opacity: 0.15 }
+      }
+      object "BrainAura" {
+        geometry: "sphere"
+        position: [0, 0.2, 0]
+        scale: [1.0, 0.9, 0.9]
+        color: "#4488ff"
+        material: { emissive: "#4488ff", emissiveIntensity: 1.0, opacity: 0.06 }
+      }
+      object "LeftEye" {
+        geometry: "sphere"
+        position: [-0.1, -0.02, 0.35]
+        scale: [0.05, 0.05, 0.03]
+        color: "#ffffff"
+        material: { emissive: "#ffffff", emissiveIntensity: 3.0 }
+      }
+      object "RightEye" {
+        geometry: "sphere"
+        position: [0.1, -0.02, 0.35]
+        scale: [0.05, 0.05, 0.03]
+        color: "#ffffff"
+        material: { emissive: "#ffffff", emissiveIntensity: 3.0 }
+      }
+    }
+
+    object "Body" {
+      geometry: "cylinder"
+      position: [0, 0.85, 0]
+      scale: [0.2, 0.5, 0.15]
+      color: "#555555"
+    }
+  }
+
+  ambient_light "Fill" { color: "#1a1a2e" intensity: 0.3 }
+  directional_light "Key" { color: "#8888ff" intensity: 0.8 position: [3, 5, 3] }
+  point_light "BrainLight" { color: "#cc44ff" intensity: 2.0 position: [0, 2.0, 0] }
+}`,
     tags: ['IQ', 'smart', 'galaxy'],
     popularity: 'trending',
   },
