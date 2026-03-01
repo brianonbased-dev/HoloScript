@@ -104,3 +104,37 @@ export {
   hasSignatureHeaders,
   formatSignatureError,
 } from './PopUtils';
+
+// Per-package permission manifest
+export {
+  PackageTier,
+  type PackagePermission,
+  PACKAGE_PERMISSION_MANIFEST,
+  PACKAGE_PERMISSIONS_BY_NAME,
+  PACKAGE_PERMISSIONS_BY_PATH,
+  getPackagesByTier,
+  getWritablePackages,
+  getSecretHandlingPackages,
+  getNetworkAccessPackages,
+  getManifestSummary,
+} from './PackagePermissionManifest';
+
+// Package scope enforcer
+export {
+  type ScopeDecision,
+  type ScopeAuditEntry,
+  type ScopeEnforcerConfig,
+  PackageScopeEnforcer,
+  getScopeEnforcer,
+  resetScopeEnforcer,
+} from './PackageScopeEnforcer';
+
+// Agent commit signing
+export {
+  type CodeChange,
+  type AgentCommitMetadata,
+  type CommitVerificationResult,
+  AgentCommitSigner,
+  getCommitSigner,
+  resetCommitSigner,
+} from './AgentCommitSigner';
