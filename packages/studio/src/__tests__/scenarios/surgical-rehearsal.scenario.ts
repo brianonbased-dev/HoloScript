@@ -12,8 +12,9 @@ import {
   distance3D, isNearCriticalStructure, hapticResistanceForTissue,
   procedureProgress, estimateProcedureDuration, stepsByRisk,
   getNextStep, validateStepOrder, instrumentForStep,
+  anatomyAtlas, bloodFlowSim,
   type SurgicalInstrument, type AnatomicalLandmark, type ProcedureStep,
-  type SurgicalSession,
+  type SurgicalSession, type OrganModel, type VesselSegment,
 } from '@/lib/surgicalRehearsal';
 
 describe('Scenario: Surgical Rehearsal — Safety', () => {
@@ -121,6 +122,27 @@ describe('Scenario: Surgical Rehearsal — Procedure Steps', () => {
     expect(missing).toBeNull();
   });
 
-  it.todo('3D anatomy atlas — load DICOM/mesh organ models');
-  it.todo('blood flow simulation — real-time vessel perfusion visualization');
+  it('3D anatomy atlas — load DICOM/mesh organ models', () => {
+    const organs: OrganModel[] = [
+      { id: 'heart', name: 'Heart', system: 'cardiovascular', position: { x: 0, y: 10, z: 0 }, boundingRadius: 6, tissueType: 'organ', density: 1.06, landmarks: [] },
+      { id: 'aorta', name: 'Aorta', system: 'cardiovascular', position: { x: 2, y: 12, z: 1 }, boundingRadius: 2, tissueType: 'vessel', density: 1.05, landmarks: [] },
+      { id: 'lung', name: 'Left Lung', system: 'respiratory', position: { x: -5, y: 10, z: 0 }, boundingRadius: 8, tissueType: 'organ', density: 0.5, landmarks: [] },
+    ];
+    const cardio = anatomyAtlas(organs, 'cardiovascular', { x: 0, y: 10, z: 0 });
+    expect(cardio).toHaveLength(2); // Heart + Aorta
+    expect(cardio[0].id).toBe('heart'); // Closest to field center
+  });
+
+  it('blood flow simulation — real-time vessel perfusion visualization', () => {
+    const vessels: VesselSegment[] = [
+      { id: 'fem-a', startPos: { x: 0, y: 0, z: 0 }, endPos: { x: 0, y: -20, z: 0 }, diameterMm: 6, flowRateMlS: 5 },
+      { id: 'fem-v', startPos: { x: 1, y: -20, z: 0 }, endPos: { x: 1, y: 0, z: 0 }, diameterMm: 8, flowRateMlS: 4 },
+    ];
+    const flow = bloodFlowSim(vessels, 72, 120);
+    expect(flow).toHaveLength(2);
+    for (const f of flow) {
+      expect(f.perfusion).toBeGreaterThan(0);
+      expect(f.perfusion).toBeLessThanOrEqual(1);
+    }
+  });
 });

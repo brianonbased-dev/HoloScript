@@ -122,3 +122,80 @@ export function thrillScore(ride: RideProfile): number {
   const durationFactor = Math.min(10, ride.durationSec / 30);
   return Math.round(speedFactor + heightFactor + gFactor + durationFactor);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Crowd Flow Simulation (Agent-Based)
+// ═══════════════════════════════════════════════════════════════════
+
+export interface CrowdAgent {
+  id: string;
+  position: Vec2;
+  target: Vec2;
+  speed: number;
+}
+
+/**
+ * Simulate crowd flow: each agent moves toward its target, avoiding
+ * other agents. Returns agent positions after `steps` iterations.
+ */
+export function crowdFlowSimulation(
+  agents: CrowdAgent[],
+  steps: number,
+  dt: number,
+  avoidanceRadius: number
+): CrowdAgent[] {
+  const result = agents.map(a => ({ ...a, position: { ...a.position }, target: { ...a.target } }));
+
+  for (let s = 0; s < steps; s++) {
+    for (const agent of result) {
+      // Direction to target
+      let dx = agent.target.x - agent.position.x;
+      let dy = agent.target.y - agent.position.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 0.1) continue; // Arrived
+
+      dx /= dist; dy /= dist;
+
+      // Avoidance: push away from nearby agents
+      for (const other of result) {
+        if (other.id === agent.id) continue;
+        const ox = agent.position.x - other.position.x;
+        const oy = agent.position.y - other.position.y;
+        const od = Math.sqrt(ox * ox + oy * oy);
+        if (od < avoidanceRadius && od > 0.01) {
+          dx += (ox / od) * 0.5;
+          dy += (oy / od) * 0.5;
+        }
+      }
+
+      // Normalize and apply
+      const mag = Math.sqrt(dx * dx + dy * dy);
+      if (mag > 0.01) {
+        agent.position.x += (dx / mag) * agent.speed * dt;
+        agent.position.y += (dy / mag) * agent.speed * dt;
+      }
+    }
+  }
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// VR Ride Overlay
+// ═══════════════════════════════════════════════════════════════════
+
+export interface VROverlay {
+  rideId: string;
+  type: 'particle' | 'hologram' | 'portal' | 'character';
+  triggerGForce: number;  // Activate above this G
+  intensityScale: number;
+}
+
+/**
+ * Compute VR overlay immersion score based on ride profile and overlay count.
+ */
+export function vrRideOverlayScore(ride: RideProfile, overlays: VROverlay[]): number {
+  const activeOverlays = overlays.filter(o => ride.maxGForce >= o.triggerGForce);
+  const baseScore = activeOverlays.reduce((sum, o) => sum + o.intensityScale * 10, 0);
+  const thrillMultiplier = 1 + thrillScore(ride) / 100;
+  return Math.round(baseScore * thrillMultiplier);
+}

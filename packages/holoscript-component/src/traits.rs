@@ -1,6 +1,6 @@
 //! Trait definitions for HoloScript VR traits.
 
-use crate::holoscript::core::types::TraitDef;
+use crate::holoscript::core::types::{TraitDef, TraitFull};
 
 /// Check if a trait exists
 pub fn trait_exists(name: &str) -> bool {
@@ -35,6 +35,27 @@ pub fn list_traits_by_category(category: &str) -> Vec<TraitDef> {
             description: t.2.to_string(),
         })
         .collect()
+}
+
+/// Get full trait metadata including default properties
+pub fn get_trait_full(name: &str) -> Option<TraitFull> {
+    ALL_TRAITS.iter().find(|t| t.0 == name).map(|t| TraitFull {
+        name: t.0.to_string(),
+        category: t.1.to_string(),
+        description: t.2.to_string(),
+        default_properties: t.3.iter().map(|s| s.to_string()).collect(),
+    })
+}
+
+/// List all unique trait categories
+pub fn list_categories() -> Vec<String> {
+    let mut categories: Vec<String> = ALL_TRAITS
+        .iter()
+        .map(|t| t.1.to_string())
+        .collect();
+    categories.sort();
+    categories.dedup();
+    categories
 }
 
 /// Suggest traits based on a description

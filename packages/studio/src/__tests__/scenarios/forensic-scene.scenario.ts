@@ -28,6 +28,7 @@ import {
   forensicTimeline,
   timelineContradictions,
   dnaContaminationRisk,
+  photogrammetryPointCloud,
   type BulletTrajectory,
   type BloodSpatterPattern,
   type EvidenceMarker,
@@ -235,7 +236,17 @@ describe('Scenario: Forensic Scene — Witness & Scene', () => {
     expect(scenePerimeterArea(square)).toBe(100);
   });
 
-  it.todo('photogrammetry — reconstruct 3D scene from crime scene photos');
+  it('photogrammetry — reconstruct 3D scene from crime scene photos', () => {
+    const captures = [
+      { id: 'p1', position: { x: 10, y: 1.5, z: 0 }, lookAt: { x: 5, y: 1, z: 5 }, focalLengthMm: 50 },
+      { id: 'p2', position: { x: 0, y: 1.5, z: 10 }, lookAt: { x: 5, y: 1, z: 5 }, focalLengthMm: 50 },
+      { id: 'p3', position: { x: -5, y: 1.5, z: 0 }, lookAt: { x: 5, y: 1, z: 5 }, focalLengthMm: 35 },
+    ];
+    const result = photogrammetryPointCloud(captures);
+    expect(result.estimatedPoints).toBeGreaterThan(0);
+    expect(result.centroid.x).toBeCloseTo(5, 0);
+    expect(result.coverageScore).toBeGreaterThan(0);
+  });
 
   it('timeline playback — animate events based on forensic timeline', () => {
     const events: ForensicEvent[] = [

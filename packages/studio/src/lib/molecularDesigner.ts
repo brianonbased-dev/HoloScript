@@ -210,5 +210,116 @@ export function isPolar(aa: AminoAcid): boolean {
 }
 
 export function isCharged(aa: AminoAcid): boolean {
-  return ['ARG', 'LYS', 'ASP', 'GLU', 'HIS'].includes(aa);
+  return ['ASP', 'GLU', 'LYS', 'ARG', 'HIS'].includes(aa);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PDB File Parser
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Parses a simplified PDB-format text into an array of ProteinResidue.
+ * Reads ATOM lines: columns 18-19=aa, 22=chain, 23-26=resSeq, 31-38=x, 39-46=y, 47-54=z
+ */
+export function parsePDB(pdbText: string): ProteinResidue[] {
+  const residues: ProteinResidue[] = [];
+  const seen = new Set<string>();
+  const AA_MAP: Record<string, AminoAcid> = {
+    ALA: 'ALA', ARG: 'ARG', ASN: 'ASN', ASP: 'ASP', CYS: 'CYS',
+    GLU: 'GLU', GLN: 'GLN', GLY: 'GLY', HIS: 'HIS', ILE: 'ILE',
+    LEU: 'LEU', LYS: 'LYS', MET: 'MET', PHE: 'PHE', PRO: 'PRO',
+    SER: 'SER', THR: 'THR', TRP: 'TRP', TYR: 'TYR', VAL: 'VAL',
+  };
+
+  for (const line of pdbText.split('\n')) {
+    if (!line.startsWith('ATOM')) continue;
+    const resName = line.substring(17, 20).trim();
+    const chain = line.substring(21, 22).trim();
+    const resSeqStr = line.substring(22, 26).trim();
+    const resSeq = parseInt(resSeqStr, 10);
+    const key = `${chain}:${resSeq}`;
+    if (seen.has(key)) continue; // first atom per residue
+    seen.add(key);
+
+    const x = parseFloat(line.substring(30, 38));
+    const y = parseFloat(line.substring(38, 46));
+    const z = parseFloat(line.substring(46, 54));
+    const aa = AA_MAP[resName];
+    if (!aa) continue;
+
+    residues.push({ id: resSeq, aminoAcid: aa, chain, position: { x, y, z } });
+  }
+  return residues;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Solvent-Accessible Surface Area (Approximate)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Estimates solvent-accessible surface area from atom positions.
+ * Uses a simplified shrake-rupley-like calculation where each exposed
+ * atom contributes 4π(r+probe)² weighted by burial fraction.
+ */
+export function solventAccessibleSurface(atoms: Atom[], probeRadius: number = 1.4): number {
+  let totalSASA = 0;
+  for (const atom of atoms) {
+    const r = atom.radius || 1.5; // Default VdW radius
+    const fullSphere = 4 * Math.PI * (r + probeRadius) ** 2;
+    // Count neighbors within contact distance
+    let neighborCount = 0;
+    for (const other of atoms) {
+      if (other.id === atom.id) continue;
+      const d = atomDistance(atom, other);
+      if (d < (r + (other.radius || 1.5) + 2 * probeRadius)) neighborCount++;
+    }
+    // Exposure fraction decreases with neighbors (simplified)
+    const expFraction = Math.max(0, 1 - neighborCount * 0.08);
+    totalSASA += fullSphere * expFraction;
+  }
+  return totalSASA;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Pharmacophore Model
+// ═══════════════════════════════════════════════════════════════════
+
+export type PharmacophoreType = 'h-bond-donor' | 'h-bond-acceptor' | 'hydrophobic' | 'positive' | 'negative' | 'aromatic';
+
+export interface PharmacophoreFeature {
+  type: PharmacophoreType;
+  position: { x: number; y: number; z: number };
+  radius: number;
+  atomIds: string[];
+}
+
+/**
+ * Identifies pharmacophore features in a molecule based on element types and charges.
+ */
+export function pharmacophoreFeatures(mol: Molecule): PharmacophoreFeature[] {
+  const features: PharmacophoreFeature[] = [];
+
+  for (const atom of mol.atoms) {
+    // Hydrogen bond donors (N-H, O-H)
+    if (atom.element === 'N' || atom.element === 'O') {
+      if (atom.charge >= 0) {
+        features.push({ type: 'h-bond-donor', position: atom.position, radius: 1.0, atomIds: [atom.id] });
+      }
+      features.push({ type: 'h-bond-acceptor', position: atom.position, radius: 1.0, atomIds: [atom.id] });
+    }
+
+    // Charged groups
+    if (atom.charge > 0.3) {
+      features.push({ type: 'positive', position: atom.position, radius: 1.5, atomIds: [atom.id] });
+    } else if (atom.charge < -0.3) {
+      features.push({ type: 'negative', position: atom.position, radius: 1.5, atomIds: [atom.id] });
+    }
+
+    // Hydrophobic (C atoms with no polar neighbors)
+    if (atom.element === 'C') {
+      features.push({ type: 'hydrophobic', position: atom.position, radius: 1.5, atomIds: [atom.id] });
+    }
+  }
+
+  return features;
 }

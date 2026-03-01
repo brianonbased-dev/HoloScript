@@ -19,11 +19,15 @@ import {
   generateAuditReport,
   wheelchairTurningRadius,
   isPathWideEnough,
+  wcagContrastRatio,
+  vrWheelchairPerspective,
+  findAccessibleRoute,
   ADA,
   type Doorway,
   type Ramp,
   type Elevator,
   type AuditFinding,
+  type PathNode,
 } from '@/lib/accessibilityAuditor';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -251,7 +255,53 @@ describe('Scenario: Accessibility Auditor — Reports & Mobility', () => {
     expect(ADA.MIN_TURNING_RADIUS_CM).toBe(152.4);
   });
 
-  it.todo('VR wheelchair perspective — render at seated eye height (112cm)');
-  it.todo('pathfinding — find wheelchair-accessible route through building');
-  it.todo('color contrast checker — WCAG 2.1 AA/AAA signage compliance');
+  it('VR wheelchair perspective — render at seated eye height (112cm)', () => {
+    const obstacles = [
+      { id: 'shelf', position: { x: 3, y: 0, z: 0 }, heightCm: 200 },
+      { id: 'table', position: { x: 2, y: 0, z: 0 }, heightCm: 75 },
+      { id: 'far-wall', position: { x: 50, y: 0, z: 0 }, heightCm: 300 },
+    ];
+    const cam = vrWheelchairPerspective({ x: 0, y: 0, z: 0 }, obstacles);
+    expect(cam.eyeHeight).toBeCloseTo(1.15, 1);
+    expect(cam.position.y).toBeCloseTo(1.15, 1);
+    // Shelf is tall and close — should be visible
+    expect(cam.obstaclesInView).toContain('shelf');
+    // Table is below eye height — should NOT obstruct
+    expect(cam.obstaclesInView).not.toContain('table');
+    // Far wall is beyond maxViewDistance (20m)
+    expect(cam.obstaclesInView).not.toContain('far-wall');
+  });
+
+  it('pathfinding — find wheelchair-accessible route through building', () => {
+    const nodes: PathNode[] = [
+      { id: 'entrance', position: { x: 0, y: 0, z: 0 }, accessible: true, connections: ['hallway'] },
+      { id: 'hallway', position: { x: 5, y: 0, z: 0 }, accessible: true, connections: ['entrance', 'stairs', 'ramp'] },
+      { id: 'stairs', position: { x: 5, y: 3, z: 0 }, accessible: false, connections: ['hallway', 'office'] },
+      { id: 'ramp', position: { x: 8, y: 3, z: 0 }, accessible: true, connections: ['hallway', 'office'] },
+      { id: 'office', position: { x: 10, y: 3, z: 0 }, accessible: true, connections: ['stairs', 'ramp'] },
+    ];
+    const route = findAccessibleRoute(nodes, 'entrance', 'office');
+    expect(route).not.toBeNull();
+    // Route should go through ramp, not stairs
+    expect(route).toContain('ramp');
+    expect(route).not.toContain('stairs');
+  });
+
+  it('wcagContrastRatio() — WCAG 2.1 AA/AAA compliance check', () => {
+    // Black on white = max contrast (21:1)
+    const maxContrast = wcagContrastRatio('#000000', '#ffffff');
+    expect(maxContrast.ratio).toBe(21);
+    expect(maxContrast.aa).toBe(true);
+    expect(maxContrast.aaa).toBe(true);
+
+    // Light gray on white = low contrast
+    const lowContrast = wcagContrastRatio('#cccccc', '#ffffff');
+    expect(lowContrast.ratio).toBeLessThan(4.5);
+    expect(lowContrast.aa).toBe(false);
+
+    // Dark blue on white = good contrast
+    const goodContrast = wcagContrastRatio('#003366', '#ffffff');
+    expect(goodContrast.ratio).toBeGreaterThan(7);
+    expect(goodContrast.aaa).toBe(true);
+  });
 });

@@ -514,3 +514,96 @@ export function evapotranspirationEstimate(
   const uvFactor = uvIndex * 0.3;
   return tempFactor * humidityFactor * windFactor + uvFactor;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Mycorrhizal Network Simulation
+// ═══════════════════════════════════════════════════════════════════
+
+export interface MycorrhizalLink {
+  plantA: string;
+  plantB: string;
+  nutrientFlowKgPerYear: number;
+  distanceM: number;
+}
+
+/**
+ * Simulate mycorrhizal fungal network connections between plants.
+ * Plants within maxDistanceM share nutrients proportional to proximity.
+ */
+export function mycorrhizalNetworkSim(
+  plants: { id: string; position: Vec2; nitrogenFixer: boolean }[],
+  maxDistanceM: number
+): MycorrhizalLink[] {
+  const links: MycorrhizalLink[] = [];
+  for (let i = 0; i < plants.length; i++) {
+    for (let j = i + 1; j < plants.length; j++) {
+      const dx = plants[i].position.x - plants[j].position.x;
+      const dy = plants[i].position.y - plants[j].position.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= maxDistanceM) {
+        const flow = (1 - dist / maxDistanceM) * (plants[i].nitrogenFixer || plants[j].nitrogenFixer ? 2 : 0.5);
+        links.push({ plantA: plants[i].id, plantB: plants[j].id, nutrientFlowKgPerYear: Math.round(flow * 100) / 100, distanceM: Math.round(dist * 100) / 100 });
+      }
+    }
+  }
+  return links;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LoRaWAN Mesh Connectivity
+// ═══════════════════════════════════════════════════════════════════
+
+export interface LoRaWANNode {
+  id: string;
+  position: Vec2;
+  rangeM: number;
+  isGateway: boolean;
+}
+
+/**
+ * Test LoRaWAN mesh connectivity between IoT nodes.
+ * Returns links with signal strength based on distance/range ratio.
+ */
+export function lorawanMeshConnect(
+  nodes: LoRaWANNode[]
+): { from: string; to: string; signalStrength: number; connected: boolean }[] {
+  const links: { from: string; to: string; signalStrength: number; connected: boolean }[] = [];
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].position.x - nodes[j].position.x;
+      const dy = nodes[i].position.y - nodes[j].position.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxRange = Math.min(nodes[i].rangeM, nodes[j].rangeM);
+      const connected = dist <= maxRange;
+      const signalStrength = connected ? Math.max(0, 1 - dist / maxRange) : 0;
+      links.push({ from: nodes[i].id, to: nodes[j].id, signalStrength: Math.round(signalStrength * 100) / 100, connected });
+    }
+  }
+  return links;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Drone Survey Grid
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Generate an aerial drone survey grid for crop monitoring.
+ */
+export function droneSurveyGrid(
+  originX: number, originY: number,
+  widthM: number, heightM: number,
+  altitudeM: number,
+  laneSpacingM: number
+): Vec2[] {
+  const waypoints: Vec2[] = [];
+  const lanes = Math.ceil(widthM / laneSpacingM);
+  for (let i = 0; i <= lanes; i++) {
+    const x = originX + i * laneSpacingM;
+    const yStart = i % 2 === 0 ? originY : originY + heightM;
+    const yEnd = i % 2 === 0 ? originY + heightM : originY;
+    waypoints.push({ x, y: yStart });
+    waypoints.push({ x, y: yEnd });
+  }
+  return waypoints;
+}
+

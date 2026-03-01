@@ -134,3 +134,44 @@ export function generateProceduralPuzzle(
     attempts: 0,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Multiplayer Sync
+// ═══════════════════════════════════════════════════════════════════
+
+export interface PlayerAssignment {
+  playerId: string;
+  puzzleId: string;
+}
+
+/**
+ * Distribute available puzzles across players for coordinated solving.
+ * Assigns each available puzzle to the player with the fewest assignments.
+ */
+export function multiplayerSync(
+  puzzles: Puzzle[],
+  playerIds: string[]
+): PlayerAssignment[] {
+  if (playerIds.length === 0) return [];
+
+  const available = puzzles.filter(p =>
+    isPuzzleAvailable(p, puzzles) && p.status !== 'solved'
+  );
+
+  const assignments: PlayerAssignment[] = [];
+  const playerLoad = new Map<string, number>();
+  for (const id of playerIds) playerLoad.set(id, 0);
+
+  for (const puzzle of available) {
+    // Assign to player with least load
+    let minPlayer = playerIds[0];
+    let minLoad = Infinity;
+    for (const [id, load] of playerLoad) {
+      if (load < minLoad) { minLoad = load; minPlayer = id; }
+    }
+    assignments.push({ playerId: minPlayer, puzzleId: puzzle.id });
+    playerLoad.set(minPlayer, (playerLoad.get(minPlayer) ?? 0) + 1);
+  }
+
+  return assignments;
+}

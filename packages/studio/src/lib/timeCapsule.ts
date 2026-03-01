@@ -78,3 +78,72 @@ export function capsuleSizeEstimate(capsule: TimeCapsule): string {
   if (mb < 100) return `${mb} MB`;
   return `${(mb / 1000).toFixed(1)} GB`;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Blockchain Timestamp Proof
+// ═══════════════════════════════════════════════════════════════════
+
+export interface TimestampProof {
+  hash: string;
+  timestamp: number;
+  blockNumber: number;
+  verified: boolean;
+  capsuleId: string;
+}
+
+/**
+ * Generates a simulated blockchain timestamp proof for a sealed capsule.
+ * In production this would call a real timestamping service (e.g. OpenTimestamps).
+ * Here we generate a deterministic hash from capsule data.
+ */
+export function blockchainTimestampProof(capsule: TimeCapsule): TimestampProof {
+  // Deterministic "hash" based on capsule content
+  const data = `${capsule.id}:${capsule.title}:${capsule.createdDate}:${capsule.items.length}:${capsule.message}`;
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const chr = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32-bit int
+  }
+  const hexHash = Math.abs(hash).toString(16).padStart(8, '0');
+  const fullHash = `0x${hexHash}${hexHash}${hexHash}${hexHash}`; // 32-char hex
+
+  return {
+    hash: fullHash,
+    timestamp: capsule.createdDate,
+    blockNumber: Math.floor(capsule.createdDate / 12000), // ~12s block time
+    verified: capsule.status === 'sealed' || capsule.status === 'locked',
+    capsuleId: capsule.id,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AR Reveal — Capsule Preview
+// ═══════════════════════════════════════════════════════════════════
+
+export interface ARRevealPreview {
+  capsuleId: string;
+  itemPreviews: { id: string; thumbnailUrl: string; position: Vec3; opacity: number }[];
+  totalItems: number;
+  isEncrypted: boolean;
+  revealAnimation: 'fade-in' | 'particle-burst' | 'unfold';
+}
+
+/**
+ * Generate an AR reveal preview of capsule contents.
+ * Shows ghostly previews of items at their scanning positions.
+ */
+export function arReveal(capsule: TimeCapsule): ARRevealPreview {
+  return {
+    capsuleId: capsule.id,
+    itemPreviews: capsule.items.map(item => ({
+      id: item.id,
+      thumbnailUrl: `${item.fileUrl}.thumb.jpg`,
+      position: item.position,
+      opacity: capsule.isEncrypted ? 0.2 : 0.6,
+    })),
+    totalItems: capsule.items.length,
+    isEncrypted: capsule.isEncrypted,
+    revealAnimation: capsule.isEncrypted ? 'particle-burst' : 'fade-in',
+  };
+}

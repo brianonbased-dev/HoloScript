@@ -11,7 +11,8 @@ import {
   totalRideDuration, peakGForce, peakSpeed,
   estimatedWaitMinutes, dailyThroughput, canRide,
   parkCapacity, thrillScore,
-  type RideProfile, type RideSegment, type ParkSection,
+  crowdFlowSimulation, vrRideOverlayScore,
+  type RideProfile, type RideSegment, type ParkSection, type CrowdAgent, type VROverlay,
 } from '@/lib/themeParkDesigner';
 
 describe('Scenario: Theme Park — Ride Physics', () => {
@@ -97,6 +98,34 @@ describe('Scenario: Theme Park — Queues & Capacity', () => {
     expect(thrillScore(extreme)).toBeGreaterThan(thrillScore(family));
   });
 
-  it.todo('crowd flow simulation — agent-based movement through park');
-  it.todo('VR ride overlay — mixed reality enhancements on physical rides');
+  it('crowd flow simulation — agent-based movement through park', () => {
+    const agents: CrowdAgent[] = [
+      { id: 'a1', position: { x: 0, y: 0 }, target: { x: 10, y: 10 }, speed: 1.5 },
+      { id: 'a2', position: { x: 0, y: 1 }, target: { x: 10, y: 10 }, speed: 1.3 },
+    ];
+    const result = crowdFlowSimulation(agents, 50, 0.1, 2);
+    // Both agents should have moved toward the target
+    expect(result[0].position.x).toBeGreaterThan(0);
+    expect(result[1].position.x).toBeGreaterThan(0);
+    // They should not be at the exact same position (avoidance)
+    const dx = result[0].position.x - result[1].position.x;
+    const dy = result[0].position.y - result[1].position.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    expect(dist).toBeGreaterThan(0.01);
+  });
+
+  it('VR ride overlay — mixed reality enhancements on physical rides', () => {
+    const ride: RideProfile = { id: '', name: '', type: 'coaster', thrillLevel: 'extreme', topSpeedKmh: 120, heightM: 60, maxGForce: 5, durationSec: 120, capacityPerHour: 1200, minHeightCm: 130 };
+    const overlays: VROverlay[] = [
+      { rideId: '', type: 'particle', triggerGForce: 2, intensityScale: 1.5 },
+      { rideId: '', type: 'hologram', triggerGForce: 4, intensityScale: 2.0 },
+      { rideId: '', type: 'portal', triggerGForce: 8, intensityScale: 3.0 }, // Won't activate (G=5 < 8)
+    ];
+    const score = vrRideOverlayScore(ride, overlays);
+    expect(score).toBeGreaterThan(0);
+    // Only 2 overlays should activate (triggerGForce 2 and 4 <= maxGForce 5)
+    const familyRide: RideProfile = { ...ride, maxGForce: 1, topSpeedKmh: 10, heightM: 3, thrillLevel: 'family' };
+    const familyScore = vrRideOverlayScore(familyRide, overlays);
+    expect(score).toBeGreaterThan(familyScore);
+  });
 });

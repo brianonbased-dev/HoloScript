@@ -19,6 +19,7 @@ import {
   checkSensorAlerts, shouldTriggerIrrigation, sensorsByType,
   onlineSensors, offlineSensors, averageSensorValue, fleetHealthPercent,
   growingDegreeDays, frostWarning, evapotranspirationEstimate,
+  mycorrhizalNetworkSim, lorawanMeshConnect, droneSurveyGrid,
   CROP_DATABASE, FOOD_FOREST_LAYERS, THREE_SISTERS_GUILD, APPLE_GUILD,
   COVER_CROPS, DEFAULT_SENSOR_THRESHOLDS,
   type PlantingBed, type SoilHealthProfile, type IoTSensor,
@@ -252,7 +253,21 @@ describe('Scenario: Urban Farm — Cover Crops & Rotation (Restorative)', () => 
     expect(polycultureDiversityScore(APPLE_GUILD.members)).toBeCloseTo(3/7, 2);
   });
 
-  it.todo('mycorrhizal network — simulate underground fungal nutrient sharing');
+  it('mycorrhizal network — simulate underground fungal nutrient sharing', () => {
+    const plants = [
+      { id: 'clover', position: { x: 0, y: 0 }, nitrogenFixer: true },
+      { id: 'tomato', position: { x: 1, y: 0 }, nitrogenFixer: false },
+      { id: 'basil', position: { x: 0.5, y: 0.5 }, nitrogenFixer: false },
+      { id: 'far-tree', position: { x: 100, y: 100 }, nitrogenFixer: false },
+    ];
+    const links = mycorrhizalNetworkSim(plants, 2);
+    // Close plants should be connected, far-tree should not
+    expect(links.length).toBeGreaterThanOrEqual(2);
+    expect(links.some(l => l.plantA === 'far-tree' || l.plantB === 'far-tree')).toBe(false);
+    // Nitrogen fixer links have higher flow
+    const cloverLink = links.find(l => l.plantA === 'clover' || l.plantB === 'clover')!;
+    expect(cloverLink.nutrientFlowKgPerYear).toBeGreaterThan(0);
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -385,6 +400,30 @@ describe('Scenario: Urban Farm — IoT Weather & Growing', () => {
     expect(et).toBeGreaterThanOrEqual(0);
   });
 
-  it.todo('LoRaWAN mesh — long-range IoT connectivity for field sensors');
-  it.todo('drone survey — automated NDVI crop health imaging');
+  it('LoRaWAN mesh — long-range IoT connectivity for field sensors', () => {
+    const nodes = [
+      { id: 'gateway', position: { x: 0, y: 0 }, rangeM: 5000, isGateway: true },
+      { id: 'sensor-a', position: { x: 1000, y: 0 }, rangeM: 3000, isGateway: false },
+      { id: 'sensor-b', position: { x: 4000, y: 0 }, rangeM: 3000, isGateway: false },
+      { id: 'isolated', position: { x: 20000, y: 20000 }, rangeM: 500, isGateway: false },
+    ];
+    const mesh = lorawanMeshConnect(nodes);
+    // Gateway-to-sensor-a within range
+    const gwToA = mesh.find(l => l.from === 'gateway' && l.to === 'sensor-a');
+    expect(gwToA!.connected).toBe(true);
+    expect(gwToA!.signalStrength).toBeGreaterThan(0);
+    // Isolated node cannot connect to anything
+    const isolatedLinks = mesh.filter(l => l.from === 'isolated' || l.to === 'isolated');
+    expect(isolatedLinks.every(l => !l.connected)).toBe(true);
+  });
+
+  it('drone survey — automated NDVI crop health imaging', () => {
+    const waypoints = droneSurveyGrid(0, 0, 100, 200, 30, 25);
+    expect(waypoints.length).toBeGreaterThanOrEqual(8); // 4+ lanes × 2 waypoints
+    // Alternating direction (boustrophedon pattern)
+    expect(waypoints[0].y).toBe(0);
+    expect(waypoints[1].y).toBe(200);
+    expect(waypoints[2].y).toBe(200); // Odd lane starts from far end
+    expect(waypoints[3].y).toBe(0);
+  });
 });

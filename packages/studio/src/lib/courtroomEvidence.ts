@@ -102,3 +102,60 @@ export function totalExhibitCount(exhibits: EvidenceExhibit[]): Record<EvidenceC
   for (const e of exhibits) counts[e.class]++;
   return counts;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Jury Perspective Camera
+// ═══════════════════════════════════════════════════════════════════
+
+export interface CameraSetup {
+  position: Vec3;
+  lookAt: Vec3;
+  fov: number;
+  label: string;
+}
+
+/**
+ * Generate a locked jury perspective camera facing the evidence display.
+ */
+export function juryPerspectiveCamera(
+  juryBoxCenter: Vec3,
+  evidenceDisplayCenter: Vec3,
+  fovDegrees: number = 60
+): CameraSetup {
+  return {
+    position: juryBoxCenter,
+    lookAt: evidenceDisplayCenter,
+    fov: fovDegrees,
+    label: 'Jury Perspective',
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Voice Annotation Playback
+// ═══════════════════════════════════════════════════════════════════
+
+export interface VoiceAnnotation {
+  id: string;
+  startTimeSec: number;
+  endTimeSec: number;
+  transcript: string;
+  speakerName: string;
+  linkedPosition?: Vec3;
+}
+
+/**
+ * Find the active voice annotation at a given playback time.
+ */
+export function activeVoiceAnnotation(
+  annotations: VoiceAnnotation[],
+  timeSec: number
+): VoiceAnnotation | null {
+  return annotations.find(a => timeSec >= a.startTimeSec && timeSec < a.endTimeSec) ?? null;
+}
+
+/**
+ * Compute total narration duration from all voice annotations.
+ */
+export function totalNarrationDuration(annotations: VoiceAnnotation[]): number {
+  return annotations.reduce((sum, a) => sum + (a.endTimeSec - a.startTimeSec), 0);
+}

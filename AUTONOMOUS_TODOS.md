@@ -367,5 +367,137 @@ Create visual architecture diagrams for agent identity framework.
 ---
 
 **Generated**: 2026-02-26 by HoloScript Autonomous Administrator v2.0
+**Updated**: 2026-02-28 (WASM Lazy-Loading Architecture added)
 **Next Review**: 2026-03-05 (1 week)
 **Repository**: `c:\Users\josep\Documents\GitHub\HoloScript`
+
+---
+
+## WASM Lazy-Loading Architecture TODOs (2026-02-28)
+
+**Context**: Decompose 24+ export targets into independently loadable WASM components.
+**Architecture Doc**: `docs/architecture/WASM_LAZY_LOADING_ARCHITECTURE.md`
+
+### TODO-WL-001: Create `holoscript-plugin-shared` Rust Crate
+
+**Priority**: HIGH | **Effort**: 4 hours | **Impact**: Foundation for all plugins
+
+Create the shared Rust library that all platform plugin crates will depend on:
+
+1. `holoscript-plugin-shared/Cargo.toml` with serde, serde_json
+2. `codegen.rs` - Shared code generation utilities (indent management, string building)
+3. `ast_visitor.rs` - AST traversal trait for composition-node
+4. Add to workspace `Cargo.toml` members list
+
+**Why**: Avoids code duplication across 18+ plugin crates. Estimated 40-60% shared codegen logic.
+
+### TODO-WL-002: Implement `ComponentLoader` TypeScript Class
+
+**Priority**: HIGH | **Effort**: 6 hours | **Impact**: Core lazy-loading infrastructure
+
+Implement `packages/core/src/compiler/wasm/ComponentLoader.ts`:
+
+1. Fetch WASM binary with timeout and AbortController
+2. WebAssembly.compileStreaming for streaming compilation
+3. WeakRef-based cache with LRU eviction
+4. Preload hints for anticipated targets
+5. Concurrent load deduplication
+6. Metrics tracking (load time, binary size, cache hits)
+7. Tests for all loading scenarios including failures
+
+### TODO-WL-003: Implement `LazyCompilerFactory` TypeScript Class
+
+**Priority**: HIGH | **Effort**: 4 hours | **Impact**: Replaces eager CompilerFactory
+
+Implement `packages/core/src/compiler/wasm/LazyCompilerFactory.ts`:
+
+1. WASM-first strategy: try WASM plugin, fall back to TS dynamic import
+2. `WASMCompilerAdapter` wrapper class (WIT types to ICompiler interface)
+3. TS compiler dynamic import map (all 24 targets)
+4. Config: `useWasm`, `fallbackToTypeScript`, `loaderConfig`
+5. Integration tests with mocked WASM loading
+
+### TODO-WL-004: Update `ExportManager` for Async Factory
+
+**Priority**: HIGH | **Effort**: 2 hours | **Impact**: Backward-compatible integration
+
+Modify `ExportManager.ts`:
+
+1. Replace `CompilerFactory` with `LazyCompilerFactory`
+2. `createCompiler` is now async -- update `exportWithCircuitBreaker` and `exportDirect`
+3. Ensure all existing tests pass (factory returns same interface)
+4. Add feature flag: `HOLOSCRIPT_LAZY_WASM=true` env var to enable
+
+### TODO-WL-005: Port URDF Compiler to Rust WASM Plugin (Pilot)
+
+**Priority**: MEDIUM | **Effort**: 1 day | **Impact**: First working WASM plugin
+
+Port `URDFCompiler.ts` to `holoscript-plugin-urdf/`:
+
+1. Implement `platform-compiler` WIT interface
+2. Implement `plugin-manifest` WIT interface
+3. Rust URDF XML generation from composition-node AST
+4. Build with `cargo component build --release`
+5. Parity tests: WASM output must match TS output exactly
+6. Benchmark: compare load time and compile speed
+
+**Why URDF first**: Smallest compiler (~200 lines), self-contained XML generation, no external dependencies.
+
+### TODO-WL-006: Extend WIT with Plugin Manifest Interface
+
+**Priority**: MEDIUM | **Effort**: 2 hours | **Impact**: Plugin discovery/versioning
+
+Update `packages/holoscript-component/wit/holoscript.wit`:
+
+1. Add `plugin-manifest` interface (name, version, targets, binary-size-hint)
+2. Add `plugin-registry` interface for loaded plugin tracking
+3. Add new `platform-target` variants: `ios-arkit`, `generic-ar`, `dtdl`, `wasm-wat`, `vrr`
+4. Update `holoscript-platform-plugin` world to export `plugin-manifest`
+
+### TODO-WL-007: Build Pipeline for WASM Plugins
+
+**Priority**: MEDIUM | **Effort**: 4 hours | **Impact**: CI/CD automation
+
+Create `scripts/build-wasm-plugins.sh`:
+
+1. Build core component + all plugin components
+2. Copy `.wasm` binaries to `packages/core/dist/wasm/`
+3. Run `wasm-opt -Oz` on all outputs
+4. Report binary sizes
+5. Integrate into `pnpm build` pipeline
+6. GitHub Actions workflow for CI builds
+
+### TODO-WL-008: Port Game Engine Compilers to WASM Plugins
+
+**Priority**: MEDIUM | **Effort**: 3 days | **Impact**: Major bundle reduction
+
+Port Unity, Unreal, Godot compilers:
+
+1. `holoscript-plugin-unity/` - C# code generation
+2. `holoscript-plugin-unreal/` - C++ code generation
+3. `holoscript-plugin-godot/` - GDScript code generation
+4. Full parity test suites for each
+5. Plugin group loading test (load all 3 at once)
+
+### TODO-WL-009: Service Worker Caching Strategy
+
+**Priority**: LOW | **Effort**: 4 hours | **Impact**: Offline capability
+
+Implement browser Service Worker for WASM binary caching:
+
+1. Cache-first strategy for versioned WASM URLs
+2. Background update for new versions
+3. Offline compilation support
+4. Cache size management (evict old versions)
+
+### TODO-WL-010: CDN Deployment Pipeline
+
+**Priority**: LOW | **Effort**: 4 hours | **Impact**: Global distribution
+
+Set up CDN distribution for WASM binaries:
+
+1. Content-hashed URLs for cache busting
+2. `application/wasm` content type
+3. Immutable caching headers
+4. Multi-region deployment
+5. Fallback to NPM package if CDN unavailable

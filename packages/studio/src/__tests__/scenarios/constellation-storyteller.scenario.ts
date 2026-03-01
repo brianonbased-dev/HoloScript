@@ -10,7 +10,9 @@ import {
   getStarById, starsByConstellation, brightestStar,
   magnitudeToRadius, isVisibleToNakedEye, angularDistance,
   spectralClassToTemperature, isCircumpolar,
+  planetariumPath, mythologyOverlays,
   STAR_DATABASE,
+  type ConstellationDef,
 } from '@/lib/constellationStory';
 
 describe('Scenario: Constellation Storyteller — Star Data', () => {
@@ -89,6 +91,26 @@ describe('Scenario: Constellation Storyteller — Sky Navigation', () => {
     expect(isCircumpolar(-16.72, 40)).toBe(false);
   });
 
-  it.todo('planetarium animation — smooth RA/Dec path following Earth rotation');
-  it.todo('mythology overlay — show Greek/Chinese/Aboriginal constellation art');
+  it('planetarium animation — smooth RA/Dec path following Earth rotation', () => {
+    const polaris = getStarById('polaris')!;
+    const path = planetariumPath(polaris, 6, 2, 40); // 6 hours, 2 samples/hr, lat 40
+    expect(path.length).toBeGreaterThan(10);
+    // Path starts at the star's actual RA
+    expect(path[0].ra).toBeCloseTo(polaris.coord.ra, 1);
+    // RA should change over time (Earth rotation)
+    expect(path[path.length - 1].ra).not.toBeCloseTo(path[0].ra, 0);
+  });
+
+  it('mythology overlay — show Greek/Chinese/Aboriginal constellation art', () => {
+    const orionDef: ConstellationDef = { id: 'orion', name: 'Orion', abbreviation: 'Ori', mythology: 'The Hunter', culture: 'greek', stars: ['betelgeuse', 'rigel'], lines: [['betelgeuse', 'rigel']], bestMonth: 1 };
+    const overlays = mythologyOverlays(orionDef);
+    expect(overlays.length).toBe(5); // 5 cultures
+    // Greek should have full opacity (matching culture)
+    const greek = overlays.find(o => o.culture === 'greek')!;
+    expect(greek.opacity).toBe(1.0);
+    // Others should have 0.5 opacity
+    const chinese = overlays.find(o => o.culture === 'chinese')!;
+    expect(chinese.opacity).toBe(0.5);
+    expect(greek.artUrl).toContain('orion_greek');
+  });
 });

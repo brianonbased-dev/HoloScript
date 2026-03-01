@@ -11,8 +11,8 @@ import {
   momentOfInertia, strideFrequency, groundContactTime,
   peakForce, averageForce, loadRate,
   fatigueIndex, injuryRiskScore, vo2AtIntensity, caloriesBurned,
-  gaitSymmetryIndex,
-  type ForceData,
+  gaitSymmetryIndex, motionCaptureReplay,
+  type ForceData, type MotionFrame,
 } from '@/lib/sportsBiomechanics';
 
 describe('Scenario: Biomechanics — Physics', () => {
@@ -93,7 +93,20 @@ describe('Scenario: Biomechanics — Fatigue & Injury', () => {
     expect(cal).toBeCloseTo(6.0, 0);
   });
 
-  it.todo('motion capture replay — 3D skeleton playback with joint annotation');
+  it('motion capture replay — 3D skeleton playback with joint annotation', () => {
+    const frames: MotionFrame[] = [
+      { timestamp: 0, joints: [ { joint: 'knee', angleDeg: 90, angularVelocityDegS: 10, timestamp: 0 }, { joint: 'hip', angleDeg: 130, angularVelocityDegS: 5, timestamp: 0 } ], groundReactionForce: null, centerOfMass: { x: 0, y: 1, z: 0 } },
+      { timestamp: 100, joints: [ { joint: 'knee', angleDeg: 45, angularVelocityDegS: -20, timestamp: 100 }, { joint: 'hip', angleDeg: 160, angularVelocityDegS: 8, timestamp: 100 } ], groundReactionForce: null, centerOfMass: { x: 0.5, y: 0.9, z: 0 } },
+    ];
+    const replay = motionCaptureReplay(frames, 120);
+    expect(replay).toHaveLength(2);
+    // Frame 0: hip at 130° > threshold, should annotate
+    expect(replay[0].annotations.length).toBe(1);
+    expect(replay[0].annotations[0]).toContain('hip');
+    // Frame 1: hip at 160° > threshold
+    expect(replay[1].annotations.length).toBe(1);
+    expect(replay[1].annotations[0]).toContain('hip');
+  });
 
   it('gait analysis — step symmetry and pronation tracking', () => {
     // Symmetric gait (equal left/right)

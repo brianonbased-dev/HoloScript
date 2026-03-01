@@ -10,6 +10,7 @@ import {
   normalStress, shearStress, vonMisesStress, safetyFactor,
   isStructurallySafe, beamDeflection, naturalFrequency,
   totalLoad, deadLoadWeight, fatigueLifeCycles,
+  feaMeshGenerate, windResonanceCheck,
   MATERIALS,
   type AppliedLoad, type BridgeSpan,
 } from '@/lib/bridgeEngineering';
@@ -97,6 +98,30 @@ describe('Scenario: Bridge Engineering — Deflection & Dynamics', () => {
     expect(lowStress).toBeGreaterThan(highStress);
   });
 
-  it.todo('FEA mesh — finite element analysis mesh generation');
-  it.todo('wind resonance — vortex shedding and Tacoma Narrows check');
+  it('FEA mesh — finite element analysis mesh generation', () => {
+    const { nodes, elements } = feaMeshGenerate(10, 2, 4, 2);
+    // 5×3 = 15 nodes
+    expect(nodes).toHaveLength(15);
+    // 4×2 quads × 2 triangles = 16 elements
+    expect(elements).toHaveLength(16);
+    // Corner nodes at correct positions
+    expect(nodes[0]).toEqual({ id: 0, x: 0, y: 0 });
+    expect(nodes[nodes.length - 1].x).toBeCloseTo(10);
+    expect(nodes[nodes.length - 1].y).toBeCloseTo(2);
+    // All element node refs are valid
+    for (const elem of elements) {
+      expect(elem.nodes).toHaveLength(3);
+      for (const nid of elem.nodes) expect(nid).toBeLessThan(nodes.length);
+    }
+  });
+
+  it('wind resonance — vortex shedding and Tacoma Narrows check', () => {
+    const span: BridgeSpan = { id: 's1', type: 'suspension', lengthM: 853, widthM: 12, heightM: 2.4, material: MATERIALS.steel, crossSectionArea: 0.5, momentOfInertia: 0.1 };
+    // Low wind — no resonance
+    const low = windResonanceCheck(span, 5);
+    expect(low.resonanceRisk).toBe(false);
+    // Check that vortex/natural frequencies are computed
+    expect(low.vortexFreqHz).toBeGreaterThan(0);
+    expect(low.naturalFreqHz).toBeGreaterThan(0);
+  });
 });

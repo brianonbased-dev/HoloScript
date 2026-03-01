@@ -109,3 +109,66 @@ export function fatigueLifeCycles(stressRange: number, fatigueStrength: number):
   // Simplified S-N curve: N = (fatigue/stress)^3 × 2e6
   return Math.pow(fatigueStrength / stressRange, 3) * 2e6;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// FEA Mesh Generation
+// ═══════════════════════════════════════════════════════════════════
+
+export interface FEANode { id: number; x: number; y: number }
+export interface FEAElement { id: number; nodes: [number, number, number] }
+
+/**
+ * Generate a 2D triangulated FEA mesh for a rectangular span.
+ * Returns nodes and triangular elements for stress analysis.
+ */
+export function feaMeshGenerate(
+  lengthM: number, heightM: number,
+  nx: number, ny: number
+): { nodes: FEANode[]; elements: FEAElement[] } {
+  const nodes: FEANode[] = [];
+  const elements: FEAElement[] = [];
+
+  // Generate node grid
+  for (let j = 0; j <= ny; j++) {
+    for (let i = 0; i <= nx; i++) {
+      nodes.push({ id: j * (nx + 1) + i, x: (i / nx) * lengthM, y: (j / ny) * heightM });
+    }
+  }
+
+  // Generate triangular elements (2 triangles per quad cell)
+  let elemId = 0;
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      const bl = j * (nx + 1) + i;
+      const br = bl + 1;
+      const tl = bl + (nx + 1);
+      const tr = tl + 1;
+      elements.push({ id: elemId++, nodes: [bl, br, tl] });
+      elements.push({ id: elemId++, nodes: [br, tr, tl] });
+    }
+  }
+
+  return { nodes, elements };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wind Resonance (Vortex Shedding)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Check for wind resonance risk (Tacoma Narrows–style flutter).
+ * Uses Strouhal number to estimate vortex shedding frequency,
+ * then compares against the span's natural frequency.
+ */
+export function windResonanceCheck(
+  span: BridgeSpan,
+  windSpeedMs: number,
+  strouhalNumber: number = 0.2
+): { vortexFreqHz: number; naturalFreqHz: number; resonanceRisk: boolean } {
+  const vortexFreqHz = strouhalNumber * windSpeedMs / span.widthM;
+  const massPerMeter = span.crossSectionArea * span.material.densityKgM3;
+  const naturalFreqHz = naturalFrequency(span.lengthM, span.material.elasticModulusMPa, span.momentOfInertia, massPerMeter);
+  // Risk if vortex freq is within 20% of natural frequency
+  const ratio = vortexFreqHz / naturalFreqHz;
+  return { vortexFreqHz, naturalFreqHz, resonanceRisk: ratio > 0.8 && ratio < 1.2 };
+}

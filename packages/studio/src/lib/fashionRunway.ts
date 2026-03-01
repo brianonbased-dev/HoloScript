@@ -139,3 +139,98 @@ export function trainDragAdjustment(trainLengthM: number, walkSpeed: number): nu
 export function showTotalDuration(segments: ShowSegment[]): number {
   return segments.reduce((sum, s) => sum + s.durationSec, 0);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Cloth Simulation (PBD-inspired)
+// ═══════════════════════════════════════════════════════════════════
+
+export interface ClothParticle { x: number; y: number; vx: number; vy: number; pinned: boolean }
+
+/**
+ * Generate a single frame of cloth simulation using Verlet-style integration.
+ * Returns particle grid after applying gravity + spring constraints.
+ */
+export function clothSimSnapshot(
+  gridW: number, gridH: number,
+  gravity: number, stiffness: number, dt: number,
+  steps: number
+): ClothParticle[][] {
+  // Initialize grid
+  const grid: ClothParticle[][] = [];
+  for (let r = 0; r < gridH; r++) {
+    grid[r] = [];
+    for (let c = 0; c < gridW; c++) {
+      grid[r][c] = { x: c * 0.1, y: r * 0.1, vx: 0, vy: 0, pinned: r === 0 };
+    }
+  }
+
+  for (let s = 0; s < steps; s++) {
+    // Apply gravity
+    for (const row of grid) {
+      for (const p of row) {
+        if (p.pinned) continue;
+        p.vy += gravity * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+      }
+    }
+    // Spring constraints (horizontal + vertical neighbors)
+    const restLen = 0.1;
+    for (let r = 0; r < gridH; r++) {
+      for (let c = 0; c < gridW; c++) {
+        const p = grid[r][c];
+        const neighbors: ClothParticle[] = [];
+        if (c + 1 < gridW) neighbors.push(grid[r][c + 1]);
+        if (r + 1 < gridH) neighbors.push(grid[r + 1][c]);
+        for (const n of neighbors) {
+          const dx = n.x - p.x;
+          const dy = n.y - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 0.0001) continue;
+          const diff = (dist - restLen) * stiffness;
+          const nx = dx / dist, ny = dy / dist;
+          if (!p.pinned) { p.x += nx * diff * 0.5; p.y += ny * diff * 0.5; }
+          if (!n.pinned) { n.x -= nx * diff * 0.5; n.y -= ny * diff * 0.5; }
+        }
+      }
+    }
+  }
+  return grid;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Attention Heatmap
+// ═══════════════════════════════════════════════════════════════════
+
+export interface HeatmapCell { x: number; y: number; intensity: number }
+
+/**
+ * Compute audience visual attention heatmap.
+ * Each audience seat contributes attention based on inverse-square distance
+ * to each model position. Returns a 2D intensity grid.
+ */
+export function audienceHeatmap(
+  modelPositions: Vec2[],
+  gridW: number, gridH: number,
+  runwayLengthM: number, runwayWidthM: number
+): HeatmapCell[] {
+  const cells: HeatmapCell[] = [];
+  const cellW = runwayLengthM / gridW;
+  const cellH = runwayWidthM / gridH;
+
+  for (let gi = 0; gi < gridW; gi++) {
+    for (let gj = 0; gj < gridH; gj++) {
+      const cx = (gi + 0.5) * cellW;
+      const cy = (gj + 0.5) * cellH;
+      let intensity = 0;
+      for (const model of modelPositions) {
+        const dx = cx - model.x;
+        const dy = cy - model.y;
+        const dist2 = dx * dx + dy * dy + 0.01; // Epsilon to avoid division by zero
+        intensity += 1 / dist2;
+      }
+      cells.push({ x: cx, y: cy, intensity });
+    }
+  }
+  return cells;
+}

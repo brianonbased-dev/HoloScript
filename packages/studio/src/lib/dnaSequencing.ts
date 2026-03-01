@@ -140,3 +140,155 @@ export function crisprOnTargetScore(target: CRISPRTarget): string {
   if (target.efficiency >= 30) return 'fair';
   return 'poor';
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Phylogenetics
+// ═══════════════════════════════════════════════════════════════════
+
+export interface PhyloNode {
+  id: string;
+  label?: string;
+  distance: number;
+  children: PhyloNode[];
+}
+
+/**
+ * Computes pairwise Hamming distance between aligned sequences.
+ */
+export function sequenceDistance(a: string, b: string): number {
+  const len = Math.min(a.length, b.length);
+  let mismatches = 0;
+  for (let i = 0; i < len; i++) {
+    if (a[i] !== b[i]) mismatches++;
+  }
+  return mismatches / len;
+}
+
+/**
+ * Builds a simplified neighbor-joining tree from aligned sequences.
+ * Returns a Newick-like tree structure.
+ */
+export function neighborJoiningTree(
+  labels: string[],
+  sequences: string[]
+): PhyloNode {
+  if (labels.length !== sequences.length || labels.length < 2) {
+    return { id: labels[0] ?? 'root', label: labels[0], distance: 0, children: [] };
+  }
+
+  // Build distance matrix
+  const n = sequences.length;
+  const dist: number[][] = Array.from({ length: n }, () => new Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const d = sequenceDistance(sequences[i], sequences[j]);
+      dist[i][j] = d;
+      dist[j][i] = d;
+    }
+  }
+
+  // Simple UPGMA-style agglomerative clustering
+  type Cluster = { node: PhyloNode; indices: number[] };
+  let clusters: Cluster[] = labels.map((label, i) => ({
+    node: { id: label, label, distance: 0, children: [] },
+    indices: [i],
+  }));
+
+  while (clusters.length > 1) {
+    // Find closest pair
+    let minDist = Infinity;
+    let ci = 0, cj = 1;
+    for (let i = 0; i < clusters.length; i++) {
+      for (let j = i + 1; j < clusters.length; j++) {
+        let avg = 0, count = 0;
+        for (const a of clusters[i].indices) {
+          for (const b of clusters[j].indices) {
+            avg += dist[a][b];
+            count++;
+          }
+        }
+        avg /= count;
+        if (avg < minDist) { minDist = avg; ci = i; cj = j; }
+      }
+    }
+
+    const merged: Cluster = {
+      node: {
+        id: `${clusters[ci].node.id}+${clusters[cj].node.id}`,
+        distance: minDist / 2,
+        children: [clusters[ci].node, clusters[cj].node],
+      },
+      indices: [...clusters[ci].indices, ...clusters[cj].indices],
+    };
+
+    clusters = clusters.filter((_, i) => i !== ci && i !== cj);
+    clusters.push(merged);
+  }
+
+  return clusters[0].node;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BLAST Local Alignment
+// ═══════════════════════════════════════════════════════════════════
+
+export interface BlastHit {
+  queryStart: number;
+  subjectStart: number;
+  length: number;
+  score: number;
+  identity: number;  // 0-1
+}
+
+/**
+ * Simplified local alignment search (Smith-Waterman style).
+ * Finds highest-scoring local alignment between query and subject.
+ */
+export function blastLocalAlignment(
+  query: string,
+  subject: string,
+  matchScore: number = 2,
+  mismatchPenalty: number = -1,
+  gapPenalty: number = -2
+): BlastHit {
+  const m = query.length;
+  const n = subject.length;
+  const H: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+
+  let maxScore = 0;
+  let maxI = 0, maxJ = 0;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const match = H[i - 1][j - 1] + (query[i - 1] === subject[j - 1] ? matchScore : mismatchPenalty);
+      const del = H[i - 1][j] + gapPenalty;
+      const ins = H[i][j - 1] + gapPenalty;
+      H[i][j] = Math.max(0, match, del, ins);
+
+      if (H[i][j] > maxScore) {
+        maxScore = H[i][j];
+        maxI = i;
+        maxJ = j;
+      }
+    }
+  }
+
+  // Traceback to find alignment length and identity
+  let len = 0, matches = 0;
+  let i = maxI, j = maxJ;
+  while (i > 0 && j > 0 && H[i][j] > 0) {
+    if (query[i - 1] === subject[j - 1]) matches++;
+    len++;
+    i--;
+    j--;
+  }
+
+  return {
+    queryStart: i,
+    subjectStart: j,
+    length: len,
+    score: maxScore,
+    identity: len > 0 ? matches / len : 0,
+  };
+}
+

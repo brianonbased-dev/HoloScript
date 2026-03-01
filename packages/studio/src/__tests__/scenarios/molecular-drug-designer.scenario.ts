@@ -23,6 +23,9 @@ import {
   isHydrophobic,
   isPolar,
   isCharged,
+  parsePDB,
+  solventAccessibleSurface,
+  pharmacophoreFeatures,
   VDW_RADII,
   ELEMENT_COLORS,
   AMINO_ACID_CODES,
@@ -213,7 +216,42 @@ describe('Scenario: Molecular Drug Designer — Amino Acids', () => {
     expect(isCharged('ALA')).toBe(false);
   });
 
-  it.todo('PDB file parser — read .pdb coordinates into ProteinResidue[]');
-  it.todo('molecular surface — calculate solvent-accessible surface area');
-  it.todo('pharmacophore model — define required interaction features');
+  it('parsePDB() — parses ATOM lines into ProteinResidue[]', () => {
+    const pdb = [
+      'ATOM      1  N   ALA A   1       1.000   2.000   3.000  1.00  0.00           N',
+      'ATOM      2  CA  ALA A   1       2.000   3.000   4.000  1.00  0.00           C',
+      'ATOM      3  N   GLY A   2       5.000   6.000   7.000  1.00  0.00           N',
+    ].join('\n');
+    const residues = parsePDB(pdb);
+    expect(residues).toHaveLength(2);
+    expect(residues[0].aminoAcid).toBe('ALA');
+    expect(residues[1].aminoAcid).toBe('GLY');
+    expect(residues[0].position.x).toBeCloseTo(1.0, 1);
+  });
+
+  it('solventAccessibleSurface() — returns positive surface area', () => {
+    const atoms: Atom[] = [
+      { id: 'C1', element: 'C', position: { x: 0, y: 0, z: 0 }, charge: 0, radius: 1.7 },
+      { id: 'O1', element: 'O', position: { x: 1.43, y: 0, z: 0 }, charge: -0.5, radius: 1.52 },
+    ];
+    const sasa = solventAccessibleSurface(atoms);
+    expect(sasa).toBeGreaterThan(0);
+  });
+
+  it('pharmacophoreFeatures() — identifies H-bond and hydrophobic features', () => {
+    const mol: Molecule = {
+      id: 'test', name: 'Test', formula: 'CNO',
+      atoms: [
+        { id: 'C1', element: 'C', position: { x: 0, y: 0, z: 0 }, charge: 0, radius: 1.7 },
+        { id: 'N1', element: 'N', position: { x: 1, y: 0, z: 0 }, charge: 0.1, radius: 1.55 },
+        { id: 'O1', element: 'O', position: { x: 2, y: 0, z: 0 }, charge: -0.5, radius: 1.52 },
+      ],
+      bonds: [], molecularWeight: 42, logP: 0.5,
+      hBondDonors: 1, hBondAcceptors: 2, rotatableBonds: 1, polarSurfaceArea: 40,
+    };
+    const features = pharmacophoreFeatures(mol);
+    expect(features.some(f => f.type === 'hydrophobic')).toBe(true);
+    expect(features.some(f => f.type === 'h-bond-acceptor')).toBe(true);
+    expect(features.some(f => f.type === 'negative')).toBe(true);
+  });
 });

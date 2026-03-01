@@ -12,7 +12,8 @@ import {
   distance3D, createMeasurement, formatExhibitNumber,
   sortTimelineEvents, filterAdmittedExhibits, exhibitsByClass,
   isExhibitVisible, annotationsForExhibit, totalExhibitCount,
-  type EvidenceExhibit, type TimelineEvent, type WitnessPOV, type Annotation3D,
+  juryPerspectiveCamera, activeVoiceAnnotation, totalNarrationDuration,
+  type EvidenceExhibit, type TimelineEvent, type WitnessPOV, type Annotation3D, type VoiceAnnotation,
 } from '@/lib/courtroomEvidence';
 
 describe('Scenario: Courtroom Evidence — Measurements', () => {
@@ -92,6 +93,22 @@ describe('Scenario: Courtroom Evidence — Witness & Annotations', () => {
     expect(annotationsForExhibit(annotations, 'e3')).toHaveLength(0);
   });
 
-  it.todo('jury perspective mode — locked camera angle facing evidence display');
-  it.todo('voice annotation playback — sync audio commentary with 3D walkthrough');
+  it('jury perspective mode — locked camera angle facing evidence display', () => {
+    const cam = juryPerspectiveCamera({ x: 15, y: 1.5, z: 8 }, { x: 5, y: 1, z: 3 });
+    expect(cam.label).toBe('Jury Perspective');
+    expect(cam.position.x).toBe(15);
+    expect(cam.lookAt.x).toBe(5);
+    expect(cam.fov).toBe(60);
+  });
+
+  it('voice annotation playback — sync audio commentary with 3D walkthrough', () => {
+    const annotations: VoiceAnnotation[] = [
+      { id: 'v1', startTimeSec: 0, endTimeSec: 10, transcript: 'The defendant entered here', speakerName: 'Prosecutor', linkedPosition: { x: 5, y: 0, z: 3 } },
+      { id: 'v2', startTimeSec: 10, endTimeSec: 25, transcript: 'The weapon was found here', speakerName: 'Prosecutor', linkedPosition: { x: 8, y: 0, z: 5 } },
+    ];
+    expect(activeVoiceAnnotation(annotations, 5)?.id).toBe('v1');
+    expect(activeVoiceAnnotation(annotations, 15)?.id).toBe('v2');
+    expect(activeVoiceAnnotation(annotations, 30)).toBeNull();
+    expect(totalNarrationDuration(annotations)).toBe(25);
+  });
 });

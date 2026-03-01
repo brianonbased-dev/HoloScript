@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   isPuzzleAvailable, checkSolution, roomProgress, timeRemaining,
   isRoomComplete, getNextHint, criticalPath, averageDifficulty,
-  estimatedTotalTime, generateProceduralPuzzle,
+  estimatedTotalTime, generateProceduralPuzzle, multiplayerSync,
   type Puzzle, type EscapeRoom,
 } from '@/lib/escapeRoomDesigner';
 
@@ -91,7 +91,21 @@ describe('Scenario: Escape Room — Room Progress', () => {
     expect(estimatedTotalTime(room.puzzles)).toBe(180);
   });
 
-  it.todo('multiplayer sync — coordinate puzzle solving across players');
+  it('multiplayer sync — coordinate puzzle solving across players', () => {
+    const puzzles: Puzzle[] = [
+      { id: 'p1', name: 'Lock', type: 'lock', description: '', position: { x: 0, y: 0, z: 0 }, difficulty: 1, timeEstimateSec: 60, solution: '1234', status: 'available', dependsOn: [], hints: [], maxAttempts: 5, attempts: 0 },
+      { id: 'p2', name: 'Cipher', type: 'cipher', description: '', position: { x: 1, y: 0, z: 0 }, difficulty: 2, timeEstimateSec: 120, solution: 'escape', status: 'available', dependsOn: [], hints: [], maxAttempts: 5, attempts: 0 },
+      { id: 'p3', name: 'Logic', type: 'logic', description: '', position: { x: 2, y: 0, z: 0 }, difficulty: 3, timeEstimateSec: 180, solution: 'true', status: 'locked', dependsOn: ['p1'], hints: [], maxAttempts: 5, attempts: 0 },
+    ];
+    const assignments = multiplayerSync(puzzles, ['alice', 'bob']);
+    // Only p1 and p2 are available (p3 is locked)
+    expect(assignments.length).toBe(2);
+    // Should distribute evenly (one puzzle per player)
+    const alicePuzzles = assignments.filter(a => a.playerId === 'alice');
+    const bobPuzzles = assignments.filter(a => a.playerId === 'bob');
+    expect(alicePuzzles.length).toBe(1);
+    expect(bobPuzzles.length).toBe(1);
+  });
 
   it('procedural puzzle generation — randomize solutions each playthrough', () => {
     const template: Puzzle = {

@@ -35,9 +35,22 @@ function TemplateCard({
       onClick={() => onSelect(template)}
       className="group relative flex flex-col gap-2 rounded-xl border border-studio-border bg-studio-panel p-3 text-left transition hover:border-studio-accent hover:bg-studio-surface"
     >
-      {/* Thumbnail emoji */}
-      <div className="flex h-20 items-center justify-center rounded-lg bg-[#0a0a12] text-4xl transition group-hover:scale-105">
-        {template.thumbnail}
+      {/* Thumbnail — real image with fallback */}
+      <div className="relative h-28 overflow-hidden rounded-lg bg-[#0a0a12] transition group-hover:scale-[1.02]">
+        <img
+          src={template.thumbnail}
+          alt={template.name}
+          className="h-full w-full object-cover"
+          onError={(e) => {
+            // Fallback: hide broken image, show category initial
+            (e.target as HTMLImageElement).style.display = 'none';
+            (e.target as HTMLImageElement).parentElement!.classList.add('flex', 'items-center', 'justify-center');
+            const span = document.createElement('span');
+            span.className = 'text-3xl text-studio-muted/30 font-bold';
+            span.textContent = template.category.charAt(0).toUpperCase();
+            (e.target as HTMLImageElement).parentElement!.appendChild(span);
+          }}
+        />
       </div>
 
       {/* Info */}

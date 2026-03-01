@@ -9,7 +9,8 @@ import { describe, it, expect } from 'vitest';
 import {
   emotionToColorPalette, blendEmotionColors, generateEnvironment,
   clarityScore, findSymbol, symbolsInDream, lucidDreamRatio,
-  recurringDreamCount, averageDreamDuration,
+  recurringDreamCount, averageDreamDuration, dreamSymbolGraph,
+  textTo3DParser,
   EMOTION_PALETTES, COMMON_SYMBOLS,
   type DreamEntry,
 } from '@/lib/dreamJournal';
@@ -120,6 +121,30 @@ describe('Scenario: Dream Journal — Symbols & Analytics', () => {
     expect(averageDreamDuration(entries)).toBe(20);
   });
 
-  it.todo('text-to-3D parser — extract environment keywords from narrative');
-  it.todo('dream connection graph — link symbols across entries over time');
+  it('text-to-3D parser — extract environment keywords from narrative', () => {
+    const narrative = 'I was standing on a mountain overlooking the ocean. Dark clouds gathered as a dragon flew across the sky.';
+    const keywords = textTo3DParser(narrative);
+    expect(keywords.length).toBeGreaterThanOrEqual(4);
+    expect(keywords.find(k => k.term === 'mountain')).toBeDefined();
+    expect(keywords.find(k => k.term === 'ocean')).toBeDefined();
+    expect(keywords.find(k => k.term === 'dragon')!.category).toBe('creature');
+    expect(keywords.find(k => k.term === 'dark')!.category).toBe('lighting');
+  });
+
+  it('dreamSymbolGraph() — links symbols across entries over time', () => {
+    const entries: DreamEntry[] = [
+      { id: 'd1', date: '2024-01-01', title: 'A', narrative: '', emotions: ['fear'], clarity: 'vivid', lucid: false, recurring: false, symbols: ['water', 'falling'], duration: 10, physicsMode: 'normal' },
+      { id: 'd2', date: '2024-01-15', title: 'B', narrative: '', emotions: ['peace'], clarity: 'normal', lucid: true, recurring: false, symbols: ['water', 'flying'], duration: 20, physicsMode: 'flight' },
+      { id: 'd3', date: '2024-02-01', title: 'C', narrative: '', emotions: ['awe'], clarity: 'vivid', lucid: false, recurring: true, symbols: ['flying', 'house'], duration: 15, physicsMode: 'low-gravity' },
+    ];
+    const graph = dreamSymbolGraph(entries);
+    expect(graph.nodes).toHaveLength(4); // water, falling, flying, house
+    expect(graph.nodes.find(n => n.symbol === 'water')!.frequency).toBe(2);
+    expect(graph.connections.length).toBeGreaterThan(0);
+    const waterFalling = graph.connections.find(c => 
+      (c.symbolA === 'falling' && c.symbolB === 'water') || (c.symbolA === 'water' && c.symbolB === 'falling')
+    );
+    expect(waterFalling).toBeDefined();
+    expect(waterFalling!.coOccurrences).toBe(1);
+  });
 });

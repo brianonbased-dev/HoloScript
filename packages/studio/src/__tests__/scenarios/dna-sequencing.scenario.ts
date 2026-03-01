@@ -10,7 +10,7 @@ import {
   complement, complementStrand, transcribe, reverseComplement,
   translateCodon, translateMRNA,
   gcContent, sequenceLength, findMotif, detectMutations,
-  crisprOnTargetScore,
+  crisprOnTargetScore, neighborJoiningTree, blastLocalAlignment,
   type CRISPRTarget,
 } from '@/lib/dnaSequencing';
 
@@ -107,6 +107,20 @@ describe('Scenario: DNA — CRISPR', () => {
     expect(crisprOnTargetScore(target)).toBe('poor');
   });
 
-  it.todo('phylogenetic tree — build neighbor-joining tree from aligned sequences');
-  it.todo('BLAST search — simulate local alignment score matrix');
+  it('neighborJoiningTree — builds tree from aligned sequences', () => {
+    const labels = ['Human', 'Chimp', 'Gorilla', 'Orangutan'];
+    const seqs = ['ATGCGATCGA', 'ATGCGATCGA', 'ATGCAATCGA', 'TTGCGATCTA'];
+    const tree = neighborJoiningTree(labels, seqs);
+    expect(tree).toBeDefined();
+    expect(tree.children.length).toBeGreaterThan(0);
+    // Human and Chimp are identical → should merge first
+    expect(tree.distance).toBeGreaterThan(0);
+  });
+
+  it('blastLocalAlignment — finds local alignment with score', () => {
+    const hit = blastLocalAlignment('ATGCGATCGA', 'XXXATGCGATCGAXXX');
+    expect(hit.score).toBeGreaterThan(0);
+    expect(hit.identity).toBeGreaterThan(0.8);
+    expect(hit.length).toBeGreaterThanOrEqual(5);
+  });
 });

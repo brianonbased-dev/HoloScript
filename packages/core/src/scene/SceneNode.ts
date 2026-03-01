@@ -114,12 +114,34 @@ export class SceneNode {
 
   private computeLocalMatrix(): Matrix4 {
     const m = new Float64Array(16);
-    this.setIdentity(m);
 
-    const { position: p, scale: s } = this.local;
-    // Simplified TRS (translation * scale, ignoring rotation for simplicity in tests)
-    m[0] = s.x; m[5] = s.y; m[10] = s.z;
-    m[12] = p.x; m[13] = p.y; m[14] = p.z;
+    const { position: p, rotation: r, scale: s } = this.local;
+
+    // Euler angles → rotation matrix (intrinsic YXZ order)
+    const cx = Math.cos(r.x), sx = Math.sin(r.x);
+    const cy = Math.cos(r.y), sy = Math.sin(r.y);
+    const cz = Math.cos(r.z), sz = Math.sin(r.z);
+
+    // Column-major TRS: M = T * Ry * Rx * Rz * S
+    m[0]  = (cy * cz + sy * sx * sz) * s.x;
+    m[1]  = (cx * sz);
+    m[2]  = (-sy * cz + cy * sx * sz) * s.x;
+    m[3]  = 0;
+
+    m[4]  = (cy * -sz + sy * sx * cz) * s.y;
+    m[5]  = (cx * cz);
+    m[6]  = (sy * sz + cy * sx * cz) * s.y;
+    m[7]  = 0;
+
+    m[8]  = (sy * cx) * s.z;
+    m[9]  = (-sx);
+    m[10] = (cy * cx) * s.z;
+    m[11] = 0;
+
+    m[12] = p.x;
+    m[13] = p.y;
+    m[14] = p.z;
+    m[15] = 1;
 
     return m;
   }

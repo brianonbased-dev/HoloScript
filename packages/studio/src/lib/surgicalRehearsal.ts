@@ -129,3 +129,50 @@ export function instrumentForStep(
 ): SurgicalInstrument | null {
   return instruments.find(i => i.type === step.instrumentRequired) ?? null;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// 3D Anatomy Atlas
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Load organ models for a given system from the anatomy atlas.
+ * Returns models sorted by proximity to the surgical field center.
+ */
+export function anatomyAtlas(
+  organs: OrganModel[],
+  system: OrganSystem,
+  fieldCenter: Vec3
+): OrganModel[] {
+  return organs
+    .filter(o => o.system === system)
+    .sort((a, b) => distance3D(a.position, fieldCenter) - distance3D(b.position, fieldCenter));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Blood Flow Simulation
+// ═══════════════════════════════════════════════════════════════════
+
+export interface VesselSegment {
+  id: string;
+  startPos: Vec3;
+  endPos: Vec3;
+  diameterMm: number;
+  flowRateMlS: number;
+}
+
+/**
+ * Simple blood flow simulation using pressure-based flow.
+ * Returns perfusion intensity per segment (0-1).
+ */
+export function bloodFlowSim(
+  vessels: VesselSegment[],
+  heartRateBPM: number,
+  systolicPressure: number
+): { segmentId: string; perfusion: number }[] {
+  const restingFlow = systolicPressure / 120; // Normalized to average systolic
+  const cardiacFactor = heartRateBPM / 70;    // Normalized to resting HR
+  return vessels.map(v => ({
+    segmentId: v.id,
+    perfusion: Math.min(1, (v.flowRateMlS / 5) * restingFlow * cardiacFactor * (v.diameterMm / 3)),
+  }));
+}

@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   capsuleStatus, daysUntilUnlock, yearsUntilUnlock,
   capsuleItemCount, totalMemoDuration, isUnlockable, capsuleSizeEstimate,
+  blockchainTimestampProof, arReveal,
   type TimeCapsule,
 } from '@/lib/timeCapsule';
 
@@ -95,6 +96,32 @@ describe('Scenario: Time Capsule — Items & Memos', () => {
     expect(capsuleSizeEstimate(capsule)).toMatch(/MB|GB/);
   });
 
-  it.todo('AR reveal — point phone at location to preview capsule contents');
-  it.todo('blockchain timestamp — immutable proof of seal date');
+  it('AR reveal — point phone at location to preview capsule contents', () => {
+    const reveal = arReveal(capsule);
+    expect(reveal.capsuleId).toBe('tc-2');
+    expect(reveal.totalItems).toBe(2);
+    expect(reveal.itemPreviews).toHaveLength(2);
+    // Non-encrypted capsule uses fade-in
+    expect(reveal.revealAnimation).toBe('fade-in');
+    expect(reveal.itemPreviews[0].opacity).toBe(0.6);
+    // Encrypted capsule uses particle-burst
+    const encrypted = arReveal({ ...capsule, isEncrypted: true });
+    expect(encrypted.revealAnimation).toBe('particle-burst');
+    expect(encrypted.itemPreviews[0].opacity).toBe(0.2);
+  });
+
+  it('blockchainTimestampProof() — generates immutable seal proof', () => {
+    const now = Date.now();
+    const capsule: TimeCapsule = {
+      id: 'tc-proof', title: 'Proof Test', creatorName: 'Test',
+      createdDate: now, unlockDate: now + 1e10, status: 'sealed',
+      items: [{ id: 'i1', type: 'photo', name: 'Photo', position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: 1, fileUrl: '', dateCaptured: now, description: '' }],
+      memos: [], recipients: [], isEncrypted: false, message: 'Hello future!',
+    };
+    const proof = blockchainTimestampProof(capsule);
+    expect(proof.hash).toMatch(/^0x[0-9a-f]+$/);
+    expect(proof.verified).toBe(true);
+    expect(proof.capsuleId).toBe('tc-proof');
+    expect(proof.blockNumber).toBeGreaterThan(0);
+  });
 });

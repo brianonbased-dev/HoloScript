@@ -100,3 +100,58 @@ export function spectralClassToTemperature(spectral: string): number {
 export function isCircumpolar(dec: number, latitude: number): boolean {
   return dec > (90 - Math.abs(latitude));
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Planetarium Animation
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Generate smooth RA/Dec path following Earth's rotation.
+ * Returns interpolated positions at given time intervals.
+ */
+export function planetariumPath(
+  star: Star,
+  durationHours: number,
+  samplesPerHour: number,
+  latitude: number
+): CelestialCoord[] {
+  const path: CelestialCoord[] = [];
+  const totalSamples = Math.ceil(durationHours * samplesPerHour);
+  for (let i = 0; i <= totalSamples; i++) {
+    const hours = (i / totalSamples) * durationHours;
+    // Earth rotates 15°/hour → apparent RA shifts
+    const apparentRA = (star.coord.ra + hours) % 24;
+    // Altitude changes based on RA+latitude (simplified)
+    const hourAngle = hours * 15; // degrees
+    const alt = Math.sin(star.coord.dec * Math.PI / 180) * Math.sin(latitude * Math.PI / 180)
+              + Math.cos(star.coord.dec * Math.PI / 180) * Math.cos(latitude * Math.PI / 180) * Math.cos(hourAngle * Math.PI / 180);
+    path.push({ ra: apparentRA, dec: Math.asin(Math.max(-1, Math.min(1, alt))) * 180 / Math.PI });
+  }
+  return path;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Mythology Overlay
+// ═══════════════════════════════════════════════════════════════════
+
+export interface MythologyOverlay {
+  constellationId: string;
+  culture: string;
+  artUrl: string;
+  description: string;
+  opacity: number;
+}
+
+/**
+ * Generate mythology overlay metadata for a constellation across cultures.
+ */
+export function mythologyOverlays(constellation: ConstellationDef): MythologyOverlay[] {
+  const cultures = ['greek', 'chinese', 'aboriginal', 'egyptian', 'norse'];
+  return cultures.map(culture => ({
+    constellationId: constellation.id,
+    culture,
+    artUrl: `/assets/mythology/${constellation.id}_${culture}.svg`,
+    description: `${culture.charAt(0).toUpperCase() + culture.slice(1)} mythology for ${constellation.name}`,
+    opacity: culture === constellation.culture ? 1.0 : 0.5,
+  }));
+}

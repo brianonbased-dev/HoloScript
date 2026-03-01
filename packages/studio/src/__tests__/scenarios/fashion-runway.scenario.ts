@@ -10,7 +10,8 @@ import {
   pathLength, walkDuration, modelPositionAtTime,
   cameraSequenceDuration, activeCameraAtTime, cutCountByAngle,
   fabricSwayFactor, trainDragAdjustment, showTotalDuration,
-  type ModelProfile, type RunwayPath, type CameraCut, type ShowSegment,
+  clothSimSnapshot, audienceHeatmap,
+  type ModelProfile, type RunwayPath, type CameraCut, type ShowSegment, type Vec2,
 } from '@/lib/fashionRunway';
 
 describe('Scenario: Fashion Runway — Walk Path', () => {
@@ -94,6 +95,22 @@ describe('Scenario: Fashion Runway — Garment Physics', () => {
     expect(showTotalDuration(segments)).toBe(300);
   });
 
-  it.todo('cloth simulation — real-time fabric draping on walking model');
-  it.todo('audience reaction heatmap — track visual attention zones');
+  it('cloth simulation — real-time fabric draping on walking model', () => {
+    const grid = clothSimSnapshot(5, 5, -9.81, 0.5, 1 / 60, 10);
+    // Top row pinned — should stay at y=0
+    expect(grid[0][0].pinned).toBe(true);
+    expect(grid[0][0].y).toBeCloseTo(0, 1);
+    // Bottom row should be displaced from original y=0.4 by gravity + springs
+    expect(grid[4][2].y).not.toBeCloseTo(0.4, 1); // Not at original position
+  });
+
+  it('audience reaction heatmap — track visual attention zones', () => {
+    const modelPositions: Vec2[] = [{ x: 5, y: 1 }, { x: 5, y: 3 }];
+    const heatmap = audienceHeatmap(modelPositions, 4, 4, 10, 4);
+    // Cells near models should have higher intensity
+    expect(heatmap.length).toBe(16); // 4x4 grid
+    const nearModel = heatmap.find(c => Math.abs(c.x - 5) < 2 && Math.abs(c.y - 1) < 1)!;
+    const farFromModel = heatmap.find(c => c.x < 2 && c.y < 1)!;
+    expect(nearModel.intensity).toBeGreaterThan(farFromModel.intensity);
+  });
 });

@@ -103,9 +103,22 @@ export function TemplateGallery({ onClose }: TemplateGalleryProps) {
         )}
         {templates.map((t) => (
           <div key={t.id} className="overflow-hidden rounded-xl border border-studio-border bg-studio-surface transition hover:border-studio-accent/40">
-            {/* Preview area */}
-            <div className="flex aspect-video items-center justify-center bg-gradient-to-br from-studio-panel to-black/40 text-[32px]">
-              {CATEGORY_EMOJI[t.category] ?? '📁'}
+            {/* Preview area — real image with fallback */}
+            <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-studio-panel to-black/40">
+              {t.thumbnail ? (
+                <img
+                  src={t.thumbnail}
+                  alt={t.name}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : null}
+              {/* Category badge */}
+              <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] backdrop-blur">
+                {CATEGORY_EMOJI[t.category] ?? '📁'} {t.category}
+              </span>
             </div>
             {/* Info */}
             <div className="p-2.5">

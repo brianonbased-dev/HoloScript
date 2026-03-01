@@ -3,12 +3,10 @@
 
 [workspace]
 members = [
-    "packages/compiler-wasm", "packages/spatial-engine",
-    # TODO: holoscript-component disabled until WIT bindings are properly configured
-    # "packages/holoscript-component",
-]
-exclude = [
-    "packages/holoscript-component",  # Excluded until WIT bindings are configured
+    "packages/compiler-wasm",
+    "packages/spatial-engine",
+    "packages/holoscript-component",
+    "packages/shader-preview-wgpu",
 ]
 resolver = "2"
 

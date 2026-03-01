@@ -11,8 +11,8 @@ import {
   panelsByMovement, scenesByAct, averageShotDuration,
   threeActBalance, isBalancedStructure,
   uniqueLocations, totalProductionDays, totalProductionHours,
-  generateShotList, filmPacing,
-  type Scene, type StoryboardPanel, type ProductionDay,
+  generateShotList, filmPacing, previsCamera,
+  type Scene, type StoryboardPanel, type ProductionDay, type CameraKeyframe,
 } from '@/lib/filmStoryboard';
 
 const makePanel = (overrides: Partial<StoryboardPanel> = {}): StoryboardPanel => ({
@@ -112,5 +112,22 @@ describe('Scenario: Film Storyboard — Production', () => {
     expect(shotList[2].sceneNumber).toBe(2);
   });
 
-  it.todo('previsualization — 3D camera path animation preview');
+  it('previsualization — 3D camera path animation preview', () => {
+    const keyframes: CameraKeyframe[] = [
+      { time: 0, position: { x: 0, y: 2, z: -5 }, lookAt: { x: 0, y: 0, z: 0 }, fov: 50 },
+      { time: 2, position: { x: 5, y: 3, z: 0 }, lookAt: { x: 0, y: 1, z: 0 }, fov: 35 },
+      { time: 4, position: { x: 0, y: 1, z: 5 }, lookAt: { x: 0, y: 0, z: 0 }, fov: 60 },
+    ];
+    const path = previsCamera(keyframes, 10); // 10 samples/sec over 4 sec
+    expect(path.length).toBeGreaterThan(10);
+    // First sample should match first keyframe
+    expect(path[0].position.x).toBeCloseTo(0, 1);
+    expect(path[0].fov).toBeCloseTo(50, 1);
+    // Last sample should match last keyframe
+    expect(path[path.length - 1].position.z).toBeCloseTo(5, 1);
+    // Midpoint should be interpolated
+    const mid = path[Math.floor(path.length / 2)];
+    expect(mid.time).toBeGreaterThan(1);
+    expect(mid.time).toBeLessThan(3);
+  });
 });

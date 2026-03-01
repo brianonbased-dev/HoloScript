@@ -12,7 +12,7 @@ import {
   basicReproductionNumber, effectiveR, herdImmunityThreshold,
   infectionRate, caseRiskLevel, caseFatalityRate,
   stepSEIR, quarantineEffectiveness, vaccinationCoverage,
-  daysToHerdImmunity,
+  daysToHerdImmunity, contactTracingGraph, icuCapacityProjection,
   type PopulationZone, type QuarantineZone, type SEIRState,
 } from '@/lib/epidemicHeatmap';
 
@@ -103,6 +103,24 @@ describe('Scenario: Epidemic Heatmap — Interventions', () => {
     expect(daysToHerdImmunity(10000, 0, 0, 3)).toBe(Infinity);
   });
 
-  it.todo('contact tracing network — graph viz of infection chains');
-  it.todo('hospital capacity model — ICU beds vs projected hospitalizations');
+  it('contactTracingGraph — builds infection chain and finds super-spreaders', () => {
+    const events = [
+      { id: '1', patientId: 'P1', location: { lat: 40, lon: -74 }, timestamp: 1000, status: 'infected' as const, contactCount: 8, isolated: false },
+      { id: '2', patientId: 'P2', location: { lat: 40, lon: -74 }, timestamp: 2000, status: 'infected' as const, contactCount: 2, isolated: true },
+      { id: '3', patientId: 'P3', location: { lat: 41, lon: -73 }, timestamp: 3000, status: 'infected' as const, contactCount: 1, isolated: false },
+    ];
+    const graph = contactTracingGraph(events, 5);
+    expect(graph.nodes).toContain('P1');
+    expect(graph.superSpreaders).toEqual(['P1']);
+    expect(graph.edges.length).toBeGreaterThan(0);
+  });
+
+  it('icuCapacityProjection — projects bed usage over 7 days', () => {
+    const proj = icuCapacityProjection(1000, 0.1, 0.15, 0.25, 100, 50, 7);
+    expect(proj).toHaveLength(7);
+    expect(proj[0].day).toBe(0);
+    // Should eventually go over capacity with 10% daily growth
+    const lastDay = proj[proj.length - 1];
+    expect(lastDay.projectedICUPatients).toBeGreaterThan(proj[0].projectedICUPatients);
+  });
 });

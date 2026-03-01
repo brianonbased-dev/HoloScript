@@ -25,6 +25,9 @@ import {
   resourcesByType,
   totalCapacity,
   isLZSuitable,
+  startTriageClassify,
+  fallbackRadioTopology,
+  droneDeploymentGrid,
   type Building,
   type EarthquakeEvent,
   type FloodZone,
@@ -187,7 +190,40 @@ describe('Scenario: Disaster Response — Resources', () => {
     expect(isLZSuitable(bad)).toBe(false);
   });
 
-  it.todo('real-time drone deployment — autonomous search grid flight paths');
-  it.todo('triage classification — START protocol (Simple Triage And Rapid Treatment)');
-  it.todo('communication mesh — fallback radio network topology');
+  it('real-time drone deployment — autonomous search grid flight paths', () => {
+    const grid = droneDeploymentGrid(0, 0, 200, 300, 50, 50);
+    expect(grid.length).toBeGreaterThanOrEqual(8); // At least 4 lanes × 2 waypoints
+    // First waypoint starts at origin
+    expect(grid[0].position.x).toBe(0);
+    expect(grid[0].altitudeM).toBe(50);
+    // Lanes alternate direction (boustrophedon)
+    expect(grid[0].position.z).toBe(0);
+    expect(grid[1].position.z).toBe(300);
+    expect(grid[2].position.z).toBe(300); // Odd lane starts from end
+    expect(grid[3].position.z).toBe(0);   // Odd lane ends at origin
+  });
+
+  it('startTriageClassify — START protocol categorizes casualties', () => {
+    // Not breathing → Deceased
+    expect(startTriageClassify(false, 0, 0, false)).toBe('deceased');
+    // RR > 30 → Immediate
+    expect(startTriageClassify(true, 35, 1, true)).toBe('immediate');
+    // Poor perfusion → Immediate
+    expect(startTriageClassify(true, 20, 4, true)).toBe('immediate');
+    // Normal vitals, follows commands → Delayed
+    expect(startTriageClassify(true, 18, 1.5, true)).toBe('delayed');
+  });
+
+  it('fallbackRadioTopology — builds mesh from node positions', () => {
+    const nodes = [
+      { id: 'HQ', position: { x: 0, y: 0, z: 0 }, rangeMeters: 500, isRelay: true },
+      { id: 'A', position: { x: 300, y: 0, z: 0 }, rangeMeters: 500, isRelay: false },
+      { id: 'B', position: { x: 0, y: 400, z: 0 }, rangeMeters: 500, isRelay: false },
+      { id: 'C', position: { x: 9000, y: 9000, z: 0 }, rangeMeters: 100, isRelay: false },
+    ];
+    const topo = fallbackRadioTopology(nodes);
+    expect(topo.links.length).toBeGreaterThanOrEqual(2);
+    expect(topo.isolatedNodes).toContain('C');
+    expect(topo.connected).toBe(false);
+  });
 });

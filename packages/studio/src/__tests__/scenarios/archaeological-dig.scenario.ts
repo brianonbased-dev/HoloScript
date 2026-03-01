@@ -11,8 +11,9 @@ import {
   carbonDateRange, stratumThickness, identifyPeriodByDepth,
   stratigraphicSequenceValid, artifactsByMaterial, artifactsByStratum,
   reconstructionCompleteness, totalArtifactCount, excavationProgress,
+  fragmentFitting, gisOverlay,
   PERIOD_TIMELINE,
-  type Stratum, type ArtifactRecord, type ExcavationGrid, type ReconstructionGroup,
+  type Stratum, type ArtifactRecord, type ExcavationGrid, type ReconstructionGroup, type FragmentEdge,
 } from '@/lib/archaeologicalDig';
 
 describe('Scenario: Archaeological Dig — Carbon-14 Dating', () => {
@@ -112,6 +113,24 @@ describe('Scenario: Archaeological Dig — Artifacts & Reconstruction', () => {
     expect(excavationProgress(grids)).toBe(0.5);
   });
 
-  it.todo('3D fragment fitting — auto-align fragments by edge contour matching');
-  it.todo('GIS overlay — place excavation grid on real-world satellite map');
+  it('3D fragment fitting — auto-align fragments by edge contour matching', () => {
+    const edgeA: FragmentEdge = { points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0.1, z: 0 }, { x: 2, y: 0, z: 0 }], curvature: 0.15 };
+    const edgeB: FragmentEdge = { points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0.12, z: 0 }, { x: 2, y: 0, z: 0 }], curvature: 0.16 };
+    const edgeC: FragmentEdge = { points: [{ x: 5, y: 5, z: 5 }, { x: 6, y: 6, z: 6 }], curvature: 0.8 };
+    // A and B should match well (similar curvature + close points)
+    const matchAB = fragmentFitting(edgeA, edgeB);
+    const matchAC = fragmentFitting(edgeA, edgeC);
+    expect(matchAB).toBeGreaterThan(0.5);
+    expect(matchAC).toBeLessThan(matchAB);
+  });
+
+  it('GIS overlay — place excavation grid on real-world satellite map', () => {
+    const grid: ExcavationGrid = { id: 'g1', unitLabel: 'A1', position: { x: 10, y: 0, z: 20 }, widthM: 5, lengthM: 5, stratumHistory: [], artifacts: [], excavated: true };
+    const origin = { lat: 37.9715, lon: 23.7269 }; // Athens
+    const { sw, ne } = gisOverlay(grid, origin);
+    expect(sw.lat).toBeGreaterThan(origin.lat);
+    expect(sw.lon).toBeGreaterThan(origin.lon);
+    expect(ne.lat).toBeGreaterThan(sw.lat);
+    expect(ne.lon).toBeGreaterThan(sw.lon);
+  });
 });

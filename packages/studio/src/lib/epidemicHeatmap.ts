@@ -156,3 +156,105 @@ export function daysToHerdImmunity(
   if (vaccinationsPerDay <= 0) return Infinity;
   return Math.ceil(needed / vaccinationsPerDay);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Contact Tracing
+// ═══════════════════════════════════════════════════════════════════
+
+export interface ContactEdge {
+  from: string;  // patient ID
+  to: string;    // contact ID
+  timestamp: number;
+  location?: GeoPoint;
+}
+
+export interface ContactGraph {
+  nodes: string[];
+  edges: ContactEdge[];
+  superSpreaders: string[];  // nodes with > threshold connections
+}
+
+/**
+ * Builds an infection chain graph from case events.
+ * A super-spreader is anyone who infected >= threshold contacts.
+ */
+export function contactTracingGraph(
+  events: InfectionEvent[],
+  superSpreaderThreshold: number = 5
+): ContactGraph {
+  const nodes = new Set<string>();
+  const edges: ContactEdge[] = [];
+  const outDegree = new Map<string, number>();
+
+  for (const event of events) {
+    nodes.add(event.patientId);
+    outDegree.set(event.patientId, (outDegree.get(event.patientId) ?? 0) + event.contactCount);
+  }
+
+  // Build simplified edges (each contact is a potential transmission)
+  for (const event of events) {
+    if (event.contactCount > 0) {
+      edges.push({
+        from: event.patientId,
+        to: `contact_of_${event.patientId}`,
+        timestamp: event.timestamp,
+        location: event.location,
+      });
+    }
+  }
+
+  const superSpreaders = Array.from(outDegree.entries())
+    .filter(([, count]) => count >= superSpreaderThreshold)
+    .map(([id]) => id);
+
+  return {
+    nodes: Array.from(nodes),
+    edges,
+    superSpreaders,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Hospital Capacity Projection
+// ═══════════════════════════════════════════════════════════════════
+
+export interface ICUProjection {
+  day: number;
+  projectedICUPatients: number;
+  availableBeds: number;
+  overCapacity: boolean;
+  surplusDeficit: number;
+}
+
+/**
+ * Projects ICU bed usage over time given current infection trajectory.
+ */
+export function icuCapacityProjection(
+  currentInfected: number,
+  growthRatePerDay: number,
+  hospitalizationRate: number,
+  icuFraction: number,
+  totalICUBeds: number,
+  currentICUOccupancy: number,
+  days: number
+): ICUProjection[] {
+  const projections: ICUProjection[] = [];
+  let infected = currentInfected;
+
+  for (let d = 0; d < days; d++) {
+    const hospitalized = infected * hospitalizationRate;
+    const icuPatients = hospitalized * icuFraction;
+    const availableBeds = totalICUBeds - currentICUOccupancy;
+    projections.push({
+      day: d,
+      projectedICUPatients: Math.round(icuPatients),
+      availableBeds,
+      overCapacity: icuPatients > availableBeds,
+      surplusDeficit: Math.round(availableBeds - icuPatients),
+    });
+    infected *= (1 + growthRatePerDay);
+  }
+
+  return projections;
+}
+

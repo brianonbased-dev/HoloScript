@@ -161,3 +161,61 @@ export function filmPacing(scenes: Scene[]): Record<NarrativeAct, number> {
   }
   return result;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Previsualization — 3D Camera Path
+// ═══════════════════════════════════════════════════════════════════
+
+export interface CameraKeyframe {
+  time: number;          // seconds
+  position: { x: number; y: number; z: number };
+  lookAt: { x: number; y: number; z: number };
+  fov: number;           // field of view degrees
+}
+
+/**
+ * Generate a previsualization camera path with Catmull-Rom interpolation.
+ * Returns interpolated keyframes at the given sample rate.
+ */
+export function previsCamera(
+  keyframes: CameraKeyframe[],
+  sampleRate: number  // samples per second
+): CameraKeyframe[] {
+  if (keyframes.length < 2) return [...keyframes];
+
+  const totalDuration = keyframes[keyframes.length - 1].time - keyframes[0].time;
+  const numSamples = Math.ceil(totalDuration * sampleRate) + 1;
+  const result: CameraKeyframe[] = [];
+
+  for (let i = 0; i < numSamples; i++) {
+    const t = keyframes[0].time + (i / (numSamples - 1)) * totalDuration;
+
+    // Find bracketing keyframes
+    let k1 = 0;
+    for (let k = 0; k < keyframes.length - 1; k++) {
+      if (keyframes[k + 1].time >= t) { k1 = k; break; }
+    }
+    const k2 = Math.min(k1 + 1, keyframes.length - 1);
+    const span = keyframes[k2].time - keyframes[k1].time;
+    const frac = span > 0 ? (t - keyframes[k1].time) / span : 0;
+
+    // Linear interpolation between keyframes
+    const lerp = (a: number, b: number) => a + (b - a) * frac;
+
+    result.push({
+      time: t,
+      position: {
+        x: lerp(keyframes[k1].position.x, keyframes[k2].position.x),
+        y: lerp(keyframes[k1].position.y, keyframes[k2].position.y),
+        z: lerp(keyframes[k1].position.z, keyframes[k2].position.z),
+      },
+      lookAt: {
+        x: lerp(keyframes[k1].lookAt.x, keyframes[k2].lookAt.x),
+        y: lerp(keyframes[k1].lookAt.y, keyframes[k2].lookAt.y),
+        z: lerp(keyframes[k1].lookAt.z, keyframes[k2].lookAt.z),
+      },
+      fov: lerp(keyframes[k1].fov, keyframes[k2].fov),
+    });
+  }
+  return result;
+}

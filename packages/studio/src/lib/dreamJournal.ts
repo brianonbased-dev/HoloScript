@@ -142,3 +142,106 @@ export function averageDreamDuration(entries: DreamEntry[]): number {
   if (entries.length === 0) return 0;
   return entries.reduce((sum, e) => sum + e.duration, 0) / entries.length;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Dream Symbol Graph
+// ═══════════════════════════════════════════════════════════════════
+
+export interface SymbolConnection {
+  symbolA: string;
+  symbolB: string;
+  coOccurrences: number;
+  sharedEmotions: EmotionCategory[];
+}
+
+export interface DreamSymbolGraph {
+  nodes: Array<{ symbol: string; frequency: number; firstSeen: string; lastSeen: string }>;
+  connections: SymbolConnection[];
+}
+
+/**
+ * Builds a symbol co-occurrence graph across dream entries.
+ * Links symbols that appear together in the same dream.
+ */
+export function dreamSymbolGraph(entries: DreamEntry[]): DreamSymbolGraph {
+  const freq = new Map<string, { count: number; firstSeen: string; lastSeen: string }>();
+  const coOccur = new Map<string, number>();
+  const sharedEmo = new Map<string, Set<string>>();
+
+  for (const entry of entries) {
+    for (const symbol of entry.symbols) {
+      const existing = freq.get(symbol);
+      if (!existing) {
+        freq.set(symbol, { count: 1, firstSeen: entry.date, lastSeen: entry.date });
+      } else {
+        existing.count++;
+        existing.lastSeen = entry.date;
+      }
+    }
+
+    // Build co-occurrence pairs
+    for (let i = 0; i < entry.symbols.length; i++) {
+      for (let j = i + 1; j < entry.symbols.length; j++) {
+        const key = [entry.symbols[i], entry.symbols[j]].sort().join('|');
+        coOccur.set(key, (coOccur.get(key) ?? 0) + 1);
+        if (!sharedEmo.has(key)) sharedEmo.set(key, new Set());
+        for (const emo of entry.emotions) sharedEmo.get(key)!.add(emo);
+      }
+    }
+  }
+
+  const nodes = Array.from(freq.entries()).map(([symbol, data]) => ({
+    symbol,
+    frequency: data.count,
+    firstSeen: data.firstSeen,
+    lastSeen: data.lastSeen,
+  }));
+
+  const connections: SymbolConnection[] = Array.from(coOccur.entries()).map(([key, count]) => {
+    const [a, b] = key.split('|');
+    return {
+      symbolA: a,
+      symbolB: b,
+      coOccurrences: count,
+      sharedEmotions: Array.from(sharedEmo.get(key) ?? []) as EmotionCategory[],
+    };
+  });
+
+  return { nodes, connections };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Text-to-3D Parser
+// ═══════════════════════════════════════════════════════════════════
+
+export interface EnvironmentKeyword {
+  term: string;
+  category: 'terrain' | 'sky' | 'object' | 'lighting' | 'weather' | 'creature';
+  confidence: number;
+}
+
+const ENVIRONMENT_LEXICON: Record<string, EnvironmentKeyword['category']> = {
+  mountain: 'terrain', ocean: 'terrain', forest: 'terrain', desert: 'terrain', cave: 'terrain',
+  city: 'terrain', river: 'terrain', island: 'terrain', field: 'terrain', cliff: 'terrain',
+  sun: 'sky', moon: 'sky', stars: 'sky', clouds: 'sky', sky: 'sky', aurora: 'sky',
+  tree: 'object', door: 'object', bridge: 'object', tower: 'object', castle: 'object',
+  dark: 'lighting', bright: 'lighting', glow: 'lighting', shadow: 'lighting',
+  rain: 'weather', storm: 'weather', fog: 'weather', snow: 'weather', wind: 'weather',
+  dragon: 'creature', wolf: 'creature', bird: 'creature', cat: 'creature', snake: 'creature',
+};
+
+/**
+ * Extracts 3D environment keywords from a dream narrative.
+ */
+export function textTo3DParser(narrative: string): EnvironmentKeyword[] {
+  const words = narrative.toLowerCase().split(/\W+/);
+  const found: EnvironmentKeyword[] = [];
+  const seen = new Set<string>();
+  for (const word of words) {
+    if (ENVIRONMENT_LEXICON[word] && !seen.has(word)) {
+      seen.add(word);
+      found.push({ term: word, category: ENVIRONMENT_LEXICON[word], confidence: 0.8 });
+    }
+  }
+  return found;
+}

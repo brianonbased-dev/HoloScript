@@ -10,8 +10,10 @@ import {
   radiativeForcing, temperatureFromForcing, co2EquivalentPPM,
   seaLevelRiseFromIce, totalIceMassLoss, yearsToMeltCompletely,
   carbonBudgetYears, requiredReductionRate, scenarioWarming,
+  oceanAcidificationPH, temperatureAnomalyByLatitude,
   GHG_DATA, ICE_SHEETS,
 } from '@/lib/climateModeling';
+
 
 describe('Scenario: Climate — Greenhouse Gases', () => {
   it('GHG_DATA has 4 gases', () => {
@@ -95,6 +97,20 @@ describe('Scenario: Climate — Carbon Budget', () => {
     expect(w.label).toContain('1.5°C');
   });
 
-  it.todo('regional climate map — temperature anomaly heatmap by latitude/longitude');
-  it.todo('ocean acidification — pH projection from dissolved CO2');
+  it('temperatureAnomalyByLatitude — Arctic amplification 2.5x at poles', () => {
+    const equator = temperatureAnomalyByLatitude(2.0, 0);
+    const pole = temperatureAnomalyByLatitude(2.0, 90);
+    expect(equator).toBeCloseTo(2.0, 1);
+    expect(pole).toBeCloseTo(5.0, 1);
+    expect(pole / equator).toBeCloseTo(2.5, 1);
+  });
+
+  it('oceanAcidificationPH — current CO2 421 ppm → pH ~8.07', () => {
+    const ph = oceanAcidificationPH(421);
+    expect(ph).toBeCloseTo(8.07, 1);
+    expect(ph).toBeLessThan(8.18);
+    // Higher CO2 → lower pH
+    const future = oceanAcidificationPH(600);
+    expect(future).toBeLessThan(ph);
+  });
 });

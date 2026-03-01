@@ -186,3 +186,129 @@ export function totalCapacity(units: ResourceUnit[]): number {
 export function isLZSuitable(lz: HelicopterLZ): boolean {
   return lz.slope <= 10 && lz.obstructions.length === 0 && lz.radiusMeters >= 15;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// START Triage Protocol
+// ═══════════════════════════════════════════════════════════════════
+
+export type TriageCategory = 'immediate' | 'delayed' | 'minor' | 'deceased';
+
+/**
+ * Classifies a casualty using the START (Simple Triage And Rapid Treatment) protocol.
+ * @param breathing - Is the patient breathing? (spontaneous after airway opened)
+ * @param respiratoryRate - Breaths per minute (0 if not breathing)
+ * @param perfusion - Capillary refill seconds (or radial pulse present)
+ * @param mentalStatus - Can follow simple commands
+ */
+export function startTriageClassify(
+  breathing: boolean,
+  respiratoryRate: number,
+  perfusionSeconds: number,
+  canFollowCommands: boolean
+): TriageCategory {
+  // Step 1: Not breathing after airway opened → Deceased
+  if (!breathing && respiratoryRate === 0) return 'deceased';
+
+  // Step 2: RR > 30 → Immediate
+  if (respiratoryRate > 30) return 'immediate';
+
+  // Step 3: Perfusion > 2 sec → Immediate
+  if (perfusionSeconds > 2) return 'immediate';
+
+  // Step 4: Mental status
+  if (!canFollowCommands) return 'immediate';
+
+  // Walking wounded → Minor, otherwise Delayed
+  return respiratoryRate > 0 && respiratoryRate <= 30 ? 'delayed' : 'minor';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Fallback Radio Mesh Topology
+// ═══════════════════════════════════════════════════════════════════
+
+export interface RadioNode {
+  id: string;
+  position: Vec3;
+  rangeMeters: number;
+  isRelay: boolean;
+}
+
+export interface RadioLink {
+  from: string;
+  to: string;
+  distance: number;
+  signalStrength: number; // 0-1
+}
+
+/**
+ * Builds a fallback radio mesh topology from node positions and ranges.
+ * Two nodes can communicate if their distance < min(rangeA, rangeB).
+ */
+export function fallbackRadioTopology(nodes: RadioNode[]): {
+  links: RadioLink[];
+  connected: boolean;
+  isolatedNodes: string[];
+} {
+  const links: RadioLink[] = [];
+  const connectedSet = new Set<string>();
+
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      const dx = a.position.x - b.position.x;
+      const dy = a.position.y - b.position.y;
+      const dz = a.position.z - b.position.z;
+      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const maxRange = Math.min(a.rangeMeters, b.rangeMeters);
+
+      if (distance < maxRange) {
+        const signalStrength = Math.max(0, 1 - distance / maxRange);
+        links.push({ from: a.id, to: b.id, distance, signalStrength });
+        connectedSet.add(a.id);
+        connectedSet.add(b.id);
+      }
+    }
+  }
+
+  const isolatedNodes = nodes
+    .filter(n => !connectedSet.has(n.id))
+    .map(n => n.id);
+
+  return {
+    links,
+    connected: isolatedNodes.length === 0 && nodes.length > 0,
+    isolatedNodes,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Drone Deployment — Autonomous Search Grid
+// ═══════════════════════════════════════════════════════════════════
+
+export interface DroneWaypoint {
+  position: Vec3;
+  altitudeM: number;
+  hoverTimeSec: number;
+}
+
+/**
+ * Generate a boustrophedon (lawn-mower) search grid for disaster zone scanning.
+ */
+export function droneDeploymentGrid(
+  originX: number, originZ: number,
+  widthM: number, depthM: number,
+  altitudeM: number,
+  laneSpacingM: number
+): DroneWaypoint[] {
+  const waypoints: DroneWaypoint[] = [];
+  const lanes = Math.ceil(widthM / laneSpacingM);
+  for (let i = 0; i <= lanes; i++) {
+    const x = originX + i * laneSpacingM;
+    // Alternate direction each lane (boustrophedon)
+    const zStart = i % 2 === 0 ? originZ : originZ + depthM;
+    const zEnd = i % 2 === 0 ? originZ + depthM : originZ;
+    waypoints.push({ position: { x, y: 0, z: zStart }, altitudeM, hoverTimeSec: 2 });
+    waypoints.push({ position: { x, y: 0, z: zEnd }, altitudeM, hoverTimeSec: 2 });
+  }
+  return waypoints;
+}

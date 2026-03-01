@@ -142,3 +142,64 @@ export function excavationProgress(grid: ExcavationGrid[]): number {
   if (grid.length === 0) return 0;
   return grid.filter(g => g.excavated).length / grid.length;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// 3D Fragment Fitting
+// ═══════════════════════════════════════════════════════════════════
+
+export interface FragmentEdge { points: Vec3[]; curvature: number }
+
+/**
+ * Score how well two fragment edges match by comparing curvatures
+ * and point proximity. Returns 0-1 (1 = perfect match).
+ */
+export function fragmentFitting(edgeA: FragmentEdge, edgeB: FragmentEdge): number {
+  // Curvature similarity (inverted difference)
+  const curvDiff = Math.abs(edgeA.curvature - edgeB.curvature);
+  const curvScore = Math.max(0, 1 - curvDiff * 5);
+
+  // Point count similarity
+  const countRatio = Math.min(edgeA.points.length, edgeB.points.length) /
+                    Math.max(edgeA.points.length, edgeB.points.length);
+
+  // Average point proximity (using first N points from each)
+  const n = Math.min(edgeA.points.length, edgeB.points.length);
+  let totalDist = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = edgeA.points[i].x - edgeB.points[i].x;
+    const dy = edgeA.points[i].y - edgeB.points[i].y;
+    const dz = edgeA.points[i].z - edgeB.points[i].z;
+    totalDist += Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+  const avgDist = n > 0 ? totalDist / n : 10;
+  const distScore = Math.max(0, 1 - avgDist * 2);
+
+  return curvScore * 0.4 + countRatio * 0.2 + distScore * 0.4;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GIS Overlay
+// ═══════════════════════════════════════════════════════════════════
+
+export interface GeoCoord { lat: number; lon: number }
+
+/**
+ * Project excavation grid to real-world satellite coordinates.
+ * Returns grid corners in lat/lon given a reference origin.
+ */
+export function gisOverlay(
+  grid: ExcavationGrid,
+  origin: GeoCoord,
+  metersPerDegLat: number = 111320,
+  metersPerDegLon: number = 78847
+): { sw: GeoCoord; ne: GeoCoord } {
+  const sw: GeoCoord = {
+    lat: origin.lat + grid.position.z / metersPerDegLat,
+    lon: origin.lon + grid.position.x / metersPerDegLon,
+  };
+  const ne: GeoCoord = {
+    lat: sw.lat + grid.lengthM / metersPerDegLat,
+    lon: sw.lon + grid.widthM / metersPerDegLon,
+  };
+  return { sw, ne };
+}

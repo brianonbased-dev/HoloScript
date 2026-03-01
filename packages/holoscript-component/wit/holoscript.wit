@@ -1,23 +1,29 @@
 /// HoloScript WASM Component Interface
-/// 
-/// This WIT file defines the interface for the HoloScript parser, validator,
-/// and compiler as a WASM Component (WASI Preview 3).
-/// 
+///
+/// Defines the complete interface surface for the HoloScript parser, validator,
+/// compiler, and spatial engine as a WASM Component (WASI Preview 3).
+///
+/// Architecture: Engine-core interfaces are exported from this component.
+/// Platform-plugin interfaces (Unity, Godot, etc.) consume these exports
+/// and can be loaded as separate WASM components for <2MB binary target.
+///
 /// Consumers can instantiate this component from any language with WASM
 /// Component Model support: JavaScript (via jco), Python (via wasmtime),
 /// Rust (via wasmtime), Go (via wazero), etc.
 
-package holoscript:core@1.0.0;
+package holoscript:core@2.0.0;
 
-/// Type definitions for HoloScript AST and compiler
+// =============================================================================
+// SHARED TYPES (engine-core)
+// =============================================================================
+
+/// Core type definitions shared across all HoloScript interfaces.
+/// These types form the canonical data model for cross-platform IPC.
 interface types {
-    /// Source code position
+    /// Source code position (1-indexed)
     record position {
-        /// 1-indexed line number
         line: u32,
-        /// 1-indexed column number (in UTF-8 code units)
         column: u32,
-        /// Byte offset from start of source
         offset: u32,
     }
 
@@ -50,14 +56,22 @@ interface types {
         description: string,
     }
 
-    /// Property value types (using JSON string for nested structures)
+    /// Trait with full metadata including configurable properties
+    record trait-full {
+        name: string,
+        category: string,
+        description: string,
+        default-properties: list<string>,
+    }
+
+    /// Property value types
     variant property-value {
         string-val(string),
         number-val(f64),
         boolean-val(bool),
-        /// JSON-encoded array
+        /// JSON-encoded array (for Vec3, Vec4, etc.)
         array-val(string),
-        /// JSON-encoded object
+        /// JSON-encoded object (for nested structures)
         object-val(string),
         null-val,
     }
@@ -69,16 +83,17 @@ interface types {
         span: option<span>,
     }
 
-    /// An object definition
+    /// An object definition in the scene graph
     record object-node {
         name: string,
         template: option<string>,
         traits: list<string>,
         properties: list<property>,
+        children: list<object-node>,
         span: option<span>,
     }
 
-    /// A template definition
+    /// A template definition (reusable object blueprint)
     record template-node {
         name: string,
         traits: list<string>,
@@ -88,7 +103,7 @@ interface types {
         span: option<span>,
     }
 
-    /// An action definition
+    /// An action definition (event handler or method)
     record action-node {
         name: string,
         parameters: list<string>,
@@ -136,7 +151,7 @@ interface types {
         span: option<span>,
     }
 
-    /// Spatial group
+    /// Spatial group (container for objects)
     record spatial-group-node {
         name: string,
         objects: list<object-node>,
@@ -159,7 +174,7 @@ interface types {
         span: option<span>,
     }
 
-    /// Top-level composition
+    /// Top-level composition (scene root)
     record composition-node {
         name: string,
         environment: option<environment-node>,
@@ -186,98 +201,339 @@ interface types {
         diagnostics: list<diagnostic>,
     }
 
-    /// Compile target formats
+    /// Compile target formats (engine-core targets)
     enum compile-target {
-        unity-csharp,
-        godot-gdscript,
-        aframe-html,
+        /// Three.js JavaScript
         threejs,
+        /// Babylon.js JavaScript
         babylonjs,
+        /// A-Frame HTML
+        aframe-html,
+        /// glTF 2.0 JSON
         gltf-json,
+        /// GLB binary
         glb-binary,
+        /// Raw JSON AST (for IPC to platform plugins)
+        json-ast,
+    }
+
+    /// Compile target formats (platform-plugin targets, loaded separately)
+    enum platform-target {
+        /// Unity C#
+        unity-csharp,
+        /// Godot GDScript
+        godot-gdscript,
+        /// Unreal C++
+        unreal-cpp,
+        /// VRChat Udon
+        vrchat-udon,
+        /// OpenXR manifest
+        openxr,
+        /// Apple visionOS Swift
+        visionos-swift,
+        /// Android ARCore Kotlin
+        android-arcore,
+        /// WebGPU WGSL shaders
+        webgpu-wgsl,
+        /// React Three Fiber JSX
+        react-three-fiber,
+        /// PlayCanvas JavaScript
+        playcanvas,
+        /// URDF (robotics)
+        urdf,
+        /// SDF (simulation)
+        sdf,
+        /// USD/USDZ (spatial)
+        usd,
     }
 
     /// Compile result
     variant compile-result {
-        /// Text output (C#, GDScript, HTML, JSON)
+        /// Text output (C#, GDScript, HTML, JSON, etc.)
         text(string),
-        /// Binary output (GLB)
+        /// Binary output (GLB, USDZ)
         binary(list<u8>),
         /// Compilation failed
         error(list<diagnostic>),
     }
+
+    /// HoloScript type system primitives
+    enum holo-type {
+        type-string,
+        type-number,
+        type-boolean,
+        type-null,
+        type-vec3,
+        type-vec4,
+        type-color,
+        type-quaternion,
+        type-orb,
+        type-entity,
+        type-composition,
+        type-any,
+        type-void,
+    }
+
+    /// Type check result for a single expression
+    record type-info {
+        inferred-type: holo-type,
+        span: option<span>,
+        diagnostics: list<diagnostic>,
+    }
 }
 
-/// Parser interface - parse HoloScript source code
-interface parser {
-    use types.{parse-result};
+// =============================================================================
+// PARSER (engine-core)
+// =============================================================================
 
-    /// Parse HoloScript source code into an AST
+/// Parser interface -- parse HoloScript source code into AST
+interface parser {
+    use types.{parse-result, span};
+
+    /// Parse HoloScript source code into a composition AST
     parse: func(source: string) -> parse-result;
 
-    /// Parse only the header/metadata without full parsing
+    /// Parse only the header/metadata without full AST construction
     parse-header: func(source: string) -> result<string, string>;
+
+    /// Parse and return the raw AST as JSON (for IPC with external tools)
+    parse-to-json: func(source: string) -> result<string, string>;
+
+    /// Incremental parse: given previous AST JSON and an edit range,
+    /// return the updated AST JSON. Used by LSP and editors.
+    parse-incremental: func(
+        previous-ast-json: string,
+        edit-offset: u32,
+        edit-length: u32,
+        new-text: string,
+    ) -> result<string, string>;
 }
 
-/// Validator interface - validate HoloScript code
-interface validator {
-    use types.{validation-result, trait-def};
+// =============================================================================
+// VALIDATOR (engine-core)
+// =============================================================================
 
-    /// Validate parsed AST
+/// Validator interface -- validate HoloScript code and query trait metadata
+interface validator {
+    use types.{validation-result, trait-def, trait-full, diagnostic};
+
+    /// Validate HoloScript source code
     validate: func(source: string) -> validation-result;
 
-    /// Check if a trait exists
+    /// Validate with configurable severity threshold
+    validate-with-options: func(
+        source: string,
+        max-severity: string,
+        check-traits: bool,
+        check-types: bool,
+    ) -> validation-result;
+
+    /// Check if a named trait exists in the registry
     trait-exists: func(name: string) -> bool;
 
-    /// Get trait information
+    /// Get trait metadata by name
     get-trait: func(name: string) -> option<trait-def>;
+
+    /// Get full trait metadata including configurable properties
+    get-trait-full: func(name: string) -> option<trait-full>;
 
     /// List all available traits
     list-traits: func() -> list<trait-def>;
 
-    /// List traits by category
+    /// List traits filtered by category
     list-traits-by-category: func(category: string) -> list<trait-def>;
+
+    /// List all trait categories
+    list-categories: func() -> list<string>;
 }
 
-/// Compiler interface - compile HoloScript to various targets
+// =============================================================================
+// TYPE CHECKER (engine-core)
+// =============================================================================
+
+/// Type checker interface -- static type analysis for HoloScript
+interface type-checker {
+    use types.{type-info, diagnostic};
+
+    /// Type-check entire source and return all diagnostics
+    check: func(source: string) -> list<diagnostic>;
+
+    /// Infer the type of an expression at a given byte offset
+    infer-type-at: func(source: string, offset: u32) -> option<type-info>;
+
+    /// Get completion candidates at a given byte offset
+    completions-at: func(source: string, offset: u32) -> list<string>;
+}
+
+// =============================================================================
+// COMPILER (engine-core)
+// =============================================================================
+
+/// Compiler interface -- compile HoloScript to engine-core targets
 interface compiler {
     use types.{composition-node, compile-target, compile-result};
 
-    /// Compile HoloScript source to target format
+    /// Compile HoloScript source to a target format
     compile: func(source: string, target: compile-target) -> compile-result;
 
-    /// Compile parsed AST to target format
+    /// Compile a pre-parsed AST to a target format
     compile-ast: func(ast: composition-node, target: compile-target) -> compile-result;
 
-    /// Get list of supported compile targets
+    /// Get list of supported compile targets in this component
     list-targets: func() -> list<compile-target>;
+
+    /// Get the version of the compiler
+    version: func() -> string;
 }
 
-/// Generator interface - generate HoloScript code
+// =============================================================================
+// GENERATOR (engine-core)
+// =============================================================================
+
+/// Generator interface -- AI-assisted HoloScript code generation
 interface generator {
     use types.{trait-def};
 
-    /// Generate an object from natural language description
+    /// Generate an object definition from natural language description
     generate-object: func(description: string) -> result<string, string>;
 
-    /// Generate a complete scene from description
+    /// Generate a complete scene/composition from description
     generate-scene: func(description: string) -> result<string, string>;
 
-    /// Suggest traits for a description
+    /// Suggest traits appropriate for a description
     suggest-traits: func(description: string) -> list<trait-def>;
+
+    /// Generate HoloScript from a JSON scene graph (interop bridge)
+    from-json: func(json: string) -> result<string, string>;
 }
 
-/// Main HoloScript runtime world
+// =============================================================================
+// SPATIAL ENGINE (engine-core, hot-path)
+// =============================================================================
+
+/// Spatial math and physics hot-path functions compiled to WASM
+/// for 10-100x performance vs JavaScript equivalents.
+interface spatial-engine {
+    /// 2D Perlin-like value noise
+    perlin-noise-two-d: func(x: f64, y: f64, seed: s32) -> f64;
+
+    /// 3D Perlin-like value noise
+    perlin-noise-three-d: func(x: f64, y: f64, z: f64, seed: s32) -> f64;
+
+    /// Fractal Brownian Motion using layered 2D noise
+    fbm-noise: func(
+        x: f64,
+        y: f64,
+        octaves: s32,
+        lacunarity: f64,
+        persistence: f64,
+        seed: s32,
+    ) -> f64;
+
+    /// Sphere-sphere collision test (returns true if colliding)
+    sphere-sphere-test: func(
+        ax: f64, ay: f64, az: f64, ar: f64,
+        bx: f64, by: f64, bz: f64, br: f64,
+    ) -> bool;
+
+    /// AABB overlap test (returns true if overlapping)
+    aabb-overlap: func(
+        amin-x: f64, amin-y: f64, amin-z: f64,
+        amax-x: f64, amax-y: f64, amax-z: f64,
+        bmin-x: f64, bmin-y: f64, bmin-z: f64,
+        bmax-x: f64, bmax-y: f64, bmax-z: f64,
+    ) -> bool;
+
+    /// Ray-AABB intersection test (returns hit distance or -1)
+    ray-aabb-test: func(
+        ray-ox: f64, ray-oy: f64, ray-oz: f64,
+        ray-dx: f64, ray-dy: f64, ray-dz: f64,
+        min-x: f64, min-y: f64, min-z: f64,
+        max-x: f64, max-y: f64, max-z: f64,
+    ) -> f64;
+
+    /// Frustum culling: test if AABB is inside view frustum
+    /// Frustum encoded as 6 plane equations (24 floats: nx,ny,nz,d per plane)
+    frustum-cull-aabb: func(
+        frustum-json: string,
+        min-x: f64, min-y: f64, min-z: f64,
+        max-x: f64, max-y: f64, max-z: f64,
+    ) -> bool;
+}
+
+// =============================================================================
+// FORMATTER (engine-core, dev tooling)
+// =============================================================================
+
+/// Code formatter for HoloScript source files
+interface formatter {
+    /// Format HoloScript source code with default settings
+    format: func(source: string) -> result<string, string>;
+
+    /// Format with configurable options (JSON-encoded settings)
+    format-with-options: func(source: string, options-json: string) -> result<string, string>;
+}
+
+// =============================================================================
+// PLATFORM PLUGIN HOST (plugin boundary)
+// =============================================================================
+
+/// Interface that platform plugins implement to register with the engine.
+/// Each platform plugin (Unity, Godot, etc.) is a separate WASM component
+/// that imports `types` and exports `platform-compiler`.
+interface platform-compiler {
+    use types.{composition-node, platform-target, compile-result};
+
+    /// Compile a parsed AST to a platform-specific format
+    compile-for-platform: func(ast: composition-node, target: platform-target) -> compile-result;
+
+    /// Get the platform targets this plugin supports
+    supported-targets: func() -> list<platform-target>;
+
+    /// Get plugin metadata (name, version, author)
+    plugin-info: func() -> string;
+}
+
+// =============================================================================
+// WORLDS (deployable configurations)
+// =============================================================================
+
+/// Full HoloScript runtime -- all engine-core interfaces
+/// Estimated binary size: ~800KB-1.2MB (well under 2MB target)
 world holoscript-runtime {
-    /// Export all interfaces
     export parser;
     export validator;
+    export type-checker;
     export compiler;
     export generator;
+    export spatial-engine;
+    export formatter;
 }
 
-/// Minimal parser-only world for lightweight use
+/// Parser-only world for lightweight embedding (editors, linters)
+/// Estimated binary size: ~200KB-350KB
 world holoscript-parser {
     export parser;
     export validator;
+    export type-checker;
+}
+
+/// Compiler-only world for CI/CD pipelines
+/// Estimated binary size: ~400KB-600KB
+world holoscript-compiler {
+    export parser;
+    export compiler;
+}
+
+/// Spatial engine world for hot-path math (embedded in browser runtime)
+/// Estimated binary size: ~50KB-100KB
+world holoscript-spatial {
+    export spatial-engine;
+}
+
+/// Platform plugin world -- implemented by each platform target
+/// Each plugin is a separate, independently loadable WASM component
+world holoscript-platform-plugin {
+    import types;
+    export platform-compiler;
 }

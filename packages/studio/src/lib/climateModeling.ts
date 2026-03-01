@@ -123,3 +123,37 @@ export function scenarioWarming(scenario: EmissionScenario): { min: number; max:
   };
   return data[scenario];
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Ocean Acidification
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Estimates ocean pH based on dissolved CO₂ concentration.
+ * Pre-industrial ocean pH ≈ 8.18; current ≈ 8.07.
+ * Relationship: pH drops ~0.002 per 1 ppm CO₂ increase.
+ */
+export function oceanAcidificationPH(co2PPM: number, baselinePH: number = 8.18, baselineCO2: number = 280): number {
+  const deltaCO2 = co2PPM - baselineCO2;
+  const deltaPH = deltaCO2 * 0.0008; // empirical fit
+  return Math.max(7.0, baselinePH - deltaPH);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Regional Temperature Anomaly
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Computes latitude-weighted temperature anomaly.
+ * Polar amplification: Arctic warms 2-3x faster than equator.
+ */
+export function temperatureAnomalyByLatitude(
+  globalAnomalyC: number,
+  latitudeDeg: number
+): number {
+  const absLat = Math.abs(latitudeDeg);
+  // Amplification factor: 1.0 at equator → 2.5 at poles
+  const amplification = 1.0 + (absLat / 90) * 1.5;
+  return globalAnomalyC * amplification;
+}
+

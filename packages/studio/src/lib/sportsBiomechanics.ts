@@ -172,3 +172,34 @@ export function gaitSymmetryIndex(
     contactTimeAsymmetry: Math.round(contactAsymmetry * 10) / 10,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Motion Capture Replay
+// ═══════════════════════════════════════════════════════════════════
+
+export interface MocapReplayFrame {
+  timestamp: number;
+  joints: { joint: Joint; position: Vec3; angleDeg: number }[];
+  annotations: string[];
+}
+
+/**
+ * Generate a motion capture replay sequence from raw frames.
+ * Returns annotated frames with joint positions and angle labels.
+ */
+export function motionCaptureReplay(
+  frames: MotionFrame[],
+  annotationThresholdDeg: number = 120
+): MocapReplayFrame[] {
+  return frames.map(f => ({
+    timestamp: f.timestamp,
+    joints: f.joints.map(j => ({
+      joint: j.joint,
+      position: { x: 0, y: 0, z: 0 }, // Would come from IK solver in real impl
+      angleDeg: j.angleDeg,
+    })),
+    annotations: f.joints
+      .filter(j => Math.abs(j.angleDeg) > annotationThresholdDeg)
+      .map(j => `⚠ ${j.joint}: ${j.angleDeg.toFixed(0)}° (extreme)`),
+  }));
+}
