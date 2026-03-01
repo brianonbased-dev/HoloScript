@@ -287,7 +287,24 @@ export { ARCompiler, type ARCompilerOptions, type ARCompilationResult } from './
 export { MultiLayerCompiler, type MultiLayerCompilerOptions, type MultiLayerCompilationResult } from './compiler/MultiLayerCompiler';
 
 // HoloScript Robotics & IoT Compilers (Sprint 3)
-export { URDFCompiler, type URDFCompilerOptions } from './compiler/URDFCompiler';
+export {
+  URDFCompiler,
+  compileToURDF,
+  compileForROS2,
+  compileForGazebo,
+  generateROS2LaunchFile,
+  generateControllersYaml,
+  type URDFCompilerOptions,
+  type URDFLink,
+  type URDFGeometry,
+  type URDFInertial,
+  type URDFOrigin,
+  type URDFJoint,
+  type URDFSensor,
+  type URDFTransmission,
+  type URDFMaterial,
+  type URDFROS2Control,
+} from './compiler/URDFCompiler';
 export { SDFCompiler, type SDFCompilerOptions } from './compiler/SDFCompiler';
 
 // Circuit Breaker Pattern for Export Targets (NEW - v3.43.0)
