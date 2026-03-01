@@ -37,8 +37,11 @@ describe('WASM Module Loading', () => {
       return;
     }
 
+    // Provide minimal WASI shim for wasm32-wasip1 targets
+    const wasiStub = new Proxy({}, { get: () => () => 0 });
     const result = await WebAssembly.instantiate(wasmBuffer, {
       env: {},
+      wasi_snapshot_preview1: wasiStub,
     });
 
     expect(result.instance).toBeDefined();

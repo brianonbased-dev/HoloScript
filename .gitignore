@@ -69,6 +69,7 @@ scripts/*synthetic*.py
 scripts/*train*.py
 scripts/inference_test.py
 scripts/debug_gen.py
+scripts/training/
 
 # Package manager - NOTE: lockfiles should be committed for reproducible builds
 # pnpm-lock.yaml  # KEEP for CI
@@ -173,6 +174,23 @@ tsc_output.txt
 runtime_debug.log
 stryker-run.log
 stryker.log
+
+# Temp debug/test output (various naming conventions)
+*_test_log*.txt
+*_test_out.txt
+shader*.txt
+tsc-*.txt
+tsc*.txt
+vitest-*.txt
+vitest*.txt
+live-test-output.txt
+full_test_log*.txt
+
+# WASI preview shims (downloaded, not source)
+wasi_snapshot_preview1.*.wasm
+
+# Native addon build artifacts
+packages/tree-sitter-holoscript/build/
 
 # Next.js build output
 .next/
