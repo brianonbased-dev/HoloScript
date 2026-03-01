@@ -24,7 +24,15 @@
         "named": true
       },
       {
+        "type": "state_declaration",
+        "named": true
+      },
+      {
         "type": "template",
+        "named": true
+      },
+      {
+        "type": "timeline",
         "named": true
       },
       {
@@ -130,6 +138,10 @@
         "named": true
       },
       {
+        "type": "computed_expression",
+        "named": true
+      },
+      {
         "type": "identifier",
         "named": true
       },
@@ -146,7 +158,15 @@
         "named": true
       },
       {
+        "type": "self",
+        "named": true
+      },
+      {
         "type": "string",
+        "named": true
+      },
+      {
+        "type": "this",
         "named": true
       }
     ]
@@ -548,6 +568,14 @@
           "named": true
         },
         {
+          "type": "config_block",
+          "named": true
+        },
+        {
+          "type": "dialog_block",
+          "named": true
+        },
+        {
           "type": "environment",
           "named": true
         },
@@ -560,11 +588,19 @@
           "named": true
         },
         {
+          "type": "networked_block",
+          "named": true
+        },
+        {
           "type": "object",
           "named": true
         },
         {
           "type": "spatial_group",
+          "named": true
+        },
+        {
+          "type": "state_declaration",
           "named": true
         },
         {
@@ -576,6 +612,92 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "computed_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "block",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "config_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "property",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "dialog_block",
+    "named": true,
+    "fields": {
+      "id": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "dialog_option",
+          "named": true
+        },
+        {
+          "type": "property",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "dialog_option",
+    "named": true,
+    "fields": {
+      "label": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "target": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_value",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -1006,6 +1128,10 @@
           "named": true
         },
         {
+          "type": "object",
+          "named": true
+        },
+        {
           "type": "physics_block",
           "named": true
         },
@@ -1190,6 +1316,11 @@
     }
   },
   {
+    "type": "self",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "source_file",
     "named": true,
     "root": true,
@@ -1239,6 +1370,32 @@
     "type": "state_block",
     "named": true,
     "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "property",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "state_declaration",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
     "children": {
       "multiple": true,
       "required": false,
@@ -1366,6 +1523,11 @@
         ]
       }
     }
+  },
+  {
+    "type": "this",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "timeline",
@@ -1736,6 +1898,10 @@
     "named": false
   },
   {
+    "type": "->",
+    "named": false
+  },
+  {
     "type": ".",
     "named": false
   },
@@ -1812,7 +1978,15 @@
     "named": false
   },
   {
+    "type": "audio",
+    "named": false
+  },
+  {
     "type": "boolean",
+    "named": false
+  },
+  {
+    "type": "button",
     "named": false
   },
   {
@@ -1845,7 +2019,15 @@
     "named": false
   },
   {
+    "type": "computed",
+    "named": false
+  },
+  {
     "type": "cone",
+    "named": false
+  },
+  {
+    "type": "config",
     "named": false
   },
   {
@@ -1854,6 +2036,10 @@
   },
   {
     "type": "cylinder",
+    "named": false
+  },
+  {
+    "type": "dialog",
     "named": false
   },
   {
@@ -1893,6 +2079,10 @@
     "named": false
   },
   {
+    "type": "gesture",
+    "named": false
+  },
+  {
     "type": "identifier",
     "named": true
   },
@@ -1917,7 +2107,15 @@
     "named": false
   },
   {
+    "type": "module",
+    "named": false
+  },
+  {
     "type": "networked",
+    "named": false
+  },
+  {
+    "type": "npc",
     "named": false
   },
   {
@@ -1997,6 +2195,10 @@
     "named": false
   },
   {
+    "type": "option",
+    "named": false
+  },
+  {
     "type": "orb",
     "named": false
   },
@@ -2021,6 +2223,14 @@
     "named": false
   },
   {
+    "type": "portal",
+    "named": false
+  },
+  {
+    "type": "progress",
+    "named": false
+  },
+  {
     "type": "quaternion",
     "named": false
   },
@@ -2034,6 +2244,10 @@
   },
   {
     "type": "spatial_group",
+    "named": false
+  },
+  {
+    "type": "spawnpoint",
     "named": false
   },
   {
@@ -2061,6 +2275,10 @@
     "named": false
   },
   {
+    "type": "text",
+    "named": false
+  },
+  {
     "type": "this",
     "named": false
   },
@@ -2074,6 +2292,10 @@
   },
   {
     "type": "true",
+    "named": false
+  },
+  {
+    "type": "ui_panel",
     "named": false
   },
   {
@@ -2098,6 +2320,10 @@
   },
   {
     "type": "world",
+    "named": false
+  },
+  {
+    "type": "zone",
     "named": false
   },
   {

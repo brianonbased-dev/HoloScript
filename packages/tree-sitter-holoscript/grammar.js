@@ -34,12 +34,8 @@ module.exports = grammar({
   // Handle whitespace and comments
   extras: ($) => [/\s/, $.comment],
 
-  // Handle parsing conflicts
-  conflicts: ($) => [
-    [$.property_access, $.identifier],
-    [$.return_statement],
-    [$.block, $.expression_statement],
-  ],
+  // Handle parsing conflicts - resolved via explicit precedence rules
+  conflicts: ($) => [],
 
   // External scanner for handling string interpolation (future)
   externals: ($) => [],
@@ -69,7 +65,9 @@ module.exports = grammar({
         $.entity,
         $.action,
         $.event_bus,
-        $.trait_definition
+        $.trait_definition,
+        $.timeline,
+        $.state_declaration
       ),
 
     // =========================================================================
@@ -82,6 +80,7 @@ module.exports = grammar({
     _composition_content: ($) =>
       choice(
         $.environment,
+        $.config_block,
         $.template,
         $.object,
         $.spatial_group,
@@ -89,11 +88,27 @@ module.exports = grammar({
         $.logic,
         $.light,
         $.camera,
-        $.action
+        $.action,
+        $.state_declaration,
+        $.dialog_block,
+        $.networked_block
       ),
 
     // Environment block
     environment: ($) => seq('environment', '{', repeat(seq($.property, optional(','))), '}'),
+
+    // Config block (zone-level configuration)
+    config_block: ($) => seq('config', '{', repeat(seq($.property, optional(','))), '}'),
+
+    // Dialog blocks (branching conversation trees)
+    // e.g. dialog "greeting" { text: "Hello!"  option "Yes" -> @dialog("confirm") }
+    dialog_block: ($) =>
+      seq('dialog', field('id', $.string), '{',
+        repeat(choice(seq($.property, optional(',')), $.dialog_option)),
+      '}'),
+
+    dialog_option: ($) =>
+      seq('option', field('label', $.string), '->', field('target', $._value)),
 
     // Spatial group for organizing objects
     spatial_group: ($) =>
@@ -165,7 +180,9 @@ module.exports = grammar({
 
     object: ($) =>
       seq(
-        choice('object', 'orb', 'cube', 'sphere', 'cylinder', 'cone', 'model'),
+        choice('object', 'orb', 'cube', 'sphere', 'cylinder', 'cone', 'model',
+               'npc', 'portal', 'audio', 'spawnpoint', 'ui_panel', 'text',
+               'module', 'gesture', 'progress', 'button', 'zone'),
         field('name', $.string),
         optional(seq('using', field('template', $.string))),
         optional($.trait_list),
@@ -228,6 +245,11 @@ module.exports = grammar({
     // =========================================================================
 
     state_block: ($) => seq('state', '{', repeat(seq($.property, optional(','))), '}'),
+
+    // Named state declaration (top-level or composition-level)
+    // e.g. state GameState { started: false, score: 0 }
+    state_declaration: ($) =>
+      seq('state', field('name', $.identifier), '{', repeat(seq($.property, optional(','))), '}'),
 
     networked_block: ($) => seq('networked', '{', repeat($.networked_property), '}'),
 
@@ -311,7 +333,7 @@ module.exports = grammar({
     // BLOCKS & STATEMENTS
     // =========================================================================
 
-    block: ($) => seq('{', repeat($._statement), '}'),
+    block: ($) => prec(1, seq('{', repeat($._statement), '}')),
 
     _statement: ($) =>
       choice(
@@ -370,7 +392,7 @@ module.exports = grammar({
 
     while_loop: ($) => seq('while', '(', field('condition', $._expression), ')', $.block),
 
-    return_statement: ($) => seq('return', optional($._expression)),
+    return_statement: ($) => prec.right(1, seq('return', optional($._expression))),
 
     emit_statement: ($) =>
       seq(
@@ -383,7 +405,7 @@ module.exports = grammar({
         ')'
       ),
 
-    expression_statement: ($) => $._expression,
+    expression_statement: ($) => prec(-1, $._expression),
 
     // =========================================================================
     // EXPRESSIONS
@@ -472,8 +494,15 @@ module.exports = grammar({
         $.array,
         $.object_literal,
         $.identifier,
-        $.color
+        $.color,
+        $.this,
+        $.self,
+        $.computed_expression
       ),
+
+    // Computed expression block — reactive value
+    // e.g. material: computed { return { color: state.active ? "#ff0" : "#333" } }
+    computed_expression: ($) => seq('computed', $.block),
 
     number: ($) => token(choice(/\d+\.?\d*([eE][+-]?\d+)?/, /\.\d+([eE][+-]?\d+)?/)),
 
@@ -482,6 +511,10 @@ module.exports = grammar({
     boolean: ($) => choice('true', 'false'),
 
     null: ($) => 'null',
+
+    this: ($) => 'this',
+
+    self: ($) => 'self',
 
     array: ($) => seq('[', sepByTrailing($._value, ','), ']'),
 

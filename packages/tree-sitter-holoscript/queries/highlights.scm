@@ -64,7 +64,7 @@
   "false"
 ] @constant.builtin.boolean
 
-"null" @constant.builtin
+(null) @constant.builtin
 
 ; =============================================================================
 ; TRAITS
@@ -217,10 +217,8 @@
   ["=" "+=" "-=" "*=" "/="] @operator)
 
 ; This/self reference
-[
-  "this"
-  "self"
-] @variable.builtin
+(this) @variable.builtin
+(self) @variable.builtin
 
 (property_access
   object: (identifier) @variable
@@ -282,8 +280,7 @@
 ; COMMENTS
 ; =============================================================================
 
-(line_comment) @comment.line
-(block_comment) @comment.block
+(comment) @comment
 
 ; =============================================================================
 ; IDENTIFIER (fallback)

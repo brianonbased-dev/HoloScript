@@ -159,6 +159,15 @@
           "name": "Diff Preview",
           "type": "webview"
         }
+      ],
+      "explorer": [
+        {
+          "id": "holoscript.traitCompositionTree",
+          "name": "Trait Composition",
+          "when": "editorLangId == holoscript || editorLangId == holoscriptplus",
+          "icon": "$(symbol-interface)",
+          "contextualTitle": "HoloScript Traits"
+        }
       ]
     },
     "languages": [
@@ -531,6 +540,29 @@
         "title": "Run Pre-Commit Hook",
         "category": "HoloScript Git",
         "icon": "$(run)"
+      },
+      {
+        "command": "holoscript.traitTree.refresh",
+        "title": "Refresh Trait Tree",
+        "category": "HoloScript",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "holoscript.traitTree.navigateToDefinition",
+        "title": "Go to Trait Definition",
+        "category": "HoloScript"
+      },
+      {
+        "command": "holoscript.traitTree.revealInEditor",
+        "title": "Reveal in Editor",
+        "category": "HoloScript",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "holoscript.traitTree.copyTraitName",
+        "title": "Copy Trait Name",
+        "category": "HoloScript",
+        "icon": "$(clippy)"
       }
     ],
     "customEditors": [
@@ -585,6 +617,25 @@
           "command": "holoscript.showFileHistory",
           "when": "resourceExtname == .holo || resourceExtname == .hs",
           "group": "holoscript-git"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "holoscript.traitTree.refresh",
+          "when": "view == holoscript.traitCompositionTree",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "holoscript.traitTree.revealInEditor",
+          "when": "view == holoscript.traitCompositionTree && viewItem =~ /traitDefinition|traitProperty/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "holoscript.traitTree.copyTraitName",
+          "when": "view == holoscript.traitCompositionTree && viewItem =~ /traitDefinition|traitComposition/",
+          "group": "navigation@2"
         }
       ],
       "commandPalette": [

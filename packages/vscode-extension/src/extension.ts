@@ -32,8 +32,13 @@ import {
   updateGitStatusBar,
 } from './git';
 import { MarketplaceWebview } from './webview/MarketplaceWebview';
+import {
+  TraitCompositionTreeProvider,
+  registerTraitTreeCommands,
+} from './traitTree';
 
 let client: LanguageClient | undefined;
+let traitTreeProvider: TraitCompositionTreeProvider | undefined;
 let semanticGit: SemanticGit | undefined;
 let gitStatusBarItem: vscode.StatusBarItem | undefined;
 let diffDecorationProvider: DiffDecorationProvider | undefined;
@@ -346,6 +351,14 @@ export function activate(context: ExtensionContext) {
   const holohubProvider = new HoloHubTreeDataProvider();
   vscode.window.registerTreeDataProvider('holohub.assets', holohubProvider);
 
+  // Register Trait Composition Tree View (sidebar)
+  traitTreeProvider = new TraitCompositionTreeProvider();
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider('holoscript.traitCompositionTree', traitTreeProvider)
+  );
+  registerTraitTreeCommands(context, traitTreeProvider);
+  console.log('HoloScript: Trait Composition Tree view registered.');
+
   // Register Import Asset Command
   context.subscriptions.push(
     commands.registerCommand('holoscript.holohub.importAsset', async (item) => {
@@ -566,6 +579,12 @@ function isHoloScriptFile(document: TextDocument): boolean {
 export function deactivate(): Thenable<void> | undefined {
   // Dispose collaboration resources
   disposeCollaborationCommands();
+
+  // Dispose trait tree provider
+  if (traitTreeProvider) {
+    traitTreeProvider.dispose();
+    traitTreeProvider = undefined;
+  }
 
   // Dispose git resources
   if (semanticGit) {

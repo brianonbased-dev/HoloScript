@@ -86,6 +86,8 @@ export interface HoloComposition extends HoloNode {
   achievements: HoloAchievement[];
   talentTrees: HoloTalentTree[];
   shapes: HoloShape[];
+  /** User-defined trait definitions (trait Name [extends Base] { ... }) */
+  traitDefinitions?: HoloTraitDefinition[];
 }
 
 // =============================================================================
@@ -352,6 +354,45 @@ export interface HoloObjectTrait extends HoloNode {
   type: 'ObjectTrait';
   name: string;
   config: Record<string, HoloValue>;
+}
+
+// =============================================================================
+// TRAIT DEFINITION (first-class trait block with optional inheritance)
+// =============================================================================
+
+/**
+ * A user-defined trait declaration in HoloScript.
+ *
+ * Grammar (tree-sitter-holoscript grammar.js line 214-222):
+ * ```
+ * trait Clickable extends Interactable {
+ *   cursor: "pointer"
+ *   highlight: true
+ * }
+ * ```
+ *
+ * When `extends` is present, the trait inherits all properties, event handlers,
+ * and actions from the parent trait. Child properties override parent properties
+ * with the same key.
+ */
+export interface HoloTraitDefinition extends HoloNode {
+  type: 'TraitDefinition';
+  /** Name of the trait being defined */
+  name: string;
+  /** Parent trait name (from `extends` clause), or undefined if no inheritance */
+  base?: string;
+  /** Properties declared directly in this trait (not including inherited) */
+  properties: HoloTraitProperty[];
+  /** Event handlers declared in this trait */
+  eventHandlers?: HoloEventHandler[];
+  /** Actions declared in this trait */
+  actions?: HoloAction[];
+}
+
+export interface HoloTraitProperty extends HoloNode {
+  type: 'TraitProperty';
+  key: string;
+  value: HoloValue;
 }
 
 export interface HoloObjectProperty extends HoloNode {

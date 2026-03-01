@@ -5,16 +5,14 @@
 ; INDENT ON OPEN BRACE
 ; =============================================================================
 
-; Top-level definitions
+; Top-level definitions with direct "{" children
 (composition "{" @indent)
 (world "{" @indent)
 (template "{" @indent)
 (object "{" @indent)
 (entity "{" @indent)
-(action "{" @indent)
-(trait_definition "{" @indent)
 
-; Nested blocks
+; Nested blocks with direct "{" children
 (environment "{" @indent)
 (state_block "{" @indent)
 (networked_block "{" @indent)
@@ -25,11 +23,8 @@
 (spatial_group "{" @indent)
 (component "{" @indent)
 
-; Control flow
+; Code blocks (used by action, event_handler, if_statement, for_loop, while_loop)
 (block "{" @indent)
-(if_statement "{" @indent)
-(for_loop "{" @indent)
-(while_loop "{" @indent)
 
 ; Literals
 (array "[" @indent)
@@ -51,12 +46,6 @@
 
 ; Align array elements
 (array (_) @align)
-
-; Align function arguments
-(function_call
-  "(" @align_start
-  (argument) @align
-  ")" @align_end)
 
 ; =============================================================================
 ; SPECIAL CASES

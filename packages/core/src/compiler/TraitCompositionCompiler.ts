@@ -11,12 +11,15 @@
  *  - Override values win over component defaults (explicit beats implicit).
  *  - Registers composed definitions back into TraitDependencyGraph so that
  *    incremental recompilation is aware of the composed dependency edges.
+ *  - Trait inheritance: if a TraitInheritanceResolver is provided, component
+ *    traits are resolved through their inheritance chain before merging.
  *
  * @module TraitCompositionCompiler
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import type { TraitDependencyGraph } from './TraitDependencyGraph';
+import type { TraitInheritanceResolver } from './TraitInheritanceResolver';
 
 // =============================================================================
 // TYPES
@@ -84,6 +87,25 @@ export class MissingComponentError extends Error {
 
 export class TraitCompositionCompiler {
   /**
+   * Optional trait inheritance resolver.
+   * When provided, component traits are resolved through their inheritance
+   * chain before config merging, so inherited properties are included.
+   */
+  private inheritanceResolver?: TraitInheritanceResolver;
+
+  constructor(inheritanceResolver?: TraitInheritanceResolver) {
+    this.inheritanceResolver = inheritanceResolver;
+  }
+
+  /**
+   * Set or replace the trait inheritance resolver.
+   * Call this after constructing if the resolver becomes available later.
+   */
+  setInheritanceResolver(resolver: TraitInheritanceResolver): void {
+    this.inheritanceResolver = resolver;
+  }
+
+  /**
    * Compile a set of composition declarations.
    *
    * @param decls         - Declarations to compile.
@@ -119,16 +141,32 @@ export class TraitCompositionCompiler {
     // 2. Conflict detection
     this.detectConflicts(handlers);
 
-    // 3. Merge configs (left-to-right, later components win, overrides win over all)
+    // 3. Merge configs — if inheritance resolver available, include inherited props
     let merged: Record<string, unknown> = {};
-    for (const { handler } of handlers) {
+    for (const { name, handler } of handlers) {
+      // First, try to get fully-resolved inherited properties
+      if (this.inheritanceResolver && this.inheritanceResolver.hasTrait(name)) {
+        const resolvedProps = this.inheritanceResolver.getFlattenedProperties(name);
+        merged = { ...merged, ...resolvedProps };
+      }
+      // Then apply handler's own defaultConfig (which may override inherited)
       merged = { ...merged, ...(handler.defaultConfig ?? {}) };
     }
     if (decl.overrides) {
       merged = { ...merged, ...decl.overrides };
     }
 
-    // 4. Register in TraitDependencyGraph
+    // 4. Detect diamond inheritance in composed traits
+    if (this.inheritanceResolver && decl.components.length > 1) {
+      const diamonds = this.inheritanceResolver.detectDiamondInheritance(decl.components);
+      // Diamond warnings are informational — stored on the resolver, not blocking
+      for (const diamond of diamonds) {
+        // Could be exposed via a warnings array on ComposedTraitDef in the future
+        void diamond;
+      }
+    }
+
+    // 5. Register in TraitDependencyGraph
     if (traitGraph) {
       traitGraph.registerTrait({
         name: decl.name,

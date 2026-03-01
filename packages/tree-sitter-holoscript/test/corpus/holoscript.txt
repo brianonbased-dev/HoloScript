@@ -29,10 +29,11 @@ composition "My Scene" {
         value: (number)))
     (object
       name: (string)
-      (trait_inline
-        name: (identifier))
-      (trait_inline
-        name: (identifier))
+      (trait_list
+        (trait_inline
+          name: (identifier))
+        (trait_inline
+          name: (identifier)))
       (property
         key: (identifier)
         value: (string))
@@ -44,7 +45,7 @@ composition "My Scene" {
           (number)))
       (property
         key: (identifier)
-        value: (color)))))
+        value: (string)))))
 
 ================================================================================
 Template with State
@@ -74,7 +75,7 @@ template "Enemy" {
       value: (string))
     (property
       key: (identifier)
-      value: (color))
+      value: (string))
     (state_block
       (property
         key: (identifier)
@@ -97,13 +98,13 @@ Object with Physics
 object "Ball" @grabbable @throwable {
   geometry: "sphere"
   scale: [0.2, 0.2, 0.2]
-  
+
   physics: {
     mass: 0.5
     restitution: 0.8
     friction: 0.3
   }
-  
+
   onGrab: {
     haptic.feedback("medium")
   }
@@ -114,10 +115,11 @@ object "Ball" @grabbable @throwable {
 (source_file
   (object
     name: (string)
-    (trait_inline
-      name: (identifier))
-    (trait_inline
-      name: (identifier))
+    (trait_list
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier)))
     (property
       key: (identifier)
       value: (string))
@@ -153,13 +155,13 @@ Timeline Animation
 
 timeline "intro" {
   0: animate Crystal {
-    position.y: 2.0
+    target_y: 2.0
     duration: 1000
     easing: "easeOut"
   }
-  
+
   1500: emit "crystalReady"
-  
+
   2000: call audio.play("chime.wav")
 }
 
@@ -170,29 +172,32 @@ timeline "intro" {
     name: (string)
     (timeline_entry
       time: (number)
-      (animate_action
-        target: (identifier)
-        (property
-          key: (identifier)
-          value: (number))
-        (property
-          key: (identifier)
-          value: (number))
-        (property
-          key: (identifier)
-          value: (string))))
+      (timeline_action
+        (animate_action
+          target: (identifier)
+          (property
+            key: (identifier)
+            value: (number))
+          (property
+            key: (identifier)
+            value: (number))
+          (property
+            key: (identifier)
+            value: (string)))))
     (timeline_entry
       time: (number)
-      (emit_action
-        event: (string)))
+      (timeline_action
+        (emit_action
+          event: (string))))
     (timeline_entry
       time: (number)
-      (call_action
-        function: (property_access
-          object: (identifier)
-          property: (identifier))
-        (argument
-          (string))))))
+      (timeline_action
+        (call_action
+          function: (property_access
+            object: (identifier)
+            property: (identifier))
+          (argument
+            (string)))))))
 
 ================================================================================
 Networked Object
@@ -200,13 +205,13 @@ Networked Object
 
 object "SharedBall" @grabbable @networked {
   geometry: "sphere"
-  
+
   networked {
     position: synced
     rotation: synced
     owner: owner_only
   }
-  
+
   onGrab: {
     network.claim(this)
   }
@@ -217,10 +222,11 @@ object "SharedBall" @grabbable @networked {
 (source_file
   (object
     name: (string)
-    (trait_inline
-      name: (identifier))
-    (trait_inline
-      name: (identifier))
+    (trait_list
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier)))
     (property
       key: (identifier)
       value: (string))
@@ -239,7 +245,7 @@ object "SharedBall" @grabbable @networked {
             object: (identifier)
             property: (identifier))
           (argument
-            (identifier)))))))
+            (this)))))))
 
 ================================================================================
 Action with Parameters
@@ -303,16 +309,13 @@ composition "Test" {
 --------------------------------------------------------------------------------
 
 (source_file
-  (comment
-    (line_comment))
+  (comment)
   (composition
     name: (string)
-    (comment
-      (block_comment))
+    (comment)
     (object
       name: (string)
-      (comment
-        (line_comment))
+      (comment)
       (property
         key: (identifier)
         value: (string)))))
@@ -324,11 +327,11 @@ World with Entity
 world "GameWorld" @persistent {
   entity "Player" @networked {
     position: [0, 0, 0]
-    
+
     component Transform {
       scale: [1, 1, 1]
     }
-    
+
     state {
       score: 0
     }
@@ -340,12 +343,14 @@ world "GameWorld" @persistent {
 (source_file
   (world
     name: (string)
-    (trait_inline
-      name: (identifier))
+    (trait_list
+      (trait_inline
+        name: (identifier)))
     (entity
       name: (string)
-      (trait_inline
-        name: (identifier))
+      (trait_list
+        (trait_inline
+          name: (identifier)))
       (property
         key: (identifier)
         value: (array

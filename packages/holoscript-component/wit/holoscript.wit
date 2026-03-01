@@ -1090,6 +1090,284 @@ interface platform-compiler {
 }
 
 // =============================================================================
+// ASYNC TYPES (WASI 0.3 -- stream<T> / future<T>)
+// =============================================================================
+
+/// Shared types for asynchronous operations.
+///
+/// WASI Preview 3 introduces native `stream<T>` and `future<T>` type
+/// constructors at the Component Model level.  These types are first-class
+/// WIT citizens that the Canonical ABI lowers into zero-copy, back-pressured
+/// channels between components.
+///
+/// This interface provides the progress, chunk, and cancellation types that
+/// the async parser, compiler, and asset-loader interfaces share.
+interface async-types {
+    use types.{diagnostic, span};
+
+    /// Opaque handle for cancelling an in-flight async operation.
+    /// Dropping the handle is a no-op; calling `cancel` requests cooperative
+    /// cancellation (the producer may still emit a final value).
+    resource cancel-token {
+        /// Request cancellation.  Returns `true` if the request was accepted,
+        /// `false` if the operation already completed.
+        cancel: func() -> bool;
+
+        /// Check whether the operation has already finished (success or error).
+        is-done: func() -> bool;
+    }
+
+    /// Phase of an async pipeline (parse, compile, load).
+    enum async-phase {
+        /// Receiving / buffering input
+        receiving,
+        /// Lexing source text
+        lexing,
+        /// Parsing token stream into AST
+        parsing,
+        /// Validating / type-checking
+        validating,
+        /// Compiling / code-generating
+        compiling,
+        /// Optimizing output
+        optimizing,
+        /// Serializing output
+        serializing,
+        /// Operation complete
+        complete,
+        /// Operation failed
+        failed,
+        /// Operation was cancelled
+        cancelled,
+    }
+
+    /// Progress report emitted on a `stream<async-progress>`.
+    record async-progress {
+        /// Current phase
+        phase: async-phase,
+        /// Bytes processed so far (input side)
+        bytes-processed: u64,
+        /// Total expected bytes (0 if unknown)
+        bytes-total: u64,
+        /// Items (nodes / tokens / chunks) processed
+        items-processed: u32,
+        /// Percentage complete (0.0-100.0, -1 if indeterminate)
+        percent: f64,
+        /// Human-readable status message (may be empty)
+        message: string,
+    }
+
+    /// A chunk of source text for streaming parse input.
+    /// Consumers feed these into `stream<source-chunk>`.
+    record source-chunk {
+        /// UTF-8 encoded source text fragment
+        data: list<u8>,
+        /// Byte offset of this chunk within the full source
+        offset: u64,
+        /// `true` if this is the final chunk (EOF)
+        is-final: bool,
+    }
+
+    /// A chunk of compiled output for streaming compilation.
+    /// Producers emit these on `stream<output-chunk>`.
+    record output-chunk {
+        /// Chunk payload (text or binary depending on target)
+        data: list<u8>,
+        /// Sequential chunk index (0-based)
+        index: u32,
+        /// `true` if this is the final chunk
+        is-final: bool,
+    }
+}
+
+// =============================================================================
+// ASYNC PARSER (WASI 0.3)
+// =============================================================================
+
+/// Asynchronous parser interface for non-blocking and streaming parse
+/// operations.
+///
+/// All functions in this interface use WASI 0.3 `future<T>` and `stream<T>`
+/// types.  Hosts that lift these exports with the `async` canonical option
+/// get automatic cooperative scheduling; hosts using the `sync` ABI will
+/// block until the future resolves.
+///
+/// The synchronous `parser` interface is unchanged and remains the primary
+/// API for callers that do not need concurrency.
+interface async-parser {
+    use types.{parse-result, span};
+    use async-types.{async-progress, source-chunk, cancel-token};
+
+    /// Parse HoloScript source code asynchronously.
+    ///
+    /// Returns a progress stream and a future that resolves to the parse
+    /// result.  The stream closes when parsing finishes; the future then
+    /// yields the final AST or error diagnostics.
+    ///
+    /// Callers that do not need progress can ignore the stream and simply
+    /// await the future.
+    parse-async: func(source: string) -> tuple<stream<async-progress>, future<parse-result>>;
+
+    /// Streaming parse: accepts source text as an incremental byte stream.
+    ///
+    /// This is the preferred entry point for network-loaded or disk-streamed
+    /// `.holo` files.  The parser begins lexing as soon as the first chunk
+    /// arrives, enabling progressive error reporting before the entire file
+    /// has been received.
+    ///
+    /// Parameters:
+    ///   - `source`: stream of source chunks (UTF-8 fragments)
+    ///   - returns: (progress stream, future of final parse result)
+    parse-streaming: func(source: stream<source-chunk>) -> tuple<stream<async-progress>, future<parse-result>>;
+
+    /// Parse to JSON asynchronously.
+    ///
+    /// Equivalent to `parser.parse-to-json` but non-blocking.
+    parse-to-json-async: func(source: string) -> future<result<string, string>>;
+
+    /// Create a cancellation token for a long-running parse.
+    /// Pass the token to the host before calling a parse function;
+    /// the host can wire it into the async task scheduler.
+    create-cancel-token: func() -> cancel-token;
+}
+
+// =============================================================================
+// ASYNC COMPILER (WASI 0.3)
+// =============================================================================
+
+/// Asynchronous compiler interface for non-blocking and streaming compilation.
+///
+/// Mirrors the synchronous `compiler` interface but returns `future<T>` for
+/// all compilation results and optionally provides `stream<T>` for
+/// progressive output (useful for large GLB binaries, USD archives, etc.).
+interface async-compiler {
+    use types.{composition-node, compile-target, compile-result, diagnostic};
+    use async-types.{async-progress, output-chunk, cancel-token};
+
+    /// Compile HoloScript source to a target format asynchronously.
+    ///
+    /// Returns a progress stream and a future resolving to the compile result.
+    compile-async: func(
+        source: string,
+        target: compile-target,
+    ) -> tuple<stream<async-progress>, future<compile-result>>;
+
+    /// Compile a pre-parsed AST asynchronously.
+    compile-ast-async: func(
+        ast: composition-node,
+        target: compile-target,
+    ) -> tuple<stream<async-progress>, future<compile-result>>;
+
+    /// Streaming compile: emits compiled output incrementally.
+    ///
+    /// Instead of buffering the entire result in memory, the compiler
+    /// writes `output-chunk` records to the returned stream as they become
+    /// available.  This is ideal for:
+    ///   - Large GLB binary generation (>50 MB)
+    ///   - USD/USDZ archive assembly
+    ///   - Progressive glTF JSON emission
+    ///
+    /// The `future<list<diagnostic>>` resolves after the stream closes and
+    /// carries any diagnostics (warnings) accumulated during compilation.
+    /// An empty list means the compilation succeeded without warnings.
+    /// If the compilation fails, the stream will close early and the future
+    /// will contain error-level diagnostics.
+    compile-streaming: func(
+        source: string,
+        target: compile-target,
+    ) -> tuple<stream<output-chunk>, future<list<diagnostic>>>;
+
+    /// Create a cancellation token for a long-running compilation.
+    create-cancel-token: func() -> cancel-token;
+}
+
+// =============================================================================
+// ASYNC ASSET LOADER (WASI 0.3)
+// =============================================================================
+
+/// Asynchronous asset loading with native WASI 0.3 streaming.
+///
+/// Extends the synchronous `asset-loader` interface with `future<T>` and
+/// `stream<T>` variants that enable:
+///   - Non-blocking single and batch asset loads
+///   - Progressive byte streaming for large assets (>100 MB point clouds,
+///     terrain heightmaps, volumetric data)
+///   - Real-time progress reporting via typed streams
+///   - Cooperative cancellation of in-flight downloads
+///
+/// The synchronous `asset-loader` interface is unchanged and remains
+/// available for simple use cases.
+interface async-asset-loader {
+    use types.{diagnostic};
+    use asset-loader.{
+        load-request, load-outcome, load-progress,
+        load-result, asset-metadata, avatar-config,
+        avatar-state,
+    };
+    use async-types.{async-progress, cancel-token};
+
+    // ─── Single Asset ────────────────────────────────────────────────────────
+
+    /// Load a single asset asynchronously with progress reporting.
+    ///
+    /// Returns:
+    ///   - `stream<load-progress>`: real-time progress updates (phase,
+    ///     bytes, percent).  Closes when the load completes or fails.
+    ///   - `future<load-outcome>`: final result including loaded data or
+    ///     error diagnostics.
+    load-async: func(request: load-request) -> tuple<stream<load-progress>, future<load-outcome>>;
+
+    /// Stream the raw bytes of an asset as they are downloaded.
+    ///
+    /// This bypasses the full decode/metadata pipeline and is intended for
+    /// pass-through scenarios (e.g., CDN proxy, service worker cache fill,
+    /// peer-to-peer relay).
+    ///
+    /// The metadata future resolves once headers/manifest are available
+    /// (before the byte stream completes), enabling early decisions about
+    /// whether to continue downloading.
+    load-stream-bytes: func(
+        request: load-request,
+    ) -> tuple<stream<u8>, future<option<asset-metadata>>>;
+
+    // ─── Batch Loading ───────────────────────────────────────────────────────
+
+    /// Load multiple assets concurrently with multiplexed progress.
+    ///
+    /// Progress reports for all assets are interleaved on a single stream,
+    /// identified by `load-progress.asset-id`.  The future resolves to the
+    /// ordered list of outcomes once every asset has completed or failed.
+    load-many-async: func(
+        requests: list<load-request>,
+    ) -> tuple<stream<load-progress>, future<list<load-outcome>>>;
+
+    /// Load all assets belonging to a named group asynchronously.
+    load-group-async: func(
+        group-id: string,
+    ) -> tuple<stream<load-progress>, future<list<load-outcome>>>;
+
+    // ─── Avatar Loading ──────────────────────────────────────────────────────
+
+    /// Load a humanoid avatar asynchronously.
+    ///
+    /// Avatar loads involve multiple sub-assets (skeleton, textures,
+    /// spring-bone physics data) that benefit from concurrent downloading.
+    /// The progress stream reports phase transitions across sub-assets.
+    load-avatar-async: func(
+        id: string,
+        config: avatar-config,
+    ) -> tuple<stream<async-progress>, future<result<avatar-state, string>>>;
+
+    // ─── Cancellation ────────────────────────────────────────────────────────
+
+    /// Create a cancellation token.
+    /// After creation, pass the token handle to the host scheduler before
+    /// initiating the async load so that external callers (e.g., scene
+    /// transitions, user navigation) can request cancellation.
+    create-cancel-token: func() -> cancel-token;
+}
+
+// =============================================================================
 // WORLDS (deployable configurations)
 // =============================================================================
 
@@ -1140,4 +1418,75 @@ world holoscript-asset-runtime {
 world holoscript-platform-plugin {
     import types;
     export platform-compiler;
+}
+
+// =============================================================================
+// ASYNC WORLDS (WASI 0.3 -- stream<T> / future<T>)
+// =============================================================================
+
+/// Full async HoloScript runtime -- all engine-core + async interfaces.
+///
+/// This world extends `holoscript-runtime` with WASI 0.3 async variants
+/// of the parser, compiler, and asset-loader.  Hosts that instantiate
+/// this world with the `async` canonical option get full cooperative
+/// concurrency; hosts using `sync` mode fall back to blocking semantics
+/// transparently.
+///
+/// Backward compatibility: every synchronous export from `holoscript-runtime`
+/// is present and unchanged.  Async interfaces are additive.
+///
+/// Estimated binary size: ~1.1MB-1.7MB (async adds ~150-250KB over sync)
+world holoscript-async-runtime {
+    // ── Synchronous exports (unchanged from holoscript-runtime) ──
+    export parser;
+    export validator;
+    export type-checker;
+    export compiler;
+    export generator;
+    export spatial-engine;
+    export formatter;
+
+    // ── Async exports (WASI 0.3) ──
+    export async-parser;
+    export async-compiler;
+}
+
+/// Async parser world for editors and language servers that want
+/// non-blocking parse + validation without the full compiler.
+///
+/// Ideal for LSP servers that receive source text over a stream
+/// (e.g., `textDocument/didChange`) and want to parse incrementally
+/// without blocking the event loop.
+///
+/// Estimated binary size: ~250KB-400KB
+world holoscript-async-parser {
+    export parser;
+    export validator;
+    export type-checker;
+    export async-parser;
+}
+
+/// Async compiler world for CI/CD pipelines that compile large batches
+/// and want to stream output chunks to disk/network without buffering
+/// the entire result in memory.
+///
+/// Estimated binary size: ~500KB-700KB
+world holoscript-async-compiler {
+    export parser;
+    export compiler;
+    export async-compiler;
+}
+
+/// Async asset runtime for progressive loading applications (Hololand
+/// CDN edge workers, spatial web browsers, multiplayer scene preloaders).
+///
+/// Combines the synchronous asset-loader (for cache queries, metadata
+/// resolution) with async streaming variants for concurrent downloads
+/// and progressive byte streaming.
+///
+/// Estimated binary size: ~450KB-650KB
+world holoscript-async-asset-runtime {
+    export parser;
+    export asset-loader;
+    export async-asset-loader;
 }

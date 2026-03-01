@@ -102,7 +102,5 @@
 ; =============================================================================
 
 ; 'this' and 'self' are special built-in references
-[
-  "this"
-  "self"
-] @reference.builtin
+(this) @reference.builtin
+(self) @reference.builtin

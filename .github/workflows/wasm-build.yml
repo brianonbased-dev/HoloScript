@@ -1,0 +1,351 @@
+name: WASM Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/spatial-engine-wasm/**'
+      - 'packages/compiler-wasm/**'
+      - 'packages/holoscript-component/**'
+      - 'packages/tree-sitter-holoscript/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'scripts/build/wasm-build.sh'
+      - '.github/workflows/wasm-build.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/spatial-engine-wasm/**'
+      - 'packages/compiler-wasm/**'
+      - 'packages/holoscript-component/**'
+      - 'packages/tree-sitter-holoscript/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'scripts/build/wasm-build.sh'
+      - '.github/workflows/wasm-build.yml'
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: 'Modules to build (comma-separated: spatial,compiler,component,treesitter or all)'
+        required: false
+        default: 'all'
+      build_mode:
+        description: 'Build mode'
+        required: false
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ─── Toolchain Validation ─────────────────────────────────────────────
+  check-toolchain:
+    name: Validate Toolchain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown,wasm32-wasip1
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Install wasm-tools
+        run: cargo install wasm-tools
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install tree-sitter CLI
+        run: npm install -g tree-sitter-cli
+
+      - name: Run toolchain check
+        run: bash scripts/build/wasm-build.sh --check
+
+  # ─── Build spatial-engine-wasm ─────────────────────────────────────────
+  build-spatial-engine:
+    name: Build spatial-engine-wasm
+    runs-on: ubuntu-latest
+    needs: check-toolchain
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: 'holoscript-wasm-v1'
+          cache-all-crates: true
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build spatial-engine-wasm
+        run: bash scripts/build/wasm-build.sh --module spatial --sizes
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: spatial-engine-wasm
+          path: packages/spatial-engine-wasm/pkg/
+          retention-days: 14
+          if-no-files-found: error
+
+  # ─── Build compiler-wasm ───────────────────────────────────────────────
+  build-compiler-wasm:
+    name: Build compiler-wasm
+    runs-on: ubuntu-latest
+    needs: check-toolchain
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: 'holoscript-wasm-v1'
+          cache-all-crates: true
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Build compiler-wasm
+        run: bash scripts/build/wasm-build.sh --module compiler --sizes
+
+      - name: Run WASM tests
+        run: |
+          cd packages/compiler-wasm
+          cargo test
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: compiler-wasm
+          path: |
+            packages/compiler-wasm/pkg/
+            packages/compiler-wasm/pkg-node/
+          retention-days: 14
+          if-no-files-found: error
+
+  # ─── Build holoscript-component ────────────────────────────────────────
+  build-holoscript-component:
+    name: Build holoscript-component
+    runs-on: ubuntu-latest
+    needs: check-toolchain
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip1
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: 'holoscript-wasm-v1'
+          cache-all-crates: true
+
+      - name: Install wasm-tools
+        run: cargo install wasm-tools
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install JS dependencies
+        run: |
+          cd packages/holoscript-component
+          pnpm install
+
+      - name: Build holoscript-component
+        run: bash scripts/build/wasm-build.sh --module component --sizes
+
+      - name: Run component tests
+        run: |
+          cd packages/holoscript-component
+          cargo test
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: holoscript-component
+          path: packages/holoscript-component/dist/
+          retention-days: 14
+          if-no-files-found: warn
+
+  # ─── Build tree-sitter-holoscript ──────────────────────────────────────
+  build-tree-sitter:
+    name: Build tree-sitter-holoscript
+    runs-on: ubuntu-latest
+    needs: check-toolchain
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install tree-sitter CLI
+        run: npm install -g tree-sitter-cli
+
+      - name: Install Emscripten (required for tree-sitter WASM)
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Build tree-sitter-holoscript
+        run: bash scripts/build/wasm-build.sh --module treesitter --sizes
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: tree-sitter-holoscript-wasm
+          path: packages/tree-sitter-holoscript/*.wasm
+          retention-days: 14
+          if-no-files-found: warn
+
+  # ─── Size Report ───────────────────────────────────────────────────────
+  size-report:
+    name: WASM Size Report
+    runs-on: ubuntu-latest
+    needs: [build-spatial-engine, build-compiler-wasm, build-holoscript-component, build-tree-sitter]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download all WASM artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: wasm-artifacts/
+
+      - name: Generate size report
+        id: sizes
+        run: |
+          echo "## WASM Build Size Report" > size-report.md
+          echo "" >> size-report.md
+          echo "| Module | File | Size (KB) |" >> size-report.md
+          echo "|--------|------|-----------|" >> size-report.md
+
+          total_bytes=0
+
+          for dir in wasm-artifacts/*/; do
+            module=$(basename "$dir")
+            for f in $(find "$dir" -name "*.wasm" -type f 2>/dev/null); do
+              size=$(wc -c < "$f" | tr -d ' ')
+              size_kb=$(( size / 1024 ))
+              total_bytes=$(( total_bytes + size ))
+              echo "| $module | $(basename $f) | ${size_kb} KB |" >> size-report.md
+            done
+          done
+
+          total_kb=$(( total_bytes / 1024 ))
+          echo "" >> size-report.md
+          echo "**Total WASM size: ${total_kb} KB ($(( total_bytes / 1024 / 1024 )) MB)**" >> size-report.md
+          echo "" >> size-report.md
+          echo "*Built in release mode with opt-level=\"z\", LTO, and symbol stripping*" >> size-report.md
+
+          cat size-report.md
+
+      - name: Comment PR with size report
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('size-report.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # ─── Full Pipeline Build (unified single-command validation) ───────────
+  build-all:
+    name: Full WASM Pipeline (unified)
+    runs-on: ubuntu-latest
+    needs: check-toolchain
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown,wasm32-wasip1
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: 'holoscript-wasm-v1'
+          cache-all-crates: true
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: 'latest'
+
+      - name: Install wasm-tools
+        run: cargo install wasm-tools
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Install tree-sitter CLI
+        run: npm install -g tree-sitter-cli
+
+      - name: Install JS dependencies
+        run: |
+          cd packages/holoscript-component
+          pnpm install
+
+      - name: Build ALL WASM modules (unified pipeline)
+        run: bash scripts/build/wasm-build.sh --sizes
+
+      - name: Upload all WASM artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: holoscript-wasm-all
+          path: |
+            packages/spatial-engine-wasm/pkg/
+            packages/compiler-wasm/pkg/
+            packages/compiler-wasm/pkg-node/
+            packages/holoscript-component/dist/
+            packages/tree-sitter-holoscript/*.wasm
+          retention-days: 30

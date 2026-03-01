@@ -6,13 +6,15 @@
  * Merges N TraitHandler configs into one unified composed handler:
  *  - Later traits override earlier ones (right-side wins)
  *  - Conflict detection via TraitDependencyGraph
+ *  - Trait inheritance resolution via TraitInheritanceResolver
  *  - Result is registered back into BuiltinRegistry
  *
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import type { TraitHandler } from '../traits/TraitTypes';
 import { TraitDependencyGraph } from './TraitDependencyGraph';
+import type { TraitInheritanceResolver } from './TraitInheritanceResolver';
 
 // =============================================================================
 // TYPES
@@ -24,6 +26,8 @@ export interface CompositionResult {
   handler: TraitHandler<Record<string, unknown>>;
   conflicts: string[];
   warnings: string[];
+  /** Diamond inheritance warnings (if inheritance resolver is active) */
+  diamondWarnings?: string[];
 }
 
 // =============================================================================
@@ -32,9 +36,18 @@ export interface CompositionResult {
 
 export class TraitComposer {
   private graph?: TraitDependencyGraph;
+  private inheritanceResolver?: TraitInheritanceResolver;
 
-  constructor(graph?: TraitDependencyGraph) {
+  constructor(graph?: TraitDependencyGraph, inheritanceResolver?: TraitInheritanceResolver) {
     this.graph = graph;
+    this.inheritanceResolver = inheritanceResolver;
+  }
+
+  /**
+   * Set or replace the trait inheritance resolver.
+   */
+  setInheritanceResolver(resolver: TraitInheritanceResolver): void {
+    this.inheritanceResolver = resolver;
   }
 
   /**
@@ -73,9 +86,29 @@ export class TraitComposer {
       );
     }
 
+    // Detect diamond inheritance (if resolver available)
+    const diamondWarnings: string[] = [];
+    if (this.inheritanceResolver && traitNames.length > 1) {
+      const definedTraits = traitNames.filter((t) => this.inheritanceResolver!.hasTrait(t));
+      if (definedTraits.length > 1) {
+        const diamonds = this.inheritanceResolver.detectDiamondInheritance(definedTraits);
+        for (const d of diamonds) {
+          diamondWarnings.push(d.message);
+          warnings.push(d.message);
+        }
+      }
+    }
+
     // Merge defaultConfigs (right-side wins)
+    // If inheritance resolver available, include inherited properties
     const mergedDefaultConfig: Record<string, unknown> = {};
     for (const traitName of traitNames) {
+      // First, merge inherited properties (if available)
+      if (this.inheritanceResolver && this.inheritanceResolver.hasTrait(traitName)) {
+        const resolvedProps = this.inheritanceResolver.getFlattenedProperties(traitName);
+        Object.assign(mergedDefaultConfig, resolvedProps);
+      }
+      // Then, merge handler's own defaultConfig (overrides inherited)
       const h = handlers.get(traitName);
       if (!h) {
         warnings.push(`Trait "@${traitName}" not found in registry — skipped in composition.`);
@@ -136,6 +169,7 @@ export class TraitComposer {
       handler: composedHandler,
       conflicts,
       warnings,
+      diamondWarnings: diamondWarnings.length > 0 ? diamondWarnings : undefined,
     };
   }
 

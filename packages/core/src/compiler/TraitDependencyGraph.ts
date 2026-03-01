@@ -228,6 +228,30 @@ export class TraitDependencyGraph {
       requires: ['audio'],
       conflicts: [],
     });
+
+    // Network traits
+    this.registerTrait({
+      name: 'networked',
+      requires: [],
+      conflicts: [],
+    });
+    this.registerTrait({
+      name: 'lobby',
+      requires: [],
+      conflicts: [],
+    });
+
+    // CRDT Room traits — declarative multiplayer room configuration
+    this.registerTrait({
+      name: 'crdt-room',
+      requires: [],
+      conflicts: ['lobby'], // crdt-room replaces lobby-based room management
+    });
+    this.registerTrait({
+      name: 'crdt-room.entity',
+      requires: ['crdt-room'],
+      conflicts: [],
+    });
   }
 
   // ===========================================================================
