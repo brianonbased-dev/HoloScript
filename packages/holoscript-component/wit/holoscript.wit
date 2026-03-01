@@ -476,6 +476,600 @@ interface formatter {
 }
 
 // =============================================================================
+// ASSET LOADER (engine-core, runtime)
+// =============================================================================
+
+/// Asset loading, caching, and management for HoloScript spatial compositions.
+///
+/// Provides a unified interface for loading 3D models (glTF, GLB, FBX, USD),
+/// textures, audio, video, shaders, animations, and humanoid avatars with:
+///
+///   - Platform-aware quality and LOD selection (web, mobile, VR, AR, desktop)
+///   - Memory budget enforcement with automatic eviction
+///   - Streaming support for large assets
+///   - Content-addressable caching with per-asset retry logic
+///   - Batch and group loading for scene preloading
+///   - Dependency graph resolution for optimal load ordering
+///   - Humanoid avatar support (VRM 0.x/1.0, Ready Player Me, GLB)
+///
+/// The host environment (browser, native runtime) provides the actual I/O;
+/// this interface defines the contract for asset metadata, lifecycle, and
+/// memory management that the WASM component can orchestrate.
+interface asset-loader {
+    use types.{diagnostic};
+
+    // ─── Asset Classification ────────────────────────────────────────────────
+
+    /// Supported asset file formats
+    enum asset-format {
+        /// glTF 2.0 JSON
+        gltf,
+        /// glTF binary
+        glb,
+        /// Autodesk FBX
+        fbx,
+        /// OpenUSD ASCII
+        usda,
+        /// OpenUSD Crate (binary)
+        usdc,
+        /// OpenUSD zipped (Apple AR)
+        usdz,
+        /// Wavefront OBJ
+        obj,
+        /// Stereolithography
+        stl,
+        /// Point cloud
+        ply,
+        /// PNG image
+        png,
+        /// JPEG image
+        jpg,
+        /// WebP image
+        webp,
+        /// AVIF image
+        avif,
+        /// OpenEXR HDR image
+        exr,
+        /// Radiance HDR image
+        hdr,
+        /// Khronos KTX2 GPU texture
+        ktx2,
+        /// Basis Universal texture
+        basis,
+        /// MP3 audio
+        mp3,
+        /// Ogg Vorbis audio
+        ogg,
+        /// WAV audio
+        wav,
+        /// MP4 video
+        mp4,
+        /// WebM video
+        webm,
+        /// HoloScript composition
+        holo,
+        /// HoloScript+ extended syntax
+        hsplus,
+        /// VRM avatar model
+        vrm,
+    }
+
+    /// Semantic asset type classification
+    enum asset-type {
+        /// 3D model (mesh + materials)
+        model,
+        /// 2D texture / image
+        texture,
+        /// Material definition
+        material,
+        /// Animation clip or retarget data
+        animation,
+        /// Complete scene graph
+        scene,
+        /// GPU shader program
+        shader,
+        /// Audio clip
+        audio,
+        /// Video stream
+        video,
+        /// Font / typeface
+        font,
+        /// HoloScript source code
+        script,
+        /// Structured data (JSON, config, etc.)
+        data,
+    }
+
+    /// GPU texture compression formats
+    enum texture-format {
+        rgba8,
+        rgb8,
+        rgb565,
+        rgba4444,
+        /// Desktop (DX11+)
+        bc1,
+        /// Desktop with alpha (DX11+)
+        bc3,
+        /// Desktop high quality (DX11+)
+        bc7,
+        /// Mobile (ARM/Apple)
+        astc,
+        /// Mobile (Apple legacy)
+        pvrtc,
+        /// Mobile (Android)
+        etc2,
+        /// Universal GPU texture
+        basis-universal,
+    }
+
+    /// Mesh/data compression formats
+    enum compression-format {
+        none,
+        /// Google Draco mesh compression
+        draco,
+        /// Meshoptimizer compression
+        meshopt,
+        /// Basis Universal texture compression
+        basis-tex,
+        /// ASTC texture compression
+        astc-tex,
+        /// KTX2 supercompression
+        ktx2-super,
+        /// gzip transport compression
+        gzip,
+        /// Brotli transport compression
+        brotli,
+    }
+
+    // ─── Target Platform ─────────────────────────────────────────────────────
+
+    /// Target platform for adaptive quality/LOD selection
+    enum platform {
+        /// Browser (WebGL2/WebGPU)
+        web,
+        /// Mobile browser or native app
+        mobile,
+        /// VR headset (Quest, PCVR, etc.)
+        vr,
+        /// AR device (ARKit, ARCore, WebXR)
+        ar,
+        /// Desktop native application
+        desktop,
+    }
+
+    /// Quality preset for asset selection
+    enum quality-preset {
+        low,
+        medium,
+        high,
+        ultra,
+    }
+
+    /// Load priority for queue ordering
+    enum load-priority {
+        /// Must load before first frame
+        critical,
+        /// Load in first batch
+        high,
+        /// Default priority
+        normal,
+        /// Load when idle
+        low,
+        /// Speculative prefetch
+        background,
+    }
+
+    // ─── Asset Metadata ──────────────────────────────────────────────────────
+
+    /// LOD (Level of Detail) level descriptor
+    record lod-level {
+        /// LOD index (0 = highest quality)
+        level: u32,
+        /// Camera distance threshold to activate this LOD (meters)
+        distance: f64,
+        /// Asset path override for this LOD (empty = derive from base)
+        asset-path: string,
+        /// Triangle/polygon count at this LOD
+        poly-count: u32,
+        /// Screen coverage threshold (0.0-1.0)
+        screen-coverage: f64,
+    }
+
+    /// Mesh geometry statistics
+    record mesh-stats {
+        mesh-count: u32,
+        vertex-count: u32,
+        triangle-count: u32,
+        bone-count: u32,
+        morph-target-count: u32,
+    }
+
+    /// Animation clip descriptor
+    record animation-clip-info {
+        name: string,
+        /// Duration in seconds
+        duration: f64,
+        frame-count: u32,
+        fps: f64,
+    }
+
+    /// Asset dependency reference
+    record asset-dependency {
+        /// Dependent asset ID or path
+        asset-id: string,
+        /// What kind of dependency this is
+        dependency-type: asset-type,
+        /// Whether the parent asset can load without this dependency
+        required: bool,
+        /// Fallback asset ID if this dependency fails
+        fallback: option<string>,
+    }
+
+    /// Rich metadata for a single asset.
+    /// Mirrors the TypeScript AssetMetadata schema for cross-platform IPC.
+    record asset-metadata {
+        /// Unique asset identifier
+        id: string,
+        /// Human-readable display name
+        name: string,
+        /// File format
+        format: asset-format,
+        /// Semantic type
+        asset-type: asset-type,
+        /// MIME type string
+        mime-type: string,
+        /// Source file path (relative to project root)
+        source-path: string,
+        /// Resolved URL for loading (set by host)
+        url: option<string>,
+        /// CDN URL if available
+        cdn-url: option<string>,
+        /// Asset version string
+        version: string,
+        /// File size in bytes
+        file-size: u64,
+        /// Compressed size in bytes (0 = uncompressed)
+        compressed-size: u64,
+        /// Compression format used
+        compression: compression-format,
+        /// Estimated GPU memory in bytes
+        estimated-gpu-memory: u64,
+        /// Estimated CPU memory in bytes
+        estimated-cpu-memory: u64,
+        /// Estimated load time in milliseconds (average connection)
+        estimated-load-time-ms: u32,
+        /// Estimated draw calls per frame
+        estimated-draw-calls: u32,
+        /// Texture dimensions (width, height, depth) -- 0 if not a texture
+        tex-width: u32,
+        tex-height: u32,
+        tex-depth: u32,
+        /// Mesh statistics (zeroed if not a model)
+        mesh: mesh-stats,
+        /// Animation clips in this asset
+        animations: list<animation-clip-info>,
+        /// Material count
+        material-count: u32,
+        /// LOD levels available
+        lod-levels: list<lod-level>,
+        /// Asset dependencies
+        dependencies: list<asset-dependency>,
+        /// Simple string tags for search and filtering
+        tags: list<string>,
+        /// Content hash for cache invalidation (SHA-256 hex or empty)
+        content-hash: string,
+        /// Creation timestamp (ISO-8601 or Unix millis as string)
+        created-at: string,
+        /// Last modification timestamp
+        modified-at: string,
+        /// Author/creator
+        author: option<string>,
+        /// License identifier (SPDX or free-text)
+        license: option<string>,
+    }
+
+    // ─── Loader Configuration ────────────────────────────────────────────────
+
+    /// Retry policy for failed loads
+    record retry-config {
+        /// Maximum number of attempts (1 = no retry)
+        max-attempts: u32,
+        /// Initial delay between retries in milliseconds
+        delay-ms: u32,
+        /// Multiplier applied to delay after each retry
+        backoff-multiplier: f64,
+    }
+
+    /// Loader configuration
+    record loader-config {
+        /// Target platform (affects LOD and quality selection)
+        platform: platform,
+        /// Quality preset
+        quality: quality-preset,
+        /// Memory budget in bytes (GPU + CPU combined)
+        memory-budget: u64,
+        /// Enable streaming for large assets
+        enable-streaming: bool,
+        /// Streaming chunk size in bytes
+        streaming-chunk-size: u32,
+        /// Enable automatic LOD selection
+        auto-lod: bool,
+        /// Base URL for asset resolution
+        base-url: string,
+        /// CDN URL override (empty = use base-url)
+        cdn-url: string,
+        /// Retry policy
+        retry: retry-config,
+        /// Request timeout in milliseconds
+        timeout-ms: u32,
+    }
+
+    // ─── Load Request / Response ─────────────────────────────────────────────
+
+    /// A request to load a single asset
+    record load-request {
+        /// Asset identifier (ID, path, or alias)
+        asset: string,
+        /// Load priority
+        priority: load-priority,
+        /// Force a specific LOD level (-1 = auto)
+        force-lod: s32,
+        /// Force a specific quality (empty = auto)
+        force-quality: option<quality-preset>,
+        /// Skip the cache and force re-fetch
+        skip-cache: bool,
+    }
+
+    /// Current phase of a load operation
+    enum load-phase {
+        /// Resolving asset metadata
+        resolving,
+        /// Connecting to server
+        connecting,
+        /// Downloading bytes
+        downloading,
+        /// Parsing / decoding asset data
+        processing,
+        /// Load complete
+        complete,
+        /// Load failed
+        failed,
+    }
+
+    /// Progress report for an in-flight load
+    record load-progress {
+        /// Asset identifier
+        asset-id: string,
+        /// Bytes received so far
+        loaded-bytes: u64,
+        /// Total expected bytes (0 if unknown)
+        total-bytes: u64,
+        /// Percentage complete (0-100)
+        percent: f64,
+        /// Current phase
+        phase: load-phase,
+    }
+
+    /// Result of a successful asset load
+    record load-result {
+        /// Asset identifier
+        asset-id: string,
+        /// Resolved metadata for this asset
+        metadata: asset-metadata,
+        /// Actual LOD level loaded
+        lod-level: u32,
+        /// Actual quality used
+        quality: quality-preset,
+        /// Load wall-clock time in milliseconds
+        load-time-ms: u64,
+        /// Whether the result came from cache
+        from-cache: bool,
+        /// Final resolved URL
+        url: string,
+        /// Text payload (for script, data, gltf-json, etc.)
+        text-data: option<string>,
+        /// Binary payload (for glb, textures, audio, etc.)
+        binary-data: option<list<u8>>,
+    }
+
+    /// Outcome of a load operation
+    variant load-outcome {
+        /// Load succeeded
+        ok(load-result),
+        /// Load failed with diagnostics
+        err(list<diagnostic>),
+    }
+
+    // ─── Memory Management ───────────────────────────────────────────────────
+
+    /// Snapshot of current memory usage
+    record memory-usage {
+        /// Bytes currently used (GPU + CPU)
+        current-bytes: u64,
+        /// Configured budget in bytes
+        budget-bytes: u64,
+        /// Usage percentage (0-100)
+        percent: f64,
+        /// Number of assets currently cached
+        cached-asset-count: u32,
+    }
+
+    // ─── Asset Validation ────────────────────────────────────────────────────
+
+    /// Result of validating an asset against platform constraints
+    record asset-validation-result {
+        /// Whether the asset passes all checks
+        valid: bool,
+        /// Validation diagnostics (errors and warnings)
+        diagnostics: list<diagnostic>,
+        /// Suggested optimizations (JSON-encoded array of optimization records)
+        suggested-optimizations-json: string,
+    }
+
+    // ─── Humanoid / Avatar Types ─────────────────────────────────────────────
+
+    /// Avatar model format
+    enum avatar-format {
+        /// VRM 1.0
+        vrm1,
+        /// VRM 0.x (legacy)
+        vrm0,
+        /// Ready Player Me GLB
+        rpm,
+        /// Standard glTF/GLB with humanoid skeleton
+        humanoid-glb,
+    }
+
+    /// Humanoid avatar configuration
+    record avatar-config {
+        /// Avatar source URL
+        url: string,
+        /// Avatar format (auto-detected if empty string provided to load-avatar)
+        format: avatar-format,
+        /// Initial uniform scale
+        scale: f64,
+        /// Enable IK retargeting
+        enable-ik: bool,
+        /// Enable facial expression / morph blending
+        enable-expressions: bool,
+        /// Enable look-at gaze tracking
+        enable-look-at: bool,
+        /// Enable spring bone physics (hair, clothes)
+        enable-spring-bones: bool,
+        /// Ready Player Me quality preset (empty = default)
+        rpm-quality: string,
+        /// Custom bone mapping overrides (JSON-encoded Record<VRMBoneName, string>)
+        bone-mapping-json: string,
+    }
+
+    /// Loaded avatar state
+    record avatar-state {
+        /// Avatar instance identifier
+        id: string,
+        /// Detected or forced format
+        format: avatar-format,
+        /// Whether load completed successfully
+        is-loaded: bool,
+        /// Load error message (empty if no error)
+        error: string,
+        /// VRM metadata (JSON-encoded, empty if not VRM)
+        vrm-metadata-json: string,
+        /// Ready Player Me metadata (JSON-encoded, empty if not RPM)
+        rpm-metadata-json: string,
+        /// Available bone names on this skeleton
+        available-bones: list<string>,
+        /// Available expression/morph target names
+        available-expressions: list<string>,
+        /// Whether spring bones are present
+        has-spring-bones: bool,
+        /// Available animation clip names
+        available-animations: list<string>,
+    }
+
+    // ─── Core Functions ──────────────────────────────────────────────────────
+
+    /// Initialize the asset loader with configuration.
+    /// Must be called before any load operations.
+    initialize: func(config: loader-config) -> result<_, string>;
+
+    /// Update loader configuration at runtime.
+    update-config: func(config: loader-config) -> result<_, string>;
+
+    /// Get current loader configuration as JSON.
+    get-config-json: func() -> string;
+
+    // ─── Single Asset Loading ────────────────────────────────────────────────
+
+    /// Load a single asset.
+    /// Returns the loaded asset data or an error.
+    load: func(request: load-request) -> load-outcome;
+
+    /// Resolve asset metadata without loading the asset data.
+    /// Useful for pre-flight checks, dependency analysis, and UI display.
+    resolve-metadata: func(asset: string) -> option<asset-metadata>;
+
+    /// Register asset metadata from an external manifest.
+    /// Accepts a JSON-encoded array of asset-metadata records.
+    register-manifest: func(manifest-json: string) -> result<u32, string>;
+
+    // ─── Batch / Group Loading ───────────────────────────────────────────────
+
+    /// Load multiple assets. Returns results in the same order as requests.
+    load-many: func(requests: list<load-request>) -> list<load-outcome>;
+
+    /// Load all assets belonging to a named group (as defined in manifest).
+    load-group: func(group-id: string) -> list<load-outcome>;
+
+    /// Compute optimal load order for a list of asset IDs based on the
+    /// dependency graph. Returns the IDs sorted topologically.
+    get-load-order: func(asset-ids: list<string>) -> list<string>;
+
+    // ─── Cache Management ────────────────────────────────────────────────────
+
+    /// Check whether an asset is currently cached.
+    is-cached: func(asset-id: string) -> bool;
+
+    /// Evict a single asset from the cache.
+    evict: func(asset-id: string) -> bool;
+
+    /// Clear all cached assets.
+    clear-cache: func() -> u32;
+
+    /// Get current memory usage snapshot.
+    get-memory-usage: func() -> memory-usage;
+
+    /// Release memory by evicting low-priority assets until at least
+    /// `target-bytes` have been freed. Returns IDs of evicted assets.
+    release-memory: func(target-bytes: u64) -> list<string>;
+
+    // ─── Asset Validation ────────────────────────────────────────────────────
+
+    /// Validate an asset against the current platform constraints.
+    validate-asset: func(metadata: asset-metadata) -> asset-validation-result;
+
+    /// Estimate memory usage for a given format, type, and file size.
+    /// Returns (estimated_gpu_bytes, estimated_cpu_bytes).
+    estimate-memory: func(
+        file-size: u64,
+        format: asset-format,
+        asset-kind: asset-type,
+    ) -> tuple<u64, u64>;
+
+    // ─── Humanoid Avatars ────────────────────────────────────────────────────
+
+    /// Load a humanoid avatar by ID and configuration.
+    /// Returns the avatar state including skeleton and expression data.
+    load-avatar: func(id: string, config: avatar-config) -> result<avatar-state, string>;
+
+    /// Get the current state of a loaded avatar.
+    get-avatar-state: func(id: string) -> option<avatar-state>;
+
+    /// List all loaded avatar IDs.
+    list-avatars: func() -> list<string>;
+
+    /// Remove a loaded avatar and free its resources.
+    remove-avatar: func(id: string) -> bool;
+
+    /// Map a bone name from any naming convention (Mixamo, UE, etc.)
+    /// to the VRM 1.0 standard bone name. Returns empty string if unmapped.
+    map-bone-name: func(name: string) -> string;
+
+    // ─── Introspection ───────────────────────────────────────────────────────
+
+    /// List all supported asset formats.
+    list-formats: func() -> list<asset-format>;
+
+    /// Get the MIME type for a given asset format.
+    get-mime-type: func(format: asset-format) -> string;
+
+    /// Infer the asset type from a file format.
+    infer-asset-type: func(format: asset-format) -> asset-type;
+
+    /// Get loader version string.
+    version: func() -> string;
+}
+
+// =============================================================================
 // PLATFORM PLUGIN HOST (plugin boundary)
 // =============================================================================
 
@@ -500,7 +1094,7 @@ interface platform-compiler {
 // =============================================================================
 
 /// Full HoloScript runtime -- all engine-core interfaces
-/// Estimated binary size: ~800KB-1.2MB (well under 2MB target)
+/// Estimated binary size: ~900KB-1.4MB (well under 2MB target)
 world holoscript-runtime {
     export parser;
     export validator;
@@ -530,6 +1124,15 @@ world holoscript-compiler {
 /// Estimated binary size: ~50KB-100KB
 world holoscript-spatial {
     export spatial-engine;
+}
+
+/// Asset runtime world for asset-centric applications (Hololand CDN,
+/// preview servers, asset pipeline tools, scene preloaders).
+/// Pairs the asset loader with the parser for manifest-driven workflows.
+/// Estimated binary size: ~350KB-500KB
+world holoscript-asset-runtime {
+    export parser;
+    export asset-loader;
 }
 
 /// Platform plugin world -- implemented by each platform target

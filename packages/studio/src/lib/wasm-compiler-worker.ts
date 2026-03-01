@@ -2,16 +2,22 @@
  * wasm-compiler-worker.ts — Web Worker for HoloScript WASM Component
  *
  * Runs in a dedicated Web Worker thread. Loads the holoscript-component
- * WASM binary (transpiled via jco) and handles requests from the
- * CompilerBridge on the main thread.
+ * WASM binary and handles requests from the CompilerBridge on the main thread.
  *
  * Message protocol:
  *   Main Thread → Worker: { id, type, payload }
  *   Worker → Main Thread: { id, type: 'result'|'error', payload }
  *
- * The jco transpilation produces ES module bindings at:
- *   @holoscript/component → dist/holoscript.js
- *   which exports instantiate() and all WIT interface functions.
+ * Supports two WASM formats:
+ * 1. Component Model (jco-transpiled) - ES module bindings with namespaced exports
+ * 2. Raw WASM module - Direct instantiation with fallback to @holoscript/core
+ *
+ * The WASM binary may be located at:
+ *   /wasm/holoscript.component.wasm (Component Model format, preferred)
+ *   /wasm/holoscript.wasm (Raw module, fallback)
+ *
+ * If WASM is unavailable or fails to load, falls back to TypeScript implementation
+ * from @holoscript/core package.
  *
  * @see packages/holoscript-component/wit/holoscript.wit
  */

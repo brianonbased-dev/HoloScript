@@ -131,6 +131,59 @@ interface WorkerResponse {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Native Asset Hydration
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Hydrate childrenJson strings back into children arrays.
+ * The WASM parser serializes nested objects as JSON strings (WIT recursive
+ * type workaround). This function recursively deserializes them so the
+ * R3F compiler can render nested objects as scene tree children.
+ *
+ * When keyframes are present, childrenJson is a JSON object:
+ *   { "__children": [...], "__keyframes": [...] }
+ * Otherwise it's a plain JSON array of children.
+ */
+function hydrateChildren(node: Record<string, unknown>): Record<string, unknown> {
+  // Hydrate this node's childrenJson → children array + keyframes
+  const childrenJson = node.childrenJson as string | undefined;
+  if (childrenJson && childrenJson.length > 0) {
+    try {
+      const parsed = JSON.parse(childrenJson);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && ('__children' in parsed || '__keyframes' in parsed)) {
+        // Combined format: { __children: [...], __keyframes: [...] }
+        const rawChildren = parsed.__children;
+        node.children = Array.isArray(rawChildren)
+          ? (rawChildren as Record<string, unknown>[]).map(hydrateChildren)
+          : [];
+        if (Array.isArray(parsed.__keyframes) && parsed.__keyframes.length > 0) {
+          node.keyframes = parsed.__keyframes;
+        }
+      } else if (Array.isArray(parsed)) {
+        // Plain array format (children only, no keyframes)
+        node.children = (parsed as Record<string, unknown>[]).map(hydrateChildren);
+      } else {
+        node.children = [];
+      }
+    } catch {
+      node.children = [];
+    }
+  }
+  // Hydrate objects inside composition or spatial groups
+  if (Array.isArray(node.objects)) {
+    node.objects = (node.objects as Record<string, unknown>[]).map(hydrateChildren);
+  }
+  if (Array.isArray(node.spatialGroups)) {
+    for (const group of node.spatialGroups as Record<string, unknown>[]) {
+      if (Array.isArray(group.objects)) {
+        group.objects = (group.objects as Record<string, unknown>[]).map(hydrateChildren);
+      }
+    }
+  }
+  return node;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // CompilerBridge — Main Thread API
 // ═══════════════════════════════════════════════════════════════════
 
@@ -157,7 +210,7 @@ export class CompilerBridge {
    * @param world - Which WIT world to instantiate (default: 'holoscript-runtime')
    */
   async init(
-    wasmUrl = '/wasm/holoscript.component.wasm',
+    wasmUrl = '/wasm/holoscript.wasm', // Raw WASM module (fallback) or .js for jco-transpiled
     world: 'holoscript-runtime' | 'holoscript-parser' | 'holoscript-compiler' | 'holoscript-spatial' = 'holoscript-runtime',
   ): Promise<CompilerBridgeStatus> {
     if (this.initPromise) {
@@ -227,8 +280,14 @@ export class CompilerBridge {
 
   /** Parse HoloScript source code into AST (JSON) */
   async parse(source: string): Promise<{ ast?: unknown; errors?: Diagnostic[] }> {
-    if (!this.worker) return this._fallbackParse(source);
-    return this._send('parse', { source });
+    const result = this.worker
+      ? await this._send<{ ast?: unknown; errors?: Diagnostic[] }>('parse', { source })
+      : await this._fallbackParse(source);
+    // Hydrate childrenJson → children for native asset nesting
+    if (result.ast && typeof result.ast === 'object') {
+      hydrateChildren(result.ast as Record<string, unknown>);
+    }
+    return result;
   }
 
   /** Validate HoloScript source code */
