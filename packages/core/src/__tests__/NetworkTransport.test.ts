@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NetworkTransport } from '../networking/NetworkTransport';
+import { NetworkTransport } from '../network/NetworkTransport';
 
 // =============================================================================
 // C270 — Network Transport

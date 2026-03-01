@@ -19,7 +19,7 @@ export interface NoiseConfig {
   scale: number;          // Base frequency scale
 }
 
-export type NoiseType = 'value' | 'perlin' | 'ridged' | 'warped';
+export type NoiseType = 'value' | 'perlin' | 'ridged' | 'warped' | 'worley';
 
 // =============================================================================
 // NOISE GENERATOR
@@ -125,6 +125,29 @@ export class NoiseGenerator {
     );
   }
 
+  /**
+   * Worley (cellular) noise — distance to nearest feature point.
+   */
+  worley2D(x: number, y: number, density: number = 1): number {
+    let minDist = Infinity;
+    const ix = Math.floor(x);
+    const iy = Math.floor(y);
+
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const cx = ix + dx;
+        const cy = iy + dy;
+        // Deterministic point from cell
+        const hash = this.perm[((cx & 255) + this.perm[(cy & 255)]) & 511];
+        const px = cx + (hash / 255) * density;
+        const py = cy + (this.perm[(hash + 1) & 511] / 255) * density;
+        const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
+        if (dist < minDist) minDist = dist;
+      }
+    }
+    return Math.min(1, minDist);
+  }
+
   // ---------------------------------------------------------------------------
   // Fractal Noise
   // ---------------------------------------------------------------------------
@@ -206,6 +229,7 @@ export class NoiseGenerator {
       case 'perlin': return this.fbm2D(x, y, 'perlin');
       case 'ridged': return this.ridged2D(x, y);
       case 'warped': return this.warped2D(x, y);
+      case 'worley': return this.worley2D(x, y);
     }
   }
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { NetworkTransport } from '../networking/NetworkTransport';
-import { StateReplicator } from '../networking/StateReplicator';
-import { RPCManager } from '../networking/RPCManager';
+import { NetworkTransport } from '../network/NetworkTransport';
+import { StateReplicator } from '../network/StateReplicator';
+import { RPCManager } from '../network/RPCManager';
 
 describe('Cycle 121: Networking & Replication', () => {
     afterEach(() => {

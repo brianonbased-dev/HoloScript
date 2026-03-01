@@ -135,7 +135,7 @@ vsce publish --packagePath holoscript-*.vsix
 
 ### 4. Homebrew (End-User Tier)
 
-**Formula**: `Formula/holoscript.rb`
+**Formula**: `packaging/homebrew/holoscript.rb`
 
 **Installation**:
 
@@ -154,7 +154,7 @@ brew install holoscript
 
 ```bash
 # 1. Fork homebrew/homebrew-core
-# 2. Add Formula/holoscript.rb
+# 2. Add packaging/homebrew/holoscript.rb
 # 3. Submit PR: https://github.com/Homebrew/homebrew-core
 ```
 
@@ -164,7 +164,7 @@ brew install holoscript
 
 ### 5. Chocolatey (End-User Tier)
 
-**Package**: `chocolatey/holoscript.nuspec`
+**Package**: `packaging/chocolatey/holoscript.nuspec`
 
 **Installation**:
 
@@ -269,8 +269,8 @@ ENTRYPOINT ["holoscript"]
 - ✅ All workspace `packages/*/package.json`
 - ✅ Cargo workspace `Cargo.toml`
 - ✅ Unity `packages/unity-sdk/package.json`
-- ✅ Homebrew `Formula/holoscript.rb`
-- ✅ Chocolatey `chocolatey/holoscript.nuspec`
+- ✅ Homebrew `packaging/homebrew/holoscript.rb`
+- ✅ Chocolatey `packaging/chocolatey/holoscript.nuspec`
 
 **Usage**:
 

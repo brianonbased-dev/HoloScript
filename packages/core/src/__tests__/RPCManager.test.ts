@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { RPCManager } from '../networking/RPCManager';
+import { RPCManager } from '../network/RPCManager';
 
 // =============================================================================
 // C256 — RPC Manager

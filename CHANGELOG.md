@@ -1365,11 +1365,11 @@ This release adds 287 new source modules, 113 test suites, and expands the trait
   - Cross-platform compilation with platform-specific Rust toolchains
 - **Homebrew Formula** — macOS package manager integration
   - Universal binary support (ARM64 + Intel)
-  - Formula location: `Formula/holoscript.rb`
+  - Formula location: `packaging/homebrew/holoscript.rb`
   - Installation: `brew tap brianonbased-dev/holoscript && brew install holoscript`
 - **Chocolatey Package** — Windows package manager integration
   - NuGet package specification with PowerShell install scripts
-  - Location: `chocolatey/holoscript.nuspec`
+  - Location: `packaging/chocolatey/holoscript.nuspec`
   - Installation: `choco install holoscript`
 - **Version Synchronization** — Atomic version bumping across 6 package managers
   - Script: `scripts/sync-versions.js` (patch, minor, major, prerelease)

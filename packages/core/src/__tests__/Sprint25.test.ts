@@ -31,18 +31,18 @@ import {
   validateParams,
   DEFAULT_PARAMS,
   UNIFORM_SIZES,
-} from '../render/postprocess/PostProcessTypes.js';
+} from '../rendering/postprocess/PostProcessTypes.js';
 import type {
   PostProcessEffectType,
   IBloomParams,
   IToneMapParams,
-} from '../render/postprocess/PostProcessTypes.js';
+} from '../rendering/postprocess/PostProcessTypes.js';
 
 // PostProcessPipeline (construction-only, no device needed)
 import {
   PostProcessPipeline,
   DEFAULT_PIPELINE_CONFIG,
-} from '../render/postprocess/PostProcessPipeline.js';
+} from '../rendering/postprocess/PostProcessPipeline.js';
 
 // ShaderGraph
 import { ShaderGraph } from '../shader/graph/ShaderGraph.js';

@@ -63,7 +63,7 @@
 ---
 
 ### 4. IntelliJ Plugin
-**Location**: `intellij-plugin/`
+**Location**: `packages/intellij/`
 - ✅ **build.gradle.kts** - Gradle build configuration
 - ✅ **src/** - IntelliJ plugin source (Java/Kotlin)
 
@@ -430,7 +430,7 @@ export const VRRWeatherExtension: HololandExtension = {
 
 ### Phase 5: IntelliJ & Neovim Parity (Week 5-6)
 
-**IntelliJ Plugin** (`intellij-plugin/src/`):
+**IntelliJ Plugin** (`packages/intellij/src/`):
 - Port VS Code extension features to IntelliJ IDEA
 - Implement webview equivalents using Swing/JavaFX
 - Add Kotlin-based LSP client for Hololand features

@@ -38,8 +38,8 @@ import { WebXRManager } from './WebXRManager';
 import { PhysicsWorldImpl } from '../physics/PhysicsWorldImpl';
 import { IVector3, IPhysicsWorld } from '../physics/PhysicsTypes';
 import { VRPhysicsBridge } from '../physics/VRPhysicsBridge';
-import { PhysicsDebugDrawer } from '../render/webgpu/PhysicsDebugDrawer';
-import { WebGPURenderer } from '../render/webgpu/WebGPURenderer';
+import { PhysicsDebugDrawer } from '../rendering/webgpu/PhysicsDebugDrawer';
+import { WebGPURenderer } from '../rendering/webgpu/WebGPURenderer';
 import { KeyboardSystem } from './KeyboardSystem';
 import { HandMenuSystem } from '../ui/HandMenu';
 

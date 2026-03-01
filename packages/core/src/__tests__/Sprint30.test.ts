@@ -2,9 +2,9 @@
  * Sprint30.test.ts — Procedural + World + Environment (v3.39.0)
  *
  * ~100 acceptance tests covering:
- *   Feature 1:  procgen/NoiseGenerator
- *   Feature 2:  procgen/DungeonGenerator
- *   Feature 3:  procgen/WaveFunction
+ *   Feature 1:  procedural/NoiseGenerator
+ *   Feature 2:  procedural/DungeonGenerator
+ *   Feature 3:  procedural/WaveFunction
  *   Feature 4:  world/WorldStreamer
  *   Feature 5:  world/LODManager
  *   Feature 6:  world/OcclusionCulling
@@ -15,9 +15,9 @@
  */
 import { describe, it, expect } from 'vitest';
 
-import { NoiseGenerator } from '../procgen/NoiseGenerator.js';
-import { DungeonGenerator } from '../procgen/DungeonGenerator.js';
-import { WaveFunction } from '../procgen/WaveFunction.js';
+import { NoiseGenerator } from '../procedural/NoiseGenerator.js';
+import { DungeonGenerator } from '../procedural/DungeonGenerator.js';
+import { WaveFunction } from '../procedural/WaveFunction.js';
 import { WorldStreamer } from '../world/WorldStreamer.js';
 import { LODManager } from '../world/LODManager.js';
 import { OcclusionCulling } from '../world/OcclusionCulling.js';
@@ -28,7 +28,7 @@ import { TerrainSystem } from '../environment/TerrainSystem.js';
 import { TerrainBrush } from '../environment/TerrainBrush.js';
 
 // =============================================================================
-// FEATURE 1: procgen/NoiseGenerator
+// FEATURE 1: procedural/NoiseGenerator
 // =============================================================================
 describe('Feature 1: NoiseGenerator', () => {
   it('perlin2D returns a number in [-1, 1] range', () => {
@@ -69,7 +69,7 @@ describe('Feature 1: NoiseGenerator', () => {
 });
 
 // =============================================================================
-// FEATURE 2: procgen/DungeonGenerator
+// FEATURE 2: procedural/DungeonGenerator
 // =============================================================================
 describe('Feature 2: DungeonGenerator', () => {
   it('generate returns rooms and corridors', () => {
@@ -114,7 +114,7 @@ describe('Feature 2: DungeonGenerator', () => {
 });
 
 // =============================================================================
-// FEATURE 3: procgen/WaveFunction
+// FEATURE 3: procedural/WaveFunction
 // =============================================================================
 describe('Feature 3: WaveFunction', () => {
   function makeTile(id: string) {

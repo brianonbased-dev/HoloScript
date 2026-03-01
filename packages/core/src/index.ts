@@ -230,12 +230,12 @@ export {
 export {
   DeltaCompressor,
   type StateDelta
-} from './networking/DeltaCompressor';
+} from './network/DeltaCompressor';
 
 export {
   StateSynchronizer,
   type StateSubscriber
-} from './networking/StateSynchronizer';
+} from './network/StateSynchronizer';
 
 // Performance Monitoring (Phase 7 - TODO-020)
 export { telemetry } from './monitoring/telemetry';
@@ -1921,7 +1921,7 @@ export * from './recovery';
 // Render Module (v3.3 WebGPU Rendering)
 // =============================================================================
 
-export * from './render';
+export * from './rendering';
 
 // =============================================================================
 // Shader Module (v3.3 Visual Shader Graph)

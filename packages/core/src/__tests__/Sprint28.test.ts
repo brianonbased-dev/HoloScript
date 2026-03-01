@@ -7,9 +7,9 @@
  *   Feature 3: network/Matchmaker
  *   Feature 4: network/RoomManager
  *   Feature 5: network/NetworkTypes helpers
- *   Feature 6: networking/NetworkTransport
- *   Feature 7: networking/RPCManager
- *   Feature 8: networking/StateReplicator
+ *   Feature 6: network/NetworkTransport
+ *   Feature 7: network/RPCManager
+ *   Feature 8: network/StateReplicator
  *   Feature 9: multiplayer/ClientPrediction
  *   Feature 10: multiplayer/NetworkInterpolation
  */
@@ -23,9 +23,9 @@ import {
   generateMessageId, generatePeerId, createMessage,
   createPeerInfo, lerpVector3, distanceVector3, createSpawnRequest,
 } from '../network/NetworkTypes.js';
-import { NetworkTransport } from '../networking/NetworkTransport.js';
-import { RPCManager } from '../networking/RPCManager.js';
-import { StateReplicator } from '../networking/StateReplicator.js';
+import { NetworkTransport } from '../network/NetworkTransport.js';
+import { RPCManager } from '../network/RPCManager.js';
+import { StateReplicator } from '../network/StateReplicator.js';
 import { ClientPrediction } from '../multiplayer/ClientPrediction.js';
 import { NetworkInterpolation } from '../multiplayer/NetworkInterpolation.js';
 
@@ -321,7 +321,7 @@ describe('Feature 5: NetworkTypes helpers', () => {
 });
 
 // =============================================================================
-// FEATURE 6: networking/NetworkTransport
+// FEATURE 6: network/NetworkTransport
 // =============================================================================
 describe('Feature 6: NetworkTransport', () => {
   it('connect returns true for new peer', () => {
@@ -379,7 +379,7 @@ describe('Feature 6: NetworkTransport', () => {
 });
 
 // =============================================================================
-// FEATURE 7: networking/RPCManager
+// FEATURE 7: network/RPCManager
 // =============================================================================
 describe('Feature 7: RPCManager', () => {
   it('register adds a handler', () => {
@@ -430,7 +430,7 @@ describe('Feature 7: RPCManager', () => {
 });
 
 // =============================================================================
-// FEATURE 8: networking/StateReplicator
+// FEATURE 8: network/StateReplicator
 // =============================================================================
 describe('Feature 8: StateReplicator', () => {
   it('registerEntity adds an entity', () => {

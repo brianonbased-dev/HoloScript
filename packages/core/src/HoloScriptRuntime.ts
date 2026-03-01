@@ -19,7 +19,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { TimeManager } from './orbital/TimeManager';
 import { ExpressionEvaluator, createState } from './ReactiveState';
 import { eventBus } from './runtime/EventBus';
-import { StateSynchronizer } from './networking/StateSynchronizer';
+import { StateSynchronizer } from './network/StateSynchronizer';
 import { AttentionEngine } from './orbital/AttentionEngine';
 import { telemetry } from './monitoring/telemetry';
 import { stateMachineInterpreter } from './runtime/StateMachineInterpreter';

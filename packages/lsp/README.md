@@ -34,7 +34,7 @@ startServer({
 
 ### With VS Code
 
-The LSP is bundled with [@holoscript/vscode](https://marketplace.visualstudio.com/items?itemName=holoscript.vscode-holoscript).
+The LSP is bundled with [@holoscript/vscode](https://marketplace.visualstudio.com/items?itemName=holoscript.holoscript-vscode).
 
 ### With Neovim
 

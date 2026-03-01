@@ -1,2 +1,0 @@
-Unused dependencies
-* @holoscript/core

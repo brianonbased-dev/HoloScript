@@ -1,5 +1,0 @@
-﻿[
-    "src/components/generative/GenerativePresets.ts(34,46): error TS2322: Type \u0027Record\u003cstring, unknown\u003e\u0027 is not assignable to type \u0027GNodeData\u0027.",
-    "  Type \u0027Record\u003cstring, unknown\u003e\u0027 is missing the following properties from type \u0027OutputNodeData\u0027: type, label, outputType",
-    "src/components/scene/SceneGraphPanel.tsx(153,15): error TS2322: Type \u0027string\u0027 is not assignable to type \u0027never\u0027."
-]

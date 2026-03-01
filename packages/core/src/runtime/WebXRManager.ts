@@ -9,7 +9,7 @@
  * - Input source tracking
  */
 
-import type { IWebGPUContext } from '../render/webgpu/WebGPUTypes';
+import type { IWebGPUContext } from '../rendering/webgpu/WebGPUTypes';
 
 // Polyfill types for WebXR + WebGPU
 // These are often missing from standard @types/webxr

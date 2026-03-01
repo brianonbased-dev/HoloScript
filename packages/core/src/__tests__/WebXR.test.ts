@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HoloScriptPlusRuntimeImpl } from '../runtime/HoloScriptPlusRuntime';
 import { WebXRManager } from '../runtime/WebXRManager';
-import { WebGPURenderer } from '../render/webgpu/WebGPURenderer';
+import { WebGPURenderer } from '../rendering/webgpu/WebGPURenderer';
 
 // Mock WebXR Globals
 const mockSession = {

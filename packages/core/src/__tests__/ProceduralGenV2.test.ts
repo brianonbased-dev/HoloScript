@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { NoiseGenerator } from '../procgen/NoiseGenerator';
-import { DungeonGenerator } from '../procgen/DungeonGenerator';
-import { WaveFunction } from '../procgen/WaveFunction';
+import { NoiseGenerator } from '../procedural/NoiseGenerator';
+import { DungeonGenerator } from '../procedural/DungeonGenerator';
+import { WaveFunction } from '../procedural/WaveFunction';
 
 describe('Procedural Generation v2 (Cycle 185)', () => {
   describe('NoiseGenerator', () => {

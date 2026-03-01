@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { WaveFunction, type WFCTile } from '../procgen/WaveFunction';
+import { WaveFunction, type WFCTile } from '../procedural/WaveFunction';
 
 // =============================================================================
 // C307 — WaveFunction Collapse

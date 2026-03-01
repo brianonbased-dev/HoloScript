@@ -168,3 +168,15 @@ export {
   type IRTTSample,
   type IInteractable,
 } from './LatencyCompensation';
+
+// Merged from networking/
+export { CRDT } from './CRDT';
+export { DeltaCompressor } from './DeltaCompressor';
+export { NetworkTransport } from './NetworkTransport';
+export { PriorityScorer } from './PriorityScorer';
+export { RPCManager } from './RPCManager';
+export { SpatialSharder } from './SpatialSharder';
+export { StateReplicator } from './StateReplicator';
+export { TransactionLog } from './TransactionLog';
+export { StateSynchronizer } from './StateSynchronizer';
+export { SpatialWebSocketTransport } from './SpatialWebSocketTransport';

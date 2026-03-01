@@ -9,7 +9,7 @@ import { RuntimeRegistry } from '../RuntimeRegistry';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 // Import demolition runtime (auto-registers)
-import '../../demos/demolition/demolition-runtime';
+import '../../../../../examples/demolition-demo/demolition-runtime';
 
 /**
  * Example: Execute HoloScript composition via Runtime Registry
