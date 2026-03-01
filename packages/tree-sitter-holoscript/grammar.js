@@ -518,7 +518,8 @@ module.exports = grammar({
 
     array: ($) => seq('[', sepByTrailing($._value, ','), ']'),
 
-    object_literal: ($) => seq('{', sepByTrailing($.property, ','), '}'),
+    // Object literals allow comma-optional properties (matching HoloScript convention)
+    object_literal: ($) => prec.left(1, seq('{', repeat(seq($.property, optional(','))), '}')),
 
     color: ($) => token(seq('#', /[0-9a-fA-F]{3,8}/)),
 
