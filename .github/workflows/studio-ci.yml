@@ -148,6 +148,40 @@ jobs:
           path: packages/studio/test-results/
           retention-days: 7
 
+  # ─── Performance Gates ────────────────────────────────────────────────────────
+  performance-gates:
+    name: Performance Budget Gates
+    runs-on: ubuntu-latest
+    needs: [typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run benchmark harness tests
+        run: pnpm --filter @holoscript/studio exec vitest run src/lib/__tests__/benchmark-harness.test.ts --reporter=verbose
+        env:
+          CI: true
+
+      - name: Verify performance budgets
+        run: |
+          echo "=== Performance Budget Enforcement ==="
+          echo "Parse budget:   30ms P95"
+          echo "Compile budget: 300ms P95"
+          echo "Budgets are enforced by benchmark-harness.test.ts assertions"
+
   # ─── Build check ─────────────────────────────────────────────────────────────
   build:
     name: Production Build

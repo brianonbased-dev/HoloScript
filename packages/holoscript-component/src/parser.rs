@@ -329,6 +329,7 @@ impl<'a> Parser<'a> {
             traits,
             template,
             properties,
+            children_json: String::new(),
             span: None,
         })
     }

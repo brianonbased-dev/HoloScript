@@ -89,7 +89,8 @@ interface types {
         template: option<string>,
         traits: list<string>,
         properties: list<property>,
-        children: list<object-node>,
+        /// JSON-encoded child objects (avoids WIT recursive type limitation)
+        children-json: string,
         span: option<span>,
     }
 

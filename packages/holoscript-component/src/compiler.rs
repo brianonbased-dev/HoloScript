@@ -565,6 +565,7 @@ mod tests {
                             span: None,
                         },
                     ],
+                    children_json: String::new(),
                     span: None,
                 }
             ],

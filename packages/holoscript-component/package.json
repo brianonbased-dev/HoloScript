@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "build:rust": "cargo build --release --target wasm32-wasip1",
-    "build:component": "wasm-tools component new target/wasm32-wasip1/release/holoscript_component.wasm --adapt wasi_snapshot_preview1.command.wasm -o dist/holoscript.component.wasm",
+    "build:component": "wasm-tools component new target/wasm32-wasip1/release/holoscript_component.wasm --adapt wasi_snapshot_preview1.reactor.wasm -o dist/holoscript.component.wasm",
     "build:jco": "jco transpile dist/holoscript.component.wasm -o dist --name holoscript",
     "build:types": "jco types dist/holoscript.component.wasm -o dist/holoscript.d.ts || echo 'Skip types'",
     "build": "npm run build:rust && npm run build:component && npm run build:jco && npm run build:types || echo 'WASM Component build skipped'",
