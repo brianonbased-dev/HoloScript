@@ -102,7 +102,7 @@ jobs:
         run: bash scripts/build/wasm-build.sh --module spatial --sizes
 
       - name: Upload WASM artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: spatial-engine-wasm
           path: packages/spatial-engine-wasm/pkg/
@@ -142,7 +142,7 @@ jobs:
           cargo test
 
       - name: Upload WASM artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: compiler-wasm
           path: |
@@ -195,7 +195,7 @@ jobs:
           cargo test
 
       - name: Upload WASM artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: holoscript-component
           path: packages/holoscript-component/dist/
@@ -225,7 +225,7 @@ jobs:
         run: bash scripts/build/wasm-build.sh --module treesitter --sizes
 
       - name: Upload WASM artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: tree-sitter-holoscript-wasm
           path: packages/tree-sitter-holoscript/*.wasm
@@ -339,7 +339,7 @@ jobs:
         run: bash scripts/build/wasm-build.sh --sizes
 
       - name: Upload all WASM artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: holoscript-wasm-all
           path: |

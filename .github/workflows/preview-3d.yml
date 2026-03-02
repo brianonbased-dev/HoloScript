@@ -79,7 +79,7 @@ jobs:
       - name: Upload preview artifacts
         if: steps.changed-files.outputs.has_changes == 'true'
         id: upload
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: holoscript-3d-previews
           path: preview-output/

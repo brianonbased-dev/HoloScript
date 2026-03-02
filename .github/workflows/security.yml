@@ -42,7 +42,7 @@ jobs:
           sarif_file: snyk.sarif
 
       - name: Upload Snyk JSON report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: snyk-security-report
@@ -109,7 +109,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload audit results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: npm-audit-report
