@@ -42,6 +42,7 @@
     "docs:api": "typedoc",
     "docs:api:watch": "typedoc --watch",
     "docs:api:json": "typedoc --json docs/api/api.json",
+    "test:mutate": "npx stryker run",
     "audit:security": "pnpm audit --audit-level=moderate",
     "analyze:bundle": "pnpm --filter @holoscript/core build && npx rollup-plugin-visualizer dist/stats.html"
   },
