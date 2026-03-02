@@ -21,6 +21,13 @@ export default defineConfig({
         'packages/partner-sdk/src/**/*.ts',
         'packages/adapter-postgres/src/**/*.ts',
         'packages/collab-server/src/**/*.ts',
+        'packages/registry/src/**/*.ts',
+        'packages/runtime/src/**/*.ts',
+        'packages/fs/src/**/*.ts',
+        'packages/security-sandbox/src/**/*.ts',
+        'packages/ai-validator/src/**/*.ts',
+        'packages/holoscript-cdn/src/**/*.ts',
+        'packages/std/src/**/*.ts',
       ],
       exclude: [
         '**/*.test.ts',
@@ -45,6 +52,7 @@ export default defineConfig({
       },
     },
     projects: [
+      // ── Packages with their own vitest.config.ts ──────────────────────
       'packages/core/vitest.config.ts',
       'packages/cli/vitest.config.ts',
       'packages/formatter/vitest.config.ts',
@@ -52,20 +60,60 @@ export default defineConfig({
       'packages/lsp/vitest.config.ts',
       'packages/vscode-extension/vitest.config.ts',
       'packages/adapter-postgres/vitest.config.ts',
+      'packages/mcp-server/vitest.config.ts',
+      'packages/partner-sdk/vitest.config.ts',
+      'packages/security-sandbox/vitest.config.ts',
+      'packages/ai-validator/vitest.config.ts',
+      'packages/comparative-benchmarks/vitest.config.ts',
+      'packages/llm-provider/vitest.config.ts',
+      'packages/registry/vitest.config.ts',
+      'packages/holoscript-cdn/vitest.config.ts',
+      'packages/runtime/vitest.config.ts',
+      'packages/fs/vitest.config.ts',
+      'packages/playground/vitest.config.ts',
+      'packages/collab-server/vitest.config.ts',
+      'packages/studio/vitest.config.ts',
+      'packages/studio-plugin-sdk/vitest.config.ts',
+      'packages/react-agent-sdk/vitest.config.ts',
+      'packages/preview-component/vitest.config.ts',
+      'packages/marketplace-web/vitest.config.ts',
+      'packages/marketplace-api/vitest.config.ts',
+
+      // ── Packages without a vitest.config.ts (inline) ─────────────────
       {
         test: {
-          name: 'partner-sdk',
-          root: './packages/partner-sdk',
+          name: '@holoscript/test',
+          root: './packages/test',
           include: ['src/**/*.test.ts'],
-          exclude: ['**/dist/**', '**/node_modules/**'],
+          exclude: ['**/dist/**', '**/node_modules/**', 'src/__tests__/scenes.test.ts', 'src/__tests__/visual.test.ts'],
+          environment: 'node',
         },
       },
       {
         test: {
-          name: 'marketplace-api',
-          root: './packages/marketplace-api',
+          name: '@holoscript/benchmark',
+          root: './packages/benchmark',
           include: ['src/**/*.test.ts'],
           exclude: ['**/dist/**', '**/node_modules/**'],
+          environment: 'node',
+        },
+      },
+      {
+        test: {
+          name: '@holoscript/sdk',
+          root: './packages/holoscript',
+          include: ['src/**/*.test.ts'],
+          exclude: ['**/dist/**', '**/node_modules/**'],
+          environment: 'node',
+        },
+      },
+      {
+        test: {
+          name: 'std',
+          root: './packages/std',
+          include: ['src/**/*.test.ts'],
+          exclude: ['**/dist/**', '**/node_modules/**'],
+          environment: 'node',
         },
       },
       {
@@ -78,21 +126,13 @@ export default defineConfig({
       },
       {
         test: {
-          name: 'mcp-server',
-          root: './packages/mcp-server',
-          include: ['src/**/*.test.ts'],
+          name: '@holoscript/visual',
+          root: './packages/visual',
+          include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
           exclude: ['**/dist/**', '**/node_modules/**'],
-        },
-      },
-      {
-        test: {
-          name: 'marketplace-web',
-          root: './packages/marketplace-web',
-          include: ['src/**/*.test.ts'],
-          exclude: ['**/dist/**', '**/node_modules/**'],
+          environment: 'node',
         },
       },
     ],
   },
 });
-

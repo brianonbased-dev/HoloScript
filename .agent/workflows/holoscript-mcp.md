@@ -38,38 +38,35 @@ curl http://localhost:5555/health
 curl http://localhost:5555/tools/discover
 ```
 
-Input: {
-"description": "a glowing blue crystal floating at eye level that players can grab",
-"format": "hsplus"
-}
+### 3. Generate Object
 
 ```
+Tool: suggest_traits
+Input: {
+  "description": "a glowing blue crystal floating at eye level that players can grab",
+  "format": "hsplus"
+}
+```
 
-// turbo
 ### 4. Validate the Generated Code
 
 Always validate before using:
 
 ```
-
 Tool: validate_holoscript
 Input: { "code": "<output from step 3>" }
-
 ```
 
-// turbo
 ### 5. Generate Full Scene
 
 For complete scenes, use `generate_scene`:
 
 ```
-
 Tool: generate_scene
 Input: {
-"description": "A meditation room with floating crystals, ambient lighting, and calming atmosphere",
-"format": "holo"
+  "description": "A meditation room with floating crystals, ambient lighting, and calming atmosphere",
+  "format": "holo"
 }
-
 ```
 
 ### 6. Parse and Analyze
@@ -77,10 +74,8 @@ Input: {
 Optionally analyze the code structure:
 
 ```
-
 Tool: analyze_code
 Input: { "code": "<your scene code>" }
-
 ```
 
 ## Example Task: Create Interactive VR Object
@@ -109,4 +104,3 @@ Input: { "code": "<your scene code>" }
 | `parse_hs` | Get AST | Programmatic analysis |
 | `explain_trait` | Trait documentation | Learning about traits |
 | `list_traits` | All available traits | Discovering capabilities |
-```

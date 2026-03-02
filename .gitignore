@@ -12,7 +12,6 @@ dist/
 
 # Exception: Keep essential config files that should be committed
 !*.config.js
-!vitest.config.js
 !playwright.config.js
 !jest.config.js
 !rollup.config.js
@@ -181,7 +180,6 @@ stryker.log
 shader*.txt
 tsc-*.txt
 tsc*.txt
-vitest-*.txt
 vitest*.txt
 live-test-output.txt
 full_test_log*.txt
