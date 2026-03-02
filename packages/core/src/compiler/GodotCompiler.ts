@@ -30,6 +30,21 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToGodot,
+  physicsToGodot,
+  particlesToGodot,
+  postProcessingToGodot,
+  audioSourceToGodot,
+  weatherToGodot,
+} from './DomainBlockCompilerMixin';
 
 export interface GodotCompilerOptions {
   className?: string;
@@ -163,7 +178,52 @@ export class GodotCompiler extends CompilerBase {
       this.compileEffects(composition.effects);
     }
 
+    // v4.2: Domain Blocks (materials, physics, particles, post-processing, audio, weather)
+    this.compileGodotDomainBlocks(composition);
+
     return this.lines.join('\n');
+  }
+
+  private compileGodotDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emit('');
+    this.emit('# === v4.2 Domain Blocks ===');
+
+    let blockIdx = 0;
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        return materialToGodot(mat, `db${blockIdx++}`);
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        return physicsToGodot(phys, `db${blockIdx++}`);
+      },
+      vfx: (block) => {
+        const ps = compileParticleBlock(block);
+        return particlesToGodot(ps, `db${blockIdx++}`);
+      },
+      postfx: (block) => {
+        const pp = compilePostProcessingBlock(block);
+        return postProcessingToGodot(pp);
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        return audioSourceToGodot(audio, `db${blockIdx++}`);
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        return weatherToGodot(weather);
+      },
+    }, (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+    for (const line of compiled) {
+      for (const l of line.split('\n')) {
+        this.emit(l);
+      }
+    }
   }
 
   private compileEnvironment(env: HoloEnvironment): void {

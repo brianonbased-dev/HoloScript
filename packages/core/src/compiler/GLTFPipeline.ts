@@ -34,6 +34,11 @@ import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { MATERIAL_PRESETS } from './R3FCompiler';
 import type { R3FMaterialProps } from '../traits/visual/types';
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  materialToGLTF,
+} from './DomainBlockCompilerMixin';
 
 // =============================================================================
 // TYPES
@@ -547,6 +552,20 @@ export class GLTFPipeline extends CompilerBase {
     // Process timelines as animations
     for (const timeline of composition.timelines || []) {
       this.processTimeline(timeline);
+    }
+
+    // v4.2: Process domain block materials into glTF materials array
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length > 0) {
+      compileDomainBlocks(domainBlocks, {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          const gltfMat = materialToGLTF(mat);
+          this.materials.push(gltfMat as any);
+          this.stats.materialCount++;
+          return '';
+        },
+      }, () => '');
     }
 
     // Create scene

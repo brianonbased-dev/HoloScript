@@ -566,6 +566,1071 @@ export function physicsToURDF(physics: CompiledPhysics): string {
 }
 
 // =============================================================================
+// Unity (C#) Target Helpers
+// =============================================================================
+
+/** Generate Unity C# material setup code */
+export function materialToUnity(mat: CompiledMaterial, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Material: ${mat.name}`);
+  lines.push(`var ${varPrefix}Mat = new Material(Shader.Find("${mat.type === 'unlit' ? 'Unlit/Color' : 'Standard'}"));`);
+  if (mat.baseColor) lines.push(`${varPrefix}Mat.color = ${hexToUnityColor(mat.baseColor)};`);
+  if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat.SetFloat("_Smoothness", ${(1 - mat.roughness).toFixed(3)}f);`);
+  if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.SetFloat("_Metallic", ${mat.metallic}f);`);
+  if (mat.opacity !== undefined && mat.opacity < 1) {
+    lines.push(`${varPrefix}Mat.SetFloat("_Mode", 3); // Transparent`);
+    lines.push(`${varPrefix}Mat.color = new Color(${varPrefix}Mat.color.r, ${varPrefix}Mat.color.g, ${varPrefix}Mat.color.b, ${mat.opacity}f);`);
+  }
+  if (mat.emissiveColor) {
+    lines.push(`${varPrefix}Mat.EnableKeyword("_EMISSION");`);
+    lines.push(`${varPrefix}Mat.SetColor("_EmissionColor", ${hexToUnityColor(mat.emissiveColor)}${mat.emissiveIntensity ? ` * ${mat.emissiveIntensity}f` : ''});`);
+  }
+  for (const [mapType, path] of Object.entries(mat.textureMaps)) {
+    const shaderProp = mapType === 'albedo_map' ? '_MainTex'
+      : mapType === 'normal_map' ? '_BumpMap'
+      : mapType === 'metallic_map' ? '_MetallicGlossMap'
+      : mapType === 'roughness_map' ? '_SpecGlossMap'
+      : mapType === 'emission_map' ? '_EmissionMap'
+      : mapType === 'occlusion_map' ? '_OcclusionMap'
+      : `_${mapType.replace(/_map$/, '')}`;
+    lines.push(`${varPrefix}Mat.SetTexture("${shaderProp}", Resources.Load<Texture2D>("${path}"));`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate Unity C# physics setup code */
+export function physicsToUnity(physics: CompiledPhysics, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Physics: ${physics.keyword} "${physics.name || ''}"`);
+
+  if (physics.rigidbody) {
+    lines.push(`var ${varPrefix}RB = ${varPrefix}GO.AddComponent<Rigidbody>();`);
+    const rb = physics.rigidbody.properties;
+    if (rb.mass !== undefined) lines.push(`${varPrefix}RB.mass = ${rb.mass}f;`);
+    if (rb.drag !== undefined) lines.push(`${varPrefix}RB.drag = ${rb.drag}f;`);
+    if (rb.angular_damping !== undefined) lines.push(`${varPrefix}RB.angularDrag = ${rb.angular_damping}f;`);
+    if (rb.use_gravity === false) lines.push(`${varPrefix}RB.useGravity = false;`);
+  }
+
+  if (physics.colliders) {
+    for (let i = 0; i < physics.colliders.length; i++) {
+      const c = physics.colliders[i];
+      const shape = c.shape || 'box';
+      const colVar = `${varPrefix}Col${i}`;
+      if (shape === 'sphere') {
+        lines.push(`var ${colVar} = ${varPrefix}GO.AddComponent<SphereCollider>();`);
+        if (c.properties.radius) lines.push(`${colVar}.radius = ${c.properties.radius}f;`);
+      } else if (shape === 'capsule') {
+        lines.push(`var ${colVar} = ${varPrefix}GO.AddComponent<CapsuleCollider>();`);
+        if (c.properties.radius) lines.push(`${colVar}.radius = ${c.properties.radius}f;`);
+        if (c.properties.height) lines.push(`${colVar}.height = ${c.properties.height}f;`);
+      } else {
+        lines.push(`var ${colVar} = ${varPrefix}GO.AddComponent<BoxCollider>();`);
+        if (c.properties.size && Array.isArray(c.properties.size)) {
+          lines.push(`${colVar}.size = new Vector3(${c.properties.size.join('f, ')}f);`);
+        }
+      }
+      if (c.type === 'trigger') lines.push(`${colVar}.isTrigger = true;`);
+    }
+  }
+
+  if (physics.forceFields) {
+    for (const ff of physics.forceFields) {
+      if (ff.keyword === 'wind_zone') {
+        lines.push(`var ${varPrefix}Wind = ${varPrefix}GO.AddComponent<WindZone>();`);
+        if (ff.properties.strength) lines.push(`${varPrefix}Wind.windMain = ${ff.properties.strength}f;`);
+      } else {
+        lines.push(`// ${ff.keyword} "${ff.name || ''}": ${JSON.stringify(ff.properties)}`);
+      }
+    }
+  }
+
+  if (physics.joints) {
+    for (const j of physics.joints) {
+      lines.push(`// Joint: ${j.keyword} "${j.name || ''}" — use ConfigurableJoint or HingeJoint`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/** Generate Unity C# particle system setup code */
+export function particlesToUnity(ps: CompiledParticleSystem, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Particles: ${ps.name}`);
+  lines.push(`var ${varPrefix}PS = ${varPrefix}GO.AddComponent<ParticleSystem>();`);
+  lines.push(`var ${varPrefix}Main = ${varPrefix}PS.main;`);
+  if (ps.properties.max_particles) lines.push(`${varPrefix}Main.maxParticles = ${ps.properties.max_particles};`);
+  if (ps.properties.start_lifetime) {
+    const lt = ps.properties.start_lifetime;
+    lines.push(`${varPrefix}Main.startLifetime = ${Array.isArray(lt) ? lt[0] : lt}f;`);
+  }
+  if (ps.properties.start_speed) {
+    const sp = ps.properties.start_speed;
+    lines.push(`${varPrefix}Main.startSpeed = ${Array.isArray(sp) ? sp[0] : sp}f;`);
+  }
+  if (ps.properties.gravity_modifier !== undefined) {
+    lines.push(`${varPrefix}Main.gravityModifier = ${ps.properties.gravity_modifier}f;`);
+  }
+  if (ps.traits.includes('looping')) lines.push(`${varPrefix}Main.loop = true;`);
+
+  for (const m of ps.modules) {
+    lines.push(`// Module: ${m.type} — ${JSON.stringify(m.properties)}`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate Unity C# post-processing setup code */
+export function postProcessingToUnity(pp: CompiledPostProcessing): string {
+  const lines: string[] = [];
+  lines.push('// Post-Processing (URP Volume Profile)');
+  for (const e of pp.effects) {
+    const className = e.type.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join('');
+    lines.push(`// Effect: ${className}`);
+    for (const [k, v] of Object.entries(e.properties)) {
+      lines.push(`//   ${k} = ${JSON.stringify(v)}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+/** Generate Unity C# audio source setup code */
+export function audioSourceToUnity(audio: CompiledAudioSource, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
+  if (audio.keyword === 'reverb_zone') {
+    lines.push(`var ${varPrefix}Reverb = ${varPrefix}GO.AddComponent<AudioReverbZone>();`);
+    if (audio.properties.min_distance) lines.push(`${varPrefix}Reverb.minDistance = ${audio.properties.min_distance}f;`);
+    if (audio.properties.max_distance) lines.push(`${varPrefix}Reverb.maxDistance = ${audio.properties.max_distance}f;`);
+  } else {
+    lines.push(`var ${varPrefix}AS = ${varPrefix}GO.AddComponent<AudioSource>();`);
+    if (audio.properties.clip) lines.push(`${varPrefix}AS.clip = Resources.Load<AudioClip>("Audio/${audio.properties.clip}");`);
+    if (audio.properties.volume !== undefined) lines.push(`${varPrefix}AS.volume = ${audio.properties.volume}f;`);
+    if (audio.properties.loop !== undefined) lines.push(`${varPrefix}AS.loop = ${audio.properties.loop};`);
+    if (audio.properties.spatial_blend !== undefined) lines.push(`${varPrefix}AS.spatialBlend = ${audio.properties.spatial_blend}f;`);
+    if (audio.properties.max_distance) lines.push(`${varPrefix}AS.maxDistance = ${audio.properties.max_distance}f;`);
+    if (audio.traits.includes('spatial') || audio.traits.includes('hrtf')) {
+      lines.push(`${varPrefix}AS.spatialBlend = 1.0f;`);
+    }
+    if (audio.properties.play_on_awake) lines.push(`${varPrefix}AS.playOnAwake = true;`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate Unity C# weather setup code */
+export function weatherToUnity(weather: CompiledWeather): string {
+  const lines: string[] = [];
+  lines.push(`// Weather: ${weather.keyword} "${weather.name || ''}"`);
+  for (const layer of weather.layers) {
+    lines.push(`// Layer: ${layer.type} — ${JSON.stringify(layer.properties)}`);
+  }
+  if (weather.properties.intensity !== undefined) {
+    lines.push(`// Intensity: ${weather.properties.intensity}`);
+  }
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Unreal Engine (C++) Target Helpers
+// =============================================================================
+
+/** Generate Unreal C++ material setup code */
+export function materialToUnreal(mat: CompiledMaterial, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Material: ${mat.name}`);
+  lines.push(`UMaterialInstanceDynamic* ${varPrefix}Mat = UMaterialInstanceDynamic::Create(`);
+  lines.push(`    LoadObject<UMaterial>(nullptr, TEXT("/Game/Materials/M_${mat.type === 'unlit' ? 'Unlit' : 'PBR'}")), this);`);
+  if (mat.baseColor) {
+    const [r, g, b] = hexToRGBTuple(mat.baseColor);
+    lines.push(`${varPrefix}Mat->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor(${r}f, ${g}f, ${b}f));`);
+  }
+  if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat->SetScalarParameterValue(TEXT("Roughness"), ${mat.roughness}f);`);
+  if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat->SetScalarParameterValue(TEXT("Metallic"), ${mat.metallic}f);`);
+  if (mat.opacity !== undefined) lines.push(`${varPrefix}Mat->SetScalarParameterValue(TEXT("Opacity"), ${mat.opacity}f);`);
+  if (mat.emissiveColor) {
+    const [r, g, b] = hexToRGBTuple(mat.emissiveColor);
+    const intensity = mat.emissiveIntensity ?? 1;
+    lines.push(`${varPrefix}Mat->SetVectorParameterValue(TEXT("EmissiveColor"), FLinearColor(${r * intensity}f, ${g * intensity}f, ${b * intensity}f));`);
+  }
+  for (const [mapType, path] of Object.entries(mat.textureMaps)) {
+    lines.push(`${varPrefix}Mat->SetTextureParameterValue(TEXT("${mapType}"), LoadObject<UTexture2D>(nullptr, TEXT("/Game/Textures/${path}")));`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate Unreal C++ physics setup code */
+export function physicsToUnreal(physics: CompiledPhysics, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Physics: ${physics.keyword} "${physics.name || ''}"`);
+
+  if (physics.rigidbody) {
+    const rb = physics.rigidbody.properties;
+    lines.push(`${varPrefix}Mesh->SetSimulatePhysics(true);`);
+    if (rb.mass !== undefined) lines.push(`${varPrefix}Mesh->SetMassOverrideInKg(NAME_None, ${rb.mass}f);`);
+    if (rb.drag !== undefined) lines.push(`${varPrefix}Mesh->SetLinearDamping(${rb.drag}f);`);
+    if (rb.angular_damping !== undefined) lines.push(`${varPrefix}Mesh->SetAngularDamping(${rb.angular_damping}f);`);
+    if (rb.use_gravity === false) lines.push(`${varPrefix}Mesh->SetEnableGravity(false);`);
+  }
+
+  if (physics.colliders) {
+    for (const c of physics.colliders) {
+      const shape = c.shape || 'box';
+      if (shape === 'sphere') {
+        lines.push(`auto* ${varPrefix}Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("${varPrefix}Sphere"));`);
+        if (c.properties.radius) lines.push(`${varPrefix}Sphere->SetSphereRadius(${c.properties.radius}f);`);
+      } else if (shape === 'capsule') {
+        lines.push(`auto* ${varPrefix}Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("${varPrefix}Capsule"));`);
+      } else {
+        lines.push(`auto* ${varPrefix}Box = CreateDefaultSubobject<UBoxComponent>(TEXT("${varPrefix}Box"));`);
+      }
+    }
+  }
+
+  if (physics.forceFields) {
+    for (const ff of physics.forceFields) {
+      lines.push(`// Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)}`);
+    }
+  }
+
+  if (physics.joints) {
+    for (const j of physics.joints) {
+      lines.push(`auto* ${varPrefix}Constraint = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("${j.name || varPrefix + 'Joint'}"));`);
+      lines.push(`// Joint type: ${j.keyword} — configure constraint limits`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/** Generate Unreal C++ Niagara particle system code */
+export function particlesToUnreal(ps: CompiledParticleSystem, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Niagara Particles: ${ps.name}`);
+  lines.push(`auto* ${varPrefix}Niagara = CreateDefaultSubobject<UNiagaraComponent>(TEXT("${ps.name}"));`);
+  lines.push(`${varPrefix}Niagara->SetupAttachment(RootComponent);`);
+  if (ps.properties.rate) lines.push(`${varPrefix}Niagara->SetVariableFloat(TEXT("SpawnRate"), ${ps.properties.rate}f);`);
+  if (ps.properties.start_lifetime) lines.push(`${varPrefix}Niagara->SetVariableFloat(TEXT("Lifetime"), ${Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime}f);`);
+  if (ps.traits.includes('looping')) lines.push(`${varPrefix}Niagara->SetVariableBool(TEXT("Looping"), true);`);
+  for (const m of ps.modules) {
+    lines.push(`// Module: ${m.type} — ${JSON.stringify(m.properties)}`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate Unreal C++ post-processing setup code */
+export function postProcessingToUnreal(pp: CompiledPostProcessing, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Post-Processing: ${pp.keyword}`);
+  lines.push(`auto* ${varPrefix}PP = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcess"));`);
+  lines.push(`${varPrefix}PP->SetupAttachment(RootComponent);`);
+  for (const e of pp.effects) {
+    if (e.type === 'bloom') {
+      lines.push(`${varPrefix}PP->Settings.bOverride_BloomIntensity = true;`);
+      if (e.properties.intensity) lines.push(`${varPrefix}PP->Settings.BloomIntensity = ${e.properties.intensity}f;`);
+      if (e.properties.threshold) lines.push(`${varPrefix}PP->Settings.BloomThreshold = ${e.properties.threshold}f;`);
+    } else if (e.type === 'depth_of_field') {
+      lines.push(`${varPrefix}PP->Settings.bOverride_DepthOfFieldFocalDistance = true;`);
+      if (e.properties.focal_distance) lines.push(`${varPrefix}PP->Settings.DepthOfFieldFocalDistance = ${e.properties.focal_distance}f;`);
+    } else {
+      lines.push(`// Effect: ${e.type} — ${JSON.stringify(e.properties)}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+/** Generate Unreal C++ audio component code */
+export function audioSourceToUnreal(audio: CompiledAudioSource, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
+  lines.push(`auto* ${varPrefix}Audio = CreateDefaultSubobject<UAudioComponent>(TEXT("${audio.name}"));`);
+  lines.push(`${varPrefix}Audio->SetupAttachment(RootComponent);`);
+  if (audio.properties.clip) lines.push(`${varPrefix}Audio->SetSound(LoadObject<USoundWave>(nullptr, TEXT("/Game/Audio/${audio.properties.clip}")));`);
+  if (audio.properties.volume !== undefined) lines.push(`${varPrefix}Audio->SetVolumeMultiplier(${audio.properties.volume}f);`);
+  if (audio.properties.loop !== undefined) lines.push(`${varPrefix}Audio->bIsLooping = ${audio.properties.loop ? 'true' : 'false'};`);
+  if (audio.traits.includes('spatial') || audio.properties.spatial_blend > 0) {
+    lines.push(`${varPrefix}Audio->bOverrideAttenuation = true;`);
+    if (audio.properties.max_distance) lines.push(`${varPrefix}Audio->AttenuationOverrides.FalloffDistance = ${audio.properties.max_distance}f;`);
+  }
+  if (audio.properties.play_on_awake) lines.push(`${varPrefix}Audio->bAutoActivate = true;`);
+  return lines.join('\n');
+}
+
+/** Generate Unreal weather/atmosphere comment block */
+export function weatherToUnreal(weather: CompiledWeather): string {
+  const lines: string[] = [];
+  lines.push(`// Weather: ${weather.keyword} "${weather.name || ''}"`);
+  lines.push('// Use UltraDynamicSky or custom weather system');
+  for (const layer of weather.layers) {
+    lines.push(`// Layer: ${layer.type} — ${JSON.stringify(layer.properties)}`);
+  }
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Godot (GDScript) Target Helpers
+// =============================================================================
+
+/** Generate Godot GDScript material setup code */
+export function materialToGodot(mat: CompiledMaterial, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`# Material: ${mat.name}`);
+  if (mat.type === 'unlit') {
+    lines.push(`var ${varPrefix}_mat = StandardMaterial3D.new()`);
+    lines.push(`${varPrefix}_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED`);
+  } else {
+    lines.push(`var ${varPrefix}_mat = StandardMaterial3D.new()`);
+  }
+  if (mat.baseColor) lines.push(`${varPrefix}_mat.albedo_color = Color.html("${mat.baseColor}")`);
+  if (mat.roughness !== undefined) lines.push(`${varPrefix}_mat.roughness = ${mat.roughness}`);
+  if (mat.metallic !== undefined) lines.push(`${varPrefix}_mat.metallic = ${mat.metallic}`);
+  if (mat.opacity !== undefined && mat.opacity < 1) {
+    lines.push(`${varPrefix}_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA`);
+    lines.push(`${varPrefix}_mat.albedo_color.a = ${mat.opacity}`);
+  }
+  if (mat.emissiveColor) {
+    lines.push(`${varPrefix}_mat.emission_enabled = true`);
+    lines.push(`${varPrefix}_mat.emission = Color.html("${mat.emissiveColor}")`);
+    if (mat.emissiveIntensity) lines.push(`${varPrefix}_mat.emission_energy_multiplier = ${mat.emissiveIntensity}`);
+  }
+  for (const [mapType, path] of Object.entries(mat.textureMaps)) {
+    const prop = mapType === 'albedo_map' ? 'albedo_texture'
+      : mapType === 'normal_map' ? 'normal_texture'
+      : mapType === 'metallic_map' ? 'metallic_texture'
+      : mapType === 'roughness_map' ? 'roughness_texture'
+      : mapType === 'emission_map' ? 'emission_texture'
+      : `${mapType.replace(/_map$/, '_texture')}`;
+    lines.push(`${varPrefix}_mat.${prop} = load("res://${path}")`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate Godot GDScript physics setup code */
+export function physicsToGodot(physics: CompiledPhysics, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`# Physics: ${physics.keyword} "${physics.name || ''}"`);
+
+  if (physics.rigidbody) {
+    const rb = physics.rigidbody.properties;
+    lines.push(`var ${varPrefix}_rb = RigidBody3D.new()`);
+    if (rb.mass !== undefined) lines.push(`${varPrefix}_rb.mass = ${rb.mass}`);
+    if (rb.drag !== undefined) lines.push(`${varPrefix}_rb.linear_damp = ${rb.drag}`);
+    if (rb.angular_damping !== undefined) lines.push(`${varPrefix}_rb.angular_damp = ${rb.angular_damping}`);
+    if (rb.use_gravity === false) lines.push(`${varPrefix}_rb.gravity_scale = 0.0`);
+  }
+
+  if (physics.colliders) {
+    for (let i = 0; i < physics.colliders.length; i++) {
+      const c = physics.colliders[i];
+      const shape = c.shape || 'box';
+      if (shape === 'sphere') {
+        lines.push(`var ${varPrefix}_col${i} = CollisionShape3D.new()`);
+        lines.push(`${varPrefix}_col${i}.shape = SphereShape3D.new()`);
+        if (c.properties.radius) lines.push(`${varPrefix}_col${i}.shape.radius = ${c.properties.radius}`);
+      } else if (shape === 'capsule') {
+        lines.push(`var ${varPrefix}_col${i} = CollisionShape3D.new()`);
+        lines.push(`${varPrefix}_col${i}.shape = CapsuleShape3D.new()`);
+      } else {
+        lines.push(`var ${varPrefix}_col${i} = CollisionShape3D.new()`);
+        lines.push(`${varPrefix}_col${i}.shape = BoxShape3D.new()`);
+      }
+    }
+  }
+
+  if (physics.forceFields) {
+    for (const ff of physics.forceFields) {
+      lines.push(`# Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)}`);
+    }
+  }
+
+  if (physics.joints) {
+    for (const j of physics.joints) {
+      const jointType = j.keyword === 'hinge' ? 'HingeJoint3D'
+        : j.keyword === 'slider' ? 'SliderJoint3D'
+        : 'Generic6DOFJoint3D';
+      lines.push(`var ${varPrefix}_joint = ${jointType}.new()`);
+      lines.push(`# Joint: ${j.keyword} "${j.name || ''}" — ${JSON.stringify(j.properties)}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/** Generate Godot GDScript particle system code */
+export function particlesToGodot(ps: CompiledParticleSystem, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`# Particles: ${ps.name}`);
+  lines.push(`var ${varPrefix}_particles = GPUParticles3D.new()`);
+  lines.push(`${varPrefix}_particles.name = "${ps.name}"`);
+  if (ps.properties.max_particles) lines.push(`${varPrefix}_particles.amount = ${ps.properties.max_particles}`);
+  if (ps.properties.start_lifetime) {
+    const lt = Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime;
+    lines.push(`${varPrefix}_particles.lifetime = ${lt}`);
+  }
+  if (ps.traits.includes('looping')) lines.push(`${varPrefix}_particles.one_shot = false`);
+  else lines.push(`${varPrefix}_particles.one_shot = true`);
+  for (const m of ps.modules) {
+    lines.push(`# Module: ${m.type} — ${JSON.stringify(m.properties)}`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate Godot GDScript post-processing code */
+export function postProcessingToGodot(pp: CompiledPostProcessing): string {
+  const lines: string[] = [];
+  lines.push(`# Post-Processing: ${pp.keyword} (use WorldEnvironment)`);
+  lines.push('var env = WorldEnvironment.new()');
+  lines.push('var environment = Environment.new()');
+  for (const e of pp.effects) {
+    if (e.type === 'bloom' || e.type === 'glow') {
+      lines.push('environment.glow_enabled = true');
+      if (e.properties.intensity) lines.push(`environment.glow_intensity = ${e.properties.intensity}`);
+      if (e.properties.threshold) lines.push(`environment.glow_bloom = ${e.properties.threshold}`);
+    } else if (e.type === 'fog') {
+      lines.push('environment.fog_enabled = true');
+      if (e.properties.density) lines.push(`environment.fog_density = ${e.properties.density}`);
+    } else {
+      lines.push(`# Effect: ${e.type} — ${JSON.stringify(e.properties)}`);
+    }
+  }
+  lines.push('env.environment = environment');
+  return lines.join('\n');
+}
+
+/** Generate Godot GDScript audio source code */
+export function audioSourceToGodot(audio: CompiledAudioSource, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`# Audio: ${audio.name} (${audio.keyword})`);
+  const isSpatial = audio.traits.includes('spatial') || audio.properties.spatial_blend > 0;
+  const nodeType = isSpatial ? 'AudioStreamPlayer3D' : 'AudioStreamPlayer';
+  lines.push(`var ${varPrefix}_audio = ${nodeType}.new()`);
+  lines.push(`${varPrefix}_audio.name = "${audio.name}"`);
+  if (audio.properties.clip) lines.push(`${varPrefix}_audio.stream = load("res://${audio.properties.clip}")`);
+  if (audio.properties.volume !== undefined) lines.push(`${varPrefix}_audio.volume_db = linear_to_db(${audio.properties.volume})`);
+  if (isSpatial && audio.properties.max_distance) {
+    lines.push(`${varPrefix}_audio.max_distance = ${audio.properties.max_distance}`);
+  }
+  if (audio.properties.play_on_awake) lines.push(`${varPrefix}_audio.autoplay = true`);
+  return lines.join('\n');
+}
+
+/** Generate Godot weather comment block */
+export function weatherToGodot(weather: CompiledWeather): string {
+  const lines: string[] = [];
+  lines.push(`# Weather: ${weather.keyword} "${weather.name || ''}"`);
+  for (const layer of weather.layers) {
+    lines.push(`# Layer: ${layer.type} — ${JSON.stringify(layer.properties)}`);
+  }
+  return lines.join('\n');
+}
+
+// =============================================================================
+// VisionOS (Swift / RealityKit) Target Helpers
+// =============================================================================
+
+/** Generate VisionOS Swift material setup code */
+export function materialToVisionOS(mat: CompiledMaterial, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Material: ${mat.name}`);
+  if (mat.type === 'unlit') {
+    lines.push(`var ${varPrefix}Mat = UnlitMaterial()`);
+    if (mat.baseColor) lines.push(`${varPrefix}Mat.color = .init(tint: ${hexToSwiftColor(mat.baseColor)})`);
+  } else {
+    lines.push(`var ${varPrefix}Mat = PhysicallyBasedMaterial()`);
+    if (mat.baseColor) lines.push(`${varPrefix}Mat.baseColor = .init(tint: ${hexToSwiftColor(mat.baseColor)})`);
+    if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat.roughness = .init(floatLiteral: ${mat.roughness})`);
+    if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.metallic = .init(floatLiteral: ${mat.metallic})`);
+    if (mat.opacity !== undefined && mat.opacity < 1) lines.push(`${varPrefix}Mat.blending = .transparent(opacity: .init(floatLiteral: ${mat.opacity}))`);
+    if (mat.emissiveColor) {
+      lines.push(`${varPrefix}Mat.emissiveColor = .init(color: ${hexToSwiftColor(mat.emissiveColor)})`);
+      if (mat.emissiveIntensity) lines.push(`${varPrefix}Mat.emissiveIntensity = ${mat.emissiveIntensity}`);
+    }
+  }
+  for (const [mapType, path] of Object.entries(mat.textureMaps)) {
+    const prop = mapType === 'albedo_map' ? 'baseColor'
+      : mapType === 'normal_map' ? 'normal'
+      : mapType === 'metallic_map' ? 'metallic'
+      : mapType === 'roughness_map' ? 'roughness'
+      : mapType;
+    lines.push(`${varPrefix}Mat.${prop} = .init(texture: .init(try! .load(named: "${path}")))`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate VisionOS Swift physics setup code */
+export function physicsToVisionOS(physics: CompiledPhysics, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Physics: ${physics.keyword} "${physics.name || ''}"`);
+
+  if (physics.colliders) {
+    for (const c of physics.colliders) {
+      const shape = c.shape || 'box';
+      if (shape === 'sphere') {
+        lines.push(`${varPrefix}Entity.components.set(CollisionComponent(shapes: [.generateSphere(radius: ${c.properties.radius || 0.5})]))`);
+      } else if (shape === 'capsule') {
+        lines.push(`${varPrefix}Entity.components.set(CollisionComponent(shapes: [.generateCapsule(height: ${c.properties.height || 1}, radius: ${c.properties.radius || 0.25})]))`);
+      } else {
+        const size = c.properties.size && Array.isArray(c.properties.size) ? c.properties.size : [1, 1, 1];
+        lines.push(`${varPrefix}Entity.components.set(CollisionComponent(shapes: [.generateBox(size: [${size.join(', ')}])]))`);
+      }
+    }
+  }
+
+  if (physics.rigidbody) {
+    const rb = physics.rigidbody.properties;
+    lines.push(`var ${varPrefix}Physics = PhysicsBodyComponent(massProperties: .init(mass: ${rb.mass ?? 1}), mode: .dynamic)`);
+    if (rb.drag !== undefined) lines.push(`${varPrefix}Physics.linearDamping = ${rb.drag}`);
+    if (rb.angular_damping !== undefined) lines.push(`${varPrefix}Physics.angularDamping = ${rb.angular_damping}`);
+    lines.push(`${varPrefix}Entity.components.set(${varPrefix}Physics)`);
+  }
+
+  if (physics.joints) {
+    for (const j of physics.joints) {
+      lines.push(`// Joint: ${j.keyword} "${j.name || ''}" — use PhysicsJoint`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/** Generate VisionOS Swift particle system code */
+export function particlesToVisionOS(ps: CompiledParticleSystem, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Particles: ${ps.name}`);
+  lines.push(`var ${varPrefix}Particles = ParticleEmitterComponent()`);
+  if (ps.properties.rate) lines.push(`${varPrefix}Particles.birthRate = ${ps.properties.rate}`);
+  if (ps.properties.start_lifetime) {
+    const lt = Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime;
+    lines.push(`${varPrefix}Particles.lifeSpan = ${lt}`);
+  }
+  if (ps.traits.includes('looping')) lines.push(`${varPrefix}Particles.isEmitting = true`);
+  lines.push(`${varPrefix}Entity.components.set(${varPrefix}Particles)`);
+  return lines.join('\n');
+}
+
+/** Generate VisionOS audio source code */
+export function audioSourceToVisionOS(audio: CompiledAudioSource, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
+  const isSpatial = audio.traits.includes('spatial') || audio.properties.spatial_blend > 0;
+  if (isSpatial) {
+    lines.push(`let ${varPrefix}Audio = Entity()`);
+    lines.push(`${varPrefix}Audio.spatialAudio = SpatialAudioComponent()`);
+    if (audio.properties.max_distance) lines.push(`${varPrefix}Audio.spatialAudio?.distanceAttenuation = .rolloff(factor: .custom(${audio.properties.max_distance}))`);
+  }
+  lines.push(`let ${varPrefix}Resource = try! AudioFileResource.load(named: "${audio.properties.clip || audio.name}")`);
+  lines.push(`let ${varPrefix}Controller = ${varPrefix}Entity.prepareAudio(${varPrefix}Resource)`);
+  if (audio.properties.volume !== undefined) lines.push(`${varPrefix}Controller.gain = AudioPlaybackController.Decibel(${audio.properties.volume})`);
+  if (audio.properties.play_on_awake) lines.push(`${varPrefix}Controller.play()`);
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Babylon.js Target Helpers
+// =============================================================================
+
+/** Generate Babylon.js material setup code */
+export function materialToBabylon(mat: CompiledMaterial, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Material: ${mat.name}`);
+  if (mat.type === 'unlit') {
+    lines.push(`const ${varPrefix}Mat = new BABYLON.StandardMaterial("${mat.name}", scene);`);
+    lines.push(`${varPrefix}Mat.disableLighting = true;`);
+    if (mat.emissiveColor) lines.push(`${varPrefix}Mat.emissiveColor = BABYLON.Color3.FromHexString("${mat.emissiveColor}");`);
+  } else {
+    lines.push(`const ${varPrefix}Mat = new BABYLON.PBRMaterial("${mat.name}", scene);`);
+    if (mat.baseColor) lines.push(`${varPrefix}Mat.albedoColor = BABYLON.Color3.FromHexString("${mat.baseColor}");`);
+    if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat.roughness = ${mat.roughness};`);
+    if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.metallic = ${mat.metallic};`);
+    if (mat.opacity !== undefined && mat.opacity < 1) {
+      lines.push(`${varPrefix}Mat.alpha = ${mat.opacity};`);
+    }
+    if (mat.emissiveColor) {
+      lines.push(`${varPrefix}Mat.emissiveColor = BABYLON.Color3.FromHexString("${mat.emissiveColor}");`);
+      if (mat.emissiveIntensity) lines.push(`${varPrefix}Mat.emissiveIntensity = ${mat.emissiveIntensity};`);
+    }
+    if (mat.ior !== undefined) lines.push(`${varPrefix}Mat.indexOfRefraction = ${mat.ior};`);
+  }
+  for (const [mapType, path] of Object.entries(mat.textureMaps)) {
+    const prop = mapType === 'albedo_map' ? 'albedoTexture'
+      : mapType === 'normal_map' ? 'bumpTexture'
+      : mapType === 'metallic_map' ? 'metallicTexture'
+      : mapType === 'roughness_map' ? 'microSurfaceTexture'
+      : mapType === 'emission_map' ? 'emissiveTexture'
+      : mapType === 'occlusion_map' ? 'ambientTexture'
+      : `${mapType.replace(/_map$/, 'Texture')}`;
+    lines.push(`${varPrefix}Mat.${prop} = new BABYLON.Texture("${path}", scene);`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate Babylon.js physics setup code */
+export function physicsToBabylon(physics: CompiledPhysics, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Physics: ${physics.keyword} "${physics.name || ''}"`);
+
+  if (physics.rigidbody) {
+    const rb = physics.rigidbody.properties;
+    lines.push(`const ${varPrefix}Aggregate = new BABYLON.PhysicsAggregate(${varPrefix}Mesh, BABYLON.PhysicsShapeType.BOX, {`);
+    if (rb.mass !== undefined) lines.push(`  mass: ${rb.mass},`);
+    if (rb.drag !== undefined) lines.push(`  linearDamping: ${rb.drag},`);
+    if (rb.angular_damping !== undefined) lines.push(`  angularDamping: ${rb.angular_damping},`);
+    lines.push('}, scene);');
+  }
+
+  if (physics.colliders) {
+    for (const c of physics.colliders) {
+      const shape = c.shape || 'box';
+      const shapeType = shape === 'sphere' ? 'SPHERE' : shape === 'capsule' ? 'CAPSULE' : 'BOX';
+      lines.push(`// Collider: ${shape} — PhysicsShapeType.${shapeType}`);
+    }
+  }
+
+  if (physics.joints) {
+    for (const j of physics.joints) {
+      const jointType = j.keyword === 'hinge' ? 'HingeConstraint'
+        : j.keyword === 'slider' ? 'SliderConstraint'
+        : j.keyword === 'ball_socket' ? 'BallAndSocketConstraint'
+        : 'Physics6DoFConstraint';
+      lines.push(`// Joint: ${j.keyword} — BABYLON.${jointType}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/** Generate Babylon.js particle system code */
+export function particlesToBabylon(ps: CompiledParticleSystem, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Particles: ${ps.name}`);
+  const useGPU = ps.traits.includes('gpu');
+  if (useGPU) {
+    lines.push(`const ${varPrefix}PS = new BABYLON.GPUParticleSystem("${ps.name}", { capacity: ${ps.properties.max_particles || 1000} }, scene);`);
+  } else {
+    lines.push(`const ${varPrefix}PS = new BABYLON.ParticleSystem("${ps.name}", ${ps.properties.max_particles || 1000}, scene);`);
+  }
+  if (ps.properties.rate) lines.push(`${varPrefix}PS.emitRate = ${ps.properties.rate};`);
+  if (ps.properties.start_lifetime) {
+    const lt = ps.properties.start_lifetime;
+    if (Array.isArray(lt)) {
+      lines.push(`${varPrefix}PS.minLifeTime = ${lt[0]};`);
+      lines.push(`${varPrefix}PS.maxLifeTime = ${lt[1] || lt[0]};`);
+    } else {
+      lines.push(`${varPrefix}PS.minLifeTime = ${lt};`);
+      lines.push(`${varPrefix}PS.maxLifeTime = ${lt};`);
+    }
+  }
+  if (ps.properties.start_speed) {
+    const sp = ps.properties.start_speed;
+    if (Array.isArray(sp)) {
+      lines.push(`${varPrefix}PS.minEmitPower = ${sp[0]};`);
+      lines.push(`${varPrefix}PS.maxEmitPower = ${sp[1] || sp[0]};`);
+    } else {
+      lines.push(`${varPrefix}PS.minEmitPower = ${sp};`);
+      lines.push(`${varPrefix}PS.maxEmitPower = ${sp};`);
+    }
+  }
+  if (ps.properties.gravity_modifier !== undefined) {
+    lines.push(`${varPrefix}PS.gravity = new BABYLON.Vector3(0, ${-9.81 * ps.properties.gravity_modifier}, 0);`);
+  }
+  lines.push(`${varPrefix}PS.start();`);
+  return lines.join('\n');
+}
+
+/** Generate Babylon.js post-processing code */
+export function postProcessingToBabylon(pp: CompiledPostProcessing): string {
+  const lines: string[] = [];
+  lines.push(`// Post-Processing: ${pp.keyword}`);
+  lines.push('const pipeline = new BABYLON.DefaultRenderingPipeline("default", true, scene, [camera]);');
+  for (const e of pp.effects) {
+    if (e.type === 'bloom') {
+      lines.push('pipeline.bloomEnabled = true;');
+      if (e.properties.intensity) lines.push(`pipeline.bloomWeight = ${e.properties.intensity};`);
+      if (e.properties.threshold) lines.push(`pipeline.bloomThreshold = ${e.properties.threshold};`);
+    } else if (e.type === 'depth_of_field') {
+      lines.push('pipeline.depthOfFieldEnabled = true;');
+      if (e.properties.focal_length) lines.push(`pipeline.depthOfField.focalLength = ${e.properties.focal_length};`);
+    } else if (e.type === 'chromatic_aberration') {
+      lines.push('pipeline.chromaticAberrationEnabled = true;');
+      if (e.properties.amount) lines.push(`pipeline.chromaticAberration.aberrationAmount = ${e.properties.amount};`);
+    } else if (e.type === 'vignette') {
+      lines.push('pipeline.imageProcessing.vignetteEnabled = true;');
+      if (e.properties.weight) lines.push(`pipeline.imageProcessing.vignetteWeight = ${e.properties.weight};`);
+    } else {
+      lines.push(`// Effect: ${e.type} — ${JSON.stringify(e.properties)}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+/** Generate Babylon.js audio source code */
+export function audioSourceToBabylon(audio: CompiledAudioSource, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
+  const isSpatial = audio.traits.includes('spatial') || audio.properties.spatial_blend > 0;
+  lines.push(`const ${varPrefix}Sound = new BABYLON.Sound("${audio.name}", "${audio.properties.clip || ''}", scene, null, {`);
+  if (audio.properties.loop !== undefined) lines.push(`  loop: ${audio.properties.loop},`);
+  if (audio.properties.volume !== undefined) lines.push(`  volume: ${audio.properties.volume},`);
+  if (isSpatial) lines.push('  spatialSound: true,');
+  if (audio.properties.play_on_awake) lines.push('  autoplay: true,');
+  if (isSpatial && audio.properties.max_distance) lines.push(`  maxDistance: ${audio.properties.max_distance},`);
+  lines.push('});');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// PlayCanvas Target Helpers
+// =============================================================================
+
+/** Generate PlayCanvas material setup code */
+export function materialToPlayCanvas(mat: CompiledMaterial, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Material: ${mat.name}`);
+  lines.push(`const ${varPrefix}Mat = new pc.StandardMaterial();`);
+  lines.push(`${varPrefix}Mat.name = "${mat.name}";`);
+  if (mat.baseColor) lines.push(`${varPrefix}Mat.diffuse = new pc.Color().fromString("${mat.baseColor}");`);
+  if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat.gloss = ${1 - mat.roughness}; // roughness inverted`);
+  if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.metalness = ${mat.metallic};`);
+  if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.useMetalness = true;`);
+  if (mat.opacity !== undefined && mat.opacity < 1) {
+    lines.push(`${varPrefix}Mat.opacity = ${mat.opacity};`);
+    lines.push(`${varPrefix}Mat.blendType = pc.BLEND_NORMAL;`);
+  }
+  if (mat.emissiveColor) {
+    lines.push(`${varPrefix}Mat.emissive = new pc.Color().fromString("${mat.emissiveColor}");`);
+    if (mat.emissiveIntensity) lines.push(`${varPrefix}Mat.emissiveIntensity = ${mat.emissiveIntensity};`);
+  }
+  lines.push(`${varPrefix}Mat.update();`);
+  return lines.join('\n');
+}
+
+/** Generate PlayCanvas physics setup code */
+export function physicsToPlayCanvas(physics: CompiledPhysics, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Physics: ${physics.keyword} "${physics.name || ''}"`);
+
+  if (physics.rigidbody) {
+    const rb = physics.rigidbody.properties;
+    lines.push(`${varPrefix}Entity.addComponent("rigidbody", {`);
+    lines.push(`  type: "dynamic",`);
+    if (rb.mass !== undefined) lines.push(`  mass: ${rb.mass},`);
+    if (rb.drag !== undefined) lines.push(`  linearDamping: ${rb.drag},`);
+    if (rb.angular_damping !== undefined) lines.push(`  angularDamping: ${rb.angular_damping},`);
+    lines.push('});');
+  }
+
+  if (physics.colliders) {
+    for (const c of physics.colliders) {
+      const shape = c.shape || 'box';
+      lines.push(`${varPrefix}Entity.addComponent("collision", {`);
+      lines.push(`  type: "${shape}",`);
+      if (c.properties.radius) lines.push(`  radius: ${c.properties.radius},`);
+      if (c.properties.height) lines.push(`  height: ${c.properties.height},`);
+      if (c.properties.size && Array.isArray(c.properties.size)) {
+        lines.push(`  halfExtents: new pc.Vec3(${c.properties.size.map((s: number) => s / 2).join(', ')}),`);
+      }
+      lines.push('});');
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/** Generate PlayCanvas particle system code */
+export function particlesToPlayCanvas(ps: CompiledParticleSystem, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Particles: ${ps.name}`);
+  lines.push(`${varPrefix}Entity.addComponent("particlesystem", {`);
+  if (ps.properties.max_particles) lines.push(`  numParticles: ${ps.properties.max_particles},`);
+  if (ps.properties.rate) lines.push(`  rate: ${ps.properties.rate},`);
+  if (ps.properties.start_lifetime) lines.push(`  lifetime: ${Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime},`);
+  if (ps.properties.start_speed) lines.push(`  emitterExtents: new pc.Vec3(${Array.isArray(ps.properties.start_speed) ? ps.properties.start_speed[0] : ps.properties.start_speed}, 0, 0),`);
+  lines.push(`  loop: ${ps.traits.includes('looping')},`);
+  lines.push('});');
+  return lines.join('\n');
+}
+
+/** Generate PlayCanvas audio source code */
+export function audioSourceToPlayCanvas(audio: CompiledAudioSource, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
+  lines.push(`${varPrefix}Entity.addComponent("sound", {`);
+  lines.push(`  positional: ${audio.traits.includes('spatial') || audio.properties.spatial_blend > 0},`);
+  if (audio.properties.volume !== undefined) lines.push(`  volume: ${audio.properties.volume},`);
+  if (audio.properties.max_distance) lines.push(`  maxDistance: ${audio.properties.max_distance},`);
+  lines.push('});');
+  if (audio.properties.clip) {
+    lines.push(`${varPrefix}Entity.sound.addSlot("${audio.name}", { asset: app.assets.find("${audio.properties.clip}"),`);
+    if (audio.properties.loop !== undefined) lines.push(`  loop: ${audio.properties.loop},`);
+    if (audio.properties.play_on_awake) lines.push('  autoPlay: true,');
+    lines.push('});');
+  }
+  return lines.join('\n');
+}
+
+// =============================================================================
+// SDF (Gazebo) Target Helpers
+// =============================================================================
+
+/** Generate SDF material element */
+export function materialToSDF(mat: CompiledMaterial): string {
+  const lines: string[] = [];
+  lines.push(`<material>`);
+  lines.push(`  <script><name>${mat.name}</name></script>`);
+  if (mat.baseColor) {
+    const [r, g, b] = hexToRGBTuple(mat.baseColor);
+    lines.push(`  <ambient>${r} ${g} ${b} 1</ambient>`);
+    lines.push(`  <diffuse>${r} ${g} ${b} ${mat.opacity ?? 1}</diffuse>`);
+  }
+  if (mat.metallic !== undefined && mat.metallic > 0.5) {
+    lines.push(`  <specular>0.8 0.8 0.8 1</specular>`);
+  }
+  if (mat.emissiveColor) {
+    const [r, g, b] = hexToRGBTuple(mat.emissiveColor);
+    lines.push(`  <emissive>${r} ${g} ${b} 1</emissive>`);
+  }
+  lines.push(`</material>`);
+  return lines.join('\n');
+}
+
+/** Generate SDF physics (already well supported via collider/inertial) */
+export function physicsToSDF(physics: CompiledPhysics): string {
+  const lines: string[] = [];
+
+  if (physics.rigidbody) {
+    const rb = physics.rigidbody.properties;
+    lines.push('<inertial>');
+    lines.push(`  <mass>${rb.mass ?? 1.0}</mass>`);
+    lines.push('</inertial>');
+  }
+
+  if (physics.colliders) {
+    for (const c of physics.colliders) {
+      const shape = c.shape || 'box';
+      lines.push('<collision name="collision">');
+      lines.push('  <geometry>');
+      if (shape === 'sphere') {
+        lines.push(`    <sphere><radius>${c.properties.radius || 0.5}</radius></sphere>`);
+      } else if (shape === 'capsule' || shape === 'cylinder') {
+        lines.push(`    <cylinder><radius>${c.properties.radius || 0.5}</radius><length>${c.properties.height || 1.0}</length></cylinder>`);
+      } else {
+        const size = c.properties.size && Array.isArray(c.properties.size) ? c.properties.size : [1, 1, 1];
+        lines.push(`    <box><size>${size.join(' ')}</size></box>`);
+      }
+      lines.push('  </geometry>');
+      lines.push('</collision>');
+    }
+  }
+
+  if (physics.joints) {
+    for (const j of physics.joints) {
+      const sdfType = j.keyword === 'hinge' ? 'revolute'
+        : j.keyword === 'slider' ? 'prismatic'
+        : j.keyword === 'ball_socket' ? 'ball'
+        : j.keyword === 'fixed_joint' ? 'fixed'
+        : 'revolute';
+      lines.push(`<joint name="${j.name || 'joint'}" type="${sdfType}">`);
+      if (j.properties.axis) {
+        const axis = Array.isArray(j.properties.axis) ? j.properties.axis : [0, 0, 1];
+        lines.push(`  <axis><xyz>${axis.join(' ')}</xyz></axis>`);
+      }
+      if (j.properties.limits) {
+        lines.push(`  <axis><limit><lower>${j.properties.limits[0]}</lower><upper>${j.properties.limits[1]}</upper></limit></axis>`);
+      }
+      lines.push('</joint>');
+    }
+  }
+
+  return lines.join('\n');
+}
+
+// =============================================================================
+// VRChat (C# / Udon) Target Helpers
+// =============================================================================
+
+/** Generate VRChat material code (Unity-based with VRC extensions) */
+export function materialToVRChat(mat: CompiledMaterial, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// VRChat Material: ${mat.name}`);
+  lines.push(`var ${varPrefix}Mat = new Material(Shader.Find("VRChat/Mobile/Standard Lite"));`);
+  if (mat.baseColor) lines.push(`${varPrefix}Mat.SetColor("_Color", ${hexToUnityColor(mat.baseColor)});`);
+  if (mat.roughness !== undefined) lines.push(`${varPrefix}Mat.SetFloat("_Glossiness", ${(1 - mat.roughness).toFixed(3)}f);`);
+  if (mat.metallic !== undefined) lines.push(`${varPrefix}Mat.SetFloat("_Metallic", ${mat.metallic}f);`);
+  if (mat.emissiveColor) {
+    lines.push(`${varPrefix}Mat.EnableKeyword("_EMISSION");`);
+    lines.push(`${varPrefix}Mat.SetColor("_EmissionColor", ${hexToUnityColor(mat.emissiveColor)});`);
+  }
+  return lines.join('\n');
+}
+
+// =============================================================================
+// USD Particle / Post-Processing / Audio Helpers
+// =============================================================================
+
+/** Generate USD particle system prim */
+export function particlesToUSD(ps: CompiledParticleSystem): string {
+  const lines: string[] = [];
+  lines.push(`def Scope "Particles_${ps.name.replace(/[^a-zA-Z0-9_]/g, '_')}" {`);
+  lines.push(`    custom string holoscript:type = "particle_system"`);
+  if (ps.properties.rate) lines.push(`    custom float holoscript:rate = ${ps.properties.rate}`);
+  if (ps.properties.max_particles) lines.push(`    custom int holoscript:maxParticles = ${ps.properties.max_particles}`);
+  if (ps.properties.start_lifetime) lines.push(`    custom float holoscript:lifetime = ${Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime}`);
+  for (const m of ps.modules) {
+    lines.push(`    def Scope "${m.type}" {`);
+    for (const [k, v] of Object.entries(m.properties)) {
+      const usdType = typeof v === 'number' ? 'float' : typeof v === 'boolean' ? 'bool' : 'string';
+      lines.push(`        custom ${usdType} ${k} = ${JSON.stringify(v)}`);
+    }
+    lines.push('    }');
+  }
+  lines.push('}');
+  return lines.join('\n');
+}
+
+/** Generate USD post-processing scope */
+export function postProcessingToUSD(pp: CompiledPostProcessing): string {
+  const lines: string[] = [];
+  lines.push(`def Scope "PostProcessing" {`);
+  for (const e of pp.effects) {
+    lines.push(`    def Scope "${e.type}" {`);
+    for (const [k, v] of Object.entries(e.properties)) {
+      const usdType = typeof v === 'number' ? 'float' : typeof v === 'boolean' ? 'bool' : 'string';
+      lines.push(`        custom ${usdType} ${k} = ${JSON.stringify(v)}`);
+    }
+    lines.push('    }');
+  }
+  lines.push('}');
+  return lines.join('\n');
+}
+
+/** Generate USD audio source prim */
+export function audioSourceToUSD(audio: CompiledAudioSource): string {
+  const lines: string[] = [];
+  lines.push(`def Scope "Audio_${audio.name.replace(/[^a-zA-Z0-9_]/g, '_')}" {`);
+  lines.push(`    custom string holoscript:type = "${audio.keyword}"`);
+  if (audio.properties.clip) lines.push(`    asset holoscript:clip = @${audio.properties.clip}@`);
+  if (audio.properties.volume !== undefined) lines.push(`    custom float holoscript:volume = ${audio.properties.volume}`);
+  if (audio.properties.loop !== undefined) lines.push(`    custom bool holoscript:loop = ${audio.properties.loop}`);
+  if (audio.properties.spatial_blend !== undefined) lines.push(`    custom float holoscript:spatialBlend = ${audio.properties.spatial_blend}`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// R3F Physics / Weather Helpers
+// =============================================================================
+
+/** Generate R3F/Three.js physics JSX (rapier or cannon) */
+export function physicsToR3F(physics: CompiledPhysics): string {
+  const lines: string[] = [];
+
+  if (physics.rigidbody) {
+    const rb = physics.rigidbody.properties;
+    const bodyType = rb.use_gravity === false ? 'kinematicPosition' : 'dynamic';
+    lines.push(`<RigidBody type="${bodyType}"${rb.mass ? ` mass={${rb.mass}}` : ''}${rb.drag ? ` linearDamping={${rb.drag}}` : ''}${rb.angular_damping ? ` angularDamping={${rb.angular_damping}}` : ''}>`);
+  }
+
+  if (physics.colliders) {
+    for (const c of physics.colliders) {
+      const shape = c.shape || 'cuboid';
+      const r3fShape = shape === 'box' ? 'cuboid' : shape === 'sphere' ? 'ball' : shape;
+      const args = shape === 'sphere' && c.properties.radius ? ` args={[${c.properties.radius}]}` : '';
+      lines.push(`  <${c.type === 'trigger' ? 'CuboidCollider sensor' : `${capitalizeFirst(r3fShape)}Collider`}${args} />`);
+    }
+  }
+
+  if (physics.rigidbody) {
+    lines.push('</RigidBody>');
+  }
+
+  if (physics.joints) {
+    for (const j of physics.joints) {
+      lines.push(`{/* Joint: ${j.keyword} "${j.name || ''}" — use useRevoluteJoint/useSphericalJoint */}`);
+    }
+  }
+
+  if (physics.forceFields) {
+    for (const ff of physics.forceFields) {
+      lines.push(`{/* Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)} */}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/** Generate R3F weather JSX (custom components) */
+export function weatherToR3F(weather: CompiledWeather): string {
+  const lines: string[] = [];
+  lines.push(`{/* Weather: ${weather.keyword} "${weather.name || ''}" */}`);
+  for (const layer of weather.layers) {
+    const componentName = capitalizeFirst(layer.type);
+    const props = Object.entries(layer.properties)
+      .map(([k, v]) => {
+        const camel = k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+        return typeof v === 'string' ? `${camel}="${v}"` : `${camel}={${JSON.stringify(v)}}`;
+      }).join(' ');
+    lines.push(`<${componentName} ${props} />`);
+  }
+  return lines.join('\n');
+}
+
+// =============================================================================
+// WebGPU Target Helpers
+// =============================================================================
+
+/** Generate WebGPU material uniform buffer layout */
+export function materialToWebGPU(mat: CompiledMaterial, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Material: ${mat.name}`);
+  lines.push(`const ${varPrefix}MaterialData = new Float32Array([`);
+  if (mat.baseColor) {
+    const [r, g, b] = hexToRGBTuple(mat.baseColor);
+    lines.push(`  ${r}, ${g}, ${b}, ${mat.opacity ?? 1},  // baseColor + opacity`);
+  } else {
+    lines.push('  1.0, 1.0, 1.0, 1.0,  // baseColor + opacity');
+  }
+  lines.push(`  ${mat.roughness ?? 0.5}, ${mat.metallic ?? 0}, ${mat.ior ?? 1.5}, 0.0,  // roughness, metallic, ior, pad`);
+  if (mat.emissiveColor) {
+    const [r, g, b] = hexToRGBTuple(mat.emissiveColor);
+    lines.push(`  ${r}, ${g}, ${b}, ${mat.emissiveIntensity ?? 1},  // emissive + intensity`);
+  } else {
+    lines.push('  0.0, 0.0, 0.0, 0.0,  // emissive + intensity');
+  }
+  lines.push(']);');
+  lines.push(`const ${varPrefix}MaterialBuffer = device.createBuffer({`);
+  lines.push(`  size: ${varPrefix}MaterialData.byteLength,`);
+  lines.push('  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,');
+  lines.push('});');
+  lines.push(`device.queue.writeBuffer(${varPrefix}MaterialBuffer, 0, ${varPrefix}MaterialData);`);
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Additional Utility Helpers
+// =============================================================================
+
+function hexToRGBTuple(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [
+    parseFloat((parseInt(h.substring(0, 2), 16) / 255).toFixed(3)),
+    parseFloat((parseInt(h.substring(2, 4), 16) / 255).toFixed(3)),
+    parseFloat((parseInt(h.substring(4, 6), 16) / 255).toFixed(3)),
+  ];
+}
+
+function hexToUnityColor(hex: string): string {
+  const [r, g, b] = hexToRGBTuple(hex);
+  return `new Color(${r}f, ${g}f, ${b}f)`;
+}
+
+function hexToSwiftColor(hex: string): string {
+  return `.init(red: 0x${hex.slice(1, 3)}, green: 0x${hex.slice(3, 5)}, blue: 0x${hex.slice(5, 7)})`;
+}
+
+function capitalizeFirst(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// =============================================================================
 // Domain Block Router
 // =============================================================================
 

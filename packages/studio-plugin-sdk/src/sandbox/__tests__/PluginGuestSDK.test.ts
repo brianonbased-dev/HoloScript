@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Tests for PluginGuestSDK - the plugin-facing API inside sandboxed iframes
  *

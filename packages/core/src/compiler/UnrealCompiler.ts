@@ -26,6 +26,21 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToUnreal,
+  physicsToUnreal,
+  particlesToUnreal,
+  postProcessingToUnreal,
+  audioSourceToUnreal,
+  weatherToUnreal,
+} from './DomainBlockCompilerMixin';
 
 export interface UnrealCompilerOptions {
   moduleName?: string;
@@ -304,6 +319,9 @@ export class UnrealCompiler extends CompilerBase {
     for (const audio of composition.audio || []) {
       this.compileAudioSetup(audio);
     }
+
+    // v4.2: Domain Blocks (materials, physics, particles, post-processing, audio, weather)
+    this.compileUnrealDomainBlocks(composition);
 
     this.indentLevel--;
     this.emitS('}');
@@ -706,6 +724,48 @@ export class UnrealCompiler extends CompilerBase {
       return 'TArray<float>';
     }
     return 'UObject*';
+  }
+
+  private compileUnrealDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emitS('');
+    this.emitS('// === v4.2 Domain Blocks ===');
+
+    let blockIdx = 0;
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        return materialToUnreal(mat, `DB${blockIdx++}`);
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        return physicsToUnreal(phys, `DB${blockIdx++}`);
+      },
+      vfx: (block) => {
+        const ps = compileParticleBlock(block);
+        return particlesToUnreal(ps, `DB${blockIdx++}`);
+      },
+      postfx: (block) => {
+        const pp = compilePostProcessingBlock(block);
+        return postProcessingToUnreal(pp, `DB${blockIdx++}`);
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        return audioSourceToUnreal(audio, `DB${blockIdx++}`);
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        return weatherToUnreal(weather);
+      },
+    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+    for (const line of compiled) {
+      for (const l of line.split('\n')) {
+        this.emitS(l);
+      }
+    }
   }
 
   private toLinearColor(value: HoloValue): string {

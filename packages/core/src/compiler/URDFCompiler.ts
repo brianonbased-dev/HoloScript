@@ -34,6 +34,14 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  physicsToURDF,
+} from './DomainBlockCompilerMixin';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -615,10 +623,61 @@ export class URDFCompiler extends CompilerBase {
       this.emitHoloExtensions(composition);
     }
 
+    // v4.2: Domain Blocks (materials as URDF materials, physics as links/joints, audio/weather as comments)
+    this.emitDomainBlocks(composition);
+
     this.indentLevel--;
     this.emit('</robot>');
 
     return this.lines.join('\n');
+  }
+
+  private emitDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emitBlank();
+    this.emit('<!-- v4.2 Domain Blocks -->');
+
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        const lines: string[] = [];
+        lines.push(`<material name="${mat.name}">`);
+        if (mat.baseColor) {
+          const h = mat.baseColor.replace('#', '');
+          const r = (parseInt(h.substring(0, 2), 16) / 255).toFixed(3);
+          const g = (parseInt(h.substring(2, 4), 16) / 255).toFixed(3);
+          const b = (parseInt(h.substring(4, 6), 16) / 255).toFixed(3);
+          lines.push(`  <color rgba="${r} ${g} ${b} ${mat.opacity ?? 1}"/>`);
+        }
+        for (const [mapType, path] of Object.entries(mat.textureMaps)) {
+          if (mapType === 'albedo_map') {
+            lines.push(`  <texture filename="${path}"/>`);
+          }
+        }
+        lines.push('</material>');
+        return lines.join('\n');
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        return physicsToURDF(phys);
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        return `<!-- Audio: ${audio.name} (${audio.keyword}) clip="${audio.properties.clip || ''}" volume="${audio.properties.volume ?? 1}" -->`;
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        return `<!-- Weather: ${weather.keyword} "${weather.name || ''}" layers: ${weather.layers.map(l => l.type).join(', ')} -->`;
+      },
+    }, (block) => `<!-- Domain block: ${block.domain}/${block.keyword} "${block.name}" -->`);
+
+    for (const output of compiled) {
+      for (const line of output.split('\n')) {
+        this.emit(line);
+      }
+    }
   }
 
   // ===========================================================================

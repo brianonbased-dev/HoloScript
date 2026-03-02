@@ -34,6 +34,19 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToPlayCanvas,
+  physicsToPlayCanvas,
+  particlesToPlayCanvas,
+  audioSourceToPlayCanvas,
+} from './DomainBlockCompilerMixin';
 
 export interface PlayCanvasCompilerOptions {
   className?: string;
@@ -151,6 +164,10 @@ export class PlayCanvasCompiler extends CompilerBase {
     if (composition.transitions?.length)
       for (const t of composition.transitions) this.emitTransition(t);
     if (this.options.enableXR) this.emitXRSetup();
+
+    // v4.2: Domain Blocks (materials, physics, particles, post-processing, audio, weather)
+    this.compilePlayCanvasDomainBlocks(composition);
+
     this.emitStartApp();
     this.dedent();
     this.emit('}');
@@ -159,6 +176,50 @@ export class PlayCanvasCompiler extends CompilerBase {
     this.dedent();
     this.emit('}');
     return this.lines.join('\n');
+  }
+
+  private compilePlayCanvasDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emit('');
+    this.emit('// === v4.2 Domain Blocks ===');
+
+    let blockIdx = 0;
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        return materialToPlayCanvas(mat, `db${blockIdx++}`);
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        return physicsToPlayCanvas(phys, `db${blockIdx++}`);
+      },
+      vfx: (block) => {
+        const ps = compileParticleBlock(block);
+        return particlesToPlayCanvas(ps, `db${blockIdx++}`);
+      },
+      postfx: (block) => {
+        const pp = compilePostProcessingBlock(block);
+        return `// Post-Processing: ${pp.keyword} — configure via PlayCanvas PostEffects\n` +
+          pp.effects.map(e => `// Effect: ${e.type} — ${JSON.stringify(e.properties)}`).join('\n');
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        return audioSourceToPlayCanvas(audio, `db${blockIdx++}`);
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        return `// Weather: ${weather.keyword} "${weather.name || ''}" — implement via PlayCanvas particle system\n` +
+          weather.layers.map(l => `// Layer: ${l.type} — ${JSON.stringify(l.properties)}`).join('\n');
+      },
+    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+    for (const line of compiled) {
+      for (const l of line.split('\n')) {
+        this.emit(l);
+      }
+    }
   }
 
   // --- Imports ---

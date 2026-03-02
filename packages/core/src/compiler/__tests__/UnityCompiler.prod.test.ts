@@ -5,9 +5,22 @@
  * text/model/sparkles objects, transforms, materials, physics traits,
  * lights, camera, audio, zones, timelines, transitions, UI, helpers.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UnityCompiler } from '../UnityCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+
+// Mock RBAC to bypass security checks (this test validates compiler OUTPUT, not security)
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../identity/AgentRBAC')>();
+  return {
+    ...actual,
+    getRBAC: () => ({
+      checkAccess: () => ({ allowed: true, agentRole: 'code_generator' }),
+    }),
+  };
+});
+
+
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;

@@ -13,5 +13,8 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**'],
     testTimeout: 15000,
     clearMocks: true,
+    environmentMatchGlobs: [
+      ["src/sandbox/**/*.test.ts", "jsdom"],
+    ],
   },
 });

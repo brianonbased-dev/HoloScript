@@ -44,7 +44,7 @@
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "@holoscript/std": "3.1.1"
+    "@holoscript/std": "workspace:^"
   },
   "keywords": [
     "holoscript",

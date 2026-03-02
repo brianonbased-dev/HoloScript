@@ -2,7 +2,21 @@ import { HSPlusAST, ASTNode, HSPlusDirective, VRTraitName } from '../types';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 // Side-effect import: registers all preset visuals into the registry
 import '../traits/visual';
-import { compileDomainBlocks, compileMaterialBlock, materialToR3F } from './DomainBlockCompilerMixin';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToR3F,
+  physicsToR3F,
+  particlesToR3F,
+  postProcessingToR3F,
+  audioSourceToR3F,
+  weatherToR3F,
+} from './DomainBlockCompilerMixin';
 
 export interface R3FNode {
   type: string;
@@ -1976,13 +1990,33 @@ export class R3FCompiler {
 
     this.injectDefaultLighting(root);
 
-    // v4.2: Compile domain blocks (materials, physics, particles, etc.)
+    // v4.2: Compile domain blocks (materials, physics, particles, post-fx, audio, weather)
     const domainBlocks = (ast as any).domainBlocks ?? [];
     if (domainBlocks.length > 0) {
       const compiled = compileDomainBlocks(domainBlocks, {
         material: (block: any) => {
           const mat = compileMaterialBlock(block);
           return { type: 'DomainBlockOutput', props: { __raw: materialToR3F(mat), __domain: 'material', __name: mat.name }, children: [] } as R3FNode;
+        },
+        physics: (block: any) => {
+          const phys = compilePhysicsBlock(block);
+          return { type: 'DomainBlockOutput', props: { __raw: physicsToR3F(phys), __domain: 'physics', __name: phys.name || phys.keyword }, children: [] } as R3FNode;
+        },
+        vfx: (block: any) => {
+          const ps = compileParticleBlock(block);
+          return { type: 'DomainBlockOutput', props: { __raw: particlesToR3F(ps), __domain: 'vfx', __name: ps.name }, children: [] } as R3FNode;
+        },
+        postfx: (block: any) => {
+          const pp = compilePostProcessingBlock(block);
+          return { type: 'DomainBlockOutput', props: { __raw: postProcessingToR3F(pp), __domain: 'postfx', __name: pp.name || 'PostProcessing' }, children: [] } as R3FNode;
+        },
+        audio: (block: any) => {
+          const audio = compileAudioSourceBlock(block);
+          return { type: 'DomainBlockOutput', props: { __raw: audioSourceToR3F(audio), __domain: 'audio', __name: audio.name }, children: [] } as R3FNode;
+        },
+        weather: (block: any) => {
+          const weather = compileWeatherBlock(block);
+          return { type: 'DomainBlockOutput', props: { __raw: weatherToR3F(weather), __domain: 'weather', __name: weather.name || 'Weather' }, children: [] } as R3FNode;
         },
       });
       if (!root.children) root.children = [];

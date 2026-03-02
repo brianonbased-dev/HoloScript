@@ -16,6 +16,10 @@
 import type { HoloComposition, HoloObjectDecl, HoloState } from '../parser/HoloCompositionTypes';
 import type { HSPlusAST, HSPlusNode } from '../types/HoloScriptPlus';
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+} from './DomainBlockCompilerMixin';
 
 // =============================================================================
 // TYPES
@@ -159,6 +163,24 @@ export class WASMCompiler extends CompilerBase {
 
     // Generate WAT
     this.emitModule(composition);
+
+    // v4.2: Domain Blocks — add material data as data segments
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length > 0) {
+      this.emit('');
+      this.emit('  ;; === v4.2 Domain Blocks ===');
+      compileDomainBlocks(domainBlocks, {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          this.emit(`  ;; Material: "${mat.name}" type=${mat.type}`);
+          this.emit(`  ;; baseColor=${mat.baseColor || 'none'} roughness=${mat.roughness ?? 0.5} metallic=${mat.metallic ?? 0}`);
+          return '';
+        },
+      }, (block) => {
+        this.emit(`  ;; Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+        return '';
+      });
+    }
 
     // Generate JS bindings
     const bindings = this.options.generateBindings ? this.generateBindings(composition) : '';

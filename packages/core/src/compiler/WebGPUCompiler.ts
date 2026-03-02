@@ -24,6 +24,11 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  materialToWebGPU,
+} from './DomainBlockCompilerMixin';
 
 export interface WebGPUCompilerOptions {
   entryPoint?: string;
@@ -74,9 +79,35 @@ export class WebGPUCompiler extends CompilerBase {
     }
     if (composition.camera) this.emitCamera(composition.camera);
     if (this.options.enableCompute) this.emitComputeShaders(composition);
+
+    // v4.2: Domain Blocks (material uniform buffers)
+    this.emitWebGPUDomainBlocks(composition);
+
     this.emitShaderSources();
     this.emitRenderLoop(composition);
     return this.lines.join('\n');
+  }
+
+  private emitWebGPUDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emit('');
+    this.emit('// === v4.2 Domain Blocks ===');
+
+    let blockIdx = 0;
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        return materialToWebGPU(mat, `db${blockIdx++}`);
+      },
+    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+    for (const line of compiled) {
+      for (const l of line.split('\n')) {
+        this.emit(l);
+      }
+    }
   }
 
   // ─── Device Init ──────────────────────────────────────────────────────────

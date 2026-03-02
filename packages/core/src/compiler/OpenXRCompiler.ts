@@ -17,8 +17,17 @@
  * @version 1.0.0
  */
 
-import type {
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+} from './DomainBlockCompilerMixin';
+import type {
   HoloComposition,
   HoloObjectDecl,
   HoloSpatialGroup,
@@ -170,6 +179,24 @@ export class OpenXRCompiler extends CompilerBase {
     this.emit('return 0;');
     this.dedent();
     this.emit('}');
+
+    // v4.2: Domain Blocks (as comments for OpenXR C++ code)
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length > 0) {
+      this.emit('');
+      this.emit('// === v4.2 Domain Blocks ===');
+      const compiled = compileDomainBlocks(domainBlocks, {
+        material: (block) => { const m = compileMaterialBlock(block); return `// Material: "${m.name}" type=${m.type} baseColor=${m.baseColor || 'none'} roughness=${m.roughness ?? 'default'} metallic=${m.metallic ?? 'default'}`; },
+        physics: (block) => { const p = compilePhysicsBlock(block); return `// Physics: ${p.keyword} "${p.name || ''}" colliders=${p.colliders?.length || 0} rigidbody=${!!p.rigidbody}`; },
+        vfx: (block) => { const ps = compileParticleBlock(block); return `// Particles: "${ps.name}" rate=${ps.properties.rate || 'default'} modules=${ps.modules.length}`; },
+        postfx: (block) => { const pp = compilePostProcessingBlock(block); return `// PostFX: ${pp.keyword} effects=[${pp.effects.map(e => e.type).join(', ')}]`; },
+        audio: (block) => { const a = compileAudioSourceBlock(block); return `// Audio: "${a.name}" (${a.keyword}) clip=${a.properties.clip || 'none'}`; },
+        weather: (block) => { const w = compileWeatherBlock(block); return `// Weather: ${w.keyword} layers=[${w.layers.map(l => l.type).join(', ')}]`; },
+      }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      for (const line of compiled) {
+        for (const l of line.split('\n')) this.emit(l);
+      }
+    }
 
     this.dedent();
     this.emit('');

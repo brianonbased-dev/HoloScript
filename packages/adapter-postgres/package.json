@@ -27,6 +27,6 @@
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "@holoscript/core": "3.42.0"
+    "@holoscript/core": "workspace:^"
   }
 }

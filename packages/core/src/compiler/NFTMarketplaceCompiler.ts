@@ -16,8 +16,8 @@
  * @author HoloScript Core Team
  */
 
-import type {
 import { CompilerBase } from './CompilerBase';
+import type {
   NFTMarketplaceAST,
   NFTContract,
   MarketplaceConfig,

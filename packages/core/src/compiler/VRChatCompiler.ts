@@ -23,6 +23,21 @@ import type {
   HoloTransition,
   HoloValue,
 } from '../parser/HoloCompositionTypes';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToVRChat,
+  physicsToUnity,
+  particlesToUnity,
+  postProcessingToUnity,
+  audioSourceToUnity,
+  weatherToUnity,
+} from './DomainBlockCompilerMixin';
 
 export interface VRChatCompilerOptions {
   namespace?: string;
@@ -204,12 +219,57 @@ export class VRChatCompiler extends CompilerBase {
       }
     }
 
+    // v4.2: Domain Blocks (materials, physics, particles, post-processing, audio, weather)
+    this.compileVRChatDomainBlocks(composition);
+
     this.indentLevel--;
     this.emit('}');
     this.indentLevel--;
     this.emit('}');
 
     return this.lines.join('\n');
+  }
+
+  private compileVRChatDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emit('');
+    this.emit('// === v4.2 Domain Blocks (VRChat/Unity) ===');
+
+    let blockIdx = 0;
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        return materialToVRChat(mat, `db${blockIdx++}`);
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        return physicsToUnity(phys, `db${blockIdx++}`);
+      },
+      vfx: (block) => {
+        const ps = compileParticleBlock(block);
+        return particlesToUnity(ps, `db${blockIdx++}`);
+      },
+      postfx: (block) => {
+        const pp = compilePostProcessingBlock(block);
+        return postProcessingToUnity(pp);
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        return audioSourceToUnity(audio, `db${blockIdx++}`);
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        return weatherToUnity(weather);
+      },
+    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+    for (const line of compiled) {
+      for (const l of line.split('\n')) {
+        this.emit(l);
+      }
+    }
   }
 
   private generateUdonScripts(composition: HoloComposition): void {

@@ -33,6 +33,20 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToBabylon,
+  physicsToBabylon,
+  particlesToBabylon,
+  postProcessingToBabylon,
+  audioSourceToBabylon,
+} from './DomainBlockCompilerMixin';
 
 export interface BabylonCompilerOptions {
   className?: string;
@@ -134,6 +148,10 @@ export class BabylonCompiler extends CompilerBase {
     if (composition.transitions?.length)
       for (const t of composition.transitions) this.emitTransition(t);
     if (this.options.enableXR) this.emitXRSetup();
+
+    // v4.2: Domain Blocks (materials, physics, particles, post-processing, audio, weather)
+    this.compileBabylonDomainBlocks(composition);
+
     this.emitRenderLoop();
     this.dedent();
     this.emit('}');
@@ -142,6 +160,49 @@ export class BabylonCompiler extends CompilerBase {
     this.dedent();
     this.emit('}');
     return this.lines.join('\n');
+  }
+
+  private compileBabylonDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emit('');
+    this.emit('// === v4.2 Domain Blocks ===');
+
+    let blockIdx = 0;
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        return materialToBabylon(mat, `db${blockIdx++}`);
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        return physicsToBabylon(phys, `db${blockIdx++}`);
+      },
+      vfx: (block) => {
+        const ps = compileParticleBlock(block);
+        return particlesToBabylon(ps, `db${blockIdx++}`);
+      },
+      postfx: (block) => {
+        const pp = compilePostProcessingBlock(block);
+        return postProcessingToBabylon(pp);
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        return audioSourceToBabylon(audio, `db${blockIdx++}`);
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        const layers = weather.layers.map(l => `// Layer: ${l.type} — ${JSON.stringify(l.properties)}`).join('\n');
+        return `// Weather: ${weather.keyword} "${weather.name || ''}" — implement via Babylon.js particle systems\n${layers}`;
+      },
+    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+    for (const line of compiled) {
+      for (const l of line.split('\n')) {
+        this.emit(l);
+      }
+    }
   }
 
   // --- Imports ---

@@ -78,11 +78,14 @@ import { FABRICATION_DEVICES_TRAITS } from './fabrication-devices';
 import { ROBOTICS_INDUSTRIAL_TRAITS } from './robotics-industrial';
 import { SCIENTIFIC_COMPUTING_TRAITS } from './scientific-computing';
 import { V43_AI_XR_TRAITS } from './v43-ai-xr';
+import { ENTERPRISE_MULTITENANCY_TRAITS } from './enterprise-multitenancy';
+import { ANALYTICS_OBSERVABILITY_TRAITS } from './analytics-observability';
 
 /**
  * Combined VR_TRAITS array - the single source of truth for all valid VR trait names.
  * Now includes 213 robotics & industrial traits (CYCLE B) + 22 scientific computing traits (Phase 1)
- * + 23 V43 AI/XR traits (Tier 1-3).
+ * + 23 V43 AI/XR traits (Tier 1-3) + 18 enterprise multi-tenancy traits
+ * + 18 analytics & observability traits.
  */
 export const VR_TRAITS = [
   ...CORE_VR_INTERACTION_TRAITS,
@@ -162,6 +165,12 @@ export const VR_TRAITS = [
 
   // V43 AI/XR Traits (23 traits - Tier 1-3)
   ...V43_AI_XR_TRAITS,
+
+  // Enterprise Multi-Tenancy (18 traits)
+  ...ENTERPRISE_MULTITENANCY_TRAITS,
+
+  // Analytics & Observability (18 traits)
+  ...ANALYTICS_OBSERVABILITY_TRAITS,
 ] as const;
 
 /**
@@ -274,3 +283,15 @@ export {
 
 // V43 AI/XR Traits (Tier 1-3)
 export { V43_AI_XR_TRAITS } from './v43-ai-xr';
+
+// Enterprise Multi-Tenancy
+export {
+  ENTERPRISE_MULTITENANCY_TRAITS,
+  type EnterpriseMultitenancyTraitName,
+} from './enterprise-multitenancy';
+
+// Analytics & Observability
+export {
+  ANALYTICS_OBSERVABILITY_TRAITS,
+  type AnalyticsObservabilityTraitName,
+} from './analytics-observability';

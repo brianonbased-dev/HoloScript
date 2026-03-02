@@ -30,6 +30,21 @@ import type {
   HoloEffects,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToUnity,
+  physicsToUnity,
+  particlesToUnity,
+  postProcessingToUnity,
+  audioSourceToUnity,
+  weatherToUnity,
+} from './DomainBlockCompilerMixin';
 
 export interface UnityCompilerOptions {
   namespace?: string;
@@ -180,12 +195,61 @@ export class UnityCompiler extends CompilerBase {
       this.compileUI(composition.ui);
     }
 
+    // v4.2: Domain Blocks (materials, physics, particles, post-processing, audio, weather)
+    this.compileDomainBlocks(composition);
+
     this.indentLevel--;
     this.emit('}');
     this.indentLevel--;
     this.emit('}');
 
     return this.lines.join('\n');
+  }
+
+  private compileDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emit('');
+    this.emit('// === v4.2 Domain Blocks ===');
+
+    let blockIdx = 0;
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        const prefix = `db${blockIdx++}`;
+        return materialToUnity(mat, prefix);
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        const prefix = `db${blockIdx++}`;
+        return physicsToUnity(phys, prefix);
+      },
+      vfx: (block) => {
+        const ps = compileParticleBlock(block);
+        const prefix = `db${blockIdx++}`;
+        return particlesToUnity(ps, prefix);
+      },
+      postfx: (block) => {
+        const pp = compilePostProcessingBlock(block);
+        return postProcessingToUnity(pp);
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        const prefix = `db${blockIdx++}`;
+        return audioSourceToUnity(audio, prefix);
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        return weatherToUnity(weather);
+      },
+    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+    for (const line of compiled) {
+      for (const l of line.split('\n')) {
+        this.emit(l);
+      }
+    }
   }
 
   private compileEnvironment(env: HoloEnvironment): void {

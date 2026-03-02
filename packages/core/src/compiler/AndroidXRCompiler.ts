@@ -17,8 +17,8 @@
  * @version 1.0.0
  */
 
-import type {
 import { CompilerBase } from './CompilerBase';
+import type {
   HoloComposition,
   HoloObjectDecl,
   HoloSpatialGroup,

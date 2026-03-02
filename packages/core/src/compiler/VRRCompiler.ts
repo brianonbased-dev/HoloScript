@@ -148,6 +148,14 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+} from './DomainBlockCompilerMixin';
 
 export interface VRRCompilerOptions {
   target: 'threejs' | 'babylonjs';
@@ -210,10 +218,26 @@ export class VRRCompiler extends CompilerBase {
     this.generateSceneSetup();
     this.generateAPIHooks(twinNodes);
     
+    // v4.2: Domain Blocks
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length > 0) {
+      this.generatedCode.push('\n// === v4.2 Domain Blocks ===');
+      const compiled = compileDomainBlocks(domainBlocks, {
+        material: (block) => { const m = compileMaterialBlock(block); return `// VRR Material: "${m.name}" type=${m.type} baseColor=${m.baseColor || 'none'}`; },
+        physics: (block) => { const p = compilePhysicsBlock(block); return `// VRR Physics: ${p.keyword} "${p.name || ''}" colliders=${p.colliders?.length || 0}`; },
+        vfx: (block) => { const ps = compileParticleBlock(block); return `// VRR Particles: "${ps.name}" rate=${ps.properties.rate || 'default'}`; },
+        audio: (block) => { const a = compileAudioSourceBlock(block); return `// VRR Audio: "${a.name}" clip=${a.properties.clip || 'none'}`; },
+        weather: (block) => { const w = compileWeatherBlock(block); return `// VRR Weather: ${w.keyword} layers=[${w.layers.map(l => l.type).join(', ')}]`; },
+      }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+      for (const line of compiled) {
+        this.generatedCode.push(line);
+      }
+    }
+
     // Bind generic nodes
     this.generatedCode.push(`\n// --- End of VRR Bindings --- //\n`);
     this.generatedCode.push(`scene.add(phoenix_downtown);`);
-    
+
     return this.buildResult();
   }
 

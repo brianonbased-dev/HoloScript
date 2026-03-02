@@ -16,6 +16,20 @@ import type {
   HoloSpatialGroup,
   HoloValue,
 } from '../parser/HoloCompositionTypes';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToUSD,
+  particlesToUSD,
+  postProcessingToUSD,
+  audioSourceToUSD,
+  weatherToUSD,
+} from './DomainBlockCompilerMixin';
 
 // =============================================================================
 // TYPES
@@ -114,8 +128,14 @@ export class USDZPipeline {
     const stage = this.generateStageMetadata();
     const materials = this.options.exportMaterials ? this.generateMaterials() : '';
     const prims = this.generatePrims(composition);
+    const domainBlocksOutput = this.generateDomainBlocks(composition);
 
-    return { header, stage, materials, prims };
+    return {
+      header,
+      stage,
+      materials: domainBlocksOutput ? `${materials}\n\n${domainBlocksOutput}` : materials,
+      prims,
+    };
   }
 
   /**
@@ -549,6 +569,43 @@ export class USDZPipeline {
       return [value[0], value[1], value[2]];
     }
     return [1, 1, 1];
+  }
+
+  /**
+   * v4.2: Generate USD domain blocks (materials, physics, particles, post-fx, audio, weather)
+   */
+  private generateDomainBlocks(composition: HoloComposition): string {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return '';
+
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        return materialToUSD(mat);
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        return `# Physics: ${phys.keyword} "${phys.name || ''}" — ${JSON.stringify(phys.properties)}`;
+      },
+      vfx: (block) => {
+        const ps = compileParticleBlock(block);
+        return particlesToUSD(ps);
+      },
+      postfx: (block) => {
+        const pp = compilePostProcessingBlock(block);
+        return postProcessingToUSD(pp);
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        return audioSourceToUSD(audio);
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        return weatherToUSD(weather);
+      },
+    }, (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+    return `# === v4.2 Domain Blocks ===\n${compiled.join('\n\n')}`;
   }
 }
 

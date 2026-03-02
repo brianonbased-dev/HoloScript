@@ -17,6 +17,15 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToSDF,
+  physicsToSDF,
+} from './DomainBlockCompilerMixin';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -114,6 +123,9 @@ export class SDFCompiler extends CompilerBase {
       }
     }
 
+    // v4.2: Domain Blocks (materials, physics, audio, weather)
+    this.emitSDFDomainBlocks(composition);
+
     this.indentLevel--;
     this.emit('</world>');
 
@@ -121,6 +133,40 @@ export class SDFCompiler extends CompilerBase {
     this.emit('</sdf>');
 
     return this.lines.join('\n');
+  }
+
+  private emitSDFDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emit('');
+    this.emit('<!-- v4.2 Domain Blocks -->');
+
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        return materialToSDF(mat);
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        return physicsToSDF(phys);
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        return `<!-- Audio: ${audio.name} (${audio.keyword}) clip="${audio.properties.clip || ''}" -->`;
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        const layers = weather.layers.map(l => `<!-- ${l.type}: ${JSON.stringify(l.properties)} -->`).join('\n');
+        return `<!-- Weather: ${weather.keyword} "${weather.name || ''}" -->\n${layers}`;
+      },
+    }, (block) => `<!-- Domain block: ${block.domain}/${block.keyword} "${block.name}" -->`);
+
+    for (const output of compiled) {
+      for (const line of output.split('\n')) {
+        this.emit(line);
+      }
+    }
   }
 
   // ===== Property extraction helpers =====

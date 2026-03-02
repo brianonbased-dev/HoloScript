@@ -170,6 +170,13 @@ import { negotiationHandler } from './NegotiationTrait';
 // v3.3 Multiplayer Networking
 import { networkedHandler } from './NetworkedTraitHandler';
 
+// Enterprise Multi-Tenancy
+import { tenantHandler } from './TenantTrait';
+import { rbacHandler } from './RBACTrait';
+import { quotaHandler } from './QuotaTrait';
+import { ssoSamlHandler, ssoOidcHandler } from './SSOTrait';
+import { auditLogHandler } from './AuditLogTrait';
+
 // =============================================================================
 // TRAIT STATE
 // =============================================================================
@@ -1268,6 +1275,14 @@ export class VRTraitRegistry {
     // V43 Tier 2: AI Upscaling
     this.register(aiUpscalingHandler as TraitHandler);
     this.register(neuralUpscalingHandler as TraitHandler);
+
+    // Enterprise Multi-Tenancy
+    this.register(tenantHandler as TraitHandler);
+    this.register(rbacHandler as TraitHandler);
+    this.register(quotaHandler as TraitHandler);
+    this.register(ssoSamlHandler as TraitHandler);
+    this.register(ssoOidcHandler as TraitHandler);
+    this.register(auditLogHandler as TraitHandler);
   }
 
   register<T>(handler: TraitHandler<T>): void {
@@ -1506,3 +1521,13 @@ import { handMenuHandler } from './HandMenuTrait';
 import { scrollableHandler } from './ScrollableTrait';
 import { gestureHandler } from './GestureTrait';
 export { handMenuHandler, scrollableHandler, gestureHandler, networkedHandler };
+
+// Enterprise Multi-Tenancy exports
+export {
+  tenantHandler,
+  rbacHandler,
+  quotaHandler,
+  ssoSamlHandler,
+  ssoOidcHandler,
+  auditLogHandler,
+};

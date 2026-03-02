@@ -19,7 +19,21 @@
  */
 
 import { CompilerBase } from './CompilerBase';
-import { compileDomainBlocks, compilePhysicsBlock, physicsToURDF } from './DomainBlockCompilerMixin';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToUSD,
+  physicsToURDF,
+  particlesToUSD,
+  postProcessingToUSD,
+  audioSourceToUSD,
+  weatherToUSD,
+} from './DomainBlockCompilerMixin';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -448,17 +462,45 @@ export class USDPhysicsCompiler extends CompilerBase {
       this.emitBlank();
     }
 
-    // v4.2: Process domain blocks for physics
+    // v4.2: Process all domain blocks (materials, physics, particles, post-fx, audio, weather)
     const domainBlocks: any[] = (composition as any).domainBlocks ?? [];
-    const physicsBlocks = domainBlocks.filter((b: any) => b.domain === 'physics');
-    if (physicsBlocks.length > 0) {
+    if (domainBlocks.length > 0) {
       this.emitBlank();
-      this.emit(`# v4.2 Domain Block Physics (URDF cross-reference)`);
-      for (const block of physicsBlocks) {
-        const compiled = compilePhysicsBlock(block);
-        const urdf = physicsToURDF(compiled);
-        for (const line of urdf.split('\n')) {
-          this.emit(`# ${line}`);
+      this.emit(`# === v4.2 Domain Blocks ===`);
+
+      const compiled = compileDomainBlocks(domainBlocks, {
+        material: (block) => {
+          const mat = compileMaterialBlock(block);
+          return materialToUSD(mat);
+        },
+        physics: (block) => {
+          const phys = compilePhysicsBlock(block);
+          const urdf = physicsToURDF(phys);
+          return `# Physics: ${phys.keyword} "${phys.name || ''}"\n` +
+            urdf.split('\n').map(l => `# URDF: ${l}`).join('\n');
+        },
+        vfx: (block) => {
+          const ps = compileParticleBlock(block);
+          return particlesToUSD(ps);
+        },
+        postfx: (block) => {
+          const pp = compilePostProcessingBlock(block);
+          return postProcessingToUSD(pp);
+        },
+        audio: (block) => {
+          const audio = compileAudioSourceBlock(block);
+          return audioSourceToUSD(audio);
+        },
+        weather: (block) => {
+          const weather = compileWeatherBlock(block);
+          return weatherToUSD(weather);
+        },
+      }, (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+      for (const output of compiled) {
+        this.emitBlank();
+        for (const line of output.split('\n')) {
+          this.emit(line);
         }
       }
     }

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { zkPrivateHandler } from '../traits/ZKPrivateTrait';
 
-describe('ZKPrivateTrait (v3.4 Stub)', () => {
+describe('ZKPrivateTrait (v4.3 spatial predicate API)', () => {
   let mockContext: any;
   let mockNode: any;
 

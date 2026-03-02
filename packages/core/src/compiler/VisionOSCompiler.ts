@@ -30,6 +30,20 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import { generateTraitCode, getRequiredImports, getMinVisionOSVersion } from './VisionOSTraitMap';
 import { CompilerBase } from './CompilerBase';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToVisionOS,
+  physicsToVisionOS,
+  particlesToVisionOS,
+  audioSourceToVisionOS,
+} from './DomainBlockCompilerMixin';
+import type { CompiledPostProcessing, CompiledWeather } from './DomainBlockCompilerMixin';
 
 export interface VisionOSCompilerOptions {
   structName?: string;
@@ -200,7 +214,54 @@ export class VisionOSCompiler extends CompilerBase {
       this.compileEffects(composition.effects);
     }
 
+    // v4.2: Domain Blocks (materials, physics, particles, post-processing, audio, weather)
+    this.compileVisionOSDomainBlocks(composition);
+
     return this.lines.join('\n');
+  }
+
+  private compileVisionOSDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emit('');
+    this.emit('// === v4.2 Domain Blocks ===');
+
+    let blockIdx = 0;
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        return materialToVisionOS(mat, `db${blockIdx++}`);
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        return physicsToVisionOS(phys, `db${blockIdx++}`);
+      },
+      vfx: (block) => {
+        const ps = compileParticleBlock(block);
+        return particlesToVisionOS(ps, `db${blockIdx++}`);
+      },
+      postfx: (block) => {
+        const pp = compilePostProcessingBlock(block);
+        return `// Post-Processing: ${(pp as CompiledPostProcessing).keyword} — configure via RealityKit RenderCallbacks`;
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        return audioSourceToVisionOS(audio, `db${blockIdx++}`);
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        const w = weather as CompiledWeather;
+        const layers = w.layers.map(l => `// Layer: ${l.type} — ${JSON.stringify(l.properties)}`).join('\n');
+        return `// Weather: ${w.keyword} "${w.name || ''}" — implement via custom RealityKit particles\n${layers}`;
+      },
+    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+    for (const line of compiled) {
+      for (const l of line.split('\n')) {
+        this.emit(l);
+      }
+    }
   }
 
   private compileEnvironment(env: HoloEnvironment): void {
