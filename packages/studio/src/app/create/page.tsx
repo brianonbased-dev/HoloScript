@@ -304,10 +304,11 @@ const AudioVisualizerPanel = dynamic(
   { ssr: false }
 );
 
-const GlslShaderPanel = dynamic(
-  () => import('@/components/shader/ShaderEditorPanel').then((m) => ({ default: m.GlslShaderPanel })),
-  { ssr: false }
-);
+// @deprecated GlslShaderPanel removed — shader editing consolidated into ShaderEditorPanel
+// const GlslShaderPanel = dynamic(
+//   () => import('@/components/shader/ShaderEditorPanel').then((m) => ({ default: m.GlslShaderPanel })),
+//   { ssr: false }
+// );
 
 const MultiTransformPanel = dynamic(
   () => import('@/components/transform/MultiTransformPanel').then((m) => ({ default: m.MultiTransformPanel })),
@@ -1097,12 +1098,11 @@ export default function CreatePage() {
           </div>
         )}
 
-        {/* RIGHT RAIL: GLSL Shader Editor */}
-        {shaderEditorOpen && (
-          <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
-            <GlslShaderPanel onClose={() => setShaderEditorOpen(false)} />
-          </div>
-        )}
+        {/* RIGHT RAIL: GLSL Shader Editor
+         * @deprecated GlslShaderPanel removed — shader editing is now handled by
+         * the canonical ShaderEditorPanel in the bottom panel (lines 813-815).
+         * The duplicate right-rail instance was removed during component consolidation.
+         */}
 
         {/* RIGHT RAIL: Multi-Object Transform */}
         {multiTransformOpen && (

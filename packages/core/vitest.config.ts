@@ -22,10 +22,22 @@ export default defineConfig({
     // Coverage configuration
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov', 'html'],
+      all: true,
+      reporter: ['text', 'text-summary', 'lcov', 'html', 'json-summary'],
       reportsDirectory: './coverage',
-      include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'src/**/index.ts', 'src/**/*.d.ts'],
+      include: [
+        'src/**/*.ts',
+      ],
+      exclude: [
+        'src/**/*.test.ts',
+        'src/**/*.prod.test.ts',
+        'src/**/*.spec.ts',
+        'src/**/index.ts',
+        'src/**/*.d.ts',
+        'src/**/__tests__/**',
+        'src/**/__mocks__/**',
+        'src/**/__snapshots__/**',
+      ],
       thresholds: {
         statements: 20,
         branches: 15,

@@ -1,7 +1,11 @@
 'use client';
 
 /**
- * ShaderEditorPanel — GLSL snippet editor with preset catalog and @material codegen.
+ * GlslShaderPanel — GLSL snippet editor with preset catalog and @material codegen.
+ *
+ * @deprecated Prefer using ShaderEditorPanel from '@/components/shader-editor/ShaderEditorPanel'
+ * which provides Monaco editor with live Three.js preview. This component is kept for
+ * backward compatibility and will be removed in a future release.
  */
 
 import { useState, useEffect } from 'react';

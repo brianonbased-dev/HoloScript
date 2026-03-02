@@ -893,11 +893,26 @@ export interface PortableTrait extends BaseTrait {
 }
 
 export interface ZKPrivateTrait extends BaseTrait {
-  predicate?: 'proximity' | 'in_region' | 'has_attribute';
+  predicate?: 'proximity' | 'in_region' | 'has_attribute' | 'is_inside_zone' | 'owns_asset' | 'has_permission';
   radius?: number;
   bounds?: [number, number, number];
   fallback?: 'hidden' | 'transparent' | 'dummy_model';
   circuit_url?: string;
+  // v4.3 additions
+  backend?: 'barretenberg' | 'mock';
+  timeout_ms?: number;
+  cache_circuits?: boolean;
+  disclosure_policy?: {
+    alwaysDisclose?: string[];
+    requireConsent?: string[];
+    neverDisclose?: string[];
+  };
+  wallet_integration?: {
+    enabled?: boolean;
+    chain?: 'ethereum' | 'polygon' | 'base' | 'arbitrum' | 'optimism';
+    verifier_contract?: string;
+    auto_submit?: boolean;
+  };
 }
 
 // ============================================================================

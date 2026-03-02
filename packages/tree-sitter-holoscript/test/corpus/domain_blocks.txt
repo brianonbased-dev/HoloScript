@@ -1,0 +1,778 @@
+================================================================================
+Education Block — lesson
+================================================================================
+
+lesson "Cardiac Anatomy" {
+  objective: "Learn the four chambers"
+  difficulty: "intermediate"
+  duration: 45
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (education_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+Healthcare Block — procedure
+================================================================================
+
+procedure "Catheterization" {
+  steps: ["prep", "insert", "guide", "verify"]
+  precision_required: 0.95
+  duration_minutes: 60
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (healthcare_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (array
+        (string)
+        (string)
+        (string)
+        (string)))
+    (property
+      key: (identifier)
+      value: (number))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+Music Block — instrument
+================================================================================
+
+instrument "Piano" {
+  type: "sampled"
+  midi_channel: 1
+  velocity_sensitivity: 0.8
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (music_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+Architecture Block — floor_plan
+================================================================================
+
+floor_plan "Level1" {
+  scale: "1:100"
+  units: "meters"
+  total_area: 250
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (architecture_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+Web3 Block — contract
+================================================================================
+
+contract "NFTMarket" {
+  chain: "base"
+  standard: "ERC-721"
+  max_supply: 10000
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (web3_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+IoT Block — sensor
+================================================================================
+
+sensor "TempProbe" {
+  type: "thermocouple"
+  binding: "mqtt://factory/temp"
+  sample_rate: 100
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (iot_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+Robotics Block — actuator
+================================================================================
+
+actuator "GripperServo" {
+  type: "servo"
+  torque: 5.0
+  max_speed: 100
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (robotics_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+DataViz Block — dashboard
+================================================================================
+
+dashboard "FactoryMonitor" {
+  layout: "grid"
+  refresh: 5000
+  columns: 3
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (dataviz_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+Custom Block — catch-all
+================================================================================
+
+recipe "Pasta" {
+  ingredients: ["flour", "eggs", "salt"]
+  prep_time: 30
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (custom_block
+    kind: (identifier)
+    name: (string)
+    (property
+      key: (identifier)
+      value: (array
+        (string)
+        (string)
+        (string)))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+Import Statement — named
+================================================================================
+
+import { Vector3, Quaternion } from "math"
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_statement
+    (import_specifier
+      name: (identifier))
+    (import_specifier
+      name: (identifier))
+    source: (string)))
+
+================================================================================
+Import Statement — namespace
+================================================================================
+
+import * as utils from "helpers"
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_statement
+    alias: (identifier)
+    source: (string)))
+
+================================================================================
+Export Statement — function
+================================================================================
+
+export function greet(name: string): string {
+  return name
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (export_statement
+    (function_declaration
+      name: (identifier)
+      (parameter_list
+        (parameter
+          name: (identifier)
+          type: (type)))
+      return_type: (type)
+      (block
+        (return_statement
+          (identifier))))))
+
+================================================================================
+Struct Definition
+================================================================================
+
+struct Point {
+  x: number,
+  y: number,
+  z: number
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (struct_definition
+    name: (identifier)
+    (typed_field
+      name: (identifier)
+      type: (type))
+    (typed_field
+      name: (identifier)
+      type: (type))
+    (typed_field
+      name: (identifier)
+      type: (type))))
+
+================================================================================
+Enum Definition
+================================================================================
+
+enum Direction {
+  NORTH,
+  SOUTH,
+  EAST,
+  WEST
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (enum_definition
+    name: (identifier)
+    (enum_member
+      name: (identifier))
+    (enum_member
+      name: (identifier))
+    (enum_member
+      name: (identifier))
+    (enum_member
+      name: (identifier))))
+
+================================================================================
+Interface Definition with extends
+================================================================================
+
+interface Movable extends Entity {
+  speed: number,
+  direction: Vector3
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (interface_definition
+    name: (identifier)
+    base: (identifier)
+    (typed_field
+      name: (identifier)
+      type: (type))
+    (typed_field
+      name: (identifier)
+      type: (type))))
+
+================================================================================
+Module Declaration
+================================================================================
+
+module GameState {
+  state {
+    score: 0
+    lives: 3
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (module_declaration
+    name: (identifier)
+    (state_block
+      (property
+        key: (identifier)
+        value: (number))
+      (property
+        key: (identifier)
+        value: (number)))))
+
+================================================================================
+Zone Declaration
+================================================================================
+
+zone "SafeZone" {
+  shape: "sphere"
+  radius: 50
+  pvp_enabled: false
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (zone_declaration
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))
+    (property
+      key: (identifier)
+      value: (boolean))))
+
+================================================================================
+Spawn Group
+================================================================================
+
+spawn_group "Resources" {
+  template: "OreNode"
+  count: 20
+  radius: 100
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (spawn_group
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+Terrain Block
+================================================================================
+
+terrain WorldTerrain {
+  generator: "perlin"
+  size: [1000, 1000]
+  height_scale: 100
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (terrain_block
+    name: (identifier)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (array
+        (number)
+        (number)))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+Procedural Block with Noise Function and Biome
+================================================================================
+
+procedural "WorldGen" {
+  seed: 42
+  perlin base {
+    scale: 100
+    octaves: 6
+    persistence: 0.5
+  }
+  biome "Forest" {
+    min_height: 0.3
+    max_height: 0.7
+    density: 0.8
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (procedural_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (number))
+    (noise_function
+      name: (identifier)
+      (property
+        key: (identifier)
+        value: (number))
+      (property
+        key: (identifier)
+        value: (number))
+      (property
+        key: (identifier)
+        value: (number)))
+    (biome_rule
+      name: (string)
+      (property
+        key: (identifier)
+        value: (number))
+      (property
+        key: (identifier)
+        value: (number))
+      (property
+        key: (identifier)
+        value: (number)))))
+
+================================================================================
+LOD Block with Levels
+================================================================================
+
+lod {
+  level 0 {
+    mesh: "high.glb"
+  }
+  level 50 {
+    mesh: "mid.glb"
+  }
+  level 200 {
+    mesh: "low.glb"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (lod_block
+    (lod_level
+      distance: (number)
+      (property
+        key: (identifier)
+        value: (string)))
+    (lod_level
+      distance: (number)
+      (property
+        key: (identifier)
+        value: (string)))
+    (lod_level
+      distance: (number)
+      (property
+        key: (identifier)
+        value: (string)))))
+
+================================================================================
+Render Hints
+================================================================================
+
+render {
+  cast_shadows: true
+  receive_shadows: true
+  layer: "transparent"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (render_hints
+    (property
+      key: (identifier)
+      value: (boolean))
+    (property
+      key: (identifier)
+      value: (boolean))
+    (property
+      key: (identifier)
+      value: (string))))
+
+================================================================================
+Navigation Block with Behavior Node
+================================================================================
+
+behavior_tree "PatrolAI" {
+  agent_radius: 0.5
+  sequence patrol {
+    condition : "see_enemy"
+    leaf : "attack"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (navigation_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (number))
+    (behavior_node
+      name: (identifier)
+      (behavior_node
+        (string))
+      (behavior_node
+        (string)))))
+
+================================================================================
+Input Block with Binding
+================================================================================
+
+input "PlayerControls" {
+  move: "left_stick"
+  jump: "button_a"
+  look: "right_stick"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (input_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))))
+
+================================================================================
+Annotation
+================================================================================
+
+#[debug, profile("gpu"), editor_only]
+composition "Test" {
+  object "Cube" {
+    geometry: "cube"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (annotation
+    (annotation_entry
+      key: (identifier))
+    (annotation_entry
+      key: (identifier)
+      (string))
+    (annotation_entry
+      key: (identifier)))
+  (composition
+    name: (string)
+    (object
+      name: (string)
+      (property
+        key: (identifier)
+        value: (string)))))
+
+================================================================================
+Test Block with Given/When/Then
+================================================================================
+
+test "material renders correctly" {
+  timeout: 5000
+  given {
+  }
+  when {
+  }
+  then {
+    assert metallic
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (test_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (number))
+    (test_given)
+    (test_when)
+    (test_then
+      (test_assertion
+        expression: (identifier)))))
+
+================================================================================
+Constraint Block
+================================================================================
+
+constraint HingeConstraint {
+  type: "hinge"
+  body_a: "Arm"
+  body_b: "Forearm"
+  axis: [0, 1, 0]
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (constraint_block
+    name: (identifier)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (array
+        (number)
+        (number)
+        (number)))))
+
+================================================================================
+Waypoints Block
+================================================================================
+
+waypoints "patrol_route" [[0, 0, 0], [10, 0, 0], [10, 0, 10]]
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (waypoints_block
+    name: (string)
+    (array
+      (array
+        (number)
+        (number)
+        (number))
+      (array
+        (number)
+        (number)
+        (number))
+      (array
+        (number)
+        (number)
+        (number)))))
+
+================================================================================
+Function Declaration with Types
+================================================================================
+
+function damage(target: Entity, amount: number): boolean {
+  return true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    name: (identifier)
+    (parameter_list
+      (parameter
+        name: (identifier)
+        type: (type
+          (identifier)))
+      (parameter
+        name: (identifier)
+        type: (type)))
+    return_type: (type)
+    (block
+      (return_statement
+        (boolean)))))
+
+================================================================================
+Trait Definition with Extends
+================================================================================
+
+trait flammable extends destructible {
+  burn_rate: 0.5
+  ignition_temp: 200
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (trait_definition
+    name: (identifier)
+    base: (identifier)
+    (property
+      key: (identifier)
+      value: (number))
+    (property
+      key: (identifier)
+      value: (number))))
