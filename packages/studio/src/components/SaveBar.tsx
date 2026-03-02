@@ -166,12 +166,12 @@ export function SaveBar() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const btnBase =
-    'relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition';
+    'studio-header-btn relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition';
   const btnGhost = `${btnBase} bg-studio-surface text-studio-text hover:bg-studio-border disabled:opacity-30`;
   const btnAccent = `${btnBase} bg-studio-accent/10 text-studio-accent border border-studio-accent/30 hover:bg-studio-accent hover:text-white disabled:opacity-30`;
 
   return (
-    <div className="relative flex items-center gap-1.5">
+    <div className="relative flex items-center gap-1 sm:gap-1.5">
       {/* Save */}
       <button
         onClick={handleSave}
@@ -179,7 +179,7 @@ export function SaveBar() {
         className={btnGhost}
       >
         <Save className="h-3.5 w-3.5" />
-        Save
+        <span className="hidden sm:inline">Save</span>
       </button>
 
       {/* Open */}
@@ -189,7 +189,7 @@ export function SaveBar() {
         className={btnGhost}
       >
         <FolderOpen className="h-3.5 w-3.5" />
-        Open
+        <span className="hidden sm:inline">Open</span>
       </button>
 
       {/* Share URL */}
@@ -206,7 +206,7 @@ export function SaveBar() {
         ) : (
           <Share2 className="h-3.5 w-3.5" />
         )}
-        Share
+        <span className="hidden sm:inline">Share</span>
       </button>
 
       {/* Publish */}
@@ -216,7 +216,7 @@ export function SaveBar() {
         className={btnAccent}
       >
         <Globe className="h-3.5 w-3.5" />
-        Publish
+        <span className="hidden md:inline">Publish</span>
       </button>
 
       {/* Export glTF */}
@@ -224,7 +224,7 @@ export function SaveBar() {
         onClick={handleExportGltf}
         disabled={exporting}
         title="Export scene as glTF binary (.glb)"
-        className={btnGhost}
+        className={`${btnGhost} hidden sm:flex`}
       >
         {exporting ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -124,11 +124,8 @@ const SharePanel = dynamic(
   { ssr: false }
 );
 
-const CollabCursors = dynamic(
-  () => import('@/components/collab/CollabCursors').then((m) => ({ default: m.CollabCursors })),
-  { ssr: false }
-);
-
+// CollabCursors V1 removed — consolidated into CollabCursorsV2
+// CollabStatusDot is still exported from the V1 file (not deprecated)
 const CollabStatusDot = dynamic(
   () => import('@/components/collab/CollabCursors').then((m) => ({ default: m.CollabStatusDot })),
   { ssr: false }
@@ -274,10 +271,11 @@ const ScriptConsole = dynamic(
   { ssr: false }
 );
 
-const UndoHistorySidebar = dynamic(
-  () => import('@/components/history/UndoHistorySidebar').then((m) => ({ default: m.UndoHistorySidebar })),
-  { ssr: false }
-);
+// UndoHistorySidebar removed — consolidated into HistoryPanel (canonical)
+// const UndoHistorySidebar = dynamic(
+//   () => import('@/components/history/UndoHistorySidebar').then((m) => ({ default: m.UndoHistorySidebar })),
+//   { ssr: false }
+// );
 
 const SceneOutliner = dynamic(
   () => import('@/components/outliner/SceneOutliner').then((m) => ({ default: m.SceneOutliner })),
@@ -414,13 +412,13 @@ function ViewportToolbar({ profilerOpen, onToggleProfiler }: { profilerOpen: boo
   }, [setGizmoMode, onToggleProfiler]);
 
   return (
-    <div className="absolute left-3 top-3 flex items-center gap-1 rounded-lg border border-studio-border/60 bg-studio-panel/90 p-1 backdrop-blur">
+    <div className="absolute left-2 sm:left-3 top-2 sm:top-3 flex items-center gap-0.5 sm:gap-1 rounded-lg border border-studio-border/60 bg-studio-panel/90 p-0.5 sm:p-1 backdrop-blur">
       {/* Undo / Redo */}
       <button
         onClick={() => undo()}
         disabled={!canUndo}
         title="Undo (Ctrl+Z)"
-        className="rounded-md p-2 text-studio-muted transition hover:bg-studio-surface hover:text-studio-text disabled:opacity-30"
+        className="studio-header-btn rounded-md p-2 text-studio-muted transition hover:bg-studio-surface hover:text-studio-text disabled:opacity-30"
       >
         <RotateCcw className="h-3.5 w-3.5" />
       </button>
@@ -428,13 +426,13 @@ function ViewportToolbar({ profilerOpen, onToggleProfiler }: { profilerOpen: boo
         onClick={() => redo()}
         disabled={!canRedo}
         title="Redo (Ctrl+Shift+Z)"
-        className="rounded-md p-2 text-studio-muted transition hover:bg-studio-surface hover:text-studio-text disabled:opacity-30"
+        className="studio-header-btn rounded-md p-2 text-studio-muted transition hover:bg-studio-surface hover:text-studio-text disabled:opacity-30"
       >
         <RotateCw className="h-3.5 w-3.5" />
       </button>
 
       {/* Divider */}
-      <div className="mx-1 h-4 w-px bg-studio-border/60" />
+      <div className="mx-0.5 sm:mx-1 h-4 w-px bg-studio-border/60" />
 
       {/* Gizmo mode buttons */}
       {GIZMO_BUTTONS.map(({ mode, icon: Icon, label }) => (
@@ -442,7 +440,7 @@ function ViewportToolbar({ profilerOpen, onToggleProfiler }: { profilerOpen: boo
           key={mode}
           onClick={() => setGizmoMode(mode)}
           title={label}
-          className={`rounded-md p-2 transition ${
+          className={`studio-header-btn rounded-md p-2 transition ${
             gizmoMode === mode
               ? 'bg-studio-accent text-white shadow-md'
               : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
@@ -452,10 +450,10 @@ function ViewportToolbar({ profilerOpen, onToggleProfiler }: { profilerOpen: boo
         </button>
       ))}
 
-      {/* Divider */}
-      <div className="mx-1 h-4 w-px bg-studio-border/60" />
+      {/* Divider — hidden on very small screens */}
+      <div className="mx-0.5 sm:mx-1 h-4 w-px bg-studio-border/60 hidden sm:block" />
 
-      {/* Art mode buttons */}
+      {/* Art mode buttons — hidden on very small screens to prevent overflow */}
       {(
         [
           { mode: 'sketch'     as ArtMode, icon: Pencil,      title: 'Sketch mode — draw 3D strokes (S)' },
@@ -467,7 +465,7 @@ function ViewportToolbar({ profilerOpen, onToggleProfiler }: { profilerOpen: boo
           key={mode}
           onClick={() => setArtMode(artMode === mode ? 'none' : mode)}
           title={title}
-          className={`rounded-md p-2 transition ${
+          className={`studio-header-btn rounded-md p-2 transition hidden sm:block ${
             artMode === mode
               ? 'bg-violet-500/30 text-violet-300 shadow-md ring-1 ring-violet-500/50'
               : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
@@ -597,7 +595,7 @@ export default function CreatePage() {
   const [nodeGraphOpen, setNodeGraphOpen] = useState(false);
   const [keyframesOpen, setKeyframesOpen] = useState(false);
   const [sceneSearchOpen, setSceneSearchOpen] = useState(false);
-  const [collabV2Open, setCollabV2Open] = useState(false);
+  // collabV2Open removed — V2 is now always-on (consolidated from V1+V2)
   // Sprint T
   const [particlesOpen, setParticlesOpen] = useState(false);
   const [lodOpen, setLodOpen] = useState(false);
@@ -690,8 +688,8 @@ export default function CreatePage() {
       ) : (
       <div className="flex flex-1 overflow-hidden">
 
-        {/* LEFT: Scene Graph + Assets tabbed panel */}
-        <div className="flex shrink-0 flex-col" style={{ width: leftPanelW }}>
+        {/* LEFT: Scene Graph + Assets tabbed panel (hidden on mobile, collapsible on tablet) */}
+        <div className="hidden sm:flex shrink-0 flex-col max-w-[50vw]" style={{ width: leftPanelW }}>
           {/* Tab strip */}
           <div className="flex shrink-0 border-b border-studio-border">
             <button
@@ -754,11 +752,13 @@ export default function CreatePage() {
           </div>
         </div>
 
-        {/* ── Left splitter ── */}
-        <PanelSplitter
-          direction="horizontal"
-          onDelta={(d) => setLeftPanelW((w) => Math.max(160, Math.min(w + d, 520)))}
-        />
+        {/* ── Left splitter (hidden on mobile) ── */}
+        <div className="hidden sm:block">
+          <PanelSplitter
+            direction="horizontal"
+            onDelta={(d) => setLeftPanelW((w) => Math.max(160, Math.min(w + d, 520)))}
+          />
+        </div>
 
         {/* CENTER: Viewport + Inspector split */}
         <div className="flex flex-1 flex-col overflow-hidden">
@@ -1056,10 +1056,10 @@ export default function CreatePage() {
           </>
         )}
 
-        {/* RIGHT RAIL: Undo History */}
+        {/* RIGHT RAIL: Undo History — consolidated to HistoryPanel (canonical) */}
         {undoHistoryOpen && (
           <div className="flex w-64 shrink-0 flex-col border-l border-studio-border">
-            <UndoHistorySidebar onClose={() => setUndoHistoryOpen(false)} />
+            <HistoryPanel onClose={() => setUndoHistoryOpen(false)} />
           </div>
         )}
 
@@ -1208,8 +1208,8 @@ export default function CreatePage() {
           </div>
         )}
 
-        {/* Icon rail — right edge of viewport, always visible */}
-        <div className="flex shrink-0 flex-col items-center gap-1 overflow-y-auto border-l border-studio-border bg-[#1e1e2e] px-1.5 py-3">
+        {/* Icon rail -- right edge on desktop, bottom bar on mobile (via studio-icon-rail CSS) */}
+        <div className="studio-icon-rail flex shrink-0 flex-col items-center gap-1 overflow-y-auto border-l border-studio-border bg-[#1e1e2e] px-1.5 py-3">
           {/* Brittney toggle */}
           <button
             onClick={() => setChatOpen((v) => !v)}
@@ -1653,23 +1653,18 @@ export default function CreatePage() {
         onClose={() => setSceneSearchOpen(false)}
       />
 
-      {/* Sprint T: Script Console (fixed bottom panel) */}
+      {/* Sprint T: Script Console (fixed bottom panel, taller on mobile) */}
       {consoleOpen && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 h-[280px] border-t border-studio-border shadow-2xl">
+        <div className="studio-bottom-console fixed bottom-0 left-0 right-0 z-30 h-[280px] border-t border-studio-border shadow-2xl">
           <ScriptConsole onClose={() => setConsoleOpen(false)} />
         </div>
       )}
 
-      {/* Collaboration cursors (fixed overlay, pointer-events-none) */}
-      <CollabCursors />
-
-      {/* Sprint S: named collaboration cursors v2 */}
-      {collabV2Open && (
-        <CollabCursorsV2
-          roomId="default-room"
-          userName={typeof window !== 'undefined' ? (window.localStorage.getItem('holoscript-name') ?? 'Guest') : 'Guest'}
-        />
-      )}
+      {/* Collaboration cursors — consolidated to V2 (named, deterministic colors, smooth transitions) */}
+      <CollabCursorsV2
+        roomId="default-room"
+        userName={typeof window !== 'undefined' ? (window.localStorage.getItem('holoscript-name') ?? 'Guest') : 'Guest'}
+      />
 
     </>
   );

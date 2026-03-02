@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 // ═══════════════════════════════════════════════════════════════════
 // Navigation Items
@@ -29,6 +29,24 @@ const SECONDARY_ITEMS: NavItem[] = [
   { label: 'Shared', href: '/shared', icon: '🌐', description: 'Shared scenes' },
   { label: 'View', href: '/view', icon: '👁️', description: 'Scene viewer' },
 ];
+
+// ═══════════════════════════════════════════════════════════════════
+// Responsive Hook
+// ═══════════════════════════════════════════════════════════════════
+
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+
+  return isMobile;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // Breadcrumbs
@@ -65,13 +83,14 @@ function Breadcrumbs({ pathname }: { pathname: string }) {
 // Sidebar
 // ═══════════════════════════════════════════════════════════════════
 
-function SidebarLink({ item, isActive, collapsed }: { item: NavItem; isActive: boolean; collapsed: boolean }) {
+function SidebarLink({ item, isActive, collapsed, onClick }: { item: NavItem; isActive: boolean; collapsed: boolean; onClick?: () => void }) {
   return (
     <Link
       href={item.href}
       title={item.description}
+      onClick={onClick}
       className={`
-        flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition
+        flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition min-h-[44px]
         ${isActive
           ? 'bg-studio-accent/10 text-studio-accent font-medium'
           : 'text-studio-muted hover:bg-studio-panel hover:text-studio-text'
@@ -91,36 +110,90 @@ function SidebarLink({ item, isActive, collapsed }: { item: NavItem; isActive: b
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Auto-collapse sidebar on mobile/small tablet
+  useEffect(() => {
+    if (isMobile) {
+      setCollapsed(true);
+      setMobileMenuOpen(false);
+    }
+  }, [isMobile]);
+
+  // Close mobile menu on navigation
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
 
   // Don't show shell on the home page (it has its own layout)
   if (pathname === '/') return <>{children}</>;
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
+      {/* Mobile: hamburger button */}
+      {isMobile && (
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="fixed top-0 left-0 z-50 flex h-10 w-10 items-center justify-center text-studio-muted hover:text-studio-text md:hidden"
+          title="Toggle navigation"
+          aria-label="Toggle navigation menu"
+        >
+          <span className="text-lg">{mobileMenuOpen ? '✕' : '☰'}</span>
+        </button>
+      )}
+
+      {/* Mobile overlay backdrop */}
+      {isMobile && mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={closeMobileMenu}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar — drawer on mobile, persistent on desktop */}
       <aside
         className={`
           flex flex-col border-r border-studio-border bg-studio-bg
-          transition-[width] duration-200
-          ${collapsed ? 'w-14' : 'w-56'}
+          transition-all duration-200
+          ${isMobile
+            ? `fixed inset-y-0 left-0 z-40 w-64 shadow-2xl transform ${
+                mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+              }`
+            : collapsed ? 'w-14' : 'w-56'
+          }
         `}
       >
         {/* Logo */}
         <div className="flex h-12 items-center justify-between border-b border-studio-border px-3">
-          {!collapsed && (
+          {(!collapsed || isMobile) && (
             <Link href="/" className="flex items-center gap-2 text-sm font-bold tracking-tight">
               <span className="text-studio-accent">◈</span>
               <span>HoloScript</span>
             </Link>
           )}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-studio-muted transition hover:bg-studio-panel hover:text-studio-text"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? '▸' : '◂'}
-          </button>
+          {!isMobile && (
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-studio-muted transition hover:bg-studio-panel hover:text-studio-text"
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? '▸' : '◂'}
+            </button>
+          )}
+          {isMobile && (
+            <button
+              onClick={closeMobileMenu}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-studio-muted transition hover:bg-studio-panel hover:text-studio-text"
+              title="Close menu"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {/* Primary Nav */}
@@ -130,7 +203,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               key={item.href}
               item={item}
               isActive={pathname.startsWith(item.href)}
-              collapsed={collapsed}
+              collapsed={!isMobile && collapsed}
+              onClick={isMobile ? closeMobileMenu : undefined}
             />
           ))}
 
@@ -142,13 +216,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               key={item.href}
               item={item}
               isActive={pathname.startsWith(item.href)}
-              collapsed={collapsed}
+              collapsed={!isMobile && collapsed}
+              onClick={isMobile ? closeMobileMenu : undefined}
             />
           ))}
         </nav>
 
         {/* Footer */}
-        {!collapsed && (
+        {(!collapsed || isMobile) && (
           <div className="border-t border-studio-border p-3">
             <p className="text-[10px] text-studio-muted leading-relaxed">
               v0.1.0 · Runs locally · Free
@@ -161,6 +236,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar with breadcrumbs */}
         <header className="flex h-10 items-center border-b border-studio-border px-4">
+          {/* Spacer for hamburger on mobile */}
+          {isMobile && <div className="w-8 shrink-0" />}
           <Breadcrumbs pathname={pathname} />
         </header>
 

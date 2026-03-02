@@ -1,8 +1,8 @@
 'use client';
 
-import { ArrowLeft, Glasses, Upload, Zap, BarChart2, X, BookOpen, HelpCircle, Sparkles, Server, Workflow, GitBranch, Users, Activity, ShoppingBag, Package, Cloud } from 'lucide-react';
+import { ArrowLeft, Glasses, Upload, Zap, BarChart2, X, BookOpen, HelpCircle, Sparkles, Server, Workflow, GitBranch, Users, Activity, ShoppingBag, Package, Cloud, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAIStore, useSceneStore, useEditorStore } from '@/lib/store';
 import { SaveBar } from '@/components/SaveBar';
 import { CollabBar } from '@/components/collaboration/CollabBar';
@@ -102,6 +102,22 @@ export function StudioHeader() {
 
   const isExpert = studioMode === 'expert';
 
+  // ── Toolbar overflow menu (for small viewports) ───────────────────────────
+  const [overflowOpen, setOverflowOpen] = useState(false);
+  const overflowRef = useRef<HTMLDivElement>(null);
+
+  // Close overflow when clicking outside
+  useEffect(() => {
+    if (!overflowOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
+        setOverflowOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [overflowOpen]);
+
   useEffect(() => {
     if (typeof navigator !== 'undefined' && 'xr' in navigator) {
       navigator.xr?.isSessionSupported('immersive-vr').then((ok) => setXrSupported(ok));
@@ -119,7 +135,7 @@ export function StudioHeader() {
 
   return (
     <>
-      <header className="grid h-12 grid-cols-[1fr_auto_1fr] items-center border-b border-studio-border bg-studio-panel px-4 gap-2">
+      <header className="grid h-12 grid-cols-[1fr_auto_1fr] items-center border-b border-studio-border bg-studio-panel px-2 sm:px-4 gap-1 sm:gap-2">
       {/* Left: back link + scene name */}
       <div className="flex items-center gap-3 min-w-0">
         <Link href="/" className="text-studio-muted transition hover:text-studio-text shrink-0">
@@ -207,110 +223,158 @@ export function StudioHeader() {
           <HelpCircle className="h-3.5 w-3.5" />
         </button>
 
-        {/* ── Orchestration tools ────────────────────────────── */}
-        <button
-          onClick={() => setMcpConfigOpen(!mcpConfigOpen)}
-          title="MCP Servers"
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            mcpConfigOpen
-              ? 'border-blue-500/40 bg-blue-500/20 text-blue-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-blue-500/40 hover:text-blue-400'
-          }`}
-        >
-          <Server className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">MCP</span>
-        </button>
+        {/* ── Orchestration tools (visible on xl+, overflow menu on smaller) ── */}
+        <div className="hidden xl:contents">
+          <button
+            onClick={() => setMcpConfigOpen(!mcpConfigOpen)}
+            title="MCP Servers"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              mcpConfigOpen
+                ? 'border-blue-500/40 bg-blue-500/20 text-blue-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-blue-500/40 hover:text-blue-400'
+            }`}
+          >
+            <Server className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">MCP</span>
+          </button>
 
-        <button
-          onClick={() => setAgentWorkflowOpen(!agentWorkflowOpen)}
-          title="Agent Orchestration"
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            agentWorkflowOpen
-              ? 'border-purple-500/40 bg-purple-500/20 text-purple-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-purple-500/40 hover:text-purple-400'
-          }`}
-        >
-          <Workflow className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Workflow</span>
-        </button>
+          <button
+            onClick={() => setAgentWorkflowOpen(!agentWorkflowOpen)}
+            title="Agent Orchestration"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              agentWorkflowOpen
+                ? 'border-purple-500/40 bg-purple-500/20 text-purple-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-purple-500/40 hover:text-purple-400'
+            }`}
+          >
+            <Workflow className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Workflow</span>
+          </button>
 
-        <button
-          onClick={() => setBehaviorTreeOpen(!behaviorTreeOpen)}
-          title="Behavior Tree"
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            behaviorTreeOpen
-              ? 'border-green-500/40 bg-green-500/20 text-green-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-green-500/40 hover:text-green-400'
-          }`}
-        >
-          <GitBranch className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">BT</span>
-        </button>
+          <button
+            onClick={() => setBehaviorTreeOpen(!behaviorTreeOpen)}
+            title="Behavior Tree"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              behaviorTreeOpen
+                ? 'border-green-500/40 bg-green-500/20 text-green-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-green-500/40 hover:text-green-400'
+            }`}
+          >
+            <GitBranch className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">BT</span>
+          </button>
 
-        <button
-          onClick={() => setAgentEnsembleOpen(!agentEnsembleOpen)}
-          title="Agent Ensemble"
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            agentEnsembleOpen
-              ? 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-cyan-500/40 hover:text-cyan-400'
-          }`}
-        >
-          <Users className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Agents</span>
-        </button>
+          <button
+            onClick={() => setAgentEnsembleOpen(!agentEnsembleOpen)}
+            title="Agent Ensemble"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              agentEnsembleOpen
+                ? 'border-cyan-500/40 bg-cyan-500/20 text-cyan-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-cyan-500/40 hover:text-cyan-400'
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Agents</span>
+          </button>
 
-        <button
-          onClick={() => setEventMonitorOpen(!eventMonitorOpen)}
-          title="Event Monitor"
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            eventMonitorOpen
-              ? 'border-orange-500/40 bg-orange-500/20 text-orange-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-orange-500/40 hover:text-orange-400'
-          }`}
-        >
-          <Activity className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Events</span>
-        </button>
+          <button
+            onClick={() => setEventMonitorOpen(!eventMonitorOpen)}
+            title="Event Monitor"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              eventMonitorOpen
+                ? 'border-orange-500/40 bg-orange-500/20 text-orange-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-orange-500/40 hover:text-orange-400'
+            }`}
+          >
+            <Activity className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Events</span>
+          </button>
 
-        <button
-          onClick={() => setToolCallGraphOpen(!toolCallGraphOpen)}
-          title="Tool Call Graph"
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            toolCallGraphOpen
-              ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-amber-500/40 hover:text-amber-400'
-          }`}
-        >
-          <Zap className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Tools</span>
-        </button>
+          <button
+            onClick={() => setToolCallGraphOpen(!toolCallGraphOpen)}
+            title="Tool Call Graph"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              toolCallGraphOpen
+                ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-amber-500/40 hover:text-amber-400'
+            }`}
+          >
+            <Zap className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Tools</span>
+          </button>
 
-        <button
-          onClick={() => setPluginManagerOpen(!pluginManagerOpen)}
-          title="Plugin Manager (Ctrl+P)"
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            pluginManagerOpen
-              ? 'border-violet-500/40 bg-violet-500/20 text-violet-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-violet-500/40 hover:text-violet-400'
-          }`}
-        >
-          <Package className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Plugins</span>
-        </button>
+          <button
+            onClick={() => setPluginManagerOpen(!pluginManagerOpen)}
+            title="Plugin Manager (Ctrl+P)"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              pluginManagerOpen
+                ? 'border-violet-500/40 bg-violet-500/20 text-violet-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-violet-500/40 hover:text-violet-400'
+            }`}
+          >
+            <Package className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Plugins</span>
+          </button>
 
-        <button
-          onClick={() => setCloudDeployOpen(!cloudDeployOpen)}
-          title="Cloud Deployment (Ctrl+Shift+D)"
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-            cloudDeployOpen
-              ? 'border-sky-500/40 bg-sky-500/20 text-sky-300'
-              : 'border-studio-border bg-studio-surface text-studio-muted hover:border-sky-500/40 hover:text-sky-400'
-          }`}
-        >
-          <Cloud className="h-3.5 w-3.5" />
-          <span className="hidden lg:inline">Cloud</span>
-        </button>
+          <button
+            onClick={() => setCloudDeployOpen(!cloudDeployOpen)}
+            title="Cloud Deployment (Ctrl+Shift+D)"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              cloudDeployOpen
+                ? 'border-sky-500/40 bg-sky-500/20 text-sky-300'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-sky-500/40 hover:text-sky-400'
+            }`}
+          >
+            <Cloud className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Cloud</span>
+          </button>
+        </div>
+
+        {/* ── Overflow menu (visible on < xl) ── */}
+        <div className="relative xl:hidden" ref={overflowRef}>
+          <button
+            onClick={() => setOverflowOpen((v) => !v)}
+            title="More tools"
+            className={`studio-header-btn flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+              overflowOpen
+                ? 'border-studio-accent/40 bg-studio-accent/20 text-studio-accent'
+                : 'border-studio-border bg-studio-surface text-studio-muted hover:border-studio-accent/40 hover:text-studio-accent'
+            }`}
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">More</span>
+          </button>
+          {overflowOpen && (
+            <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-xl border border-studio-border bg-studio-panel shadow-2xl shadow-black/40 animate-scale-in overflow-hidden">
+              <div className="p-1.5 space-y-0.5 max-h-[70vh] overflow-y-auto">
+                {([
+                  { label: 'MCP Servers', icon: Server, active: mcpConfigOpen, onClick: () => { setMcpConfigOpen(!mcpConfigOpen); setOverflowOpen(false); }, color: 'blue' },
+                  { label: 'Workflow', icon: Workflow, active: agentWorkflowOpen, onClick: () => { setAgentWorkflowOpen(!agentWorkflowOpen); setOverflowOpen(false); }, color: 'purple' },
+                  { label: 'Behavior Tree', icon: GitBranch, active: behaviorTreeOpen, onClick: () => { setBehaviorTreeOpen(!behaviorTreeOpen); setOverflowOpen(false); }, color: 'green' },
+                  { label: 'Agents', icon: Users, active: agentEnsembleOpen, onClick: () => { setAgentEnsembleOpen(!agentEnsembleOpen); setOverflowOpen(false); }, color: 'cyan' },
+                  { label: 'Events', icon: Activity, active: eventMonitorOpen, onClick: () => { setEventMonitorOpen(!eventMonitorOpen); setOverflowOpen(false); }, color: 'orange' },
+                  { label: 'Tools', icon: Zap, active: toolCallGraphOpen, onClick: () => { setToolCallGraphOpen(!toolCallGraphOpen); setOverflowOpen(false); }, color: 'amber' },
+                  { label: 'Plugins', icon: Package, active: pluginManagerOpen, onClick: () => { setPluginManagerOpen(!pluginManagerOpen); setOverflowOpen(false); }, color: 'violet' },
+                  { label: 'Cloud', icon: Cloud, active: cloudDeployOpen, onClick: () => { setCloudDeployOpen(!cloudDeployOpen); setOverflowOpen(false); }, color: 'sky' },
+                ] as const).map(({ label, icon: Icon, active, onClick, color }) => (
+                  <button
+                    key={label}
+                    onClick={onClick}
+                    className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium transition ${
+                      active
+                        ? `bg-${color}-500/20 text-${color}-300`
+                        : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {label}
+                    {active && <span className="ml-auto text-[8px] opacity-60">ON</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* ── Expert-only tools ─────────────────────────────── */}
         {isExpert && (
@@ -376,16 +440,16 @@ export function StudioHeader() {
 
     {publishOpen && <PublishPanel onClose={() => setPublishOpen(false)} />}
 
-    {/* ── Examples drawer (right side panel) ──────────────────── */}
+    {/* ── Examples drawer (right side panel, full-screen on mobile) ── */}
     {examplesOpen && (
-      <div className="fixed right-0 top-12 bottom-0 z-40 w-80 border-l border-studio-border shadow-2xl">
+      <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-80 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right sm:max-w-80">
         <ExampleGallery onClose={() => setExamplesOpen(false)} />
       </div>
     )}
 
-    {/* ── Prompts drawer (right side panel) ───────────────────── */}
+    {/* ── Prompts drawer (right side panel, full-screen on mobile) ── */}
     {promptsOpen && (
-      <div className="fixed right-0 top-12 bottom-0 z-40 w-80 border-l border-studio-border shadow-2xl">
+      <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-80 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right sm:max-w-80">
         <PromptLibrary
           onClose={() => setPromptsOpen(false)}
           onUsePrompt={(prompt) => {
@@ -422,17 +486,17 @@ export function StudioHeader() {
 
     {/* ── Orchestration Panels ─────────────────────────────────── */}
 
-    {/* MCP Server Config (right sidebar) */}
+    {/* MCP Server Config (right sidebar, fullscreen on mobile) */}
     {mcpConfigOpen && (
-      <div className="fixed right-0 top-12 bottom-0 z-40 w-96 border-l border-studio-border shadow-2xl">
+      <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
         <MCPServerConfigPanel onClose={() => setMcpConfigOpen(false)} />
       </div>
     )}
 
-    {/* Agent Workflow Editor (full-screen modal) */}
+    {/* Agent Workflow Editor (full-screen modal, no inset on mobile) */}
     {agentWorkflowOpen && (
       <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
-        <div className="absolute inset-4 bg-studio-panel rounded-xl border border-studio-border">
+        <div className="absolute inset-0 sm:inset-4 bg-studio-panel sm:rounded-xl border border-studio-border">
           <AgentOrchestrationGraphEditor
             workflowId="default"
             onClose={() => setAgentWorkflowOpen(false)}
@@ -441,10 +505,10 @@ export function StudioHeader() {
       </div>
     )}
 
-    {/* Behavior Tree Editor (full-screen modal) */}
+    {/* Behavior Tree Editor (full-screen modal, no inset on mobile) */}
     {behaviorTreeOpen && (
       <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
-        <div className="absolute inset-4 bg-studio-panel rounded-xl border border-studio-border">
+        <div className="absolute inset-0 sm:inset-4 bg-studio-panel sm:rounded-xl border border-studio-border">
           <BehaviorTreeVisualEditor
             treeId="default"
             onClose={() => setBehaviorTreeOpen(false)}
@@ -453,23 +517,23 @@ export function StudioHeader() {
       </div>
     )}
 
-    {/* Desktop Agent Ensemble (right sidebar, wider) */}
+    {/* Desktop Agent Ensemble (right sidebar, wider, capped on tablet) */}
     {agentEnsembleOpen && (
-      <div className="fixed right-0 top-12 bottom-0 z-40 w-[600px] border-l border-studio-border shadow-2xl">
+      <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-full sm:w-[600px] sm:max-w-[80vw] border-l border-studio-border shadow-2xl animate-slide-in-from-right">
         <DesktopAgentEnsemble onClose={() => setAgentEnsembleOpen(false)} />
       </div>
     )}
 
-    {/* Event Monitor (right sidebar) */}
+    {/* Event Monitor (right sidebar, fullscreen on mobile) */}
     {eventMonitorOpen && (
-      <div className="fixed right-0 top-12 bottom-0 z-40 w-96 border-l border-studio-border shadow-2xl">
+      <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
         <AgentEventMonitorPanel onClose={() => setEventMonitorOpen(false)} />
       </div>
     )}
 
-    {/* Tool Call Graph (right sidebar) */}
+    {/* Tool Call Graph (right sidebar, fullscreen on mobile) */}
     {toolCallGraphOpen && (
-      <div className="fixed right-0 top-12 bottom-0 z-40 w-96 border-l border-studio-border shadow-2xl">
+      <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
         <ToolCallGraphVisualizer onClose={() => setToolCallGraphOpen(false)} />
       </div>
     )}

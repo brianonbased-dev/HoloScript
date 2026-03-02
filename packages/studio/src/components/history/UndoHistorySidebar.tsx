@@ -3,6 +3,11 @@
 /**
  * UndoHistorySidebar — visual undo/redo timeline list.
  * Click any entry to restore the scene to that checkpoint.
+ *
+ * @deprecated Use HistoryPanel from '@/components/HistoryPanel' instead.
+ * HistoryPanel is the canonical history component with list/tree view toggle,
+ * labeled entries, and clear history support. This V1 sidebar is kept for
+ * backward compatibility during migration.
  */
 
 import { Clock, X, RotateCcw, RotateCw, ChevronRight } from 'lucide-react';

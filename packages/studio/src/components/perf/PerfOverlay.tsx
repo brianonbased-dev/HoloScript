@@ -1,6 +1,10 @@
 /**
  * PerfOverlay.tsx
  *
+ * @deprecated This component is unused dead code. Use one of the canonical alternatives:
+ *   - PerformanceOverlay from '@/components/profiler/PerformanceOverlay' (inside R3F Canvas, rich stats + sparkline)
+ *   - ProfilerOverlay from '@/components/profiler/ProfilerOverlay' (HTML overlay outside Canvas, uses useProfiler hook)
+ *
  * Performance monitoring overlay for the R3F viewport.
  * Uses r3f-perf when available, falls back to a manual FPS counter.
  * Only shown in development mode or when explicitly enabled.

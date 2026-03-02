@@ -85,7 +85,7 @@ export function StudioModeSwitcher() {
               key={mode.id}
               onClick={() => setStudioMode(mode.id)}
               title={`${mode.label}: ${mode.description}`}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150 ${
+              className={`studio-header-btn flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150 ${
                 active
                   ? `bg-studio-border ${mode.color} shadow-sm`
                   : 'text-studio-muted hover:text-studio-text hover:bg-white/5'
@@ -108,7 +108,7 @@ export function StudioModeSwitcher() {
 
       {/* Expanded dropdown — mode details */}
       {expanded && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 rounded-xl border border-studio-border bg-studio-panel shadow-2xl shadow-black/30 z-50 overflow-hidden">
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 max-w-[90vw] rounded-xl border border-studio-border bg-studio-panel shadow-2xl shadow-black/30 z-50 overflow-hidden">
           <div className="p-3 space-y-1">
             {MODES.map((mode) => {
               const active = studioMode === mode.id;

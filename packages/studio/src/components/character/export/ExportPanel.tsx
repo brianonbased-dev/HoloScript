@@ -1,7 +1,10 @@
 'use client';
 
 /**
- * ExportPanel — Character export UI
+ * CharacterExportPanel — Character export UI
+ *
+ * Renamed from ExportPanel to avoid naming collision with the scene-level
+ * ExportPanel at '@/components/export/ExportPanel'.
  *
  * Provides a download button that packages the current character state
  * (morph targets, wardrobe, skin color, expression) into a JSON bundle
@@ -59,7 +62,7 @@ function downloadJSON(data: unknown, filename: string) {
 
 // ── Panel ───────────────────────────────────────────────────────────────────
 
-export function ExportPanel() {
+export function CharacterExportPanel() {
   const [exporting, setExporting] = useState(false);
   const morphTargets = useCharacterStore((s) => s.morphTargets);
   const skinColor = useCharacterStore((s) => s.skinColor);
@@ -178,3 +181,6 @@ export function ExportPanel() {
     </div>
   );
 }
+
+/** @deprecated Use CharacterExportPanel instead */
+export const ExportPanel = CharacterExportPanel;

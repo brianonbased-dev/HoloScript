@@ -1,6 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  safelist: [
+    // Dynamic color classes used in StudioHeader overflow menu
+    { pattern: /bg-(blue|purple|green|cyan|orange|amber|violet|sky)-500\/20/ },
+    { pattern: /text-(blue|purple|green|cyan|orange|amber|violet|sky)-300/ },
+  ],
   theme: {
     extend: {
       colors: {

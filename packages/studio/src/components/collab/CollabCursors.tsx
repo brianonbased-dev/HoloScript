@@ -3,11 +3,19 @@
 /**
  * CollabCursors — renders remote user cursors as floating SVG arrows with name badges.
  * Must be placed as a fixed overlay (pointer-events: none) over the Studio viewport.
+ *
+ * @deprecated Use CollabCursorsV2 from '@/components/collab/CollabCursorsV2' instead.
+ * V2 uses useMultiplayerRoom with deterministic HSL colors and smoother transitions.
+ * This V1 implementation is kept for backward compatibility during migration.
+ *
+ * NOTE: CollabStatusDot (exported below) is NOT deprecated and remains the canonical
+ * collaboration status indicator.
  */
 
 import { useEffect } from 'react';
 import { useCollabStore } from '@/lib/collabStore';
 
+/** @deprecated Use CollabCursorsV2 instead */
 export function CollabCursors() {
   const { cursors, pruneStale, connected } = useCollabStore();
 

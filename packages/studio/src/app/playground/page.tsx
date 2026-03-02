@@ -144,43 +144,44 @@ export default function PlaygroundPage() {
   return (
     <div className="flex h-screen flex-col bg-[#0a0a12] text-studio-text">
       {/* Top bar */}
-      <header className="flex shrink-0 items-center gap-3 border-b border-studio-border bg-studio-panel/80 px-4 py-2.5 backdrop-blur">
+      <header className="flex shrink-0 items-center gap-2 sm:gap-3 border-b border-studio-border bg-studio-panel/80 px-2 sm:px-4 py-2.5 backdrop-blur">
         <Link href="/" className="flex items-center gap-1.5 text-studio-muted hover:text-studio-text transition">
           <Globe className="h-4 w-4 text-studio-accent" />
-          <span className="text-xs font-bold">HoloScript</span>
+          <span className="text-xs font-bold hidden sm:inline">HoloScript</span>
         </Link>
-        <span className="text-studio-border">/</span>
+        <span className="text-studio-border hidden sm:inline">/</span>
         <div className="flex items-center gap-1.5">
           <Code2 className="h-3.5 w-3.5 text-studio-accent" />
           <span className="text-xs font-semibold">Playground</span>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-[10px] text-studio-muted">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          <span className="text-[10px] text-studio-muted hidden sm:inline">
             {lineCount} lines · {charCount} chars
           </span>
           <button
             onClick={copyLink}
             title="Copy shareable link"
-            className="flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5 text-[11px] text-studio-muted transition hover:text-studio-text"
+            className="studio-header-btn flex items-center gap-1.5 rounded-lg border border-studio-border bg-studio-surface px-2.5 py-1.5 text-[11px] text-studio-muted transition hover:text-studio-text"
           >
             {copied ? <CheckCircle className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? 'Copied!' : 'Share'}
           </button>
           <Link
             href={`/create?scene=${encodeURIComponent(btoa(code))}`}
-            className="flex items-center gap-1.5 rounded-lg bg-studio-accent px-3 py-1.5 text-[11px] font-semibold text-white transition hover:brightness-110"
+            className="studio-header-btn flex items-center gap-1.5 rounded-lg bg-studio-accent px-3 py-1.5 text-[11px] font-semibold text-white transition hover:brightness-110"
           >
             <ExternalLink className="h-3.5 w-3.5" />
-            Open in Studio
+            <span className="hidden sm:inline">Open in Studio</span>
+            <span className="sm:hidden">Studio</span>
           </Link>
         </div>
       </header>
 
-      {/* Editor + parse tree */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Editor + parse tree — stacks vertically on mobile */}
+      <div className="flex flex-1 flex-col sm:flex-row overflow-hidden">
         {/* Monaco editor */}
-        <div className="flex-1 overflow-hidden border-r border-studio-border">
+        <div className="flex-1 min-h-0 overflow-hidden border-b sm:border-b-0 sm:border-r border-studio-border">
           <MonacoEditor
             height="100%"
             defaultLanguage="holo"
@@ -199,8 +200,8 @@ export default function PlaygroundPage() {
           />
         </div>
 
-        {/* Parse tree panel */}
-        <div className="flex w-72 shrink-0 flex-col bg-studio-panel">
+        {/* Parse tree panel — bottom on mobile, right column on desktop */}
+        <div className="flex w-full sm:w-72 shrink-0 flex-col bg-studio-panel max-h-[40vh] sm:max-h-none">
           <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
             <Play className="h-3.5 w-3.5 text-studio-accent" />
             <span className="text-[11px] font-semibold">Parse Tree</span>

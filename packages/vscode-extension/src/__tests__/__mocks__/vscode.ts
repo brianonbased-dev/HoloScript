@@ -122,6 +122,8 @@ export class SnippetString {
 
 export class MarkdownString {
   value: string;
+  isTrusted: boolean = false;
+  supportHtml: boolean = false;
   constructor(value = '') {
     this.value = value;
   }
@@ -132,6 +134,18 @@ export class MarkdownString {
   appendCodeblock(value: string, _language?: string): MarkdownString {
     this.value += value;
     return this;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Hover - used in hoverProvider.ts
+// ---------------------------------------------------------------------------
+export class Hover {
+  contents: MarkdownString | MarkdownString[];
+  range?: Range;
+  constructor(contents: MarkdownString | MarkdownString[], range?: Range) {
+    this.contents = contents;
+    this.range = range;
   }
 }
 

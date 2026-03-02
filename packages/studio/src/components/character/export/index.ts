@@ -1,2 +1,3 @@
 export { ExportModal } from './ExportModal';
-export { ExportPanel } from './ExportPanel';
+export { CharacterExportPanel, ExportPanel } from './ExportPanel';
+export type { CharacterCard } from './ExportPanel';
