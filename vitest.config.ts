@@ -42,6 +42,14 @@ export default defineConfig({
           exclude: ['**/dist/**', '**/node_modules/**'],
         },
       },
+      {
+        test: {
+          name: 'marketplace-web',
+          root: './packages/marketplace-web',
+          include: ['src/**/*.test.ts'],
+          exclude: ['**/dist/**', '**/node_modules/**'],
+        },
+      },
     ],
   },
 });
