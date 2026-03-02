@@ -1,0 +1,364 @@
+// ============================================================================
+// Post-Processing Block Test Composition
+// ============================================================================
+// Exercises all post_processing_block grammar constructs:
+//   - post_processing, post_fx, render_pipeline keywords
+//   - All post_effect sub-blocks:
+//     bloom, ambient_occlusion, ssao, color_grading, tone_mapping,
+//     depth_of_field, motion_blur, vignette, chromatic_aberration,
+//     fog, volumetric_fog, screen_space_reflections, ssr,
+//     anti_aliasing, fxaa, smaa, taa, film_grain,
+//     lens_flare, god_rays, outline, pixelate
+//   - Named and unnamed post-processing blocks
+//   - Post-processing at top level AND inside compositions
+// ============================================================================
+
+// ── Top-Level: Full Cinematic Post-Processing Pipeline ──────────────────────
+
+post_processing "CinematicLook" {
+  bloom {
+    intensity: 0.8
+    threshold: 1.0
+    scatter: 0.7
+    tint: #ffeecc
+    clamp: 65000
+    high_quality: true
+  }
+
+  depth_of_field {
+    aperture: 2.8
+    focal_length: 50
+    focus_distance: 10
+    bokeh_shape: "circle"
+    near_blur: 0.5
+    far_blur: 1.0
+  }
+
+  color_grading {
+    temperature: 6500
+    tint_offset: 0
+    contrast: 1.1
+    saturation: 1.2
+    lift: [0.0, 0.0, 0.05]
+    gamma: [1.0, 1.0, 1.0]
+    gain: [1.0, 1.0, 1.0]
+    hue_shift: 0
+  }
+
+  tone_mapping {
+    mode: "ACES"
+    exposure: 1.0
+    white_point: 6500
+  }
+
+  vignette {
+    intensity: 0.3
+    smoothness: 0.5
+    roundness: 1.0
+    color: #000000
+  }
+
+  anti_aliasing {
+    mode: "TAA"
+    sharpness: 0.5
+    jitter_spread: 0.75
+  }
+
+  motion_blur {
+    intensity: 0.5
+    sample_count: 10
+    max_velocity: 20
+  }
+
+  chromatic_aberration {
+    intensity: 0.05
+    max_samples: 8
+  }
+}
+
+// ── post_fx Keyword: Atmospheric Effects ────────────────────────────────────
+
+post_fx "Atmospheric" {
+  volumetric_fog {
+    density: 0.02
+    height_falloff: 0.5
+    color: #aabbcc
+    max_distance: 500
+    anisotropy: 0.6
+    global_light_probe_dimmer: 0.8
+  }
+
+  fog {
+    color: #c0c0d0
+    density: 0.01
+    mode: "exponential_squared"
+    start: 10
+    end: 200
+  }
+
+  god_rays {
+    intensity: 0.5
+    weight: 0.6
+    density: 0.3
+    decay: 0.95
+    exposure_control: true
+    sample_count: 64
+  }
+
+  ambient_occlusion {
+    intensity: 1.2
+    radius: 0.5
+    quality: "high"
+    thickness_modifier: 1.0
+  }
+
+  screen_space_reflections {
+    max_distance: 100
+    thickness: 0.1
+    quality: "medium"
+    step_count: 64
+  }
+}
+
+// ── render_pipeline Keyword: Stylized Look ──────────────────────────────────
+
+render_pipeline "ToonShading" {
+  outline {
+    width: 2.0
+    color: #000000
+    depth_threshold: 0.1
+    normal_threshold: 0.5
+    mode: "depth_normal"
+  }
+
+  color_grading {
+    saturation: 1.5
+    contrast: 1.3
+    temperature: 5500
+    posterize_steps: 6
+  }
+
+  taa {
+    enabled: true
+    jitter_spread: 0.5
+    sharpness: 0.8
+  }
+
+  bloom {
+    intensity: 0.3
+    threshold: 0.8
+    scatter: 0.5
+  }
+}
+
+// ── Post-Processing with SSAO Variant ───────────────────────────────────────
+
+post_processing "RealisticInterior" {
+  ssao {
+    intensity: 2.0
+    radius: 0.3
+    sample_count: 16
+    quality: "ultra"
+    thickness: 0.5
+    direct_lighting_strength: 0.2
+  }
+
+  ssr {
+    max_distance: 50
+    resolution: "half"
+    thickness: 0.05
+    max_steps: 128
+    fade_distance: 10
+  }
+
+  bloom {
+    intensity: 0.2
+    threshold: 1.5
+    scatter: 0.4
+  }
+
+  depth_of_field {
+    aperture: 5.6
+    focal_length: 35
+    focus_distance: 3
+  }
+}
+
+// ── Post-FX with Film Grain and Retro Effects ───────────────────────────────
+
+post_fx "RetroVHS" {
+  film_grain {
+    intensity: 0.35
+    response: 0.8
+    size: 1.5
+    luminance_contribution: 0.5
+  }
+
+  chromatic_aberration {
+    intensity: 0.15
+    max_samples: 4
+  }
+
+  vignette {
+    intensity: 0.6
+    smoothness: 0.3
+    roundness: 0.8
+  }
+
+  pixelate {
+    resolution: [320, 240]
+    pixel_size: 4
+  }
+
+  color_grading {
+    saturation: 0.6
+    contrast: 1.4
+    temperature: 7500
+    lift: [0.05, 0.0, 0.0]
+  }
+
+  smaa {
+    quality: "high"
+  }
+}
+
+// ── FXAA Variant ────────────────────────────────────────────────────────────
+
+post_processing "MobileOptimized" {
+  fxaa {
+    quality: "low"
+    subpixel_quality: 0.75
+    edge_threshold: 0.166
+    edge_threshold_min: 0.0833
+  }
+
+  bloom {
+    intensity: 0.4
+    threshold: 1.2
+    scatter: 0.6
+  }
+
+  vignette {
+    intensity: 0.2
+    smoothness: 0.6
+  }
+}
+
+// ── Unnamed Post-Processing Block ───────────────────────────────────────────
+
+post_processing {
+  bloom {
+    intensity: 0.5
+    threshold: 1.0
+  }
+  anti_aliasing {
+    mode: "SMAA"
+  }
+}
+
+// ── Post-Processing with Lens Flare ─────────────────────────────────────────
+
+post_fx "SunnyOutdoor" {
+  lens_flare {
+    intensity: 0.6
+    starburst: true
+    ghost_count: 4
+    ghost_spacing: 0.3
+    halo_radius: 0.5
+    chromatic_aberration: 0.02
+  }
+
+  bloom {
+    intensity: 0.6
+    threshold: 0.9
+    scatter: 0.8
+    tint: #ffffee
+  }
+
+  tone_mapping {
+    mode: "Neutral"
+    exposure: 1.2
+  }
+
+  color_grading {
+    temperature: 6000
+    saturation: 1.1
+    contrast: 1.05
+  }
+}
+
+// ── Composition with Post-Processing Inside ─────────────────────────────────
+
+composition "Post-Processing Demo Room" {
+  environment {
+    skybox: "studio_soft"
+    ambient_light: 0.4
+  }
+
+  // Named post-processing inside composition
+  post_processing "RoomEffects" {
+    bloom {
+      intensity: 0.4
+      threshold: 1.0
+      scatter: 0.5
+    }
+
+    ambient_occlusion {
+      intensity: 1.5
+      radius: 0.4
+    }
+
+    color_grading {
+      saturation: 0.9
+      contrast: 1.1
+      temperature: 5800
+    }
+
+    vignette {
+      intensity: 0.25
+      smoothness: 0.5
+    }
+
+    depth_of_field {
+      aperture: 4.0
+      focal_length: 50
+      focus_distance: 5
+    }
+
+    anti_aliasing {
+      mode: "TAA"
+      sharpness: 0.6
+    }
+  }
+
+  // post_fx variant inside composition
+  post_fx "NightVision" {
+    color_grading {
+      saturation: 0.2
+      contrast: 1.5
+      gain: [0.5, 2.0, 0.5]
+    }
+    vignette {
+      intensity: 0.6
+      color: #002200
+    }
+    film_grain {
+      intensity: 0.3
+      response: 0.5
+    }
+  }
+
+  object "DemoSphere" {
+    geometry: "sphere"
+    position: [0, 1, 0]
+    scale: [1, 1, 1]
+    color: #ff4444
+  }
+
+  point_light "Accent" {
+    position: [2, 3, 1]
+    color: #ffffff
+    intensity: 1.5
+    range: 10
+  }
+}

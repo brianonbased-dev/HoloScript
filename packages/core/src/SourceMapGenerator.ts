@@ -248,6 +248,27 @@ export class SourceMapGenerator {
     }
     return `//# sourceMappingURL=${this.toDataURL()}`;
   }
+
+  /**
+   * v4.2: Add source map entries for a domain block (material, physics, etc.)
+   * Maps each domain block to its original source location in the .holo file.
+   */
+  addDomainBlockMapping(options: {
+    domain: string;
+    blockName: string;
+    source: string;
+    originalLine: number;
+    originalColumn: number;
+    generatedLine: number;
+    generatedColumn: number;
+  }): void {
+    this.addMapping({
+      generated: { line: options.generatedLine, column: options.generatedColumn },
+      original: { line: options.originalLine, column: options.originalColumn },
+      source: options.source,
+      name: `${options.domain}:${options.blockName}`,
+    });
+  }
 }
 
 /**

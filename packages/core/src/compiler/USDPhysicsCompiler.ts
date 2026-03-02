@@ -18,8 +18,9 @@
  * @version 1.0.0
  */
 
-import type {
 import { CompilerBase } from './CompilerBase';
+import { compileDomainBlocks, compilePhysicsBlock, physicsToURDF } from './DomainBlockCompilerMixin';
+import type {
   HoloComposition,
   HoloObjectDecl,
   HoloSpatialGroup,
@@ -445,6 +446,21 @@ export class USDPhysicsCompiler extends CompilerBase {
     for (const joint of this.joints) {
       this.emitJoint(joint);
       this.emitBlank();
+    }
+
+    // v4.2: Process domain blocks for physics
+    const domainBlocks: any[] = (composition as any).domainBlocks ?? [];
+    const physicsBlocks = domainBlocks.filter((b: any) => b.domain === 'physics');
+    if (physicsBlocks.length > 0) {
+      this.emitBlank();
+      this.emit(`# v4.2 Domain Block Physics (URDF cross-reference)`);
+      for (const block of physicsBlocks) {
+        const compiled = compilePhysicsBlock(block);
+        const urdf = physicsToURDF(compiled);
+        for (const line of urdf.split('\n')) {
+          this.emit(`# ${line}`);
+        }
+      }
     }
 
     this.indentLevel--;

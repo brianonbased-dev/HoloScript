@@ -83,6 +83,12 @@ import type {
   HoloSubOrb,
   HoloWhileStatement,
   HoloVariableDeclaration,
+  HoloSpawnGroup,
+  HoloWaypoints,
+  HoloConstraintBlock,
+  HoloTerrainBlock,
+  HoloDomainBlock,
+  HoloDomainType,
 } from './HoloCompositionTypes';
 import { TypoDetector } from './TypoDetector';
 
@@ -194,6 +200,94 @@ type TokenType =
   | 'SHAPE'
   | 'SUB_ORB'
   | 'MIGRATE'
+  // HSPlus language constructs
+  | 'STRUCT'
+  | 'ENUM'
+  | 'INTERFACE'
+  | 'MODULE'
+  | 'EXPORT'
+  | 'FUNCTION'
+  | 'SWITCH'
+  | 'CASE'
+  | 'DEFAULT'
+  | 'BREAK'
+  | 'TRY'
+  | 'CATCH'
+  | 'FINALLY'
+  | 'THROW'
+  | 'NEW'
+  | 'OF'
+  | 'EXTENDS'
+  // Domain-specific block tokens (v4.1 — March 2026)
+  | 'IOT_SENSOR'
+  | 'IOT_DEVICE'
+  | 'IOT_BINDING'
+  | 'IOT_TELEMETRY'
+  | 'IOT_DIGITAL_TWIN'
+  | 'ROBOT_JOINT'
+  | 'ROBOT_ACTUATOR'
+  | 'ROBOT_CONTROLLER'
+  | 'ROBOT_END_EFFECTOR'
+  | 'DATAVIZ_DASHBOARD'
+  | 'DATAVIZ_CHART'
+  | 'DATAVIZ_DATA_SOURCE'
+  | 'DATAVIZ_WIDGET'
+  | 'DATAVIZ_METRIC'
+  | 'EDU_LESSON'
+  | 'EDU_QUIZ'
+  | 'EDU_CURRICULUM'
+  | 'HEALTH_PROCEDURE'
+  | 'HEALTH_PATIENT_MODEL'
+  | 'HEALTH_VITAL_MONITOR'
+  | 'MUSIC_INSTRUMENT'
+  | 'MUSIC_TRACK'
+  | 'MUSIC_SEQUENCE'
+  | 'MUSIC_EFFECT_CHAIN'
+  | 'ARCH_FLOOR_PLAN'
+  | 'ARCH_ROOM'
+  | 'ARCH_BUILDING'
+  | 'ARCH_HVAC'
+  | 'WEB3_CONTRACT'
+  | 'WEB3_TOKEN'
+  | 'WEB3_WALLET'
+  | 'WEB3_MARKETPLACE'
+  | 'WEB3_GOVERNANCE'
+  // Extensible custom block
+  | 'CUSTOM_BLOCK'
+  // Perception & simulation layer (v4.2 — March 2026)
+  | 'MATERIAL'
+  | 'PBR_MATERIAL'
+  | 'UNLIT_MATERIAL'
+  | 'SHADER'
+  | 'COLLIDER'
+  | 'RIGIDBODY'
+  | 'FORCE_FIELD'
+  | 'ARTICULATION'
+  | 'PARTICLES'
+  | 'EMITTER'
+  | 'VFX'
+  | 'POST_PROCESSING'
+  | 'POST_FX'
+  | 'AUDIO_SOURCE'
+  | 'REVERB_ZONE'
+  | 'AMBIENCE'
+  | 'WEATHER'
+  | 'ATMOSPHERE'
+  | 'PROCEDURAL'
+  | 'SCATTER'
+  | 'LOD_BLOCK'
+  | 'RENDER'
+  | 'NAVMESH'
+  | 'NAV_AGENT'
+  | 'BEHAVIOR_TREE'
+  | 'INPUT_BLOCK'
+  | 'INTERACTION'
+  | 'ANNOTATION'
+  // Spatial primitives
+  | 'SPAWN_GROUP'
+  | 'WAYPOINTS'
+  | 'CONSTRAINT'
+  | 'TERRAIN'
   // Comment tokens (skipped by lexer but used in parser guards)
   | 'COMMENT'
   | 'LINE_COMMENT';
@@ -273,6 +367,161 @@ const KEYWORDS: Record<string, TokenType> = {
   shape: 'SHAPE',
   sub_orb: 'SUB_ORB',
   migrate: 'MIGRATE',
+  // HSPlus language constructs
+  struct: 'STRUCT',
+  enum: 'ENUM',
+  interface: 'INTERFACE',
+  module: 'MODULE',
+  export: 'EXPORT',
+  function: 'FUNCTION',
+  switch: 'SWITCH',
+  case: 'CASE',
+  default: 'DEFAULT',
+  break: 'BREAK',
+  try: 'TRY',
+  catch: 'CATCH',
+  finally: 'FINALLY',
+  throw: 'THROW',
+  new: 'NEW',
+  of: 'OF',
+  extends: 'EXTENDS',
+  // Spatial primitives
+  spawn_group: 'SPAWN_GROUP',
+  waypoints: 'WAYPOINTS',
+  constraint: 'CONSTRAINT',
+  terrain: 'TERRAIN',
+  // IoT / Digital Twin
+  sensor: 'IOT_SENSOR',
+  device: 'IOT_DEVICE',
+  binding: 'IOT_BINDING',
+  telemetry_stream: 'IOT_TELEMETRY',
+  digital_twin: 'IOT_DIGITAL_TWIN',
+  data_binding: 'IOT_BINDING',
+  mqtt_source: 'IOT_SENSOR',
+  mqtt_sink: 'IOT_DEVICE',
+  wot_thing: 'IOT_DEVICE',
+  // Robotics
+  joint: 'ROBOT_JOINT',
+  actuator: 'ROBOT_ACTUATOR',
+  controller: 'ROBOT_CONTROLLER',
+  end_effector: 'ROBOT_END_EFFECTOR',
+  kinematics: 'ROBOT_CONTROLLER',
+  gripper: 'ROBOT_END_EFFECTOR',
+  mobile_base: 'ROBOT_CONTROLLER',
+  safety_zone: 'ZONE',
+  path_planner: 'ROBOT_CONTROLLER',
+  // Data Visualization
+  dashboard: 'DATAVIZ_DASHBOARD',
+  chart: 'DATAVIZ_CHART',
+  data_source: 'DATAVIZ_DATA_SOURCE',
+  widget: 'DATAVIZ_WIDGET',
+  panel: 'DATAVIZ_WIDGET',
+  metric: 'DATAVIZ_METRIC',
+  alert_rule: 'DATAVIZ_METRIC',
+  report: 'DATAVIZ_DASHBOARD',
+  // Education
+  lesson: 'EDU_LESSON',
+  quiz: 'EDU_QUIZ',
+  curriculum: 'EDU_CURRICULUM',
+  course: 'EDU_CURRICULUM',
+  assessment: 'EDU_QUIZ',
+  flashcard: 'EDU_LESSON',
+  tutorial: 'EDU_LESSON',
+  lab_experiment: 'EDU_LESSON',
+  exercise: 'EDU_LESSON',
+  // Healthcare
+  procedure: 'HEALTH_PROCEDURE',
+  patient_model: 'HEALTH_PATIENT_MODEL',
+  vital_monitor: 'HEALTH_VITAL_MONITOR',
+  diagnosis: 'HEALTH_PROCEDURE',
+  therapeutic: 'HEALTH_PROCEDURE',
+  surgical_step: 'HEALTH_PROCEDURE',
+  anatomy_layer: 'HEALTH_PATIENT_MODEL',
+  drug_interaction: 'HEALTH_PROCEDURE',
+  // Music
+  instrument: 'MUSIC_INSTRUMENT',
+  track: 'MUSIC_TRACK',
+  sequence: 'MUSIC_SEQUENCE',
+  sample: 'MUSIC_INSTRUMENT',
+  effect_chain: 'MUSIC_EFFECT_CHAIN',
+  mixer: 'MUSIC_EFFECT_CHAIN',
+  midi_map: 'MUSIC_INSTRUMENT',
+  beat_pattern: 'MUSIC_SEQUENCE',
+  chord_progression: 'MUSIC_SEQUENCE',
+  // Architecture
+  floor_plan: 'ARCH_FLOOR_PLAN',
+  room: 'ARCH_ROOM',
+  building: 'ARCH_BUILDING',
+  facade: 'ARCH_BUILDING',
+  structural: 'ARCH_BUILDING',
+  hvac_system: 'ARCH_HVAC',
+  plumbing_system: 'ARCH_BUILDING',
+  electrical_system: 'ARCH_BUILDING',
+  landscape: 'ARCH_BUILDING',
+  // Web3
+  contract: 'WEB3_CONTRACT',
+  token: 'WEB3_TOKEN',
+  wallet: 'WEB3_WALLET',
+  marketplace: 'WEB3_MARKETPLACE',
+  auction: 'WEB3_MARKETPLACE',
+  royalty_split: 'WEB3_CONTRACT',
+  governance: 'WEB3_GOVERNANCE',
+  staking_pool: 'WEB3_CONTRACT',
+  bridge: 'WEB3_CONTRACT',
+  // Perception & simulation layer (v4.2 — March 2026)
+  material: 'MATERIAL',
+  pbr_material: 'PBR_MATERIAL',
+  unlit_material: 'UNLIT_MATERIAL',
+  shader: 'SHADER',
+  collider: 'COLLIDER',
+  rigidbody: 'RIGIDBODY',
+  force_field: 'FORCE_FIELD',
+  gravity_zone: 'FORCE_FIELD',
+  wind_zone: 'FORCE_FIELD',
+  buoyancy_zone: 'FORCE_FIELD',
+  magnetic_field: 'FORCE_FIELD',
+  drag_zone: 'FORCE_FIELD',
+  articulation: 'ARTICULATION',
+  hinge: 'ARTICULATION',
+  ball_socket: 'ARTICULATION',
+  fixed_joint: 'ARTICULATION',
+  d6_joint: 'ARTICULATION',
+  spring_joint: 'ARTICULATION',
+  prismatic: 'ARTICULATION',
+  particles: 'PARTICLES',
+  emitter: 'EMITTER',
+  vfx: 'VFX',
+  particle_system: 'PARTICLES',
+  post_processing: 'POST_PROCESSING',
+  post_fx: 'POST_FX',
+  render_pipeline: 'POST_PROCESSING',
+  audio_source: 'AUDIO_SOURCE',
+  audio_listener: 'AUDIO_SOURCE',
+  reverb_zone: 'REVERB_ZONE',
+  audio_mixer: 'AUDIO_SOURCE',
+  ambience: 'AMBIENCE',
+  sound_emitter: 'AUDIO_SOURCE',
+  weather: 'WEATHER',
+  atmosphere: 'ATMOSPHERE',
+  sky: 'WEATHER',
+  climate: 'WEATHER',
+  procedural: 'PROCEDURAL',
+  generate: 'PROCEDURAL',
+  scatter: 'SCATTER',
+  distribute: 'SCATTER',
+  lod: 'LOD_BLOCK',
+  render: 'RENDER',
+  navmesh: 'NAVMESH',
+  nav_agent: 'NAV_AGENT',
+  behavior_tree: 'BEHAVIOR_TREE',
+  obstacle: 'NAVMESH',
+  nav_link: 'NAVMESH',
+  nav_modifier: 'NAVMESH',
+  crowd_manager: 'NAVMESH',
+  input: 'INPUT_BLOCK',
+  interaction: 'INTERACTION',
+  gesture_profile: 'INPUT_BLOCK',
+  controller_map: 'INPUT_BLOCK',
   true: 'BOOLEAN',
   false: 'BOOLEAN',
   null: 'NULL',
@@ -772,6 +1021,12 @@ export class HoloCompositionParser {
       achievements: [],
       talentTrees: [],
       shapes: [],
+      // v4 additions
+      spawnGroups: [],
+      waypointSets: [],
+      constraints: [],
+      terrains: [],
+      domainBlocks: [],
     };
 
     while (!this.isAtEnd()) {
@@ -834,6 +1089,18 @@ export class HoloCompositionParser {
           composition.achievements.push(this.parseAchievement());
         } else if (this.check('TALENT_TREE')) {
           composition.talentTrees.push(this.parseTalentTree());
+        // Spatial primitives (v4)
+        } else if (this.check('SPAWN_GROUP')) {
+          composition.spawnGroups!.push(this.parseSpawnGroup());
+        } else if (this.check('WAYPOINTS')) {
+          composition.waypointSets!.push(this.parseWaypointsBlock());
+        } else if (this.check('CONSTRAINT')) {
+          composition.constraints!.push(this.parseConstraintBlock());
+        } else if (this.check('TERRAIN')) {
+          composition.terrains!.push(this.parseTerrainBlock());
+        // Domain-specific blocks (v4.1)
+        } else if (this.isDomainBlockToken()) {
+          composition.domainBlocks!.push(this.parseDomainBlock());
         } else if (this.check('COMMENT') || this.check('LINE_COMMENT')) {
           this.advance(); // skip comments
         } else if (this.check('IDENTIFIER') && this.isLightPrimitive(this.current().value)) {
@@ -2138,6 +2405,24 @@ export class HoloCompositionParser {
       } else if (this.check('STATE')) {
         // Handle state block in object
         state = this.parseState();
+      } else if (this.isDomainBlockToken()) {
+        // Structured physics sub-blocks directly inside objects:
+        // collider box { ... }, rigidbody { ... }, force_field "name" { ... }, articulation "name" { ... }
+        const domainBlock = this.parseDomainBlock();
+        directives.push({ type: 'domainBlock', domain: domainBlock.domain, block: domainBlock });
+      } else if (
+        this.check('IDENTIFIER') &&
+        this.current().value === 'physics' &&
+        (this.peek(1).type === 'LBRACE' || this.peek(1).type === 'COLON' && this.peek(2).type === 'LBRACE')
+      ) {
+        // Structured physics block: physics { collider { ... } rigidbody { ... } ... }
+        // Also supports legacy: physics: { mass: 0.5 } (colon + flat object)
+        const key = this.advance().value; // consume 'physics'
+        const hasColon = this.check('COLON');
+        if (hasColon) this.advance(); // consume optional ':'
+        // Parse the block body — may contain sub-blocks or flat properties
+        const physicsValue = this.parseValue();
+        properties.push({ type: 'ObjectProperty', key, value: physicsValue });
       } else if (this.isPropertyName()) {
         // Handle identifier or keyword as property name
         const key = this.advance().value;
@@ -3154,6 +3439,11 @@ export class HoloCompositionParser {
       'STATE',
       'OBJECT',
       'ON_ERROR',
+      // Structured physics sub-block keywords (can also appear as property names)
+      'COLLIDER',
+      'RIGIDBODY',
+      'FORCE_FIELD',
+      'ARTICULATION',
     ];
     return validPropertyKeywords.includes(type);
   }
@@ -4361,6 +4651,267 @@ export class HoloCompositionParser {
       name,
       shapeType,
       properties,
+    };
+  }
+
+  // ===========================================================================
+  // SPATIAL PRIMITIVES (v4 — March 2026)
+  // ===========================================================================
+
+  private parseSpawnGroup(): HoloSpawnGroup {
+    this.pushContext('spawn-group');
+    this.advance(); // consume 'spawn_group'
+    const name = this.expectString();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      const value = this.parseValue();
+      properties[key] = value;
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+    this.expect('RBRACE');
+    this.popContext();
+    return { type: 'SpawnGroup', name, properties };
+  }
+
+  private parseWaypointsBlock(): HoloWaypoints {
+    this.pushContext('waypoints');
+    this.advance(); // consume 'waypoints'
+    const name = this.expectString();
+    const points = this.parseValue(); // expects array literal
+    this.popContext();
+    return { type: 'Waypoints', name, points };
+  }
+
+  private parseConstraintBlock(): HoloConstraintBlock {
+    this.pushContext('constraint');
+    this.advance(); // consume 'constraint'
+    const name = this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      const value = this.parseValue();
+      properties[key] = value;
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+    this.expect('RBRACE');
+    this.popContext();
+    return { type: 'Constraint', name, properties };
+  }
+
+  private parseTerrainBlock(): HoloTerrainBlock {
+    this.pushContext('terrain');
+    this.advance(); // consume 'terrain'
+    const name = this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      const value = this.parseValue();
+      properties[key] = value;
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+    this.expect('RBRACE');
+    this.popContext();
+    return { type: 'Terrain', name, properties };
+  }
+
+  // ===========================================================================
+  // DOMAIN-SPECIFIC BLOCKS (v4.1 — March 2026)
+  // ===========================================================================
+
+  /** Domain block token type set */
+  private static readonly DOMAIN_TOKENS: Set<TokenType> = new Set([
+    // Original 8 domain blocks
+    'IOT_SENSOR', 'IOT_DEVICE', 'IOT_BINDING', 'IOT_TELEMETRY', 'IOT_DIGITAL_TWIN',
+    'ROBOT_JOINT', 'ROBOT_ACTUATOR', 'ROBOT_CONTROLLER', 'ROBOT_END_EFFECTOR',
+    'DATAVIZ_DASHBOARD', 'DATAVIZ_CHART', 'DATAVIZ_DATA_SOURCE', 'DATAVIZ_WIDGET', 'DATAVIZ_METRIC',
+    'EDU_LESSON', 'EDU_QUIZ', 'EDU_CURRICULUM',
+    'HEALTH_PROCEDURE', 'HEALTH_PATIENT_MODEL', 'HEALTH_VITAL_MONITOR',
+    'MUSIC_INSTRUMENT', 'MUSIC_TRACK', 'MUSIC_SEQUENCE', 'MUSIC_EFFECT_CHAIN',
+    'ARCH_FLOOR_PLAN', 'ARCH_ROOM', 'ARCH_BUILDING', 'ARCH_HVAC',
+    'WEB3_CONTRACT', 'WEB3_TOKEN', 'WEB3_WALLET', 'WEB3_MARKETPLACE', 'WEB3_GOVERNANCE',
+    // Perception & simulation layer
+    'MATERIAL', 'PBR_MATERIAL', 'UNLIT_MATERIAL', 'SHADER',
+    'COLLIDER', 'RIGIDBODY', 'FORCE_FIELD', 'ARTICULATION',
+    'PARTICLES', 'EMITTER', 'VFX',
+    'POST_PROCESSING', 'POST_FX',
+    'AUDIO_SOURCE', 'REVERB_ZONE', 'AMBIENCE',
+    'WEATHER', 'ATMOSPHERE',
+    'PROCEDURAL', 'SCATTER',
+    'LOD_BLOCK', 'RENDER',
+    'NAVMESH', 'NAV_AGENT', 'BEHAVIOR_TREE',
+    'INPUT_BLOCK', 'INTERACTION',
+  ]);
+
+  /** Token → domain type mapping */
+  private static readonly TOKEN_DOMAIN_MAP: Record<string, HoloDomainType> = {
+    // Original 8 domains
+    IOT_SENSOR: 'iot', IOT_DEVICE: 'iot', IOT_BINDING: 'iot',
+    IOT_TELEMETRY: 'iot', IOT_DIGITAL_TWIN: 'iot',
+    ROBOT_JOINT: 'robotics', ROBOT_ACTUATOR: 'robotics',
+    ROBOT_CONTROLLER: 'robotics', ROBOT_END_EFFECTOR: 'robotics',
+    DATAVIZ_DASHBOARD: 'dataviz', DATAVIZ_CHART: 'dataviz',
+    DATAVIZ_DATA_SOURCE: 'dataviz', DATAVIZ_WIDGET: 'dataviz', DATAVIZ_METRIC: 'dataviz',
+    EDU_LESSON: 'education', EDU_QUIZ: 'education', EDU_CURRICULUM: 'education',
+    HEALTH_PROCEDURE: 'healthcare', HEALTH_PATIENT_MODEL: 'healthcare',
+    HEALTH_VITAL_MONITOR: 'healthcare',
+    MUSIC_INSTRUMENT: 'music', MUSIC_TRACK: 'music',
+    MUSIC_SEQUENCE: 'music', MUSIC_EFFECT_CHAIN: 'music',
+    ARCH_FLOOR_PLAN: 'architecture', ARCH_ROOM: 'architecture',
+    ARCH_BUILDING: 'architecture', ARCH_HVAC: 'architecture',
+    WEB3_CONTRACT: 'web3', WEB3_TOKEN: 'web3', WEB3_WALLET: 'web3',
+    WEB3_MARKETPLACE: 'web3', WEB3_GOVERNANCE: 'web3',
+    // Perception & simulation layer
+    MATERIAL: 'material', PBR_MATERIAL: 'material', UNLIT_MATERIAL: 'material', SHADER: 'material',
+    COLLIDER: 'physics', RIGIDBODY: 'physics', FORCE_FIELD: 'physics', ARTICULATION: 'physics',
+    PARTICLES: 'vfx', EMITTER: 'vfx', VFX: 'vfx',
+    POST_PROCESSING: 'postfx', POST_FX: 'postfx',
+    AUDIO_SOURCE: 'audio', REVERB_ZONE: 'audio', AMBIENCE: 'audio',
+    WEATHER: 'weather', ATMOSPHERE: 'weather',
+    PROCEDURAL: 'procedural', SCATTER: 'procedural',
+    LOD_BLOCK: 'rendering', RENDER: 'rendering',
+    NAVMESH: 'navigation', NAV_AGENT: 'navigation', BEHAVIOR_TREE: 'navigation',
+    INPUT_BLOCK: 'input', INTERACTION: 'input',
+  };
+
+  /** Check if current token is a domain block token */
+  private isDomainBlockToken(): boolean {
+    return HoloCompositionParser.DOMAIN_TOKENS.has(this.current().type);
+  }
+
+  /** Check if value is a light primitive shorthand */
+  private isLightPrimitive(value: string): boolean {
+    return LIGHT_PRIMITIVES.has(value);
+  }
+
+  /**
+   * Unified parser for all domain-specific blocks.
+   * Pattern: KEYWORD NAME @trait1 @trait2 { properties... }
+   */
+  private parseDomainBlock(): HoloDomainBlock {
+    const token = this.current();
+    const keyword = token.value; // Original keyword (e.g. "sensor", "joint")
+    const domain = HoloCompositionParser.TOKEN_DOMAIN_MAP[token.type] || 'custom';
+
+    this.pushContext(`domain-${domain}`);
+    this.advance(); // consume domain keyword
+
+    // Parse name (string or identifier)
+    let name = 'unnamed';
+    if (this.check('STRING')) {
+      name = this.expectString();
+    } else if (this.check('IDENTIFIER')) {
+      name = this.expectIdentifier();
+    }
+
+    // Parse optional inline traits (@trait1 @trait2)
+    const traits: string[] = [];
+    while (this.check('AT')) {
+      this.advance(); // @
+      if (this.check('IDENTIFIER') || this.current().type !== 'EOF') {
+        traits.push(this.current().value);
+        this.advance();
+        // Handle trait with body: @trait { config }
+        if (this.check('LBRACE')) {
+          this.skipBlock(); // skip trait config block for now
+        }
+      }
+    }
+
+    // Parse body { properties... }
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    const children: HoloObjectDecl[] = [];
+    const eventHandlers: HoloEventHandler[] = [];
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      // Nested objects
+      if (this.check('OBJECT') || (this.check('IDENTIFIER') && PRIMITIVE_SHAPES.has(this.current().value))) {
+        children.push(this.parseObject());
+      }
+      // Event handlers
+      else if (this.check('IDENTIFIER') && this.current().value.startsWith('on')) {
+        const evtName = this.current().value;
+        // Peek ahead: if followed by ( or { it's an event handler
+        if (this.tokens[this.pos + 1]?.type === 'LPAREN' || this.tokens[this.pos + 1]?.type === 'LBRACE') {
+          this.advance(); // consume event name
+          // Simple event handler: skip parameters and body
+          if (this.check('LPAREN')) {
+            this.advance(); // (
+            const params: HoloParameter[] = [];
+            while (!this.check('RPAREN') && !this.isAtEnd()) {
+              const paramName = this.expectIdentifier();
+              params.push({ type: 'Parameter', name: paramName });
+              if (this.check('COMMA')) this.advance();
+            }
+            this.expect('RPAREN');
+          }
+          if (this.check('LBRACE')) {
+            this.skipBlock();
+          }
+          eventHandlers.push({
+            type: 'EventHandler',
+            event: evtName,
+            parameters: [],
+            body: [],
+          });
+        } else {
+          // Regular property
+          const key = this.expectIdentifier();
+          this.expect('COLON');
+          const value = this.parseValue();
+          properties[key] = value;
+        }
+      }
+      // Regular property
+      else {
+        const key = this.expectIdentifier();
+        this.expect('COLON');
+        const value = this.parseValue();
+        properties[key] = value;
+      }
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+
+    return {
+      type: 'DomainBlock',
+      domain,
+      keyword,
+      name,
+      traits,
+      properties,
+      children: children.length > 0 ? children : undefined,
+      eventHandlers: eventHandlers.length > 0 ? eventHandlers : undefined,
     };
   }
 }

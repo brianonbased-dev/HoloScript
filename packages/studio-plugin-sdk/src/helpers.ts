@@ -3,6 +3,7 @@
  */
 
 import type { HoloScriptPlugin, PluginMetadata, CustomNodeType, CustomPanel } from './types.js';
+import type { PluginSandboxManifest, SandboxPermission } from './sandbox/types.js';
 
 /**
  * Create a plugin with type-safe builder pattern
@@ -253,4 +254,197 @@ export function mergePlugins(plugins: HoloScriptPlugin[]): HoloScriptPlugin {
   }
 
   return merged;
+}
+
+// ── Sandbox Helpers ───────────────────────────────────────────────────────────
+
+/**
+ * Create a sandboxed plugin definition.
+ * Ensures the sandbox manifest is included and validates permissions.
+ *
+ * @example
+ * ```typescript
+ * export const myPlugin = createSandboxedPlugin({
+ *   metadata: {
+ *     id: 'my-safe-plugin',
+ *     name: 'My Safe Plugin',
+ *     version: '1.0.0',
+ *     description: 'Runs safely in a sandbox',
+ *     author: { name: 'Plugin Dev' },
+ *   },
+ *   sandbox: {
+ *     permissions: ['scene:read', 'ui:panel', 'storage:local'],
+ *     networkPolicy: {
+ *       allowedDomains: ['api.example.com'],
+ *     },
+ *   },
+ * });
+ * ```
+ */
+export function createSandboxedPlugin(
+  plugin: HoloScriptPlugin & { sandbox: PluginSandboxManifest },
+): HoloScriptPlugin {
+  // Ensure trust level defaults to sandboxed
+  if (!plugin.sandbox.trustLevel) {
+    plugin.sandbox.trustLevel = 'sandboxed';
+  }
+  return plugin;
+}
+
+/**
+ * Validates a plugin's sandbox manifest.
+ *
+ * Checks for:
+ * - Valid permission names
+ * - Network policy presence when network permissions are requested
+ * - Consistency between manifest and plugin extensions
+ */
+export function validateSandboxManifest(
+  manifest: PluginSandboxManifest,
+  plugin?: HoloScriptPlugin,
+): { valid: boolean; errors: string[]; warnings: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Valid permissions list
+  const validPermissions: SandboxPermission[] = [
+    'scene:read', 'scene:write', 'scene:subscribe',
+    'editor:selection', 'editor:viewport', 'editor:undo',
+    'ui:panel', 'ui:toolbar', 'ui:menu', 'ui:modal', 'ui:notification', 'ui:theme',
+    'storage:local', 'storage:project',
+    'network:fetch', 'network:websocket',
+    'clipboard:read', 'clipboard:write',
+    'fs:import', 'fs:export',
+    'user:read',
+    'nodes:workflow', 'nodes:behaviortree',
+    'keyboard:shortcuts',
+  ];
+
+  // Validate permissions
+  if (!manifest.permissions || manifest.permissions.length === 0) {
+    errors.push('Sandbox manifest must declare at least one permission');
+  } else {
+    for (const perm of manifest.permissions) {
+      if (!validPermissions.includes(perm)) {
+        errors.push(`Unknown permission: '${perm}'`);
+      }
+    }
+  }
+
+  // Check network policy
+  if (
+    manifest.permissions?.includes('network:fetch') ||
+    manifest.permissions?.includes('network:websocket')
+  ) {
+    if (!manifest.networkPolicy) {
+      errors.push('Network policy is required when requesting network:fetch or network:websocket permission');
+    } else if (
+      !manifest.networkPolicy.allowedDomains ||
+      manifest.networkPolicy.allowedDomains.length === 0
+    ) {
+      errors.push('Network policy must specify at least one allowed domain');
+    }
+  }
+
+  // Validate resource budgets
+  if (manifest.memoryBudget !== undefined && manifest.memoryBudget <= 0) {
+    errors.push('Memory budget must be a positive number');
+  }
+  if (manifest.cpuBudget !== undefined && manifest.cpuBudget <= 0) {
+    errors.push('CPU budget must be a positive number');
+  }
+
+  // Cross-validate with plugin extensions (if plugin provided)
+  if (plugin) {
+    if (plugin.panels && plugin.panels.length > 0 && !manifest.permissions?.includes('ui:panel')) {
+      warnings.push("Plugin declares panels but doesn't request 'ui:panel' permission");
+    }
+    if (plugin.toolbarButtons && plugin.toolbarButtons.length > 0 && !manifest.permissions?.includes('ui:toolbar')) {
+      warnings.push("Plugin declares toolbar buttons but doesn't request 'ui:toolbar' permission");
+    }
+    if (plugin.keyboardShortcuts && plugin.keyboardShortcuts.length > 0 && !manifest.permissions?.includes('keyboard:shortcuts')) {
+      warnings.push("Plugin declares keyboard shortcuts but doesn't request 'keyboard:shortcuts' permission");
+    }
+    if (plugin.menuItems && plugin.menuItems.length > 0 && !manifest.permissions?.includes('ui:menu')) {
+      warnings.push("Plugin declares menu items but doesn't request 'ui:menu' permission");
+    }
+    if (plugin.nodeTypes?.workflow && plugin.nodeTypes.workflow.length > 0 && !manifest.permissions?.includes('nodes:workflow')) {
+      warnings.push("Plugin declares workflow nodes but doesn't request 'nodes:workflow' permission");
+    }
+    if (plugin.nodeTypes?.behaviorTree && plugin.nodeTypes.behaviorTree.length > 0 && !manifest.permissions?.includes('nodes:behaviortree')) {
+      warnings.push("Plugin declares behavior tree nodes but doesn't request 'nodes:behaviortree' permission");
+    }
+    if (plugin.mcpServers && plugin.mcpServers.length > 0 && !manifest.permissions?.includes('network:fetch')) {
+      warnings.push("Plugin declares MCP servers but doesn't request 'network:fetch' permission");
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Checks if a plugin requires sandboxing.
+ *
+ * A plugin requires sandboxing when:
+ * - It declares a sandbox manifest, OR
+ * - It is from an untrusted source (no signing)
+ *
+ * A plugin can opt out of sandboxing when:
+ * - It has trustLevel: 'trusted' AND
+ * - It is digitally signed by a trusted publisher
+ */
+export function requiresSandboxing(plugin: HoloScriptPlugin): boolean {
+  // Explicitly sandboxed
+  if (plugin.sandbox) {
+    return plugin.sandbox.trustLevel !== 'trusted';
+  }
+
+  // No sandbox manifest = legacy trusted plugin (backward compat)
+  return false;
+}
+
+/**
+ * Generates the minimum required permissions for a plugin based on its
+ * declared extensions (panels, nodes, buttons, etc.).
+ *
+ * Useful for auto-generating a manifest from an existing plugin definition.
+ */
+export function inferPermissions(plugin: HoloScriptPlugin): SandboxPermission[] {
+  const permissions: Set<SandboxPermission> = new Set();
+
+  if (plugin.panels && plugin.panels.length > 0) {
+    permissions.add('ui:panel');
+  }
+  if (plugin.toolbarButtons && plugin.toolbarButtons.length > 0) {
+    permissions.add('ui:toolbar');
+  }
+  if (plugin.menuItems && plugin.menuItems.length > 0) {
+    permissions.add('ui:menu');
+  }
+  if (plugin.keyboardShortcuts && plugin.keyboardShortcuts.length > 0) {
+    permissions.add('keyboard:shortcuts');
+  }
+  if (plugin.nodeTypes?.workflow && plugin.nodeTypes.workflow.length > 0) {
+    permissions.add('nodes:workflow');
+  }
+  if (plugin.nodeTypes?.behaviorTree && plugin.nodeTypes.behaviorTree.length > 0) {
+    permissions.add('nodes:behaviortree');
+  }
+  if (plugin.mcpServers && plugin.mcpServers.length > 0) {
+    permissions.add('network:fetch');
+  }
+  if (plugin.contentTypes && plugin.contentTypes.length > 0) {
+    // Content types may need file I/O
+    permissions.add('fs:import');
+    permissions.add('fs:export');
+  }
+  if (plugin.settingsSchema && plugin.settingsSchema.length > 0) {
+    permissions.add('storage:local');
+  }
+
+  return Array.from(permissions);
 }

@@ -57,6 +57,32 @@
 (component
   name: (identifier) @name) @definition.field
 
+; Material definitions
+(material_block
+  name: (string) @name) @definition.class
+
+(material_block
+  name: (identifier) @name) @definition.class
+
+; Physics sub-block definitions
+(force_field_block
+  name: (string) @name) @definition.variable
+
+(force_field_block
+  name: (identifier) @name) @definition.variable
+
+(articulation_block
+  name: (string) @name) @definition.class
+
+(articulation_block
+  name: (identifier) @name) @definition.class
+
+(joint_block
+  name: (string) @name) @definition.field
+
+(joint_block
+  name: (identifier) @name) @definition.field
+
 ; =============================================================================
 ; REFERENCES
 ; =============================================================================

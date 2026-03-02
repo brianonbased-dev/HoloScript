@@ -11,6 +11,11 @@
  *     unchanged subtrees (O(edit-size) instead of O(file-size)).
  *   - Error nodes (node.hasError / node.isError / node.isMissing) are
  *     extracted as LSP Diagnostics with accurate ranges.
+ *
+ * Backend strategy (automatic fallback):
+ *   1. Native tree-sitter + tree-sitter-holoscript C++ binding (fastest)
+ *   2. web-tree-sitter + tree-sitter-holoscript.wasm (portable fallback)
+ *   3. Graceful degradation (parser disabled, all methods return null/empty)
  */
 
 import type Parser from 'tree-sitter';
@@ -57,14 +62,40 @@ export class TreeSitterManager {
   private language: unknown = null;
   private documents = new Map<string, DocumentState>();
   private _ready = false;
+  private _backend: 'native' | 'wasm' | 'none' = 'none';
 
   /**
    * Initialize tree-sitter with the HoloScript grammar.
-   * Call once during server startup. If the native binding is unavailable
-   * (e.g. missing prebuild) the manager gracefully degrades -- all public
-   * methods become no-ops and `isReady()` returns false.
+   * Call once during server startup.
+   *
+   * Loading strategy (automatic fallback):
+   *   1. Try native tree-sitter + tree-sitter-holoscript C++ binding
+   *   2. Fall back to web-tree-sitter + tree-sitter-holoscript.wasm
+   *   3. Graceful degradation (all public methods become no-ops)
    */
   async initialize(): Promise<boolean> {
+    // ── Attempt 1: Native C++ binding (fastest) ────────────────────────────
+    if (await this.initializeNative()) {
+      return true;
+    }
+
+    // ── Attempt 2: WASM fallback (portable) ────────────────────────────────
+    if (await this.initializeWasm()) {
+      return true;
+    }
+
+    // ── Both failed ────────────────────────────────────────────────────────
+    console.error(
+      '[TreeSitter] Neither native nor WASM backend available. ' +
+      'Parser features disabled (non-fatal).',
+    );
+    return false;
+  }
+
+  /**
+   * Try to initialize using the native tree-sitter C++ binding.
+   */
+  private async initializeNative(): Promise<boolean> {
     try {
       // Dynamic require so the server still starts when tree-sitter
       // native bindings are not compiled for this platform.
@@ -73,8 +104,10 @@ export class TreeSitterManager {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const HoloScriptModule = require('tree-sitter-holoscript');
 
-      if (!HoloScriptModule) {
-        console.error('[TreeSitter] tree-sitter-holoscript binding returned null');
+      if (!HoloScriptModule || HoloScriptModule.isWasm === null) {
+        // Module loaded but native binding failed (isWasm === null means
+        // native failed and WASM not yet attempted)
+        console.error('[TreeSitter] tree-sitter-holoscript native binding not available');
         return false;
       }
 
@@ -86,11 +119,52 @@ export class TreeSitterManager {
       this.parser = p;
       this.language = HoloScriptModule;
       this._ready = true;
-      console.error('[TreeSitter] Initialized successfully');
+      this._backend = 'native';
+      console.error('[TreeSitter] Initialized successfully (native backend)');
       return true;
     } catch (err) {
       console.error(
-        `[TreeSitter] Initialization failed (non-fatal): ${err instanceof Error ? err.message : err}`,
+        `[TreeSitter] Native initialization failed: ${err instanceof Error ? err.message : err}`,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Try to initialize using web-tree-sitter WASM runtime as fallback.
+   * This is slower than native (~10x) but works on all platforms.
+   */
+  private async initializeWasm(): Promise<boolean> {
+    try {
+      console.error('[TreeSitter] Attempting WASM fallback...');
+
+      // Try loading via the tree-sitter-holoscript async WASM loader
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const HoloScriptModule = require('tree-sitter-holoscript');
+
+      if (HoloScriptModule && typeof HoloScriptModule.initWasm === 'function') {
+        const { parser, language } = await HoloScriptModule.initWasm();
+        this.parser = parser;
+        this.language = language;
+        this._ready = true;
+        this._backend = 'wasm';
+        console.error('[TreeSitter] Initialized successfully (WASM fallback backend)');
+        return true;
+      }
+
+      // Direct web binding import as last resort
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const webBinding = require('tree-sitter-holoscript/wasm');
+      const { parser, language } = await webBinding.initHoloScript();
+      this.parser = parser;
+      this.language = language;
+      this._ready = true;
+      this._backend = 'wasm';
+      console.error('[TreeSitter] Initialized successfully (WASM direct backend)');
+      return true;
+    } catch (err) {
+      console.error(
+        `[TreeSitter] WASM fallback failed: ${err instanceof Error ? err.message : err}`,
       );
       return false;
     }
@@ -99,6 +173,11 @@ export class TreeSitterManager {
   /** Whether tree-sitter is available for use */
   isReady(): boolean {
     return this._ready && this.parser !== null;
+  }
+
+  /** Which backend is active: 'native', 'wasm', or 'none' */
+  getBackend(): 'native' | 'wasm' | 'none' {
+    return this._backend;
   }
 
   // ─── Document lifecycle ────────────────────────────────────────────────────

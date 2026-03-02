@@ -97,6 +97,16 @@
 (object
   template: (string) @reference)
 
+; Material block scopes
+(material_block) @scope
+
+; Material block definitions
+(material_block
+  name: (string) @definition.type)
+
+(material_block
+  name: (identifier) @definition.type)
+
 ; =============================================================================
 ; SPECIAL SCOPES
 ; =============================================================================

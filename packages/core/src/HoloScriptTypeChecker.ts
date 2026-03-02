@@ -205,6 +205,18 @@ const BUILTIN_FUNCTIONS: Map<string, TypeInfo> = new Map([
     'isArray',
     { type: 'function', parameters: [{ name: 'value', type: 'any' }], returnType: 'boolean' },
   ],
+  // Simulation built-in functions (v4.2)
+  ['createCollider', { type: 'function', parameters: [{ name: 'shape', type: 'string' }, { name: 'config', type: 'object' }], returnType: 'object' }],
+  ['createRigidbody', { type: 'function', parameters: [{ name: 'mass', type: 'number' }, { name: 'config', type: 'object' }], returnType: 'object' }],
+  ['createMaterial', { type: 'function', parameters: [{ name: 'name', type: 'string' }, { name: 'preset', type: 'string' }], returnType: 'object' }],
+  ['createParticleSystem', { type: 'function', parameters: [{ name: 'config', type: 'object' }], returnType: 'object' }],
+  ['applyForce', { type: 'function', parameters: [{ name: 'target', type: 'orb' }, { name: 'force', type: 'vec3' }], returnType: 'void' }],
+  ['raycast', { type: 'function', parameters: [{ name: 'origin', type: 'vec3' }, { name: 'direction', type: 'vec3' }, { name: 'maxDistance', type: 'number' }], returnType: 'object' }],
+  ['playAudio', { type: 'function', parameters: [{ name: 'clip', type: 'string' }, { name: 'config', type: 'object' }], returnType: 'void' }],
+  ['setWeather', { type: 'function', parameters: [{ name: 'preset', type: 'string' }], returnType: 'void' }],
+  ['generateTerrain', { type: 'function', parameters: [{ name: 'config', type: 'object' }], returnType: 'object' }],
+  ['navigate', { type: 'function', parameters: [{ name: 'agent', type: 'orb' }, { name: 'target', type: 'vec3' }], returnType: 'void' }],
+  ['distance', { type: 'function', parameters: [{ name: 'a', type: 'vec3' }, { name: 'b', type: 'vec3' }], returnType: 'number' }],
 ]);
 
 export class HoloScriptTypeChecker {

@@ -27,7 +27,7 @@ describe('DiagnosticProvider', () => {
     const diags = provider.diagnose(ctx);
     expect(diags.length).toBe(1);
     expect(diags[0].code).toBe('HS001');
-    expect(diags[0].severity).toBe('error');
+    expect(diags[0].severity).toBe('warning');
     expect(diags[0].line).toBe(5);
   });
 

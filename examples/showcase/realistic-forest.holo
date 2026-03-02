@@ -1,0 +1,434 @@
+// ============================================================================
+// HoloScript Simulation Showcase — Testing All 12 Perception Constructs
+// Demonstrates: materials, physics, particles, post-fx, audio, weather,
+// procedural, LOD, navigation, input, render hints, annotations
+// ============================================================================
+
+composition "RealisticForest" {
+
+  environment {
+    skybox: "hdri/forest_clearing.hdr"
+    ambient_light: 0.3
+    gravity: [0, -9.81, 0]
+  }
+
+  // ── P0: Materials ──────────────────────────────────────────────────────────
+
+  material "ForestGround" @pbr {
+    baseColor: "#5d4037"
+    roughness: 0.85
+    metallic: 0.0
+    albedo_map: "textures/ground_albedo.png"
+    normal_map: "textures/ground_normal.png"
+    ao_map: "textures/ground_ao.png"
+    height_map: "textures/ground_height.png"
+    tiling: [4.0, 4.0]
+    displacement_strength: 0.15
+  }
+
+  pbr_material "TreeBark" {
+    baseColor: "#8B6914"
+    roughness: 0.92
+    metallic: 0.0
+    albedo_map: "textures/bark_albedo.png"
+    normal_map: "textures/bark_normal.png"
+    roughness_map: "textures/bark_roughness.png"
+  }
+
+  pbr_material "Water" {
+    baseColor: "#1a5276"
+    roughness: 0.05
+    metallic: 0.0
+    opacity: 0.7
+    ior: 1.33
+    subsurface: 0.2
+    emission_map: "textures/water_caustics.png"
+  }
+
+  unlit_material "CampfireGlow" {
+    emissive_color: "#ff6600"
+    emissive_intensity: 5.0
+  }
+
+  // ── P0: Structured Physics ─────────────────────────────────────────────────
+
+  object "Boulder" @physics {
+    position: [12, 3, -5]
+    material: "ForestGround"
+    model: "models/boulder.glb"
+
+    collider mesh {
+      convex: true
+      friction: 0.8
+      restitution: 0.1
+    }
+
+    rigidbody {
+      mass: 500
+      angular_damping: 0.95
+      linear_damping: 0.1
+      use_gravity: true
+      freeze_rotation: [false, false, false]
+    }
+  }
+
+  force_field "ForestWind" @animated {
+    type: "directional"
+    direction: [0.7, 0.1, 0.3]
+    strength: 2.5
+    turbulence: 0.6
+    falloff: "linear"
+  }
+
+  articulation "WoodenBridge" @physics {
+    type: "chain"
+    stiffness: 0.5
+
+    hinge "Plank1" {
+      connected_body: "Post_A"
+      axis: [1, 0, 0]
+      limits: [-15, 15]
+      damping: 0.8
+    }
+
+    hinge "Plank2" {
+      connected_body: "Plank1"
+      axis: [1, 0, 0]
+      limits: [-15, 15]
+      damping: 0.8
+    }
+
+    spring_joint "Rope1" {
+      connected_body: "Post_B"
+      spring_force: 200
+      damper: 50
+      break_force: 1000
+    }
+  }
+
+  // ── P1: Particle / VFX System ──────────────────────────────────────────────
+
+  particles "CampfireSmoke" @looping {
+    max_particles: 500
+    duration: -1
+    world_space: true
+
+    emission {
+      rate: 80
+      bursts: [[0, 20], [1.5, 30]]
+    }
+
+    lifetime {
+      min: 2.0
+      max: 5.0
+    }
+
+    velocity {
+      direction: [0, 1, 0]
+      speed: [1.0, 3.0]
+      cone_angle: 25
+    }
+
+    color_over_life {
+      gradient: [
+        [0.0, "#ff6600"],
+        [0.3, "#888888"],
+        [1.0, "#33333300"]
+      ]
+    }
+
+    size_over_life {
+      curve: [[0.0, 0.1], [0.5, 0.8], [1.0, 1.5]]
+    }
+
+    noise {
+      strength: 0.5
+      frequency: 2.0
+      scroll_speed: 0.3
+    }
+
+    renderer {
+      mode: "billboard"
+      blend: "additive"
+      texture: "textures/smoke_sheet.png"
+      sorting: "by_distance"
+    }
+  }
+
+  vfx "Fireflies" @looping {
+    max_particles: 200
+    emission { rate: 15 }
+    lifetime { min: 3.0 max: 8.0 }
+    color_over_life { gradient: [[0.0, "#00ff0000"], [0.2, "#88ff44"], [0.8, "#88ff44"], [1.0, "#00ff0000"]] }
+    size_over_life { curve: [[0.0, 0.02], [0.5, 0.05], [1.0, 0.02]] }
+    noise { strength: 2.0 frequency: 0.5 }
+    renderer { mode: "billboard" blend: "additive" }
+  }
+
+  // ── P1: Post-Processing Pipeline ───────────────────────────────────────────
+
+  post_processing "ForestAtmosphere" {
+    bloom {
+      intensity: 0.4
+      threshold: 0.8
+      radius: 4
+      anamorphic_ratio: 0.0
+    }
+
+    ambient_occlusion {
+      intensity: 1.2
+      radius: 0.5
+      quality: "high"
+    }
+
+    color_grading {
+      temperature: 5800
+      tint: -5
+      saturation: 1.1
+      contrast: 1.05
+      lift: [0.01, 0.01, 0.02]
+      gamma: [1.0, 1.0, 0.98]
+      gain: [1.0, 1.0, 1.02]
+      lut: "luts/forest_warm.png"
+    }
+
+    depth_of_field {
+      focal_distance: 15
+      aperture: 5.6
+      focal_length: 50
+      bokeh_shape: "circular"
+    }
+
+    volumetric_fog {
+      density: 0.02
+      scattering: 0.7
+      color: "#c8d6e5"
+      height_falloff: 0.5
+      max_distance: 100
+    }
+
+    tone_mapping {
+      mode: "aces"
+      exposure: 1.0
+    }
+
+    film_grain {
+      intensity: 0.15
+      size: 1.8
+      luminance_contribution: 0.8
+    }
+  }
+
+  // ── P1: Spatial Audio ──────────────────────────────────────────────────────
+
+  audio_source "StreamWater" @spatial @hrtf {
+    clip: "audio/stream_loop.ogg"
+    volume: 0.6
+    loop: true
+    spatialization: "hrtf"
+    attenuation: "logarithmic"
+    min_distance: 1
+    max_distance: 40
+    doppler: false
+    occlusion: true
+    position: [5, 0, -8]
+  }
+
+  reverb_zone "ForestReverb" {
+    min_distance: 5
+    max_distance: 50
+    early_reflections: 0.4
+    late_reverb: 0.6
+    decay_time: 2.5
+    room_size: "large"
+    diffusion: 0.8
+  }
+
+  ambience "BirdSong" {
+    clips: ["audio/robin.ogg", "audio/wren.ogg", "audio/woodpecker.ogg"]
+    interval: [5, 20]
+    volume: [0.2, 0.5]
+    spatial: false
+    random_pitch: [0.9, 1.1]
+  }
+
+  // ── P2: Weather & Atmosphere ───────────────────────────────────────────────
+
+  weather "ForestWeather" @dynamic {
+    cycle_duration: 600
+
+    time_of_day {
+      hour: 14.5
+      latitude: 45.0
+      sun_intensity: 1.2
+      shadow_softness: 0.8
+    }
+
+    clouds {
+      coverage: 0.4
+      type: "cumulus"
+      speed: 0.02
+      altitude: 3000
+      color: "#ffffff"
+    }
+
+    wind {
+      direction: [0.7, 0, 0.3]
+      speed: 3.5
+      gusts: 1.5
+      gust_frequency: 0.3
+    }
+
+    fog_layer {
+      density: 0.005
+      height: 2.0
+      falloff: "exponential"
+      color: "#d5dfe6"
+    }
+
+    rain {
+      intensity: 0.0
+      splash_particles: true
+      wet_surfaces: true
+      puddle_threshold: 0.5
+    }
+  }
+
+  // ── P2: Procedural Generation ──────────────────────────────────────────────
+
+  procedural "ForestTerrain" @seed(42) {
+    resolution: [512, 512]
+    world_size: [500, 500]
+
+    perlin base {
+      scale: 120
+      octaves: 6
+      persistence: 0.5
+      lacunarity: 2.0
+      amplitude: 30
+    }
+
+    ridged mountains {
+      scale: 300
+      octaves: 4
+      weight: 0.3
+      offset: 1.0
+    }
+
+    voronoi paths {
+      scale: 50
+      jitter: 0.8
+      distance_function: "euclidean"
+    }
+
+    biome "DenseForest" {
+      altitude: [0, 15]
+      moisture: [0.6, 1.0]
+      density: 0.8
+      trees: ["oak", "birch", "pine"]
+      undergrowth: ["fern", "moss", "mushroom"]
+    }
+
+    biome "Clearing" {
+      altitude: [0, 5]
+      moisture: [0.3, 0.6]
+      density: 0.1
+      ground_cover: ["grass", "wildflower"]
+    }
+  }
+
+  scatter "TreeDistribution" {
+    source: "ForestTerrain"
+    count: 2000
+    min_distance: 3.0
+    slope_limit: 35
+    align_to_normal: true
+    random_rotation: [0, 360]
+    random_scale: [0.8, 1.4]
+  }
+
+  // ── P2: LOD & Render Hints ─────────────────────────────────────────────────
+
+  template "OakTree" @lod {
+    lod {
+      level 0 {
+        mesh: "models/oak_high.glb"
+        material: "TreeBark"
+        vertex_count: 12000
+      }
+      level 30 {
+        mesh: "models/oak_mid.glb"
+        material: "TreeBark"
+        vertex_count: 3000
+      }
+      level 100 {
+        mesh: "models/oak_low.glb"
+        material: "TreeBark"
+        vertex_count: 400
+      }
+      level 300 {
+        mesh: "models/oak_billboard.glb"
+        vertex_count: 4
+      }
+    }
+
+    render {
+      cast_shadows: true
+      receive_shadows: true
+      culling: "frustum"
+      layer: "vegetation"
+      wind_sway: true
+      wind_strength: 1.2
+    }
+  }
+
+  // ── P3: Navigation & AI ────────────────────────────────────────────────────
+
+  navmesh "ForestNav" {
+    agent_radius: 0.4
+    agent_height: 1.8
+    max_slope: 45
+    step_height: 0.4
+    cell_size: 0.3
+    detail_sample_distance: 6
+  }
+
+  nav_agent "DeerAI" @obstacle_avoidance {
+    speed: 3.5
+    acceleration: 8
+    stopping_distance: 0.5
+    avoidance_radius: 1.5
+    path_recalculation: 0.5
+  }
+
+  behavior_tree "DeerBehavior" {
+    selector {
+      sequence {
+        condition : "is_threatened"
+        leaf : "flee_to_cover"
+      }
+      sequence {
+        condition : "is_hungry"
+        leaf : "find_food"
+        leaf : "eat"
+      }
+      parallel {
+        leaf : "wander"
+        leaf : "look_around"
+      }
+    }
+  }
+
+  // ── P3: Input & Interaction ────────────────────────────────────────────────
+
+  input "ExplorerControls" {
+    move: "left_stick"
+    look: "right_stick"
+    interact => "button_a"
+    sprint => "left_trigger"
+    camera_mode: "right_bumper"
+    sensitivity: 2.5
+    invert_y: false
+    deadzone: 0.15
+  }
+}

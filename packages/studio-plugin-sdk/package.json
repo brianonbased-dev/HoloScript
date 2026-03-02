@@ -21,6 +21,18 @@
     "./templates": {
       "types": "./dist/templates/index.d.ts",
       "import": "./dist/templates/index.js"
+    },
+    "./sandbox": {
+      "types": "./dist/sandbox/index.d.ts",
+      "import": "./dist/sandbox/index.js"
+    },
+    "./sandbox/guest": {
+      "types": "./dist/sandbox/PluginGuestSDK.d.ts",
+      "import": "./dist/sandbox/PluginGuestSDK.js"
+    },
+    "./sandbox/types": {
+      "types": "./dist/sandbox/types.d.ts",
+      "import": "./dist/sandbox/types.js"
     }
   },
   "scripts": {
@@ -35,7 +47,12 @@
     "studio",
     "plugin",
     "sdk",
-    "extensibility"
+    "extensibility",
+    "sandbox",
+    "iframe",
+    "isolation",
+    "security",
+    "postmessage"
   ],
   "author": "HoloScript Team",
   "license": "MIT",

@@ -88,6 +88,13 @@ export interface HoloComposition extends HoloNode {
   shapes: HoloShape[];
   /** User-defined trait definitions (trait Name [extends Base] { ... }) */
   traitDefinitions?: HoloTraitDefinition[];
+  // Spatial primitives (v4 — March 2026)
+  spawnGroups?: HoloSpawnGroup[];
+  waypointSets?: HoloWaypoints[];
+  constraints?: HoloConstraintBlock[];
+  terrains?: HoloTerrainBlock[];
+  // Domain-specific blocks (v4.1 — March 2026)
+  domainBlocks?: HoloDomainBlock[];
 }
 
 // =============================================================================
@@ -1129,3 +1136,77 @@ export interface HSPlusImport {
  * The function receives the **canonical** (resolved absolute) path.
  */
 export type ReadFileFn = (absolutePath: string) => Promise<string>;
+
+// =============================================================================
+// SPATIAL PRIMITIVES (v4 — March 2026)
+// =============================================================================
+
+export interface HoloSpawnGroup extends HoloNode {
+  type: 'SpawnGroup';
+  name: string;
+  properties: Record<string, HoloValue>;
+}
+
+export interface HoloWaypoints extends HoloNode {
+  type: 'Waypoints';
+  name: string;
+  points: HoloValue; // array of position arrays
+}
+
+export interface HoloConstraintBlock extends HoloNode {
+  type: 'Constraint';
+  name: string;
+  properties: Record<string, HoloValue>;
+}
+
+export interface HoloTerrainBlock extends HoloNode {
+  type: 'Terrain';
+  name: string;
+  properties: Record<string, HoloValue>;
+}
+
+// =============================================================================
+// DOMAIN-SPECIFIC BLOCKS (v4.1 — March 2026)
+// Unified type for IoT, Robotics, DataViz, Education, Healthcare,
+// Music, Architecture, Web3, and extensible custom blocks
+// =============================================================================
+
+export type HoloDomainType =
+  | 'iot'      // sensor, device, binding, telemetry_stream, digital_twin
+  | 'robotics' // joint, actuator, controller, end_effector
+  | 'dataviz'  // dashboard, chart, data_source, widget, metric
+  | 'education'// lesson, quiz, curriculum
+  | 'healthcare' // procedure, patient_model, vital_monitor
+  | 'music'    // instrument, track, sequence, effect_chain
+  | 'architecture' // floor_plan, room, building, hvac_system
+  | 'web3'     // contract, token, wallet, marketplace, governance
+  // Perception & simulation layer (v4.2)
+  | 'material'    // material, pbr_material, unlit_material, shader
+  | 'physics'     // collider (box/sphere/capsule/mesh/convex), rigidbody, force_field (gravity_zone/wind_zone/buoyancy_zone), articulation with joint sub-blocks
+  | 'vfx'         // particles, emitter, vfx
+  | 'postfx'      // post_processing, post_fx
+  | 'audio'       // audio_source, reverb_zone, ambience
+  | 'weather'     // weather, atmosphere, sky, climate
+  | 'procedural'  // procedural, generate, scatter, distribute
+  | 'rendering'   // lod, render
+  | 'navigation'  // navmesh, nav_agent, behavior_tree
+  | 'input'       // input, interaction, gesture_profile
+  | 'custom';  // any user-defined block keyword
+
+export interface HoloDomainBlock extends HoloNode {
+  type: 'DomainBlock';
+  /** Domain category */
+  domain: HoloDomainType;
+  /** The specific keyword used (e.g. 'sensor', 'joint', 'recipe') */
+  keyword: string;
+  /** Block name (the string after the keyword) */
+  name: string;
+  /** Trait decorators on the block (e.g. @networked @safety_rated) */
+  traits: string[];
+  /** Properties declared inside the block */
+  properties: Record<string, HoloValue>;
+  /** Nested objects inside the block */
+  children?: HoloObjectDecl[];
+  /** Event handlers inside the block */
+  eventHandlers?: HoloEventHandler[];
+}

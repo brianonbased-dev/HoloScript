@@ -584,6 +584,46 @@ export {
   type SemanticTokenModifier,
 } from './lsp/HoloScriptLSP';
 
+// Domain Block Compiler Mixin (v4.2 — Perception & Simulation)
+export {
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  materialToR3F,
+  materialToUSD,
+  materialToGLTF,
+  physicsToURDF,
+  compileDomainBlocks,
+  type CompiledMaterial,
+  type CompiledPhysics,
+  type CompiledCollider,
+  type CompiledRigidbody,
+  type CompiledForceField,
+  type CompiledJoint,
+  type DomainCompileFn,
+} from './compiler/DomainBlockCompilerMixin';
+
+// Import Resolver (v4.2 — Module Resolution)
+export {
+  ImportResolver,
+  type ResolvedModule,
+  type ImportResolverOptions,
+} from './lsp/ImportResolver';
+
+// LSP Completion Provider (v4.2 — 100+ completions)
+export {
+  CompletionProvider,
+  type CompletionItem,
+} from './lsp/CompletionProvider';
+
+// LSP Diagnostic Provider (v4.2 — 5 diagnostic rules)
+export {
+  DiagnosticProvider,
+  type Diagnostic,
+  type DiagnosticSeverity,
+  type DiagnosticRule,
+  type DiagnosticContext,
+} from './lsp/DiagnosticProvider';
+
 // HoloScript+ VR Traits (NEW)
 export { VRTraitRegistry, vrTraitRegistry } from './traits/VRTraitSystem';
 

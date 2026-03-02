@@ -2,6 +2,7 @@ import { HSPlusAST, ASTNode, HSPlusDirective, VRTraitName } from '../types';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 // Side-effect import: registers all preset visuals into the registry
 import '../traits/visual';
+import { compileDomainBlocks, compileMaterialBlock, materialToR3F } from './DomainBlockCompilerMixin';
 
 export interface R3FNode {
   type: string;
@@ -1974,6 +1975,22 @@ export class R3FCompiler {
     }
 
     this.injectDefaultLighting(root);
+
+    // v4.2: Compile domain blocks (materials, physics, particles, etc.)
+    const domainBlocks = (ast as any).domainBlocks ?? [];
+    if (domainBlocks.length > 0) {
+      const compiled = compileDomainBlocks(domainBlocks, {
+        material: (block: any) => {
+          const mat = compileMaterialBlock(block);
+          return { type: 'DomainBlockOutput', props: { __raw: materialToR3F(mat), __domain: 'material', __name: mat.name }, children: [] } as R3FNode;
+        },
+      });
+      if (!root.children) root.children = [];
+      for (const c of compiled) {
+        if (typeof c === 'object') root.children.push(c as R3FNode);
+      }
+    }
+
     return root;
   }
 

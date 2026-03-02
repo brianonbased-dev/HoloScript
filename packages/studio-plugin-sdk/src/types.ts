@@ -12,6 +12,7 @@
  */
 
 import type { ComponentType } from 'react';
+import type { PluginSandboxManifest, SandboxPermission } from './sandbox/types.js';
 
 // ── Plugin Metadata ───────────────────────────────────────────────────────────
 
@@ -276,6 +277,21 @@ export interface HoloScriptPlugin extends PluginLifecycle, PluginConfig {
   /** Plugin metadata (required) */
   metadata: PluginMetadata;
 
+  /**
+   * Sandbox security manifest.
+   *
+   * When provided, the plugin will be loaded in a sandboxed iframe with
+   * restricted capabilities. All communication with Studio happens through
+   * a validated postMessage bridge.
+   *
+   * When omitted, the plugin runs as a trusted plugin in the main thread
+   * (backward compatible with existing plugins). Only first-party plugins
+   * should omit this field.
+   *
+   * @see PluginSandboxManifest
+   */
+  sandbox?: PluginSandboxManifest;
+
   /** Custom workflow/behavior tree nodes */
   nodeTypes?: {
     workflow?: CustomNodeType[];
@@ -308,4 +324,11 @@ export interface PluginRegistryEntry {
   enabled: boolean;
   installedAt: number;
   enabledAt?: number;
+  /** Whether this plugin runs in a sandboxed iframe */
+  sandboxed: boolean;
+  /** Granted permissions (for sandboxed plugins) */
+  grantedPermissions?: SandboxPermission[];
 }
+
+// Re-export sandbox types for convenience
+export type { PluginSandboxManifest, SandboxPermission } from './sandbox/types.js';

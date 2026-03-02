@@ -1,16 +1,16 @@
-# HoloScript v3.43.0
+# HoloScript v4.2.0
 
 ## The Commons-Based Meta-Framework for Spatial Computing
 
-> **Think React for the metaverse.** Write once, build anything—from VR social platforms to robotics simulations.
+> **Three languages. One platform. 18 compile targets. 8 industry domains.** Write spatial experiences with a complete stack: scene graph + core language + TypeScript for XR.
 
-HoloScript is a complete spatial computing stack: **declarative language + runtime execution + multi-target compiler**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) (our VR social platform) to prove it works—now you can build your own.
+HoloScript is a complete spatial computing stack: **three specialized file formats + runtime execution + multi-target compiler**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) (our VR social platform) to prove it works—now you can build your own.
 
 **Even playing field**: Hololand uses the same public APIs as everyone else. No privileged access, no lock-in.
 
 Perfect for VR/AR platforms, corporate training, robotics, games, digital twins, and more.
 
-![version-badge](https://img.shields.io/badge/version-v3.43.0-green?style=for-the-badge)
+![version-badge](https://img.shields.io/badge/version-v4.2.0-green?style=for-the-badge)
 ![Quickstart Badge](https://img.shields.io/badge/Quickstart-5_min-blue?style=for-the-badge)
 ![Traits Badge](https://img.shields.io/badge/traits-1800+-orange?style=for-the-badge)
 [![codecov](https://codecov.io/gh/brianonbased-dev/HoloScript/branch/main/graph/badge.svg?style=for-the-badge)](https://codecov.io/gh/brianonbased-dev/HoloScript)
@@ -97,18 +97,150 @@ composition "Hello Holo" {
 ```
 
 3. **Preview:** `holoscript preview hello.holo`
+4. **Explore the other formats:**
+   - Add agent behaviors with `.hs` files (spatial awareness, patrol routes, IoT streams)
+   - Build full applications with `.hsplus` files (modules, types, physics, state machines)
 
 **[View Full 5-Minute Tutorial →](./docs/getting-started/quickstart.md)**
 
 ---
 
+## 🔧 Three Formats, One Stack
+
+HoloScript provides **three specialized file formats** that work independently or together:
+
+### `.holo` — Scene Graph
+
+Declarative world compositions with environments, NPC dialogs, quests, and multiplayer networking.
+
+```holo
+composition "VR Escape Room" {
+  environment {
+    ambient_light: 0.1
+    fog: { enabled: true, color: "#111122", density: 0.05 }
+  }
+
+  spatial_group "Puzzle1_CombinationLock" {
+    object "SafeBox" {
+      geometry: "model/safe.glb"
+      state { locked: true, combination: [7, 2, 5] }
+    }
+
+    object "Dial1" {
+      @clickable
+      @rotatable
+      onClick: {
+        this.state.value = (this.state.value + 1) % 10
+        checkCombination()
+      }
+    }
+  }
+}
+```
+
+### `.hs` — Core Language
+
+Templates, agent behaviors with spatial awareness, IoT data streams, logic gates, and reusable components.
+
+```hs
+// Guard agent with spatial awareness and patrol
+template "GuardAgent" {
+  @agent { type: "guard", capabilities: ["patrol", "combat", "alert"] }
+  @spatialAwareness { detection_radius: 15, track_agents: true }
+  @patrol {
+    zone: "TreasureRoom"
+    waypoints: [[-45,1,-55], [-55,1,-55], [-55,1,-45], [-45,1,-45]]
+    speed: 2
+  }
+
+  on entityNearby(entity, layer) {
+    if (entity.type == "player" && !entity.hasAccess) {
+      broadcast("guard_channel", { type: "intruder_detected", location: entity.position })
+      moveTo(entity.position)
+    }
+  }
+}
+
+// IoT data pipeline
+stream TemperatureData from IoTSensor {
+  filter: value > 0
+  transform: celsius_to_fahrenheit
+  aggregate: moving_average(window: 10)
+}
+```
+
+### `.hsplus` — TypeScript for XR
+
+Full programming language with modules, types, physics, joints, state machines, and async/await.
+
+```hsplus
+module GameState {
+  export let score: number = 0;
+  export let ballsRemaining: number = 3;
+
+  export function addScore(points: number) {
+    score += points * multiplier;
+    emit("score_changed", score);
+  }
+}
+
+module PinballPhysics {
+  const BALL_MASS = 0.08;          // kg
+  const FLIPPER_SPEED = 1700;      // degrees/sec
+
+  export interface BallState {
+    position: Vector3;
+    velocity: Vector3;
+  }
+
+  export function applyTableGravity(ball: BallState, dt: number) {
+    ball.velocity.z += GRAVITY * Math.sin(tiltRad) * dt;
+  }
+}
+```
+
+### How They Work Together
+
+```text
+my-vr-game/
+├── main.holo              # Scene graph — world composition (compile entry point)
+├── agents/
+│   ├── guard.hs           # Core language — patrol AI, spatial awareness
+│   └── npc.hs             # Core language — NPC behaviors
+├── components/
+│   ├── combat.hsplus      # TypeScript for XR — physics, damage calculations
+│   └── inventory.hsplus   # TypeScript for XR — state management
+└── scenes/
+    ├── arena.holo         # Scene graph — combat arena layout
+    └── lobby.holo         # Scene graph — multiplayer lobby
+```
+
+**[📄 Full File Types Guide →](./docs/FILE_TYPES.md)**
+
+---
+
+## 🏆 vs Competitors
+
+| vs | HoloScript Advantage |
+|----|---------------------|
+| **C# (Unity)** | Built-in spatial primitives, 18+ targets vs 1, agent SDK with spatial awareness |
+| **Blueprints (Unreal)** | Text-based (version control friendly), three formats for different domains, cross-platform |
+| **GDScript (Godot)** | Strong typing in `.hsplus`, module system, spatial query API, LSP tooling |
+| **Swift (visionOS)** | Not locked to Apple, 18+ targets, agent choreography, IoT/robotics export |
+
+---
+
 ## 🔥 Why HoloScript?
 
-### 1. Meta-Framework Architecture
-HoloScript is **three tools in one**:
-- **Declarative DSL**: Write spatial experiences in declarative `.holo` syntax
-- **Runtime Execution**: Run directly in browser (ThreeJSRenderer, 120K particles, PBR)
-- **Multi-Target Compiler**: Export to Unity C#, Unreal C++, Godot GDScript, WebXR, URDF, and 18+ platforms
+### 1. Three-Format Architecture
+
+HoloScript provides **three specialized languages** that work together:
+
+- **`.holo` (Scene Graph)**: Declarative world compositions — environments, NPC dialogs, quests, multiplayer networking, portals
+- **`.hs` (Core Language)**: Templates, agent behaviors, spatial awareness, IoT streams, gates, utility functions
+- **`.hsplus` (TypeScript for XR)**: Full programming language — modules, types, physics, joints, state machines, async/await
+
+**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 18 platforms.
 
 **Workflow**: Prototype in HoloScript runtime → compile to production platform
 
@@ -129,26 +261,27 @@ Write **one** HoloScript file. Compile to:
 - **Mobile AR**: ARKit (iOS), ARCore (Android), VisionOS
 - **VR Platforms**: Quest (OpenXR), SteamVR, PSVR2
 - **Social VR**: VRChat (Udon), Rec Room
-- **Specialized**: Robotics (URDF/SDF), IoT (DTDL), Simulations
+- **Specialized**: Robotics (URDF/SDF), IoT (DTDL), Healthcare, Education, Music, Architecture, Web3
 
 ### 4. Feature-Rich
 - ✅ **1,800+ VR Traits** - `@grabbable`, `@physics`, `@ai_agent`, `@teleport`
 - ✅ **600+ Visual Traits** - PBR materials, procedural textures, mood lighting
 - ✅ **AI-Native** - Built for LLMs, real-time generation via MCP tools (Brittney agent)
-- ✅ **Robotics** - 213 traits for URDF/SDF export (ROS2, Gazebo)
-- ✅ **Production-Ready** - WebGPU rendering, CRDT state, resilience patterns
+- ✅ **8 Industry Domains** - IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
+- ✅ **Simulation Layer** - Materials, particles, post-processing, weather, procedural terrain, navigation, physics
+- ✅ **Production-Ready** - WebGPU rendering, CRDT state, resilience patterns, 45 packages
 
 ---
 
-## 🏗️ 18+ Compile Targets
+## 🏗️ 18 Compile Targets
 
 | Platform         | Target                                        | Support   |
 | ---------------- | --------------------------------------------- | --------- |
 | **VR Platforms** | VRChat (Udon), Quest (OpenXR), SteamVR        | ✅ Stable |
 | **Game Engines** | Unreal Engine 5, Unity, Godot                 | ✅ Stable |
 | **Mobile AR**    | iOS (ARKit), Android (ARCore), Vision Pro     | ✅ Stable |
-| **Web**          | React Three Fiber, WebGPU, WebAssembly        | ✅ Stable |
-| **Advanced**     | Robotics (URDF), Digital Twins (DTDL), Gazebo | ✅ Stable |
+| **Web**          | React Three Fiber, WebGPU, WebAssembly, PlayCanvas, Babylon.js | ✅ Stable |
+| **Advanced**     | Robotics (URDF/SDF), Digital Twins (DTDL), USD, glTF | ✅ Stable |
 
 ---
 
@@ -219,12 +352,25 @@ narrative "Tutorial" {
 
 ---
 
-## 🧠 New in v3.43: AI Persistence & Autonomous Evolution
+## 🧠 New in v4.2: Simulation Layer & Full Domain Coverage
 
-HoloScript v3.43.0 marks the completion of the Autonomize Roadmap (Phases 5-11):
-- **CRDT State Syncing**: Distributed, conflict-free state resolution avoiding data partitioning natively.
-- **Native Semantic Memory Distillation**: Squashes chronological patterns into aggregated scalars, coupled with native RAG implementations.
-- **Procedural Code Compilation**: Transforms raw LLM agent output safely into rigorous .holo logic blocks with semantic bounding.
+HoloScript v4.2.0 ships the complete **Perception & Simulation Layer** and **multi-domain expansion**:
+
+### v4.2 — Simulation Layer
+- **PBR Materials**: `pbr_material`, `glass_material`, `toon_material`, `subsurface_material` with texture maps and shader connections
+- **Particle Systems**: `particle_block` with sub-emitters, color/size over life, emission shapes
+- **Post-Processing**: `post_processing_block` — bloom, DOF, color grading, SSAO, motion blur, tone mapping
+- **Weather**: `weather_block` with layers, fog, time-of-day, precipitation
+- **Procedural Generation**: `procedural_block` with noise functions, biome rules
+- **Navigation**: `navmesh`, `behavior_tree`, `crowd_manager`
+- **Physics**: `rigidbody_block`, `collider_block`, `force_field_block`, `articulation_block` with joints
+- **Built-In Test Framework**: `test` blocks with `assert`, `given/when/then` BDD syntax
+
+### v4.0 — Multi-Domain Expansion
+- **8 Industry Domains**: IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3 — each with domain-specific keywords
+- **HSPlus Constructs**: `module`, `struct`, `enum`, `interface`, `import/export`, `function`, `try/catch`, `switch/case`, `await`
+- **Spatial Primitives**: `spawn_group`, `waypoints`, `constraint`, `terrain`, `dialog` with branching options
+- **Extensible Blocks**: `custom_block` catch-all for community-defined domains
 
 ---
 

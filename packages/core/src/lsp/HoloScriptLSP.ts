@@ -24,6 +24,11 @@ import type {
   SourceLocation,
 } from '../parser/HoloCompositionTypes';
 import { MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../compiler/R3FCompiler';
+import { CompletionProvider } from './CompletionProvider';
+import type { CompletionItem } from './CompletionProvider';
+import { DiagnosticProvider } from './DiagnosticProvider';
+import type { DiagnosticContext } from './DiagnosticProvider';
+import { ImportResolver } from './ImportResolver';
 
 // =============================================================================
 // TYPES
@@ -210,6 +215,56 @@ const HOLO_KEYWORDS: Record<string, { detail: string; documentation: string }> =
     detail: 'Game logic block',
     documentation:
       'Event handlers and actions for scene logic.\n\n```holo\nlogic {\n  on_enter { show_notification("Scene loaded") }\n  action update() { state.score += 1 }\n}\n```',
+  },
+
+  // ── v4.2 Simulation Domain Blocks ──────────────────────────────────────
+  material: {
+    detail: 'PBR material block',
+    documentation: 'Defines a physically-based material.\\n\\n```holo\\nmaterial "Steel" {\\n  baseColor: "#888"\\n  metallic: 1.0\\n  roughness: 0.3\\n}\\n```',
+  },
+  rigidbody: {
+    detail: 'Rigid body physics',
+    documentation: 'Dynamic rigid body with mass and gravity.\\n\\n```holo\\nrigidbody { mass: 10, use_gravity: true }\\n```',
+  },
+  collider: {
+    detail: 'Collision shape',
+    documentation: 'Physics collision shape (box, sphere, capsule, mesh).\\n\\n```holo\\ncollider { shape: "box", half_extents: [1,1,1] }\\n```',
+  },
+  particles: {
+    detail: 'Particle system',
+    documentation: 'GPU particle system with emission/velocity/color modules.\\n\\n```holo\\nparticles "Fire" { max_particles: 10000 }\\n```',
+  },
+  post_processing: {
+    detail: 'Post-processing stack',
+    documentation: 'Screen-space effects: bloom, DOF, SSAO, color grading.\\n\\n```holo\\npost_processing { bloom { intensity: 1.5 } }\\n```',
+  },
+  audio_source: {
+    detail: 'Spatial audio source',
+    documentation: '3D audio emitter with HRTF spatialization.\\n\\n```holo\\naudio_source "BGM" { clip: "music.ogg", spatialization: "hrtf" }\\n```',
+  },
+  weather: {
+    detail: 'Weather system',
+    documentation: 'Multi-layer weather: rain, snow, wind, fog, clouds, lightning.\\n\\n```holo\\nweather "Forest" { layer rain { intensity: 0.7 } }\\n```',
+  },
+  procedural: {
+    detail: 'Procedural generation',
+    documentation: 'Noise-based terrain and scatter with biome rules.\\n\\n```holo\\nprocedural "Terrain" { noise perlin { scale: 100 } }\\n```',
+  },
+  lod: {
+    detail: 'Level of detail',
+    documentation: 'Distance-based LOD tiers.\\n\\n```holo\\nlod { level 0 { distance: 0 } level 1 { distance: 50 } }\\n```',
+  },
+  navmesh: {
+    detail: 'Navigation mesh',
+    documentation: 'AI navigation with agent radius/height.\\n\\n```holo\\nnavmesh { agent_radius: 0.5, agent_height: 2.0 }\\n```',
+  },
+  behavior_tree: {
+    detail: 'AI behavior tree',
+    documentation: 'Hierarchical decision tree for NPC AI.\\n\\n```holo\\nbehavior_tree "Guard" { selector { sequence { ... } } }\\n```',
+  },
+  input: {
+    detail: 'Input bindings',
+    documentation: 'Maps controller/keyboard to actions.\\n\\n```holo\\ninput "Controls" { "jump": primary_button }\\n```',
   },
 };
 
@@ -727,9 +782,15 @@ export class HoloScriptLSP {
   private parser: HoloCompositionParser;
   private cachedResult: HoloParseResult | null = null;
   private cachedSource: string = '';
+  private completionProvider: CompletionProvider;
+  private diagnosticProvider: DiagnosticProvider;
+  private importResolver: ImportResolver;
 
-  constructor() {
+  constructor(options?: { rootDir?: string }) {
     this.parser = new HoloCompositionParser({ tolerant: true, locations: true });
+    this.completionProvider = new CompletionProvider();
+    this.diagnosticProvider = new DiagnosticProvider();
+    this.importResolver = new ImportResolver({ rootDir: options?.rootDir ?? '.' });
   }
 
   /**
@@ -762,6 +823,29 @@ export class HoloScriptLSP {
     // Semantic warnings
     if (result.ast) {
       this.addSemanticWarnings(result.ast, diagnostics);
+    }
+
+    // v4.2: Domain block validation (HS004, HS005)
+    if (result.ast) {
+      const traitNames = new Set<string>();
+      for (const t of result.ast.templates) {
+        for (const tr of t.traits) traitNames.add(tr.name);
+      }
+      for (const obj of result.ast.objects) {
+        for (const tr of obj.traits) traitNames.add(tr.name);
+      }
+      const domainNodes: any[] = (result.ast as any).domainBlocks ?? [];
+      const ctx: DiagnosticContext = { nodes: domainNodes, knownTraits: traitNames };
+      const providerDiags = this.diagnosticProvider.diagnose(ctx);
+      for (const d of providerDiags) {
+        diagnostics.push({
+          severity: d.severity as any,
+          message: d.message,
+          range: { start: { line: d.line, character: d.column }, end: { line: d.line, character: d.column + 1 } },
+          code: d.code,
+          source: 'holoscript',
+        });
+      }
     }
 
     return diagnostics;
@@ -905,7 +989,65 @@ export class HoloScriptLSP {
       }
     }
 
+    // v4.2: Simulation block completions from CompletionProvider
+    const blockContext = this.detectBlockContext(source, position);
+    const providerItems = this.completionProvider.getCompletions({
+      prefix: prefix.replace(/^@/, ''),
+      triggerChar: prefix.endsWith('@') ? '@' : undefined,
+      blockContext,
+    });
+    for (const pi of providerItems) {
+      // Avoid duplicates with existing items
+      if (!items.some(i => i.label === pi.label)) {
+        items.push({
+          label: pi.label,
+          kind: pi.kind === 'block' ? 'snippet' : pi.kind === 'trait' ? 'decorator' : pi.kind as any,
+          detail: pi.detail,
+          documentation: pi.documentation,
+          insertText: pi.insertText,
+          sortText: `4_${pi.label}`,
+        });
+      }
+    }
+
+    // v4.2: Import completions
+    if (prefix.match(/import\s+.*from\s+["']?$/)) {
+      for (const pkg of this.importResolver.getKnownPackages()) {
+        items.push({
+          label: pkg,
+          kind: 'module',
+          detail: 'HoloScript package',
+          insertText: `"${pkg}"`,
+          sortText: `5_${pkg}`,
+        });
+      }
+    }
+
     return items;
+  }
+
+  /**
+   * Detect which domain block the cursor is inside.
+   */
+  private detectBlockContext(source: string, position: LSPPosition): string | undefined {
+    const lines = source.split('\n');
+    const blockKeywords = [
+      'material', 'rigidbody', 'collider', 'particles', 'post_processing',
+      'audio_source', 'weather', 'procedural', 'lod', 'navmesh', 'behavior_tree', 'input',
+    ];
+    // Walk backwards from cursor to find enclosing block
+    let depth = 0;
+    for (let i = position.line; i >= 0; i--) {
+      const line = lines[i] || '';
+      depth += (line.match(/}/g) || []).length;
+      depth -= (line.match(/{/g) || []).length;
+      if (depth < 0) {
+        for (const kw of blockKeywords) {
+          if (line.trimStart().startsWith(kw)) return kw;
+        }
+      }
+    }
+    return undefined;
   }
 
   /**

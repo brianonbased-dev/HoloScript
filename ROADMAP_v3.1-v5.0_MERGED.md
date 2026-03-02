@@ -295,11 +295,19 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 ---
 
-## v4.0 – Privacy & Advanced AI (Q4 2026)
+## v4.0 – Multi-Domain Expansion ✅ COMPLETE (March 2026)
 
-**Theme**: Zero-Knowledge Privacy + Enhanced Agent Reasoning
+**Theme**: HSPlus Constructs + 8 Industry Domain Blocks + Spatial Primitives
 
-### Core Deliverables
+### Core Deliverables (Shipped)
+- **20+ HSPlus constructs**: `module`, `struct`, `enum`, `interface`, `import/export`, `function`, `variable_declaration`, `for_of`, `try/catch`, `throw`, `switch/case`, `await`, `new`, `optional_chain`, `generic_type`
+- **8 domain-specific blocks**: IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3 (72 keywords total)
+- **Extensible `custom_block`**: Any identifier as a block keyword
+- **Spatial primitives**: `spawn_group`, `waypoints`, `constraint`, `terrain`, `dialog` with branching options
+- **Parser sync**: `HoloCompositionParser` handles all new constructs
+- **62 new token types**, 100+ new keywords
+
+> Previous v4.0 plan (`@zkPrivate`, Enhanced LLMAgent) moved to v4.3+. See note in milestone table.
 
 #### @zkPrivate Trait (DELAYED from v3.1)
 
@@ -328,36 +336,40 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 
 ---
 
-## v4.1 – Volumetric Media (Q1 2027)
-
-**Theme**: Gaussian Splatting + Volumetric Video
-
-### Core Deliverables
-
-#### Gaussian Splatting v2.0
-
-- **Existing**: GaussianSplatTrait.ts (211 lines, PLY/SPLAT support)
-- **v4.1 Additions**:
-  - Levy flight optimization (research pending)
-  - Real-time streaming
-  - Compression algorithms
-  - LOD for splats
-- **Integration**: Render Network baking pipeline
-
-#### Volumetric Video
-
-- NeRF capture integration
-- Temporal coherence
-- Streaming protocols
-- AR/VR playback optimization
 
 ---
 
-## v4.2 – Enterprise Features (Q2 2027)
+## v4.2 – Perception & Simulation Layer ✅ COMPLETE (March 2026)
 
-**Theme**: Multi-tenant + Analytics
+**Theme**: Materials + Particles + Post-Processing + Weather + Physics + Navigation + Test Framework
+
+### Core Deliverables (Shipped)
+- **PBR Materials**: `pbr_material`, `glass_material`, `toon_material`, `subsurface_material`, `unlit_material` with texture maps and shader connections
+- **Particle Systems**: `particle_block` with sub-emitters, color/size over life, emission shapes
+- **Post-Processing**: `post_processing_block` — bloom, depth of field, color grading, SSAO, motion blur, tone mapping
+- **Weather Systems**: `weather_block` with weather layers, fog, time-of-day, precipitation
+- **Procedural Generation**: `procedural_block` with noise functions, biome rules
+- **Navigation**: `navmesh`, `behavior_tree`, `crowd_manager`
+- **Structured Physics**: `rigidbody_block`, `collider_block`, `force_field_block`, `articulation_block` with joints
+- **Audio**: `audio_source_block` with spatial audio
+- **LOD**: `lod_block` with `lod_level` distance thresholds
+- **Input Mapping**: `input_block` with `input_binding`
+- **Test Framework**: `test` blocks with `assert`, `given/when/then` BDD syntax
+- **Annotations**: `#[debug]`, `#[profile("gpu")]`, `#[editor_only]`
+
+---
+
+## v4.3 – Privacy & Enterprise (Q4 2026)
+
+**Theme**: Zero-Knowledge Privacy + Multi-tenant + Analytics
 
 ### Core Deliverables
+
+#### @zkPrivate Trait (From original v4.0 plan)
+
+- Zero-knowledge proofs for spatial data
+- Private trait states, selective disclosure
+- Dependencies: Aztec Noir SDK, zkSNARK circuits
 
 #### Multi-tenant Architecture
 
@@ -371,7 +383,6 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 - Scene performance metrics
 - User engagement tracking
 - A/B testing framework
-- Cost attribution (rendering, AI, storage)
 
 ---
 
@@ -460,9 +471,10 @@ This roadmap consolidates findings from the uAA2++ Research Protocol against the
 | v3.3       | Q2 2026     | Spatial Export       | USDZ (Apple Vision Pro), Render Network (real API), KTX2+Draco   | ✅     |
 | v3.4–v3.5  | Q2 2026     | Rendering + DX       | LOD streaming, GPU culling, Visual Shader Editor, 38 packages     | ✅     |
 | v3.6–v3.42 | Q2 2026     | IDE + AI + DX        | IntelliJ/Neovim/VSCode plugins, MCP server, AI autocomplete, WASM | ✅     |
-| **v4.0**   | **Q3 2026** | **Privacy & AI**     | `@zkPrivate` (Aztec Noir), Enhanced LLMAgent, HITL v2.0          | ⏸️ See Note |
-| v4.1       | Q4 2026     | Volumetric Media     | Gaussian Splatting v2 (Levy flight), NeRF rendering               | ⬜     |
-| v4.2       | Q1 2027     | Enterprise           | Multi-tenant, SSO, analytics, adapter-postgres                    | ⬜     |
+| **v4.0**   | **Q1 2026** | **Multi-Domain**   | 8 industry domains, HSPlus constructs, spatial primitives, 62 token types  | ✅     |
+| **v4.2**   | **Q1 2026** | **Simulation**     | PBR materials, particles, post-FX, weather, physics, navigation, test FW  | ✅     |
+| v4.1       | Q3 2026     | Volumetric Media     | Gaussian Splatting v2 (Levy flight), NeRF rendering               | ⬜     |
+| v4.3       | Q4 2026     | Privacy & Enterprise | `@zkPrivate` (Aztec Noir), multi-tenant, SSO, analytics           | ⬜     |
 | v5.0       | H1 2027     | Autonomous           | Cross-scene agent networks, economic primitives                   | ⬜     |
 
 > [!IMPORTANT]

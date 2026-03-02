@@ -2,24 +2,50 @@
  * @holoscript/std - Standard Library for HoloScript Plus
  *
  * Provides core types, math utilities, collections, string operations,
- * and time management for HoloScript Plus programs.
+ * time management, spatial math, physics primitives, materials, and events
+ * for HoloScript Plus programs.
  *
  * @example
  * ```hsplus
- * import { Vec3, List, sleep } from "@holoscript/std";
+ * import { Vec3, createPBRMaterial, EventBus } from "@holoscript/std";
  *
  * let position = Vec3(0, 1, 0);
- * let items = List.of(1, 2, 3).map(n => n * 2);
- *
- * async fn main() {
- *   await sleep(1000);
- *   print("Done!");
- * }
+ * let steel = createPBRMaterial("Steel", "metal");
+ * let bus = new EventBus();
  * ```
  */
 
 // Re-export everything from types.js
 export * from './types.js';
+
+// Spatial math (v4.2)
+export {
+  Vec3, Quaternion, Transform, Ray, AABB,
+  distance, lerp as spatialLerp, clamp as spatialClamp,
+  degToRad as spatialDegToRad, radToDeg as spatialRadToDeg,
+} from './spatial.js';
+
+// Physics primitives (v4.2)
+export {
+  createBoxCollider, createSphereCollider, createCapsuleCollider,
+  createRigidbody,
+} from './physics.js';
+export type {
+  ColliderConfig, ColliderShapeType, RigidbodyConfig,
+  ForceFieldConfig, ForceFieldType, JointConfig, JointType, RaycastHit,
+} from './physics.js';
+
+// Materials (v4.2)
+export {
+  MATERIAL_PRESETS, createPBRMaterial,
+} from './materials.js';
+export type {
+  PBRMaterial, UnlitMaterial, TextureMapType, TextureConfig,
+} from './materials.js';
+
+// Events (v4.2)
+export { EventBus } from './events.js';
+export type { EventHandler } from './events.js';
 
 // Math utilities - export objects from math.ts
 export {

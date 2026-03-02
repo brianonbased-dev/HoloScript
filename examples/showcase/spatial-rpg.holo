@@ -1,0 +1,455 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Spatial RPG — HoloScript Grammar Showcase
+// Demonstrates ALL grammar constructs (.holo, .hsplus, .hs features)
+// Compile: holoscript compile spatial-rpg.holo --target visionos
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── IMPORTS ─────────────────────────────────────────────────────────────────
+import { Vec3, Quaternion } from "holoscript/math"
+import { NetworkSync } from "holoscript/multiplayer"
+import * as Audio from "holoscript/audio"
+
+// ── ENUMS ───────────────────────────────────────────────────────────────────
+enum GamePhase {
+  LOBBY,
+  EXPLORING,
+  COMBAT,
+  BOSS_FIGHT,
+  VICTORY
+}
+
+enum Element {
+  FIRE = 1,
+  ICE = 2,
+  LIGHTNING = 3,
+  EARTH = 4
+}
+
+// ── STRUCTS ─────────────────────────────────────────────────────────────────
+struct PlayerStats {
+  health: number,
+  mana: number,
+  strength: number,
+  defense: number,
+  speed: number
+}
+
+struct Ability {
+  name: string,
+  cost: number,
+  cooldown: number,
+  element: number,
+  damage: number
+}
+
+struct QuestObjective {
+  description: string,
+  target: string,
+  count: number,
+  completed?: boolean
+}
+
+// ── INTERFACES ──────────────────────────────────────────────────────────────
+interface Damageable {
+  health: number,
+  maxHealth: number
+}
+
+interface Interactable extends Damageable {
+  interactionRadius: number,
+  prompt: string
+}
+
+// ── MODULE: GAME STATE ──────────────────────────────────────────────────────
+module GameEngine {
+  const MAX_PLAYERS = 8
+  const TICK_RATE = 60
+  let currentPhase = 0
+  let playerCount = 0
+
+  function initialize(config: string): void {
+    currentPhase = 0
+    playerCount = 0
+  }
+
+  function spawnPlayer(id: string): void {
+    playerCount = playerCount + 1
+  }
+}
+
+// ── MODULE: COMBAT SYSTEM ───────────────────────────────────────────────────
+module CombatSystem {
+  let activeEncounters = 0
+
+  function calculateDamage(base: number, multiplier: number): number {
+    return base * multiplier
+  }
+
+  function applyElement(damage: number, element: number): number {
+    return damage * element
+  }
+}
+
+// ── FUNCTIONS ───────────────────────────────────────────────────────────────
+function createAbility(name: string, cost: number, element: number): void {
+  emit("ability_created")
+}
+
+function resolveHit(attacker: string, target: string, power: number): void {
+  emit("hit_resolved")
+}
+
+// ── SPATIAL ZONES ───────────────────────────────────────────────────────────
+zone "SafeZone" {
+  shape: "sphere"
+  radius: 50
+  pvp_enabled: false
+  healing_rate: 5
+  music: "peaceful_village.ogg"
+}
+
+zone "CombatArena" {
+  shape: "box"
+  pvp_enabled: true
+  respawn_time: 5
+  max_players: 16
+}
+
+zone "BossRoom" {
+  shape: "cylinder"
+  radius: 30
+  height: 20
+  pvp_enabled: false
+  sealed: true
+}
+
+// ── TERRAIN ─────────────────────────────────────────────────────────────────
+terrain WorldTerrain {
+  generator: "perlin"
+  seed: 42
+  octaves: 6
+  scale: 200
+}
+
+// ── CONSTRAINTS ─────────────────────────────────────────────────────────────
+constraint DrawbridgeHinge {
+  type: "hinge"
+  anchor: [0, 5, -25]
+  axis: [1, 0, 0]
+  limits: [-90, 0]
+}
+
+// ── SPAWN GROUPS ────────────────────────────────────────────────────────────
+spawn_group "ForestCreatures" {
+  template: "WildAnimal"
+  count: 30
+  spread: 100
+  respawn_time: 120
+}
+
+spawn_group "TreasureChests" {
+  template: "LootChest"
+  count: 8
+  spread: 200
+  rarity: "uncommon"
+}
+
+// ── WAYPOINTS ───────────────────────────────────────────────────────────────
+waypoints "PatrolRoute" [
+  [0, 0, 0],
+  [10, 0, 5],
+  [20, 0, 0],
+  [10, 0, -5]
+]
+
+waypoints "BossPath" [
+  [0, 0, 0],
+  [0, 5, 10],
+  [0, 10, 20],
+  [0, 5, 30]
+]
+
+// ── TRAIT DEFINITION ────────────────────────────────────────────────────────
+trait Elemental extends Damageable {
+  element: "fire"
+  resistance: 0.5
+  onDamage: {
+    emit("element_damage")
+  }
+}
+
+// ── MAIN COMPOSITION ────────────────────────────────────────────────────────
+composition "SpatialRPG" {
+  environment {
+    skybox: "fantasy_sky"
+    ambient_light: 0.4
+    fog_density: 0.02
+    fog_color: "#2a1f3d"
+    gravity: -9.81
+    time_of_day: 0.75
+  }
+
+  // ── Templates with structured traits ───────────────────────────────────
+  template "Player" {
+    @networked
+    @collidable
+    @agent {
+      type: "player"
+      intelligence: "human"
+      faction: "alliance"
+    }
+
+    geometry: "humanoid"
+    scale: [1, 1, 1]
+
+    state {
+      health: 100
+      mana: 50
+      level: 1
+      alive: true
+    }
+
+    networked {
+      position: synced
+      health: synced
+      animation: interpolated
+      inventory: owner_only
+    }
+
+    animation idle {
+      property: "rotation"
+      from: 0
+      to: 0
+      loop: true
+    }
+
+    onSpawn: {
+      GameEngine.spawnPlayer(this.id)
+      emit("player_joined")
+    }
+
+    onDamage: {
+      if (this.state.health <= 0) {
+        this.state.alive = false
+        emit("player_died")
+      }
+    }
+
+    @on_collision("Enemy"): {
+      CombatSystem.calculateDamage(10, 1)
+    }
+  }
+
+  template "Enemy" {
+    @collidable
+    @agent {
+      type: "npc"
+      intelligence: "ai"
+      aggression: 0.8
+    }
+
+    geometry: "skeleton_warrior"
+
+    state {
+      health: 50
+      damage: 10
+      patrolling: true
+    }
+
+    onInit: {
+      const maxAttempts = 3
+      let attempt = 0
+
+      for (const waypoint of patrol_route) {
+        attempt = attempt + 1
+      }
+
+      try {
+        await moveTo(spawn_position)
+      } catch (e) {
+        emit("spawn_failed")
+      }
+    }
+
+    onPlayerNear: {
+      switch (this.state.patrolling) {
+        case true:
+          this.state.patrolling = false
+          emit("aggro")
+          break
+        default:
+          break
+      }
+    }
+  }
+
+  template "BossEnemy" {
+    @collidable
+    @agent {
+      type: "boss"
+      intelligence: "ai"
+      aggression: 1.0
+    }
+
+    geometry: "dragon"
+    scale: [5, 5, 5]
+
+    state {
+      health: 1000
+      phase: 1
+      enraged: false
+    }
+  }
+
+  template "LootChest" {
+    @collidable
+    @interactive
+    @agent {
+      type: "interactable"
+      prompt: "Open Chest"
+    }
+
+    geometry: "treasure_chest"
+
+    state {
+      opened: false
+      loot_tier: "common"
+    }
+
+    onInteract: {
+      if (this.state.opened == false) {
+        this.state.opened = true
+        emit("chest_opened")
+      }
+    }
+  }
+
+  // ── World Objects ──────────────────────────────────────────────────────
+
+  object "Spawn" using "Player" {
+    position: [0, 1, 0]
+  }
+
+  npc "VillageElder" {
+    @dialogue
+    @agent {
+      type: "questgiver"
+      faction: "neutral"
+    }
+    position: [10, 0, 5]
+    mesh: "elder_mage"
+    start_dialog: "elder_greeting"
+  }
+
+  portal "DungeonEntrance" {
+    @spatial
+    @interactive
+    position: [50, 0, -30]
+    destination: "dungeon_level_1"
+    label: "Enter the Dungeon"
+    effect: "portal_swirl"
+  }
+
+  spawnpoint "PlayerSpawn1" {
+    position: [0, 1, 0]
+    rotation: [0, 0, 0]
+  }
+
+  spawnpoint "PlayerSpawn2" {
+    position: [5, 1, 0]
+    rotation: [0, 90, 0]
+  }
+
+  // ── Lighting ───────────────────────────────────────────────────────────
+
+  light "Sun" {
+    type: "directional"
+    position: [100, 200, 50]
+    color: "#ffd4a0"
+    intensity: 1.2
+    castShadows: true
+  }
+
+  light "MoonGlow" {
+    type: "point"
+    position: [0, 50, 0]
+    color: "#a0c4ff"
+    intensity: 0.3
+  }
+
+  // ── Camera ─────────────────────────────────────────────────────────────
+
+  camera "MainCamera" {
+    fov: 75
+    near: 0.1
+    far: 1000
+    position: [0, 15, -20]
+    target: [0, 0, 0]
+  }
+
+  // ── Audio ──────────────────────────────────────────────────────────────
+
+  audio "AmbientMusic" {
+    source: "audio/fantasy_ambient.ogg"
+    loop: true
+    volume: 0.3
+    spatial: false
+  }
+
+  audio "CombatMusic" {
+    source: "audio/battle_theme.ogg"
+    loop: true
+    volume: 0.5
+    spatial: false
+  }
+
+  // ── Dialogues ──────────────────────────────────────────────────────────
+
+  dialog "elder_greeting" {
+    text: "Welcome, adventurer. Dark forces stir in the dungeon below. Will you help us?"
+
+    option "Tell me more" -> @dialog("elder_quest")
+    option "I'm ready to fight!" -> @close
+  }
+
+  dialog "elder_quest" {
+    text: "Defeat the Skeleton King and retrieve the Crystal of Dawn. The fate of our village depends on it."
+
+    option "I accept the quest" -> @close
+    option "Not yet" -> @close
+  }
+
+  // ── Game Actions ───────────────────────────────────────────────────────
+
+  action advanceQuest(questId) {
+    emit("quest_advanced")
+  }
+
+  action respawnPlayer(playerId) {
+    emit("player_respawned")
+  }
+
+  // ── State ──────────────────────────────────────────────────────────────
+
+  state GameState {
+    phase: "lobby"
+    playerCount: 0
+    bossDefeated: false
+    elapsedTime: 0
+  }
+
+  // ── Timeline ───────────────────────────────────────────────────────────
+
+  timeline "DayNightCycle" {
+    0.0: emit "set_dawn"
+    0.25: emit "set_day"
+    0.5: emit "set_dusk"
+    0.75: emit "set_night"
+  }
+}
+
+// ── EXPORTS ─────────────────────────────────────────────────────────────────
+export function getGameState(): void {
+}
+
+export const VERSION = "1.0.0"

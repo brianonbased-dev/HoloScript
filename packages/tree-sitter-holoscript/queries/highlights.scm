@@ -67,6 +67,129 @@
 (null) @constant.builtin
 
 ; =============================================================================
+; MATERIAL & PBR SYSTEM
+; =============================================================================
+
+; Material block keywords
+[
+  "material"
+  "pbr_material"
+  "unlit_material"
+  "shader"
+  "toon_material"
+  "glass_material"
+  "subsurface_material"
+] @keyword.type
+
+; Material block name
+(material_block
+  name: (string) @type.definition)
+
+(material_block
+  name: (identifier) @type.definition)
+
+; Texture map keywords (inline and block forms)
+; Note: Channel keywords (albedo_map, normal_map, etc.) are anonymous string literals
+; and get highlighted by tree-sitter's default keyword coloring
+[
+  "albedo_map"
+  "normal_map"
+  "roughness_map"
+  "metallic_map"
+  "emission_map"
+  "ao_map"
+  "height_map"
+  "opacity_map"
+  "displacement_map"
+  "specular_map"
+  "clearcoat_map"
+  "baseColor_map"
+  "emissive_map"
+  "transmission_map"
+  "sheen_map"
+  "anisotropy_map"
+  "thickness_map"
+  "subsurface_map"
+  "iridescence_map"
+] @property.definition
+
+; =============================================================================
+; STRUCTURED PHYSICS SYSTEM
+; =============================================================================
+
+; Physics sub-block keywords
+[
+  "collider"
+  "trigger"
+  "rigidbody"
+  "force_field"
+  "gravity_zone"
+  "wind_zone"
+  "buoyancy_zone"
+  "magnetic_field"
+  "drag_zone"
+  "articulation"
+] @keyword.type
+
+; Collider shape keywords
+[
+  "box"
+  "capsule"
+  "mesh"
+  "convex"
+  "heightfield"
+] @type.builtin
+
+; Joint sub-block keywords
+[
+  "joint"
+  "hinge"
+  "slider"
+  "ball_socket"
+  "fixed_joint"
+  "d6_joint"
+  "spring_joint"
+  "prismatic"
+] @keyword.type
+
+; Named physics blocks
+(force_field_block
+  name: (string) @type.definition)
+
+(force_field_block
+  name: (identifier) @type.definition)
+
+(articulation_block
+  name: (string) @type.definition)
+
+(articulation_block
+  name: (identifier) @type.definition)
+
+(joint_block
+  name: (string) @label)
+
+(joint_block
+  name: (identifier) @label)
+
+; Collider shape field
+(collider_block
+  shape: (_) @type.builtin)
+
+; Shader pass keyword and name
+(shader_pass
+  "pass" @keyword.storage)
+
+(shader_pass
+  name: (string) @label)
+
+(shader_pass
+  name: (identifier) @label)
+
+; Shader connection arrow operator
+(shader_connection
+  "->" @operator)
+
+; =============================================================================
 ; TRAITS
 ; =============================================================================
 
@@ -265,16 +388,291 @@
 ] @type.builtin
 
 ; =============================================================================
-; PUNCTUATION
+; PARTICLES & VFX
 ; =============================================================================
 
-["{" "}"] @punctuation.bracket
-["(" ")"] @punctuation.bracket
-["[" "]"] @punctuation.bracket
+[
+  "particles"
+  "emitter"
+  "vfx"
+  "particle_system"
+] @keyword.type
 
-[":" "," "."] @punctuation.delimiter
+; Particle module keywords (must match grammar.js particle_module choice list)
+[
+  "emission"
+  "lifetime"
+  "velocity"
+  "force"
+  "color_over_life"
+  "size_over_life"
+  "noise"
+  "collision"
+  "sub_emitter"
+  "shape"
+  "renderer"
+  "rotation_over_life"
+  "trails"
+  "texture_sheet"
+  "inherit_velocity"
+] @keyword.storage
 
-";" @punctuation.delimiter
+(particle_block
+  name: (string) @type.definition)
+
+(particle_block
+  name: (identifier) @type.definition)
+
+; =============================================================================
+; POST-PROCESSING
+; =============================================================================
+
+[
+  "post_processing"
+  "post_fx"
+  "render_pipeline"
+] @keyword.type
+
+; Post-processing effect keywords (must match grammar.js post_effect choice list)
+[
+  "bloom"
+  "ambient_occlusion"
+  "ssao"
+  "color_grading"
+  "tone_mapping"
+  "depth_of_field"
+  "motion_blur"
+  "vignette"
+  "chromatic_aberration"
+  "fog"
+  "volumetric_fog"
+  "screen_space_reflections"
+  "ssr"
+  "anti_aliasing"
+  "fxaa"
+  "smaa"
+  "taa"
+  "film_grain"
+  "lens_flare"
+  "god_rays"
+  "outline"
+  "pixelate"
+] @function.builtin
+
+(post_processing_block
+  name: (string) @type.definition)
+
+(post_processing_block
+  name: (identifier) @type.definition)
+
+; =============================================================================
+; SPATIAL AUDIO
+; =============================================================================
+
+[
+  "audio_source"
+  "audio_listener"
+  "reverb_zone"
+  "audio_mixer"
+  "ambience"
+  "sound_emitter"
+] @keyword.type
+
+(audio_source_block
+  name: (string) @type.definition)
+
+(audio_source_block
+  name: (identifier) @type.definition)
+
+; =============================================================================
+; WEATHER SYSTEM
+; =============================================================================
+
+[
+  "weather"
+  "atmosphere"
+  "sky"
+  "climate"
+] @keyword.type
+
+; Weather layer types (must match grammar.js weather_layer choice list)
+[
+  "rain"
+  "snow"
+  "wind"
+  "lightning"
+  "clouds"
+  "hail"
+  "time_of_day"
+  "sun"
+  "moon"
+  "fog_layer"
+  "aurora"
+  "dust_storm"
+  "humidity"
+  "temperature"
+] @constant.builtin
+
+(weather_block
+  name: (string) @type.definition)
+
+(weather_block
+  name: (identifier) @type.definition)
+
+; =============================================================================
+; PROCEDURAL GENERATION
+; =============================================================================
+
+[
+  "procedural"
+  "generate"
+  "scatter"
+  "distribute"
+] @keyword.type
+
+; Noise function types (must match grammar.js noise_function choice list)
+[
+  "perlin"
+  "simplex"
+  "voronoi"
+  "worley"
+  "fbm"
+  "ridged"
+  "cellular"
+  "white_noise"
+  "curl"
+  "domain_warp"
+] @function.builtin
+
+(procedural_block
+  name: (string) @type.definition)
+
+(procedural_block
+  name: (identifier) @type.definition)
+
+; =============================================================================
+; LOD & RENDER HINTS
+; =============================================================================
+
+[
+  "lod"
+  "render"
+  "level"
+] @keyword.type
+
+(lod_level
+  distance: (number) @number)
+
+; =============================================================================
+; NAVIGATION & AI BEHAVIOR
+; =============================================================================
+
+[
+  "navmesh"
+  "nav_agent"
+  "behavior_tree"
+  "obstacle"
+  "nav_link"
+  "nav_modifier"
+  "crowd_manager"
+] @keyword.type
+
+; Behavior tree node types (must match grammar.js behavior_node choice list)
+[
+  "selector"
+  "sequence"
+  "condition"
+  "leaf"
+  "parallel"
+  "decorator"
+  "inverter"
+  "repeater"
+  "cooldown"
+  "guard"
+] @keyword.control
+
+(navigation_block
+  name: (string) @type.definition)
+
+(navigation_block
+  name: (identifier) @type.definition)
+
+; =============================================================================
+; INPUT SYSTEM
+; =============================================================================
+
+[
+  "input"
+  "interaction"
+  "gesture_profile"
+  "controller_map"
+] @keyword.type
+
+(input_block
+  name: (string) @type.definition)
+
+(input_block
+  name: (identifier) @type.definition)
+
+; =============================================================================
+; ANNOTATIONS
+; =============================================================================
+
+(annotation
+  "#[" @punctuation.special)
+
+(annotation_entry
+  key: (identifier) @property)
+
+; =============================================================================
+; HSPLUS LANGUAGE KEYWORDS
+; =============================================================================
+
+[
+  "struct"
+  "enum"
+  "interface"
+  "module"
+  "function"
+  "let"
+  "const"
+  "var"
+  "import"
+  "export"
+  "from"
+  "as"
+  "await"
+  "new"
+  "of"
+  "switch"
+  "case"
+  "default"
+  "break"
+  "throw"
+  "try"
+  "catch"
+  "finally"
+] @keyword
+
+; =============================================================================
+; BUILT-IN TEST FRAMEWORK
+; =============================================================================
+
+["test"] @keyword.type
+
+(test_block
+  name: (string) @type.definition)
+
+[
+  "given"
+  "when"
+  "then"
+  "assert"
+  "before_each"
+  "after_each"
+  "before_all"
+  "after_all"
+] @keyword.control
 
 ; =============================================================================
 ; COMMENTS
