@@ -58,3 +58,6 @@ export * from './helpers.js';
 
 // Export sandbox system
 export * from './sandbox/index.js';
+
+// Export responsive layout & touch gesture system
+export * from './responsive/index.js';

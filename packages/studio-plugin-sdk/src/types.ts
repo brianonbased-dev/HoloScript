@@ -14,6 +14,113 @@
 import type { ComponentType } from 'react';
 import type { PluginSandboxManifest, SandboxPermission } from './sandbox/types.js';
 
+// ── Responsive & Tablet Layout ────────────────────────────────────────────────
+
+/** Breakpoint names for responsive layout */
+export type ResponsiveBreakpoint = 'mobile' | 'tablet' | 'desktop' | 'wide';
+
+/** Device orientation */
+export type DeviceOrientation = 'portrait' | 'landscape';
+
+/** Layout mode for panels on different devices */
+export type PanelLayoutMode = 'docked' | 'floating' | 'drawer' | 'fullscreen' | 'collapsed';
+
+/** Breakpoint configuration with pixel thresholds */
+export interface ResponsiveBreakpoints {
+  /** Mobile breakpoint max-width (default: 767) */
+  mobile: number;
+  /** Tablet breakpoint max-width (default: 1024) */
+  tablet: number;
+  /** Desktop breakpoint max-width (default: 1439) */
+  desktop: number;
+  /** Wide breakpoint min-width (default: 1440) */
+  wide: number;
+}
+
+/** Per-breakpoint panel layout overrides */
+export interface ResponsivePanelConfig {
+  /** Layout mode at this breakpoint */
+  layoutMode?: PanelLayoutMode;
+  /** Position override for this breakpoint */
+  position?: 'left' | 'right' | 'bottom' | 'modal' | 'top';
+  /** Width override (pixels or percentage string like '80%') */
+  width?: number | string;
+  /** Height override (pixels or percentage string) */
+  height?: number | string;
+  /** Whether the panel starts collapsed at this breakpoint */
+  defaultCollapsed?: boolean;
+  /** Whether the panel can be dismissed via swipe gesture */
+  swipeToDismiss?: boolean;
+  /** Z-index override for layering */
+  zIndex?: number;
+}
+
+/** Touch gesture types supported by panels and toolbars */
+export type TouchGestureType =
+  | 'swipe-left'
+  | 'swipe-right'
+  | 'swipe-up'
+  | 'swipe-down'
+  | 'pinch-in'
+  | 'pinch-out'
+  | 'long-press'
+  | 'double-tap';
+
+/** Configuration for a touch gesture action */
+export interface TouchGestureAction {
+  /** Gesture type to listen for */
+  gesture: TouchGestureType;
+  /** Action to perform when gesture is detected */
+  action: 'toggle' | 'dismiss' | 'expand' | 'collapse' | 'custom';
+  /** Custom handler (used when action is 'custom') */
+  handler?: (event: TouchGestureEvent) => void;
+  /** Minimum distance threshold for swipe gestures (pixels, default: 50) */
+  threshold?: number;
+  /** Duration threshold for long-press (ms, default: 500) */
+  duration?: number;
+}
+
+/** Event data passed to touch gesture handlers */
+export interface TouchGestureEvent {
+  /** The type of gesture detected */
+  type: TouchGestureType;
+  /** Start position of the gesture */
+  startPosition: { x: number; y: number };
+  /** End position of the gesture (for swipes) */
+  endPosition: { x: number; y: number };
+  /** Distance traveled (for swipes) */
+  distance: number;
+  /** Direction angle in degrees (for swipes) */
+  angle: number;
+  /** Velocity of the gesture (pixels/ms) */
+  velocity: number;
+  /** Scale factor (for pinch gestures) */
+  scale?: number;
+  /** Duration of the gesture in ms */
+  duration: number;
+  /** The original touch event */
+  originalEvent: TouchEvent;
+}
+
+/** Toolbar layout mode for tablet/responsive */
+export type ToolbarLayoutMode = 'horizontal' | 'vertical' | 'floating-action-bar' | 'contextual';
+
+/** Per-breakpoint toolbar layout overrides */
+export interface ResponsiveToolbarConfig {
+  /** Toolbar layout mode at this breakpoint */
+  layoutMode?: ToolbarLayoutMode;
+  /** Position for floating toolbar */
+  position?: 'top' | 'bottom' | 'left' | 'right';
+  /** Whether to group buttons into overflow menu */
+  overflow?: boolean;
+  /** Maximum visible buttons before overflow */
+  maxVisibleButtons?: number;
+  /** Larger touch targets for tablet (default: true on tablet) */
+  enlargedTouchTargets?: boolean;
+  /** Touch target minimum size in pixels (default: 44 per WCAG) */
+  touchTargetSize?: number;
+}
+
 // ── Plugin Metadata ───────────────────────────────────────────────────────────
 
 export interface PluginMetadata {
@@ -166,6 +273,53 @@ export interface CustomPanel {
 
   /** Keyboard shortcut to toggle panel (e.g., 'Ctrl+Shift+P') */
   shortcut?: string;
+
+  /**
+   * Responsive layout overrides per breakpoint.
+   * When set, the panel adapts its layout, position, and size
+   * for different device sizes (tablet, mobile, etc.).
+   *
+   * @example
+   * ```typescript
+   * responsive: {
+   *   tablet: {
+   *     layoutMode: 'drawer',
+   *     position: 'bottom',
+   *     height: '60%',
+   *     swipeToDismiss: true,
+   *   },
+   *   mobile: {
+   *     layoutMode: 'fullscreen',
+   *     defaultCollapsed: true,
+   *   },
+   * }
+   * ```
+   */
+  responsive?: Partial<Record<ResponsiveBreakpoint, ResponsivePanelConfig>>;
+
+  /**
+   * Touch gesture actions for tablet/mobile interaction.
+   * Define how gestures interact with this panel.
+   *
+   * @example
+   * ```typescript
+   * touchGestures: [
+   *   { gesture: 'swipe-right', action: 'dismiss' },
+   *   { gesture: 'swipe-up', action: 'expand' },
+   *   { gesture: 'long-press', action: 'toggle' },
+   * ]
+   * ```
+   */
+  touchGestures?: TouchGestureAction[];
+
+  /** Minimum width when resizing (pixels, default: 200) */
+  minWidth?: number;
+
+  /** Maximum width when resizing (pixels, default: 600) */
+  maxWidth?: number;
+
+  /** Whether the panel supports drag-to-resize on tablet */
+  resizable?: boolean;
 }
 
 export interface CustomToolbarButton {
@@ -189,6 +343,26 @@ export interface CustomToolbarButton {
 
   /** Button color theme */
   color?: 'default' | 'accent' | 'success' | 'warning' | 'error';
+
+  /**
+   * Priority for overflow ordering on tablet/mobile.
+   * Higher priority buttons remain visible; lower priority
+   * buttons are moved to an overflow menu.
+   * Default: 0 (all buttons have equal priority)
+   */
+  priority?: number;
+
+  /**
+   * Whether this button should be hidden on specific breakpoints.
+   * Useful for desktop-only actions that don't translate to touch.
+   */
+  hideOnBreakpoints?: ResponsiveBreakpoint[];
+
+  /**
+   * Long-press handler for tablet interaction.
+   * Enables secondary actions via touch-and-hold.
+   */
+  onLongPress?: () => void;
 }
 
 export interface CustomKeyboardShortcut {
@@ -315,6 +489,17 @@ export interface HoloScriptPlugin extends PluginLifecycle, PluginConfig {
 
   /** Custom menu items */
   menuItems?: CustomMenuItem[];
+
+  /**
+   * Responsive layout configuration for the entire plugin.
+   * Sets global breakpoint thresholds and default toolbar behavior.
+   */
+  responsive?: {
+    /** Custom breakpoint thresholds (overrides defaults) */
+    breakpoints?: Partial<ResponsiveBreakpoints>;
+    /** Default toolbar layout per breakpoint */
+    toolbar?: Partial<Record<ResponsiveBreakpoint, ResponsiveToolbarConfig>>;
+  };
 }
 
 // ── Plugin Registry Entry ─────────────────────────────────────────────────────

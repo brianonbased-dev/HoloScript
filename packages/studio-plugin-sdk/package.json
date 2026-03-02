@@ -33,6 +33,10 @@
     "./sandbox/types": {
       "types": "./dist/sandbox/types.d.ts",
       "import": "./dist/sandbox/types.js"
+    },
+    "./responsive": {
+      "types": "./dist/responsive/index.d.ts",
+      "import": "./dist/responsive/index.js"
     }
   },
   "scripts": {
