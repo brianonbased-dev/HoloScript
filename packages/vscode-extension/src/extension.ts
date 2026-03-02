@@ -36,6 +36,10 @@ import {
   TraitCompositionTreeProvider,
   registerTraitTreeCommands,
 } from './traitTree';
+import {
+  HoloScriptInlineDebugAdapterFactory,
+  HoloScriptDebugConfigurationProvider,
+} from './debug';
 
 let client: LanguageClient | undefined;
 let traitTreeProvider: TraitCompositionTreeProvider | undefined;
@@ -569,6 +573,49 @@ export function activate(context: ExtensionContext) {
 
     console.log('HoloScript: Git integration features registered.');
   }
+
+  // ── Debug Adapter Registration ───────────────────────────────────────────
+  // Register the inline debug adapter factory -- this runs HoloScriptDebugSession
+  // in-process for zero-latency DAP communication with VS Code.
+  const debugType = 'holoscript-debug';
+
+  const debugAdapterFactory = new HoloScriptInlineDebugAdapterFactory();
+  context.subscriptions.push(
+    vscode.debug.registerDebugAdapterDescriptorFactory(debugType, debugAdapterFactory)
+  );
+
+  // Register the debug configuration provider -- resolves incomplete launch configs,
+  // validates program paths, and generates initial configurations for new launch.json files.
+  const debugConfigProvider = new HoloScriptDebugConfigurationProvider();
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider(debugType, debugConfigProvider)
+  );
+
+  // Register a dynamic debug configuration provider -- appears in the
+  // "Run and Debug" dropdown even without a launch.json file.
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider(
+      debugType,
+      {
+        provideDebugConfigurations(
+          _folder: vscode.WorkspaceFolder | undefined
+        ): vscode.ProviderResult<vscode.DebugConfiguration[]> {
+          return [
+            {
+              type: debugType,
+              request: 'launch',
+              name: 'Debug Current HoloScript File',
+              program: '${file}',
+              stopOnEntry: true,
+            },
+          ];
+        },
+      },
+      vscode.DebugConfigurationProviderTriggerKind.Dynamic
+    )
+  );
+
+  console.log('HoloScript: Debug adapter registered (inline DAP with configuration provider).');
 }
 
 function isHoloScriptFile(document: TextDocument): boolean {

@@ -391,3 +391,132 @@ describe('v4 Integration', () => {
     expect(block.eventHandlers![0].event).toBe('onDetect');
   });
 });
+
+// =============================================================================
+// FIX 1: parseComposition() v4 dispatch (was missing, only implicit mode worked)
+// =============================================================================
+
+describe('Fix: composition mode v4 dispatch', () => {
+  it('parses domain blocks inside composition { }', () => {
+    const source = `
+      composition "Factory" {
+        sensor "TempSensor" {
+          type: "DHT22"
+          interval_ms: 5000
+        }
+      }
+    `;
+    const result = parseHolo(source);
+    expect(result.success).toBe(true);
+    expect(result.ast?.name).toBe('Factory');
+    expect(result.ast?.domainBlocks).toBeDefined();
+    expect(result.ast!.domainBlocks!.length).toBe(1);
+    expect(result.ast!.domainBlocks![0].domain).toBe('iot');
+  });
+
+  it('parses spatial primitives inside composition { }', () => {
+    const source = `
+      composition "World" {
+        spawn_group "Enemies" {
+          count: 10
+          radius: 50
+        }
+
+        terrain MainMap {
+          heightmap: "map.png"
+          resolution: 512
+        }
+      }
+    `;
+    const result = parseHolo(source);
+    expect(result.success).toBe(true);
+    expect(result.ast?.spawnGroups!.length).toBe(1);
+    expect(result.ast!.spawnGroups![0].name).toBe('Enemies');
+    expect(result.ast?.terrains!.length).toBe(1);
+    expect(result.ast!.terrains![0].name).toBe('MainMap');
+  });
+
+  it('parses simulation blocks inside composition { }', () => {
+    const source = `
+      composition "Scene" {
+        material "Gold" {
+          metallic: 1.0
+          roughness: 0.2
+        }
+
+        weather "Storm" {
+          type: "thunderstorm"
+          intensity: 0.9
+        }
+
+        navmesh "Level" {
+          agent_radius: 0.5
+          max_slope: 45
+        }
+      }
+    `;
+    const result = parseHolo(source);
+    expect(result.success).toBe(true);
+    expect(result.ast?.domainBlocks!.length).toBe(3);
+    expect(result.ast!.domainBlocks![0].domain).toBe('material');
+    expect(result.ast!.domainBlocks![1].domain).toBe('weather');
+    expect(result.ast!.domainBlocks![2].domain).toBe('navigation');
+  });
+
+  it('mixes v3 and v4 blocks in standard composition', () => {
+    const source = `
+      composition "RPG" {
+        environment {
+          theme: "dungeon"
+          skybox: "cave"
+        }
+
+        object "Player" {
+          position: [0, 1.6, 0]
+          health: 100
+        }
+
+        rigidbody "Crate" {
+          mass: 50
+          gravity: true
+        }
+
+        spawn_group "Goblins" {
+          count: 5
+          radius: 25
+        }
+      }
+    `;
+    const result = parseHolo(source);
+    expect(result.success).toBe(true);
+    expect(result.ast?.environment).toBeDefined();
+    expect(result.ast?.objects.length).toBe(1);
+    expect(result.ast?.domainBlocks!.length).toBe(1);
+    expect(result.ast?.spawnGroups!.length).toBe(1);
+  });
+});
+
+// =============================================================================
+// FIX 2: @state decorator support in implicit composition mode
+// =============================================================================
+
+describe('Fix: implicit mode @decorator handling', () => {
+  it('parses @state in implicit composition', () => {
+    const source = `
+      @state {
+        health: 100
+        name: "Player"
+      }
+
+      sensor "Door" {
+        type: "proximity"
+      }
+    `;
+    const result = parseHolo(source);
+    expect(result.success).toBe(true);
+    expect(result.ast?.state).toBeDefined();
+    expect(result.ast?.state?.properties.length).toBeGreaterThanOrEqual(2);
+    expect(result.ast?.domainBlocks!.length).toBe(1);
+  });
+});
+

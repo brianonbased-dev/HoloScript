@@ -25,6 +25,7 @@
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.19.3",
     "@holoscript/core": "workspace:*",
+    "@holoscript/studio-plugin-sdk": "workspace:*",
     "@monaco-editor/react": "^4.7.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",

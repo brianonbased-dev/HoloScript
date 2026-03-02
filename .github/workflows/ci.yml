@@ -71,6 +71,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install cmake and system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake libclang-dev
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
@@ -90,8 +95,22 @@ jobs:
       - name: Build packages
         run: pnpm build
 
-      - name: Run tests with coverage
+      - name: Run TypeScript tests with coverage
         run: pnpm test:coverage || pnpm test
+
+      - name: Run Rust cargo tests
+        env:
+          CMAKE_POLICY_VERSION_MINIMUM: '3.5'
+        run: |
+          echo "::group::holoscript-component"
+          cargo test --manifest-path packages/holoscript-component/Cargo.toml
+          echo "::endgroup::"
+          echo "::group::compiler-wasm"
+          cargo test --manifest-path packages/compiler-wasm/Cargo.toml
+          echo "::endgroup::"
+          echo "::group::spatial-engine (build check)"
+          cargo check --manifest-path packages/spatial-engine/Cargo.toml
+          echo "::endgroup::"
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v5
@@ -131,6 +150,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install cmake and system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake libclang-dev
 
       - name: Install Rust and wasm-pack
         uses: dtolnay/rust-toolchain@stable

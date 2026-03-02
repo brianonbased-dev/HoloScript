@@ -6,6 +6,7 @@ import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AppShell } from '../components/AppShell';
 import { DevToolsInit } from '../components/DevToolsInit';
+import { PluginHostProvider } from '../hooks/usePluginHost';
 
 // ═══════════════════════════════════════════════════════════════════
 // Theme Context
@@ -112,7 +113,9 @@ export function Providers({ children }: { children: ReactNode }) {
       <ThemeContext.Provider value={{ theme, toggle: toggleTheme }}>
         <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
           <ErrorBoundary>
-            <AppShell>{children}</AppShell>
+            <PluginHostProvider>
+              <AppShell>{children}</AppShell>
+            </PluginHostProvider>
           </ErrorBoundary>
           <ToastContainer toasts={toasts} onRemove={removeToast} />
           <DevToolsInit />

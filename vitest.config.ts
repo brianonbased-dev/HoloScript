@@ -26,6 +26,22 @@ export default defineConfig({
           exclude: ['**/dist/**', '**/node_modules/**'],
         },
       },
+      {
+        test: {
+          name: 'graphql-api',
+          root: './packages/graphql-api',
+          include: ['src/**/*.test.ts'],
+          exclude: ['**/dist/**', '**/node_modules/**'],
+        },
+      },
+      {
+        test: {
+          name: 'mcp-server',
+          root: './packages/mcp-server',
+          include: ['src/**/*.test.ts'],
+          exclude: ['**/dist/**', '**/node_modules/**'],
+        },
+      },
     ],
   },
 });

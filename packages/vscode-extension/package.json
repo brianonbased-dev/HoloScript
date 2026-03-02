@@ -30,7 +30,9 @@
   "activationEvents": [
     "onStartupFinished",
     "onLanguage:holoscript",
-    "onLanguage:holoscriptplus"
+    "onLanguage:holoscriptplus",
+    "onDebugResolve:holoscript-debug",
+    "onDebugDynamicConfigurations:holoscript-debug"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -727,12 +729,22 @@
         ]
       }
     ],
+    "breakpoints": [
+      {
+        "language": "holoscript"
+      },
+      {
+        "language": "holoscriptplus"
+      }
+    ],
     "debuggers": [
       {
         "type": "holoscript-debug",
+        "languages": [
+          "holoscript",
+          "holoscriptplus"
+        ],
         "label": "HoloScript Debug",
-        "program": "./node_modules/@holoscript/lsp/dist/debugServer.js",
-        "runtime": "node",
         "configurationAttributes": {
           "launch": {
             "required": [
@@ -741,13 +753,45 @@
             "properties": {
               "program": {
                 "type": "string",
-                "description": "The absolute path to the .holo or .hs file to debug.",
+                "description": "Absolute path to the .holo, .hsplus, or .hs file to debug.",
                 "default": "${file}"
               },
               "stopOnEntry": {
                 "type": "boolean",
-                "description": "Automatically stop after launch.",
+                "description": "Automatically stop on the first executable line after launch.",
                 "default": true
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable diagnostic logging from the debug adapter.",
+                "default": false
+              },
+              "cwd": {
+                "type": "string",
+                "description": "Working directory for the debugged program.",
+                "default": "${workspaceFolder}"
+              },
+              "env": {
+                "type": "object",
+                "description": "Environment variables to set for the debugged program.",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "default": {}
+              }
+            }
+          },
+          "attach": {
+            "properties": {
+              "port": {
+                "type": "number",
+                "description": "Port to attach to a running HoloScript process.",
+                "default": 9229
+              },
+              "host": {
+                "type": "string",
+                "description": "Host address of the running HoloScript process.",
+                "default": "localhost"
               }
             }
           }
@@ -759,6 +803,42 @@
             "name": "Debug HoloScript",
             "program": "${file}",
             "stopOnEntry": true
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "HoloScript: Debug File",
+            "description": "Debug the currently open HoloScript file.",
+            "body": {
+              "type": "holoscript-debug",
+              "request": "launch",
+              "name": "Debug ${1:HoloScript File}",
+              "program": "^\"\\${file}\"",
+              "stopOnEntry": true
+            }
+          },
+          {
+            "label": "HoloScript: Debug Composition",
+            "description": "Debug a specific HoloScript composition file.",
+            "body": {
+              "type": "holoscript-debug",
+              "request": "launch",
+              "name": "Debug ${1:Composition}",
+              "program": "^\"\\${workspaceFolder}/${2:main.holo}\"",
+              "stopOnEntry": false,
+              "cwd": "^\"\\${workspaceFolder}\""
+            }
+          },
+          {
+            "label": "HoloScript: Attach to Process",
+            "description": "Attach to an already running HoloScript process.",
+            "body": {
+              "type": "holoscript-debug",
+              "request": "attach",
+              "name": "Attach to HoloScript",
+              "port": 9229,
+              "host": "localhost"
+            }
           }
         ]
       }
@@ -786,6 +866,7 @@
   },
   "dependencies": {
     "@holoscript/sdk": "workspace:^",
+    "@holoscript/lsp": "workspace:*",
     "@holoscript/formatter": "workspace:*",
     "@types/adm-zip": "^0.5.7",
     "adm-zip": "^0.5.16",

@@ -542,18 +542,6 @@ See [HoloLand Platform Launch](#hololand-platform-launch) section below.
 
 ---
 
-## HoloLand Platform Launch
-
-> **Strategic Context**: HoloScript vs Unity / HoloLand vs Roblox — uAA2++ Research Protocol (2026-02-23)
-
-### Why Now
-
-| Competitor | Trust Crisis | Our Advantage |
-|---|---|---|
-| **Unity** | Runtime fee debacle (2023), 3,200 layoffs | MIT license — can't rug pull open source |
-| **Roblox** | 54% users <13, $730M creator payouts at 25% split | 90/10 split, URL-based, 13-25 demo |
-
-**Window**: Unity vulnerable NOW before trust rebuilt. Launch 2026–2027.
 
 ### The Five Pillars (from Immutability Manifesto)
 1. **MIT License, Forever** — irrevocable, legally binding
@@ -570,11 +558,11 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 
 #### Month 1–3: Foundation
 - [ ] Assemble 10-person core team (Engine × 4, Platform × 3, Creator Success × 3)
-- [ ] Tech stack confirmed: Rust + TypeScript + WASM (ECS+WASM POC validated ✅)
-- [ ] Publish **Immutability Manifesto** (MIT, 90/10, no runtime fees) ✅
-- [ ] MVP creation tools: HoloScript editor + one-click preview URL
-- [ ] Unity→HoloScript converter CLI (`holoscript convert unity-scene`) ✅
-- [ ] Open `holoscript.net` landing page with benchmark results
+- [✅] Tech stack confirmed: Rust + TypeScript + WASM (ECS+WASM POC validated )
+- [✅] Publish **Immutability Manifesto** (MIT, 90/10, no runtime fees) ✅
+- [] MVP creation tools: HoloScript editor + one-click preview URL
+- [✅] Unity→HoloScript converter CLI (`holoscript convert unity-scene`) ✅
+- [] Open `holoscript.net` landing page with benchmark results
 
 #### Month 4–6: Alpha (100 Founders, Closed)
 - [ ] **HoloLand Founders Program** — 100 curated creators

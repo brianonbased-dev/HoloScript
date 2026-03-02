@@ -60,3 +60,14 @@ export {
 
 // Context provider
 export { SpatialContextProvider, SpatialContextProviderEvents } from './SpatialContextProvider';
+
+// Octree systems
+export { OctreeSystem, OctreeEntry } from './OctreeSystem';
+export {
+  OctreeLODSystem,
+  GaussianAnchor,
+  OctreeLODConfig,
+  LODSelectionResult,
+  LODLevelStats,
+  OctreeLODMetrics,
+} from './OctreeLODSystem';

@@ -76,6 +76,7 @@ import {
   Gauge,
   Pencil,
   PaintBucket,
+  Shield,
 } from 'lucide-react';
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/store';
 import { PanelSplitter } from '@/components/ui/PanelSplitter';
@@ -368,6 +369,11 @@ const PluginMarketplacePanel = dynamic(
   { ssr: false }
 );
 
+const SandboxedPluginsPanel = dynamic(
+  () => import('@/components/plugins/SandboxedPluginsPanel').then((m) => ({ default: m.SandboxedPluginsPanel })),
+  { ssr: false }
+);
+
 function ViewportSkeleton() {
   return (
     <div className="flex h-full w-full items-center justify-center bg-[#0a0a12]">
@@ -610,6 +616,8 @@ export default function CreatePage() {
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [hotkeyOpen, setHotkeyOpen] = useState(false);
   const [pluginsOpen, setPluginsOpen] = useState(false);
+  // Sandboxed plugin host panel
+  const [sandboxedPluginsOpen, setSandboxedPluginsOpen] = useState(false);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
@@ -1180,6 +1188,16 @@ export default function CreatePage() {
           </div>
         )}
 
+        {/* RIGHT RAIL: Sandboxed Plugins (live sandbox host) */}
+        {sandboxedPluginsOpen && (
+          <div className="flex w-80 shrink-0 flex-col border-l border-studio-border">
+            <SandboxedPluginsPanel
+              onClose={() => setSandboxedPluginsOpen(false)}
+              onOpenMarketplace={() => { setSandboxedPluginsOpen(false); setPluginsOpen(true); }}
+            />
+          </div>
+        )}
+
         {/* OVERLAY: Hotkey Map (full screen modal) */}
         <HotkeyMapOverlay open={hotkeyOpen} onClose={() => setHotkeyOpen(false)} />
 
@@ -1597,6 +1615,14 @@ export default function CreatePage() {
             className={`transition ${pluginsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
             <Puzzle className="h-4 w-4" />
+          </button>
+          {/* Sandboxed Plugins toggle */}
+          <button
+            onClick={() => setSandboxedPluginsOpen((v) => !v)}
+            title={sandboxedPluginsOpen ? 'Close Sandboxed Plugins' : 'Sandboxed Plugins'}
+            className={`transition ${sandboxedPluginsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+          >
+            <Shield className="h-4 w-4" />
           </button>
           {/* Hotkey Map toggle */}
           <button

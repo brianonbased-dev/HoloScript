@@ -1035,15 +1035,26 @@ export class HoloCompositionParser {
         if (this.isAtEnd()) break;
 
         // Handle @world, @environment, etc. (root-level decorators)
+        // But NOT if followed by a domain block (e.g. contract "X" @erc721 { } — the
+        // domain block's parseDomainBlock() handles inline traits itself)
         if (this.check('AT')) {
+          // Peek ahead: if the token after the decorator name is a domain block,
+          // this @ is an inline trait on the previous domain block — skip it so
+          // parseDomainBlock handles traits. But at ROOT level, there is no
+          // "previous domain block", so we handle @world/@environment decorators.
           this.advance(); // consume @
           const decoratorName = this.current().value.toLowerCase();
           this.advance(); // consume decorator name
 
           if (decoratorName === 'world' || decoratorName === 'environment') {
             composition.environment = this.parseEnvironmentBody();
+          } else if (decoratorName === 'state') {
+            composition.state = this.parseStateBody();
           } else {
-            // Skip unknown root-level decorators
+            // Skip unknown root-level decorators and optional config
+            if (this.check('LPAREN')) {
+              this.skipParens();
+            }
             if (this.check('LBRACE')) {
               this.skipBlock();
             }
@@ -1271,6 +1282,12 @@ export class HoloCompositionParser {
       achievements: [],
       talentTrees: [],
       shapes: [],
+      // v4 additions
+      spawnGroups: [],
+      waypointSets: [],
+      constraints: [],
+      terrains: [],
+      domainBlocks: [],
     };
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
@@ -1340,6 +1357,18 @@ export class HoloCompositionParser {
           composition.achievements.push(this.parseAchievement());
         } else if (this.check('TALENT_TREE')) {
           composition.talentTrees.push(this.parseTalentTree());
+        // Spatial primitives (v4)
+        } else if (this.check('SPAWN_GROUP')) {
+          composition.spawnGroups!.push(this.parseSpawnGroup());
+        } else if (this.check('WAYPOINTS')) {
+          composition.waypointSets!.push(this.parseWaypointsBlock());
+        } else if (this.check('CONSTRAINT')) {
+          composition.constraints!.push(this.parseConstraintBlock());
+        } else if (this.check('TERRAIN')) {
+          composition.terrains!.push(this.parseTerrainBlock());
+        // Domain-specific blocks (v4)
+        } else if (this.isDomainBlockToken()) {
+          composition.domainBlocks!.push(this.parseDomainBlock());
         } else if (this.check('AT')) {
           // Handle @state, @world, and other decorators at composition level
           this.advance(); // consume @
@@ -1511,7 +1540,7 @@ export class HoloCompositionParser {
       this.skipNewlines();
       if (this.check('RBRACE')) break;
 
-      if (this.check('PARTICLE_SYSTEM')) {
+      if (this.check('PARTICLES')) {
         const ps = this.parseParticleSystem();
         properties.push({
           type: 'EnvironmentProperty',
@@ -1532,7 +1561,7 @@ export class HoloCompositionParser {
   }
 
   private parseParticleSystem(): HoloParticleSystem {
-    this.expect('PARTICLE_SYSTEM');
+    this.expect('PARTICLES');
     const name = this.expectString();
     this.expect('LBRACE');
     this.skipNewlines();
@@ -3119,6 +3148,9 @@ export class HoloCompositionParser {
   }
 
   private isKeywordAsIdentifierType(type: TokenType): boolean {
+    // All domain/simulation keywords can be used as identifiers (e.g. property names)
+    if (HoloCompositionParser.DOMAIN_TOKENS.has(type)) return true;
+
     const keywordsAsIdentifiers: TokenType[] = [
       'STATE',
       'OBJECT',
@@ -3140,6 +3172,28 @@ export class HoloCompositionParser {
       'TRANSITION',
       'ELEMENT',
       'ON_ERROR',
+      // Spatial primitives
+      'SPAWN_GROUP',
+      'WAYPOINTS',
+      'CONSTRAINT',
+      'TERRAIN',
+      'PARTICLES',
+      // Game/AI keywords that can appear as property names
+      'SHAPE',
+      'NPC',
+      'QUEST',
+      'ABILITY',
+      'DIALOGUE',
+      'STATE_MACHINE',
+      'ACHIEVEMENT',
+      'TALENT_TREE',
+      'IMPORT',
+      'USING',
+      'FROM',
+      'COMPOSITION',
+      'SPATIAL_GROUP',
+      'SPATIAL_AGENT',
+      'SPATIAL_CONTAINER',
     ];
     return keywordsAsIdentifiers.includes(type);
   }
@@ -3415,6 +3469,9 @@ export class HoloCompositionParser {
     const type = this.current().type;
     if (type === 'IDENTIFIER') return true;
 
+    // All domain/simulation keywords can be property names in object bodies
+    if (HoloCompositionParser.DOMAIN_TOKENS.has(type)) return true;
+
     // Keywords that can also be property names in object bodies
     const validPropertyKeywords: TokenType[] = [
       'ANIMATE',
@@ -3444,6 +3501,12 @@ export class HoloCompositionParser {
       'RIGIDBODY',
       'FORCE_FIELD',
       'ARTICULATION',
+      // Spatial primitives
+      'SPAWN_GROUP',
+      'WAYPOINTS',
+      'CONSTRAINT',
+      'TERRAIN',
+      'PARTICLES',
     ];
     return validPropertyKeywords.includes(type);
   }
@@ -3626,31 +3689,10 @@ export class HoloCompositionParser {
       return this.advance().value;
     }
 
-    // Keywords can also be used as property names (e.g., audio, object, state)
+    // Keywords can also be used as property names (e.g., audio, object, state, material)
+    // Use the unified isKeywordAsIdentifierType() check to avoid maintaining duplicate lists
     const current = this.current();
-    const keywordTypes = [
-      'AUDIO',
-      'OBJECT',
-      'STATE',
-      'TEMPLATE',
-      'ENVIRONMENT',
-      'LIGHT',
-      'CAMERA',
-      'EFFECTS',
-      'LOGIC',
-      'TIMELINE',
-      'ZONE',
-      'UI',
-      'TRANSITION',
-      'NPC',
-      'QUEST',
-      'ABILITY',
-      'DIALOGUE',
-      'SHAPE',
-      'IMPORT',
-      'USING',
-    ];
-    if (keywordTypes.includes(current.type)) {
+    if (this.isKeywordAsIdentifierType(current.type)) {
       return this.advance().value;
     }
 

@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
   ...(process.platform !== 'win32' && { output: 'standalone' }),
-  transpilePackages: ['@holoscript/core', 'three'],
+  transpilePackages: ['@holoscript/core', '@holoscript/studio-plugin-sdk', 'three'],
   webpack: (config, { isServer }) => {
     config.module.rules.push({
       test: /\.(glb|gltf|hdr)$/,

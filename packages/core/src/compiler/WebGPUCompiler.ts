@@ -249,27 +249,46 @@ export class WebGPUCompiler extends CompilerBase {
     const trait = obj.traits?.find((t) => t.name === 'gaussian_splat');
     const src = (trait?.config as any)?.src || 'scene.ply';
     const max = (trait?.config as any)?.max_splats || 500000;
-    this.emit(`// Gaussian Splat — source: ${src}`);
-    this.emit(`const ${v}SplatBuf = createStorageBuffer(device, ${max} * 32);`);
-    this.emit(`const ${v}SplatCount = { value: 0 };`);
-    this.emit(`const ${v}SplatPipeline = device.createRenderPipeline({`);
-    this.indent();
-    this.emit('layout: "auto",');
-    this.emit(
-      'vertex: { module: device.createShaderModule({ code: WGSL_SPLAT }), entryPoint: "vs_splat", buffers: [] },'
-    );
-    this.emit(
-      'fragment: { module: device.createShaderModule({ code: WGSL_SPLAT }), entryPoint: "fs_splat",'
-    );
-    this.emit(
-      '  targets: [{ format, blend: { color: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" }, alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" } } }] },'
-    );
-    this.emit('primitive: { topology: "triangle-strip" },');
-    this.emit(
-      'depthStencil: { format: "depth24plus", depthWriteEnabled: false, depthCompare: "less" },'
-    );
-    this.dedent();
-    this.emit('});');
+    const sorted = (trait?.config as any)?.sorted !== false; // default: true
+    this.emit(`// Gaussian Splat — source: ${src} (${sorted ? 'radix-sorted' : 'unsorted'})`);
+
+    if (sorted) {
+      // Wait-free hierarchical radix sort pipeline (W.035)
+      // Uses GaussianSplatSorter: compress -> 4x 8-bit Blelloch scan -> scatter -> render
+      this.emit(`// === Wait-Free Radix Sort Pipeline (4x 8-bit Blelloch scan, no global atomics) ===`);
+      this.emit(`import { GaussianSplatSorter } from '@holoscript/core/gpu/GaussianSplatSorter';`);
+      this.emit(`const ${v}Sorter = new GaussianSplatSorter(device, {`);
+      this.indent();
+      this.emit(`maxSplats: ${max},`);
+      this.emit(`canvasWidth: canvas.width,`);
+      this.emit(`canvasHeight: canvas.height,`);
+      this.dedent();
+      this.emit(`});`);
+      this.emit(`await ${v}Sorter.initialize();`);
+      this.emit(`const ${v}SplatCount = { value: 0 };`);
+    } else {
+      // Legacy unsorted path
+      this.emit(`const ${v}SplatBuf = createStorageBuffer(device, ${max} * 32);`);
+      this.emit(`const ${v}SplatCount = { value: 0 };`);
+      this.emit(`const ${v}SplatPipeline = device.createRenderPipeline({`);
+      this.indent();
+      this.emit('layout: "auto",');
+      this.emit(
+        'vertex: { module: device.createShaderModule({ code: WGSL_SPLAT }), entryPoint: "vs_splat", buffers: [] },'
+      );
+      this.emit(
+        'fragment: { module: device.createShaderModule({ code: WGSL_SPLAT }), entryPoint: "fs_splat",'
+      );
+      this.emit(
+        '  targets: [{ format, blend: { color: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" }, alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" } } }] },'
+      );
+      this.emit('primitive: { topology: "triangle-strip" },');
+      this.emit(
+        'depthStencil: { format: "depth24plus", depthWriteEnabled: false, depthCompare: "less" },'
+      );
+      this.dedent();
+      this.emit('});');
+    }
   }
 
   private emitPointCloudObject(v: string, obj: HoloObjectDecl): void {
