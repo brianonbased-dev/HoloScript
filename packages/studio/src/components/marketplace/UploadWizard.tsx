@@ -311,6 +311,9 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                       <option value="agent-configs">Agent Configs</option>
                       <option value="mcp-bundles">MCP Bundles</option>
                     </optgroup>
+                    <optgroup label="Training Data">
+                      <option value="training-data">Training Datasets</option>
+                    </optgroup>
                     <optgroup label="AI Orchestration">
                       <option value="ai-workflows">AI Workflows</option>
                       <option value="behavior-trees">Behavior Trees</option>
@@ -320,10 +323,15 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                       <option value="characters">Characters</option>
                       <option value="models">3D Models</option>
                       <option value="materials">Materials</option>
+                      <option value="templates">Templates & Starters</option>
                     </optgroup>
-                    <optgroup label="Media">
+                    <optgroup label="Animation & VFX">
                       <option value="animations">Animations</option>
-                      <option value="audio">Audio</option>
+                      <option value="vfx">Particle Effects / VFX</option>
+                      <option value="physics">Physics Presets</option>
+                    </optgroup>
+                    <optgroup label="Audio">
+                      <option value="audio">Sound Effects</option>
                       <option value="music">Music</option>
                     </optgroup>
                     <optgroup label="XR">

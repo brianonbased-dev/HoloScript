@@ -14,11 +14,14 @@ export type ContentType =
   | 'agent_config'       // Agent identity configs & RBAC policies
   | 'mcp_bundle'         // MCP tool bundles
   | 'rbac_policy'        // RBAC role & permission configs
+  // Training Data
+  | 'training_data'      // Curated AI training datasets (via DataForge)
   // 3D Content
   | 'scene'              // Complete 3D scenes (.hsplus)
   | 'composition'        // Compositions (.holo)
   | 'character'          // VRM characters
   | 'model'              // 3D models (GLTF/GLB)
+  | 'template'           // Project templates & starters
   // Visual Programming
   | 'shader_graph'       // Shader node graphs
   | 'material'           // Materials/shaders
@@ -26,6 +29,7 @@ export type ContentType =
   // Animation & Physics
   | 'animation'          // Animation sequences
   | 'physics_preset'     // Physics configurations
+  | 'particle_effect'    // Particle systems & VFX
   // Audio
   | 'audio'              // Sound effects
   | 'music'              // Music tracks
@@ -84,14 +88,18 @@ export const MARKETPLACE_CATEGORIES = {
   AI_SKILLS: 'ai-skills',
   AGENT_CONFIGS: 'agent-configs',
   MCP_BUNDLES: 'mcp-bundles',
+  // Training Data
+  TRAINING_DATA: 'training-data',
   // 3D Content
   SCENES: 'scenes',
   CHARACTERS: 'characters',
   MODELS: 'models',
   MATERIALS: 'materials',
+  TEMPLATES: 'templates',
   // Animation & Physics
   ANIMATIONS: 'animations',
   PHYSICS: 'physics',
+  VFX: 'vfx',
   // Audio
   AUDIO: 'audio',
   MUSIC: 'music',
@@ -214,6 +222,15 @@ export const CONTENT_TYPE_METADATA: Record<ContentType, ContentTypeMetadata> = {
     fileExtension: '.json',
     category: MARKETPLACE_CATEGORIES.AGENT_CONFIGS,
   },
+  // Training Data
+  training_data: {
+    type: 'training_data',
+    label: 'Training Data',
+    description: 'Curated AI training datasets via DataForge/TrainingMonkey',
+    icon: 'Database',
+    fileExtension: '.jsonl',
+    category: MARKETPLACE_CATEGORIES.TRAINING_DATA,
+  },
   // 3D Content
   scene: {
     type: 'scene',
@@ -246,6 +263,14 @@ export const CONTENT_TYPE_METADATA: Record<ContentType, ContentTypeMetadata> = {
     icon: 'Package',
     fileExtension: '.glb',
     category: MARKETPLACE_CATEGORIES.MODELS,
+  },
+  template: {
+    type: 'template',
+    label: 'Template',
+    description: 'Project starters and boilerplate templates',
+    icon: 'LayoutTemplate',
+    fileExtension: '.zip',
+    category: MARKETPLACE_CATEGORIES.TEMPLATES,
   },
   // Visual Programming
   shader_graph: {
@@ -288,6 +313,14 @@ export const CONTENT_TYPE_METADATA: Record<ContentType, ContentTypeMetadata> = {
     icon: 'Orbit',
     fileExtension: '.json',
     category: MARKETPLACE_CATEGORIES.PHYSICS,
+  },
+  particle_effect: {
+    type: 'particle_effect',
+    label: 'Particle Effect',
+    description: 'Particle systems, explosions, and VFX presets',
+    icon: 'Sparkles',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.VFX,
   },
   // Audio
   audio: {

@@ -1044,3 +1044,175 @@ export interface ISkillMarketplaceAPI {
   rateSkill(skillId: string, rating: number, review?: string, token?: string): Promise<void>;
   getSkillRatings(skillId: string, page?: number): Promise<TraitRating[]>;
 }
+
+// =============================================================================
+// TRAINING DATA PACKAGE TYPES (DataForge / TrainingMonkey Integration)
+// =============================================================================
+
+/**
+ * Dataset format for training data packages
+ */
+export type DatasetFormat = 'jsonl' | 'csv' | 'parquet' | 'json' | 'huggingface';
+
+/**
+ * Domain for training data
+ */
+export type TrainingDomain =
+  | 'code_generation'      // Code gen training data
+  | 'spatial_reasoning'    // 3D/spatial understanding
+  | 'agent_behavior'       // Agent decision-making traces
+  | 'dialogue'             // Conversational data
+  | 'holoscript'           // HoloScript-specific training
+  | 'vr_interaction'       // VR/AR interaction patterns
+  | 'creative'             // Art, music, design generation
+  | 'reasoning'            // Logic and problem solving
+  | 'multimodal'           // Vision + text + code
+  | 'custom';              // User-defined domain
+
+/**
+ * Quality metrics for a training dataset
+ */
+export interface DatasetQualityMetrics {
+  overallScore: number;           // 0-100 quality score
+  deduplicationRate: number;      // % duplicates removed
+  consistencyScore: number;       // Data consistency 0-100
+  diversityScore: number;         // Coverage diversity 0-100
+  labelAccuracy?: number;         // If labeled, accuracy 0-100
+  humanReviewedPct: number;       // % human reviewed
+}
+
+/**
+ * Training data package — curated datasets for AI model fine-tuning.
+ * Processed through DataForge/TrainingMonkey pipeline.
+ */
+export interface TrainingDataPackage {
+  // Identity
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: Author;
+  license: LicenseType;
+  keywords: string[];
+
+  // Dataset specifics
+  domain: TrainingDomain;
+  format: DatasetFormat;
+  exampleCount: number;           // Number of training examples
+  totalSizeBytes: number;         // Total dataset size
+  sampleData: string;             // Preview sample (first 5 examples)
+  schema?: Record<string, string>; // Field schema: { "input": "string", "output": "string" }
+
+  // Curriculum context (from TrainingMonkey)
+  curriculumId?: string;          // ID in TrainingMonkey curriculum system
+  batchIds?: string[];            // Training batch IDs this was generated from
+  sourceContentTypes?: string[];  // What content was used (scenes, skills, etc.)
+
+  // Quality
+  quality: DatasetQualityMetrics;
+  modelCompatibility: string[];   // e.g., ["gpt-4", "claude-3", "llama-3"]
+  baseModelSuggested?: string;    // Recommended base model for fine-tuning
+
+  // Pricing
+  pricingModel: 'free' | 'one_time' | 'subscription';
+  price: number;                  // USD cents
+  subscriptionPrice?: number;
+
+  // Status
+  verified: boolean;
+  published: boolean;
+  deprecated: boolean;
+
+  // Stats
+  downloads: number;
+  rating: number;
+  ratingCount: number;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+}
+
+/**
+ * Summary for marketplace listings
+ */
+export interface TrainingDataSummary {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: Pick<Author, 'name' | 'verified'>;
+  domain: TrainingDomain;
+  format: DatasetFormat;
+  exampleCount: number;
+  totalSizeBytes: number;
+  qualityScore: number;
+  pricingModel: 'free' | 'one_time' | 'subscription';
+  price: number;
+  downloads: number;
+  rating: number;
+  verified: boolean;
+  publishedAt?: Date;
+}
+
+/**
+ * Search query for training data
+ */
+export interface TrainingDataSearchQuery {
+  q?: string;
+  domain?: TrainingDomain;
+  format?: DatasetFormat;
+  minExamples?: number;
+  maxPrice?: number;
+  minQuality?: number;
+  modelCompatibility?: string;
+  verified?: boolean;
+  sortBy?: 'relevance' | 'downloads' | 'rating' | 'quality' | 'examples' | 'price';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Training data marketplace API.
+ * Integrates with DataForge (TrainingMonkey) for dataset processing.
+ *
+ * Routes:
+ *   POST   /api/training-data/publish     → publishDataset()
+ *   GET    /api/training-data/search      → searchDatasets()
+ *   GET    /api/training-data/:id         → getDataset()
+ *   POST   /api/training-data/:id/buy     → purchaseDataset()
+ *   GET    /api/training-data/:id/sample  → getSampleData()
+ *   POST   /api/training-data/:id/rate    → rateDataset()
+ *   GET    /api/training-data/domains     → getDomains()
+ *
+ *   // DataForge integration
+ *   POST   /api/training-data/forge       → forgeFromContent()
+ *   GET    /api/training-data/forge/:id   → getForgeStatus()
+ */
+export interface ITrainingDataMarketplaceAPI {
+  // Publishing
+  publishDataset(dataset: Omit<TrainingDataPackage, 'id' | 'downloads' | 'rating' | 'ratingCount' | 'createdAt' | 'updatedAt'>, token: string): Promise<{ datasetId: string; version: string }>;
+  unpublishDataset(datasetId: string, token: string): Promise<void>;
+
+  // Discovery
+  searchDatasets(query: TrainingDataSearchQuery): Promise<{ results: TrainingDataSummary[]; total: number }>;
+  getDataset(datasetId: string): Promise<TrainingDataPackage>;
+  getSampleData(datasetId: string): Promise<string>;
+  getDomains(): Promise<{ domain: TrainingDomain; count: number; description: string }[]>;
+
+  // Purchase
+  purchaseDataset(datasetId: string, token: string): Promise<{ downloadUrl: string; expiresAt: Date }>;
+
+  // DataForge integration
+  forgeFromContent(contentIds: string[], domain: TrainingDomain, options: {
+    format: DatasetFormat;
+    maxExamples?: number;
+    qualityThreshold?: number;
+  }, token: string): Promise<{ forgeJobId: string; estimatedTime: number }>;
+  getForgeStatus(forgeJobId: string): Promise<{ status: 'pending' | 'processing' | 'complete' | 'failed'; datasetId?: string; progress: number }>;
+
+  // Ratings
+  rateDataset(datasetId: string, rating: number, review?: string, token?: string): Promise<void>;
+}

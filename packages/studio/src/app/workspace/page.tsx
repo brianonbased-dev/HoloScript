@@ -12,14 +12,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
-  Layers, Puzzle, Brain, Bot, Package,
+  Layers, Puzzle, Brain, Bot, Package, Database, LayoutTemplate,
   Plus, Search, TrendingUp, Star, Clock,
   ArrowRight, Zap, Shield, Code, Sparkles,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type ContentType = 'scenes' | 'traits' | 'skills' | 'agents' | 'plugins';
+type ContentType = 'scenes' | 'traits' | 'skills' | 'agents' | 'plugins' | 'training_data' | 'templates';
 
 interface ContentTypeConfig {
   id: ContentType;
@@ -99,6 +99,32 @@ const CONTENT_TYPES: ContentTypeConfig[] = [
     gradient: 'from-rose-500/20 to-pink-500/20',
     createLabel: 'New Plugin',
     createUrl: '/workspace/plugins/new',
+    count: 0,
+    published: 0,
+    revenue: 0,
+  },
+  {
+    id: 'training_data',
+    label: 'Training Data',
+    description: 'Curated AI datasets processed via DataForge',
+    icon: Database,
+    color: 'text-purple-400',
+    gradient: 'from-purple-500/20 to-fuchsia-500/20',
+    createLabel: 'New Dataset',
+    createUrl: '/workspace/training-data/new',
+    count: 0,
+    published: 0,
+    revenue: 0,
+  },
+  {
+    id: 'templates',
+    label: 'Templates',
+    description: 'Project starters and boilerplate templates',
+    icon: LayoutTemplate,
+    color: 'text-teal-400',
+    gradient: 'from-teal-500/20 to-green-500/20',
+    createLabel: 'New Template',
+    createUrl: '/workspace/templates/new',
     count: 0,
     published: 0,
     revenue: 0,
@@ -260,6 +286,7 @@ export default function WorkspacePage() {
             <QuickAction icon={Shield} label="Create RBAC Policy" href="/workspace/skills?category=rbac_policy" color="text-blue-400" />
             <QuickAction icon={Code} label="New MCP Tool Bundle" href="/workspace/skills?category=mcp_bundle" color="text-emerald-400" />
             <QuickAction icon={Sparkles} label="AI Prompt Template" href="/workspace/skills?category=prompt_template" color="text-violet-400" />
+            <QuickAction icon={Database} label="Forge Training Data" href="/workspace/training-data/new" color="text-purple-400" />
             <QuickAction icon={Bot} label="Train an Agent" href="/workspace/agents/new" color="text-cyan-400" />
             <QuickAction icon={Layers} label="Browse Marketplace" href="/registry" color="text-rose-400" />
           </div>
