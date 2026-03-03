@@ -775,3 +775,272 @@ export interface IAgentMarketplaceAPI {
   rateAgent(agentId: string, rating: number, review?: string, token?: string): Promise<void>;
   getAgentRatings(agentId: string, page?: number): Promise<TraitRating[]>;
 }
+
+// =============================================================================
+// SKILL PACKAGE TYPES
+// =============================================================================
+
+/**
+ * Skill category for AI agent skills and configurations
+ */
+export type SkillCategory =
+  | 'agent_framework'     // Full agent classes (ComponentGenerator, DeploymentAgent, etc.)
+  | 'workflow'            // Step-by-step Claude/Gemini workflows
+  | 'rbac_policy'         // Pre-built RBAC role configs
+  | 'orchestration'       // uAA2++ protocol configs
+  | 'mcp_bundle'          // Curated MCP tool bundles
+  | 'ecosystem_script'    // Monitoring, quality, CI/CD scripts
+  | 'decision_template'   // Architecture/security decision frameworks
+  | 'prompt_template'     // Reusable prompt engineering templates
+  | 'code_generator';     // Code generation patterns/templates
+
+/**
+ * Target AI platform for the skill
+ */
+export type SkillTargetPlatform = 'claude' | 'gemini' | 'openai' | 'universal';
+
+/**
+ * A file within a skill package
+ */
+export interface SkillFile {
+  path: string;           // Relative path within package (e.g., "SKILL.md", "scripts/deploy.sh")
+  content: string;        // File content
+  mimeType: string;       // e.g., "text/markdown", "application/typescript"
+  sizeBytes: number;
+}
+
+/**
+ * A packaged AI skill — Claude workflows, agent configs, RBAC policies, MCP bundles.
+ * Users build in Studio, experiment live, then publish to marketplace.
+ */
+export interface SkillPackage {
+  // Identity (mirrors TraitPackage/AgentPackage)
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: Author;
+  license: LicenseType;
+  keywords: string[];
+  repository?: string;
+
+  // Skill-specific
+  category: SkillCategory;
+  targetPlatform: SkillTargetPlatform;
+  entrypoint: string;                 // Main file path (e.g., "SKILL.md")
+  files: SkillFile[];                 // All files in the skill package
+  requiredEnvVars?: string[];         // Env vars needed to run the skill
+  dependencies?: Record<string, string>; // npm package dependencies
+
+  // Content
+  readme?: string;
+  changelog?: string;
+  examples?: SkillExample[];
+
+  // Security
+  sandboxed: boolean;                 // Whether skill runs in sandbox
+  permissions: SkillPermission[];     // What the skill can do
+  signatureVerified: boolean;         // Ed25519 signature verified
+
+  // Pricing
+  pricingModel: 'free' | 'one_time' | 'subscription';
+  price: number;                      // USD cents (e.g., 999 = $9.99)
+  subscriptionPrice?: number;         // Monthly price in USD cents
+
+  // Status
+  verified: boolean;
+  published: boolean;
+  deprecated: boolean;
+  deprecationMessage?: string;
+
+  // Stats
+  downloads: number;
+  weeklyDownloads?: number;
+  installs: number;                   // Active installs
+  rating: number;
+  ratingCount: number;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+}
+
+/**
+ * Permission scopes for skills
+ */
+export type SkillPermission =
+  | 'read_files'          // Can read project files
+  | 'write_files'         // Can create/modify files
+  | 'run_commands'        // Can execute shell commands
+  | 'network_access'      // Can make HTTP requests
+  | 'env_access'          // Can read environment variables
+  | 'browser_access'      // Can control browser
+  | 'mcp_tools';          // Can invoke MCP tools
+
+/**
+ * Example usage for a skill
+ */
+export interface SkillExample {
+  name: string;
+  description?: string;
+  prompt: string;          // Sample prompt to test against
+  expectedOutput?: string; // Expected behavior/output
+}
+
+/**
+ * Summarized skill info for marketplace listings
+ */
+export interface SkillSummary {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: Pick<Author, 'name' | 'verified'>;
+  category: SkillCategory;
+  targetPlatform: SkillTargetPlatform;
+  pricingModel: 'free' | 'one_time' | 'subscription';
+  price: number;
+  subscriptionPrice?: number;
+  fileCount: number;
+  permissions: SkillPermission[];
+  downloads: number;
+  installs: number;
+  rating: number;
+  verified: boolean;
+  deprecated: boolean;
+  publishedAt?: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Search query parameters for skill discovery
+ */
+export interface SkillSearchQuery {
+  q?: string;
+  category?: SkillCategory;
+  targetPlatform?: SkillTargetPlatform;
+  author?: string;
+  pricingModel?: 'free' | 'one_time' | 'subscription';
+  maxPrice?: number;
+  permissions?: SkillPermission[];
+  verified?: boolean;
+  deprecated?: boolean;
+  minRating?: number;
+  minDownloads?: number;
+  sortBy?: 'relevance' | 'downloads' | 'rating' | 'price' | 'updated' | 'created';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Skill search result with pagination
+ */
+export interface SkillSearchResult {
+  results: SkillSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  query: SkillSearchQuery;
+  facets?: SkillSearchFacets;
+}
+
+/**
+ * Faceted search aggregations for skills
+ */
+export interface SkillSearchFacets {
+  categories: FacetCount[];
+  platforms: FacetCount[];
+  pricingModels: FacetCount[];
+  licenses: FacetCount[];
+  authors: FacetCount[];
+}
+
+/**
+ * Request to publish a skill to the marketplace
+ */
+export interface SkillPublishRequest {
+  name: string;
+  version: string;
+  description: string;
+  category: SkillCategory;
+  targetPlatform: SkillTargetPlatform;
+  entrypoint: string;
+  files: SkillFile[];
+  license: LicenseType;
+  keywords: string[];
+  pricingModel: 'free' | 'one_time' | 'subscription';
+  price: number;
+  subscriptionPrice?: number;
+  permissions: SkillPermission[];
+  sandboxed: boolean;
+  requiredEnvVars?: string[];
+  readme?: string;
+  examples?: SkillExample[];
+  repository?: string;
+}
+
+/**
+ * Result of skill publish operation
+ */
+export interface SkillPublishResult {
+  success: boolean;
+  skillId: string;
+  version: string;
+  signatureHash: string;
+  warnings?: string[];
+  errors?: string[];
+}
+
+/**
+ * Skill marketplace API interface.
+ * Extends marketplace with AI skill authoring, testing, and distribution.
+ *
+ * Routes:
+ *   POST   /api/skills/publish        → publishSkill()
+ *   GET    /api/skills/search         → searchSkills()
+ *   GET    /api/skills/:id            → getSkill()
+ *   POST   /api/skills/:id/purchase   → purchaseSkill()
+ *   GET    /api/skills/:id/download   → getDownloadUrl()
+ *   POST   /api/skills/:id/install    → installSkill()
+ *   POST   /api/skills/:id/rate       → rateSkill()
+ *   POST   /api/skills/:id/test       → testSkill()
+ *   GET    /api/skills/featured       → getFeaturedSkills()
+ *   GET    /api/skills/categories     → getCategories()
+ */
+export interface ISkillMarketplaceAPI {
+  // Publishing
+  publishSkill(request: SkillPublishRequest, token: string): Promise<SkillPublishResult>;
+  unpublishSkill(skillId: string, token: string): Promise<void>;
+  deprecateSkill(skillId: string, message: string, token: string): Promise<void>;
+
+  // Discovery
+  searchSkills(query: SkillSearchQuery): Promise<SkillSearchResult>;
+  getSkill(skillId: string, version?: string): Promise<SkillPackage>;
+  getFeaturedSkills(category?: SkillCategory, limit?: number): Promise<SkillSummary[]>;
+  getRecentSkills(limit?: number): Promise<SkillSummary[]>;
+  getTopSkills(sortBy: 'downloads' | 'rating' | 'installs', limit?: number): Promise<SkillSummary[]>;
+  getCategories(): Promise<{ category: SkillCategory; count: number; description: string }[]>;
+
+  // Purchase & download
+  purchaseSkill(skillId: string, token: string): Promise<{ downloadUrl: string; expiresAt: Date }>;
+  getDownloadUrl(skillId: string, token: string): Promise<{ url: string; expiresAt: Date }>;
+
+  // Install (into workspace)
+  installSkill(skillId: string, workspacePath: string, token: string): Promise<{ installed: boolean; path: string }>;
+  uninstallSkill(skillId: string, workspacePath: string, token: string): Promise<void>;
+  getInstalledSkills(workspacePath: string, token: string): Promise<SkillSummary[]>;
+
+  // Testing
+  testSkill(skillId: string, prompt: string, token: string): Promise<{ output: string; duration: number }>;
+
+  // Stats
+  recordSkillDownload(skillId: string): Promise<void>;
+  getSkillDownloadStats(skillId: string): Promise<DownloadStats>;
+
+  // Ratings
+  rateSkill(skillId: string, rating: number, review?: string, token?: string): Promise<void>;
+  getSkillRatings(skillId: string, page?: number): Promise<TraitRating[]>;
+}

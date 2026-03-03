@@ -9,6 +9,11 @@ export type ContentType =
   // AI Orchestration
   | 'workflow'           // Agent workflows
   | 'behavior_tree'      // Behavior trees
+  // AI Skills & Configs
+  | 'skill'              // Claude/Gemini AI skills (.md + config)
+  | 'agent_config'       // Agent identity configs & RBAC policies
+  | 'mcp_bundle'         // MCP tool bundles
+  | 'rbac_policy'        // RBAC role & permission configs
   // 3D Content
   | 'scene'              // Complete 3D scenes (.hsplus)
   | 'composition'        // Compositions (.holo)
@@ -75,6 +80,10 @@ export const MARKETPLACE_CATEGORIES = {
   // AI Orchestration
   AI_WORKFLOWS: 'ai-workflows',
   BEHAVIOR_TREES: 'behavior-trees',
+  // AI Skills & Configs
+  AI_SKILLS: 'ai-skills',
+  AGENT_CONFIGS: 'agent-configs',
+  MCP_BUNDLES: 'mcp-bundles',
   // 3D Content
   SCENES: 'scenes',
   CHARACTERS: 'characters',
@@ -171,6 +180,39 @@ export const CONTENT_TYPE_METADATA: Record<ContentType, ContentTypeMetadata> = {
     icon: 'GitBranch',
     fileExtension: '.json',
     category: MARKETPLACE_CATEGORIES.BEHAVIOR_TREES,
+  },
+  // AI Skills & Configs
+  skill: {
+    type: 'skill',
+    label: 'AI Skill',
+    description: 'Claude/Gemini agent skills and workflows',
+    icon: 'Brain',
+    fileExtension: '.md',
+    category: MARKETPLACE_CATEGORIES.AI_SKILLS,
+  },
+  agent_config: {
+    type: 'agent_config',
+    label: 'Agent Config',
+    description: 'Agent identity, RBAC, and orchestration configs',
+    icon: 'Bot',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.AGENT_CONFIGS,
+  },
+  mcp_bundle: {
+    type: 'mcp_bundle',
+    label: 'MCP Bundle',
+    description: 'Curated MCP tool bundles for specific domains',
+    icon: 'Globe',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.MCP_BUNDLES,
+  },
+  rbac_policy: {
+    type: 'rbac_policy',
+    label: 'RBAC Policy',
+    description: 'Role-based access control configurations',
+    icon: 'Shield',
+    fileExtension: '.json',
+    category: MARKETPLACE_CATEGORIES.AGENT_CONFIGS,
   },
   // 3D Content
   scene: {
