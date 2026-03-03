@@ -272,7 +272,7 @@ describe('IncrementalCompiler', () => {
   });
 
   describe('compile', () => {
-    it('should compile all objects on first run', () => {
+    it('should compile all objects on first run', async () => {
       const composition = createComposition([
         createObject('Cube', { mesh: 'cube' }),
         createObject('Sphere', { mesh: 'sphere' }),
@@ -280,7 +280,7 @@ describe('IncrementalCompiler', () => {
 
       const mockCompile = (obj: HoloObject) => `function ${obj.name}() {}`;
 
-      const result = compiler.compile(composition, mockCompile);
+      const result = await compiler.compile(composition, mockCompile);
 
       expect(result.fullRecompile).toBe(true);
       expect(result.recompiledObjects).toContain('Cube');
@@ -288,7 +288,7 @@ describe('IncrementalCompiler', () => {
       expect(result.cachedObjects).toHaveLength(0);
     });
 
-    it('should use cache for unchanged objects', () => {
+    it('should use cache for unchanged objects', async () => {
       const composition1 = createComposition([
         createObject('Cube', { mesh: 'cube' }),
         createObject('Sphere', { mesh: 'sphere' }),
@@ -301,26 +301,26 @@ describe('IncrementalCompiler', () => {
       const mockCompile = (obj: HoloObject) => `function ${obj.name}() {}`;
 
       // First compile
-      compiler.compile(composition1, mockCompile);
+      await compiler.compile(composition1, mockCompile);
 
       // Second compile with one change
-      const result = compiler.compile(composition2, mockCompile);
+      const result = await compiler.compile(composition2, mockCompile);
 
       expect(result.fullRecompile).toBe(false);
       expect(result.cachedObjects).toContain('Cube');
       expect(result.recompiledObjects).toContain('Sphere');
     });
 
-    it('should force recompile specified objects', () => {
+    it('should force recompile specified objects', async () => {
       const composition = createComposition([createObject('Cube', { mesh: 'cube' })]);
 
       const mockCompile = (obj: HoloObject) => `function ${obj.name}() {}`;
 
       // First compile
-      compiler.compile(composition, mockCompile);
+      await compiler.compile(composition, mockCompile);
 
       // Second compile with force
-      const result = compiler.compile(composition, mockCompile, {
+      const result = await compiler.compile(composition, mockCompile, {
         forceRecompile: ['Cube'],
       });
 
@@ -329,15 +329,15 @@ describe('IncrementalCompiler', () => {
   });
 
   describe('reset', () => {
-    it('should clear all state', () => {
+    it('should clear all state', async () => {
       const composition = createComposition([createObject('Cube', { mesh: 'cube' })]);
-      compiler.compile(composition, () => 'code');
+      await compiler.compile(composition, () => 'code');
       compiler.saveState(new Map([['Test', { x: 1 }]]));
       compiler.updateDependencies('A', ['B']);
 
       compiler.reset();
 
-      const stats = compiler.getStats();
+      const stats = await compiler.getStats();
       expect(stats.cacheSize).toBe(0);
       expect(stats.dependencyEdges).toBe(0);
       expect(compiler.restoreState()).toBeNull();
@@ -345,12 +345,12 @@ describe('IncrementalCompiler', () => {
   });
 
   describe('getStats', () => {
-    it('should return accurate statistics', () => {
+    it('should return accurate statistics', async () => {
       compiler.setCached('Obj1', 'h1', 'code1', []);
       compiler.setCached('Obj2', 'h2', 'code2', []);
       compiler.updateDependencies('A', ['B', 'C']);
 
-      const stats = compiler.getStats();
+      const stats = await compiler.getStats();
 
       expect(stats.cacheSize).toBe(2);
       expect(stats.objectsCached).toContain('Obj1');
@@ -358,7 +358,7 @@ describe('IncrementalCompiler', () => {
       expect(stats.dependencyEdges).toBe(2);
     });
 
-    it('should include trait graph statistics', () => {
+    it('should include trait graph statistics', async () => {
       const composition = createComposition([
         {
           name: 'Cube',
@@ -366,9 +366,9 @@ describe('IncrementalCompiler', () => {
           traits: ['physics', 'grabbable'],
         },
       ]);
-      compiler.compile(composition, () => 'code');
+      await compiler.compile(composition, () => 'code');
 
-      const stats = compiler.getStats();
+      const stats = await compiler.getStats();
 
       expect(stats.traitGraphStats).toBeDefined();
       expect(stats.traitGraphStats.objectCount).toBeGreaterThanOrEqual(1);
@@ -522,7 +522,7 @@ describe('IncrementalCompiler', () => {
       expect(typeof graph.getStats).toBe('function');
     });
 
-    it('should register objects with trait graph during compile', () => {
+    it('should register objects with trait graph during compile', async () => {
       const composition = createComposition([
         {
           name: 'Ball',
@@ -531,7 +531,7 @@ describe('IncrementalCompiler', () => {
         },
       ]);
 
-      compiler.compile(composition, () => 'code');
+      await compiler.compile(composition, () => 'code');
       const stats = compiler.getTraitGraph().getStats();
 
       expect(stats.objectCount).toBeGreaterThanOrEqual(1);
@@ -539,7 +539,7 @@ describe('IncrementalCompiler', () => {
   });
 
   describe('cache persistence', () => {
-    it('should serialize and deserialize compiler state', () => {
+    it('should serialize and deserialize compiler state', async () => {
       // Set up compiler with cache and dependencies
       compiler.setCached('Cube', 'hash1', 'function Cube() {}', []);
       compiler.setCached('Sphere', 'hash2', 'function Sphere() {}', ['Cube']);
@@ -553,7 +553,7 @@ describe('IncrementalCompiler', () => {
       const restored = IncrementalCompiler.deserialize(json);
 
       // Verify cache was restored
-      const stats = restored.getStats();
+      const stats = await restored.getStats();
       expect(stats.cacheSize).toBe(2);
       expect(stats.objectsCached).toContain('Cube');
       expect(stats.objectsCached).toContain('Sphere');
@@ -583,7 +583,7 @@ describe('IncrementalCompiler', () => {
       expect(dependents).toContain('Card');
     });
 
-    it('should restore trait graph', () => {
+    it('should restore trait graph', async () => {
       const composition = createComposition([
         {
           name: 'Ball',
@@ -591,7 +591,7 @@ describe('IncrementalCompiler', () => {
           traits: ['physics', 'grabbable'],
         },
       ]);
-      compiler.compile(composition, () => 'code');
+      await compiler.compile(composition, () => 'code');
 
       const json = compiler.serialize();
       const restored = IncrementalCompiler.deserialize(json);
@@ -614,11 +614,11 @@ describe('IncrementalCompiler', () => {
       expect(() => IncrementalCompiler.deserialize(badJson)).toThrow('Unsupported');
     });
 
-    it('should handle empty cache serialization', () => {
+    it('should handle empty cache serialization', async () => {
       const json = compiler.serialize();
       const restored = IncrementalCompiler.deserialize(json);
 
-      const stats = restored.getStats();
+      const stats = await restored.getStats();
       expect(stats.cacheSize).toBe(0);
       expect(stats.dependencyEdges).toBe(0);
     });

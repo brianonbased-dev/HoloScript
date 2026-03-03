@@ -1,6 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { IOSCompiler } from '../IOSCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
@@ -16,7 +25,7 @@ describe('IOSCompiler', () => {
   // =========== Result structure ===========
 
   it('returns IOSCompileResult with all files', () => {
-    const result = compiler.compile(makeComposition());
+    const result = compiler.compile(makeComposition(), 'test-token');
     expect(result).toHaveProperty('viewFile');
     expect(result).toHaveProperty('sceneFile');
     expect(result).toHaveProperty('stateFile');
@@ -26,13 +35,13 @@ describe('IOSCompiler', () => {
   // =========== View file ===========
 
   it('generates Swift view file', () => {
-    const result = compiler.compile(makeComposition());
+    const result = compiler.compile(makeComposition(), 'test-token');
     expect(result.viewFile).toContain('import');
     expect(result.viewFile).toContain('struct');
   });
 
   it('includes ARKit framework', () => {
-    const result = compiler.compile(makeComposition());
+    const result = compiler.compile(makeComposition(), 'test-token');
     expect(result.viewFile).toContain('ARKit');
   });
 
@@ -40,20 +49,20 @@ describe('IOSCompiler', () => {
 
   it('respects custom class name', () => {
     const c = new IOSCompiler({ className: 'MyARView' });
-    const result = c.compile(makeComposition());
+    const result = c.compile(makeComposition(), 'test-token');
     expect(result.viewFile).toContain('MyARView');
   });
 
   it('targets iOS version in config', () => {
     const c = new IOSCompiler({ iosVersion: '17.0' });
-    const result = c.compile(makeComposition());
+    const result = c.compile(makeComposition(), 'test-token');
     expect(result.viewFile).toBeDefined();
   });
 
   // =========== Scene file ===========
 
   it('generates scene file', () => {
-    const result = compiler.compile(makeComposition());
+    const result = compiler.compile(makeComposition(), 'test-token');
     expect(result.sceneFile).toBeDefined();
     expect(result.sceneFile.length).toBeGreaterThan(0);
   });
@@ -64,7 +73,7 @@ describe('IOSCompiler', () => {
     const comp = makeComposition({
       state: { properties: [{ key: 'health', value: 100 }, { key: 'name', value: 'Player' }] },
     });
-    const result = compiler.compile(comp);
+    const result = compiler.compile(comp, 'test-token');
     expect(result.stateFile).toContain('health');
   });
 
@@ -76,7 +85,7 @@ describe('IOSCompiler', () => {
         { name: 'cube', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
       ] as any,
     });
-    const result = compiler.compile(comp);
+    const result = compiler.compile(comp, 'test-token');
     expect(result.sceneFile).toContain('cube');
   });
 
@@ -86,14 +95,14 @@ describe('IOSCompiler', () => {
     const comp = makeComposition({
       lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'color', value: '#ffffff' }] }] as any,
     });
-    const result = compiler.compile(comp);
+    const result = compiler.compile(comp, 'test-token');
     expect(result.sceneFile).toContain('sun');
   });
 
   // =========== Info.plist ===========
 
   it('generates Info.plist with camera usage description', () => {
-    const result = compiler.compile(makeComposition());
+    const result = compiler.compile(makeComposition(), 'test-token');
     expect(result.infoPlist).toContain('NSCameraUsageDescription');
   });
 
@@ -106,7 +115,7 @@ describe('IOSCompiler', () => {
         { name: 'obj_b', properties: [{ key: 'geometry', value: 'sphere' }], traits: [] },
       ] as any,
     });
-    const result = compiler.compile(comp);
+    const result = compiler.compile(comp, 'test-token');
     expect(result.sceneFile).toContain('obj_a');
     expect(result.sceneFile).toContain('obj_b');
   });

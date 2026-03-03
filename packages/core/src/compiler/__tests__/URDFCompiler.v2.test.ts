@@ -19,7 +19,7 @@
  * @version 2.0.0
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import {
   URDFCompiler,
   compileToURDF,
@@ -29,6 +29,15 @@ import {
   generateControllersYaml,
 } from '../URDFCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // =============================================================================
 // TEST HELPERS
@@ -66,7 +75,7 @@ describe('URDFCompiler v2.0 — Gazebo Plugins', () => {
   it('includes Gazebo plugin section when includeGazeboPlugins is true', () => {
     const compiler = new URDFCompiler({ includeGazeboPlugins: true });
     const obj = makeObj('arm', [{ key: 'geometry', value: 'box' }], ['collidable']);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<!-- Gazebo Plugins -->');
     expect(xml).toContain('<gazebo>');
@@ -75,7 +84,7 @@ describe('URDFCompiler v2.0 — Gazebo Plugins', () => {
   it('excludes Gazebo plugin section when includeGazeboPlugins is false (default)', () => {
     const compiler = new URDFCompiler();
     const obj = makeObj('arm', [{ key: 'geometry', value: 'box' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).not.toContain('<!-- Gazebo Plugins -->');
   });
@@ -85,14 +94,14 @@ describe('URDFCompiler v2.0 — Gazebo Plugins', () => {
       includeGazeboPlugins: true,
       enableSelfCollision: true,
     });
-    const xml = compiler.compile(makeComp());
+    const xml = compiler.compile(makeComp(), 'test-token');
 
     expect(xml).toContain('<self_collide>true</self_collide>');
   });
 
   it('excludes self_collide tag when enableSelfCollision is false (default)', () => {
     const compiler = new URDFCompiler({ includeGazeboPlugins: true });
-    const xml = compiler.compile(makeComp());
+    const xml = compiler.compile(makeComp(), 'test-token');
 
     expect(xml).not.toContain('<self_collide>');
   });
@@ -107,7 +116,7 @@ describe('URDFCompiler v2.0 — Gazebo Plugins', () => {
       ],
       ['collidable']
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<gazebo reference="colored_link">');
     expect(xml).toContain('Gazebo/Red');
@@ -122,7 +131,7 @@ describe('URDFCompiler v2.0 — Gazebo Plugins', () => {
       defaultKd: 200,
     });
     const obj = makeObj('floor', [{ key: 'geometry', value: 'box' }], ['collidable']);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<mu1>0.8</mu1>');
     expect(xml).toContain('<mu2>0.6</mu2>');
@@ -146,7 +155,7 @@ describe('URDFCompiler v2.0 — Gazebo Plugins', () => {
         ],
         ['collidable']
       );
-      const xml = compiler.compile(makeComp({ objects: [obj] }));
+      const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
       expect(xml).toContain(`Gazebo/${expected[i]}`);
     }
   });
@@ -161,7 +170,7 @@ describe('URDFCompiler v2.0 — Gazebo Plugins', () => {
       ],
       ['collidable']
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('Gazebo/Red');
   });
@@ -188,7 +197,7 @@ describe('URDFCompiler v2.0 — ros2_control', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<!-- ROS 2 Control Hardware Interface -->');
     expect(xml).toContain('<ros2_control');
@@ -210,7 +219,7 @@ describe('URDFCompiler v2.0 — ros2_control', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<command_interface name="position"/>');
     expect(xml).toContain('<state_interface name="position"/>');
@@ -220,7 +229,7 @@ describe('URDFCompiler v2.0 — ros2_control', () => {
   it('does not include ros2_control for fixed joints only', () => {
     const compiler = new URDFCompiler({ includeROS2Control: true });
     const obj = makeObj('fixed_link', [{ key: 'geometry', value: 'box' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).not.toContain('<ros2_control');
   });
@@ -243,7 +252,7 @@ describe('URDFCompiler v2.0 — ros2_control', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('gz_ros2_control-system');
     expect(xml).toContain('my_robot_pkg');
@@ -269,7 +278,7 @@ describe('URDFCompiler v2.0 — ros2_control', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     // ros2_control block should have mimic params
     expect(xml).toContain('<param name="mimic">leader_joint</param>');
@@ -299,7 +308,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<sensor name="camera_link_camera_sensor"');
     expect(xml).toContain('type="camera"');
@@ -325,7 +334,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<sensor name="imu_link_imu_sensor"');
     expect(xml).toContain('type="imu"');
@@ -350,7 +359,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<sensor name="lidar_link_lidar_sensor"');
     expect(xml).toContain('type="ray"');
@@ -374,7 +383,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('type="contact"');
     expect(xml).toContain('<collision>bumper_link_collision</collision>');
@@ -394,7 +403,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('type="force_torque"');
     expect(xml).toContain('<measure_direction>child_to_parent</measure_direction>');
@@ -413,7 +422,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('type="gps"');
     expect(xml).toContain('libgazebo_ros_gps_sensor.so');
@@ -434,7 +443,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('type="depth"');
     expect(xml).toContain('<camera>');
@@ -451,7 +460,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
       [{ key: 'geometry', value: 'box' }],
       [{ name: 'sensor', sensorType: 'laser' }]
     );
-    const xml1 = compiler.compile(makeComp({ objects: [obj1] }));
+    const xml1 = compiler.compile(makeComp({ objects: [obj1] }), 'test-token');
     expect(xml1).toContain('type="ray"');
 
     // Test 'bumper' maps to contact
@@ -460,7 +469,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
       [{ key: 'geometry', value: 'box' }],
       [{ name: 'sensor', sensorType: 'bumper' }]
     );
-    const xml2 = compiler.compile(makeComp({ objects: [obj2] }));
+    const xml2 = compiler.compile(makeComp({ objects: [obj2] }), 'test-token');
     expect(xml2).toContain('type="contact"');
 
     // Test 'rgbd' maps to depth_camera
@@ -469,7 +478,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
       [{ key: 'geometry', value: 'box' }],
       [{ name: 'sensor', sensorType: 'rgbd' }]
     );
-    const xml3 = compiler.compile(makeComp({ objects: [obj3] }));
+    const xml3 = compiler.compile(makeComp({ objects: [obj3] }), 'test-token');
     expect(xml3).toContain('type="depth"');
 
     // Test 'navsat' maps to GPS
@@ -478,7 +487,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
       [{ key: 'geometry', value: 'box' }],
       [{ name: 'sensor', sensorType: 'navsat' }]
     );
-    const xml4 = compiler.compile(makeComp({ objects: [obj4] }));
+    const xml4 = compiler.compile(makeComp({ objects: [obj4] }), 'test-token');
     expect(xml4).toContain('type="gps"');
   });
 
@@ -489,7 +498,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
       [{ key: 'geometry', value: 'box' }],
       [{ name: 'sensor', sensorType: 'camera' }]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).not.toContain('<sensor name=');
     expect(xml).not.toContain('libgazebo_ros_camera.so');
@@ -505,7 +514,7 @@ describe('URDFCompiler v2.0 — Sensors', () => {
       [{ key: 'geometry', value: 'box' }],
       [{ name: 'sensor', sensorType: 'camera' }]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<!-- Sensors:');
   });
@@ -530,7 +539,7 @@ describe('URDFCompiler v2.0 — Transmissions', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<!-- Transmissions -->');
     expect(xml).toContain('<transmission name="motor_link_transmission">');
@@ -547,7 +556,7 @@ describe('URDFCompiler v2.0 — Transmissions', () => {
       [{ key: 'geometry', value: 'cylinder' }],
       [{ name: 'actuator' }]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('transmission_interface/SimpleTransmission');
     expect(xml).toContain('hardware_interface/PositionJointInterface');
@@ -557,7 +566,7 @@ describe('URDFCompiler v2.0 — Transmissions', () => {
   it('does not emit transmissions section when no actuators exist', () => {
     const compiler = new URDFCompiler();
     const obj = makeObj('passive_link', [{ key: 'geometry', value: 'box' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).not.toContain('<!-- Transmissions -->');
     expect(xml).not.toContain('<transmission');
@@ -588,7 +597,7 @@ describe('URDFCompiler v2.0 — Mimic Joints', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<mimic joint="finger_left_joint" multiplier="1" offset="0"/>');
   });
@@ -612,7 +621,7 @@ describe('URDFCompiler v2.0 — Mimic Joints', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<mimic joint="gear_leader_joint" multiplier="-0.5" offset="0.1"/>');
   });
@@ -643,7 +652,7 @@ describe('URDFCompiler v2.0 — Safety Controllers', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<safety_controller');
     expect(xml).toContain('soft_lower_limit="-1.2"');
@@ -665,7 +674,7 @@ describe('URDFCompiler v2.0 — Safety Controllers', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).not.toContain('<safety_controller');
   });
@@ -682,7 +691,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
       { key: 'geometry', value: 'box' },
       { key: 'color', value: '#FF8800' },
     ]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<material name="material_colored">');
     expect(xml).toContain('1 0.533');
@@ -694,7 +703,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
       { key: 'geometry', value: 'box' },
       { key: 'color', value: 'red' },
     ]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<material name="material_red_cube">');
     expect(xml).toContain('rgba="1 0 0 1"');
@@ -706,7 +715,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
       { key: 'geometry', value: 'sphere' },
       { key: 'color', value: 'blue' },
     ]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<material name="material_blue_sphere"/>');
   });
@@ -714,7 +723,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
   it('uses default material when no color specified', () => {
     const compiler = new URDFCompiler();
     const obj = makeObj('no_color', [{ key: 'geometry', value: 'box' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<material name="default"/>');
   });
@@ -725,7 +734,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
       { key: 'geometry', value: 'box' },
       { key: 'color', value: '#FF000080' },
     ]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<material name="material_alpha_obj">');
     // alpha should be ~0.502
@@ -738,7 +747,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
       { key: 'geometry', value: 'box' },
       { key: 'color', value: 'chartreuse' },
     ]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     // Should fallback to grey (0.8, 0.8, 0.8)
     expect(xml).toContain('rgba="0.8 0.8 0.8 1"');
@@ -746,7 +755,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
 
   it('always includes default material definition', () => {
     const compiler = new URDFCompiler();
-    const xml = compiler.compile(makeComp());
+    const xml = compiler.compile(makeComp(), 'test-token');
 
     expect(xml).toContain('<!-- Materials -->');
     expect(xml).toContain('<material name="default">');
@@ -1036,7 +1045,7 @@ describe('URDFCompiler v2.0 — Joint Type Mapping', () => {
         },
       ]
     );
-    return compiler.compile(makeComp({ objects: [obj] }));
+    return compiler.compile(makeComp({ objects: [obj] }), 'test-token');
   }
 
   it('maps "hinge" to "revolute"', () => {
@@ -1087,7 +1096,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
       { key: 'geometry', value: 'robot.stl' },
       { key: 'scale', value: [2, 3, 4] },
     ]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('scale="2 3 4"');
   });
@@ -1098,7 +1107,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
       { key: 'geometry', value: 'robot.stl' },
       { key: 'scale', value: [1, 1, 1] },
     ]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<mesh filename=');
     expect(xml).not.toContain('scale=');
@@ -1107,7 +1116,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
   it('converts .glb files to .stl', () => {
     const compiler = new URDFCompiler();
     const obj = makeObj('glb_mesh', [{ key: 'geometry', value: 'model.glb' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('model.stl');
     expect(xml).not.toContain('model.glb');
@@ -1116,7 +1125,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
   it('converts .dae files to .stl', () => {
     const compiler = new URDFCompiler();
     const obj = makeObj('dae_mesh', [{ key: 'geometry', value: 'model.dae' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('model.stl');
     expect(xml).not.toContain('model.dae');
@@ -1125,7 +1134,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
   it('converts .obj files to .stl', () => {
     const compiler = new URDFCompiler();
     const obj = makeObj('obj_mesh', [{ key: 'geometry', value: 'model.obj' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('model.stl');
     expect(xml).not.toContain('model.obj');
@@ -1134,7 +1143,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
   it('keeps .stl files as-is', () => {
     const compiler = new URDFCompiler();
     const obj = makeObj('stl_mesh', [{ key: 'geometry', value: 'model.stl' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('model.stl');
   });
@@ -1146,7 +1155,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
     const obj = makeObj('prefixed_mesh', [
       { key: 'geometry', value: 'gripper.stl' },
     ]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('package://my_robot/meshes/gripper.stl');
   });
@@ -1154,7 +1163,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
   it('approximates cone as cylinder', () => {
     const compiler = new URDFCompiler();
     const obj = makeObj('cone_obj', [{ key: 'geometry', value: 'cone' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<cylinder');
   });
@@ -1162,7 +1171,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
   it('approximates capsule as cylinder', () => {
     const compiler = new URDFCompiler();
     const obj = makeObj('capsule_obj', [{ key: 'geometry', value: 'capsule' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<cylinder');
   });
@@ -1170,7 +1179,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
   it('approximates plane as thin box', () => {
     const compiler = new URDFCompiler();
     const obj = makeObj('plane_obj', [{ key: 'geometry', value: 'plane' }]);
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('<box');
     expect(xml).toContain('0.01');
@@ -1184,7 +1193,7 @@ describe('URDFCompiler v2.0 — Mesh and Scale', () => {
 describe('URDFCompiler v2.0 — Backward Compatibility', () => {
   it('compile() works without agentToken (optional parameter)', () => {
     const compiler = new URDFCompiler();
-    const xml = compiler.compile(makeComp());
+    const xml = compiler.compile(makeComp(), 'test-token');
 
     expect(xml).toContain('<robot');
     expect(xml).toContain('</robot>');
@@ -1192,7 +1201,7 @@ describe('URDFCompiler v2.0 — Backward Compatibility', () => {
 
   it('maintains v1.0 XML structure', () => {
     const compiler = new URDFCompiler();
-    const xml = compiler.compile(makeComp());
+    const xml = compiler.compile(makeComp(), 'test-token');
 
     expect(xml).toContain('<?xml version="1.0"?>');
     expect(xml).toContain('<robot name="HoloScriptRobot">');
@@ -1218,7 +1227,7 @@ describe('URDFCompiler v2.0 — Backward Compatibility', () => {
       ],
       ['physics', 'collidable']
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('name="LegacyRobot"');
     expect(xml).toContain('<visual>');
@@ -1230,7 +1239,7 @@ describe('URDFCompiler v2.0 — Backward Compatibility', () => {
 
   it('new options default to non-breaking values', () => {
     const compiler = new URDFCompiler();
-    const xml = compiler.compile(makeComp());
+    const xml = compiler.compile(makeComp(), 'test-token');
 
     // Gazebo plugins off by default
     expect(xml).not.toContain('<!-- Gazebo Plugins -->');
@@ -1250,9 +1259,9 @@ describe('URDFCompiler v2.0 — Backward Compatibility', () => {
     const comp = makeComp({ objects: [obj] });
 
     // Compile once
-    const xml1 = compiler.compile(comp);
+    const xml1 = compiler.compile(comp, 'test-token');
     // Compile again - should not accumulate sensors
-    const xml2 = compiler.compile(comp);
+    const xml2 = compiler.compile(comp, 'test-token');
 
     // Both outputs should be identical
     expect(xml1).toEqual(xml2);
@@ -1338,7 +1347,7 @@ describe('URDFCompiler v2.0 — Full Integration', () => {
       environment: { skybox: 'industrial' },
     });
 
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
 
     // Robot structure
     expect(xml).toContain('<robot name="HoloBot">');
@@ -1429,21 +1438,21 @@ describe('URDFCompiler v2.0 — Full Integration', () => {
 describe('URDFCompiler v2.0 — Version and Headers', () => {
   it('includes v2.0 version in comment header', () => {
     const compiler = new URDFCompiler();
-    const xml = compiler.compile(makeComp({ name: 'VersionTest' }));
+    const xml = compiler.compile(makeComp({ name: 'VersionTest' }), 'test-token');
 
     expect(xml).toContain('Auto-generated by HoloScript URDFCompiler v2.0');
   });
 
   it('includes source composition name', () => {
     const compiler = new URDFCompiler();
-    const xml = compiler.compile(makeComp({ name: 'MyCustomComposition' }));
+    const xml = compiler.compile(makeComp({ name: 'MyCustomComposition' }), 'test-token');
 
     expect(xml).toContain('Source: composition "MyCustomComposition"');
   });
 
   it('includes target platform list', () => {
     const compiler = new URDFCompiler();
-    const xml = compiler.compile(makeComp());
+    const xml = compiler.compile(makeComp(), 'test-token');
 
     expect(xml).toContain('Target: ROS 2 / Gazebo / MoveIt 2 / RViz2');
   });
@@ -1472,7 +1481,7 @@ describe('URDFCompiler v2.0 — Package Name', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('$(find custom_robot_pkg)');
   });
@@ -1494,7 +1503,7 @@ describe('URDFCompiler v2.0 — Package Name', () => {
         },
       ]
     );
-    const xml = compiler.compile(makeComp({ objects: [obj] }));
+    const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
     expect(xml).toContain('$(find holoscript_robot)');
   });

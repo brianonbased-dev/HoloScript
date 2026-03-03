@@ -1,6 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { URDFCompiler} from '../URDFCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // Helper to build a minimal composition
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
@@ -21,7 +30,7 @@ describe('URDFCompiler', () => {
   // =========== Constructor / defaults ===========
 
   it('uses default options', () => {
-    const xml = compiler.compile(makeComposition());
+    const xml = compiler.compile(makeComposition(), 'test-token');
     expect(xml).toContain('<?xml');
     expect(xml).toContain('<robot');
     expect(xml).toContain('</robot>');
@@ -29,21 +38,21 @@ describe('URDFCompiler', () => {
 
   it('respects custom robotName', () => {
     const c = new URDFCompiler({ robotName: 'MyBot' });
-    const xml = c.compile(makeComposition());
+    const xml = c.compile(makeComposition(), 'test-token');
     expect(xml).toContain('name="MyBot"');
   });
 
   // =========== Minimal compilation ===========
 
   it('generates valid XML structure', () => {
-    const xml = compiler.compile(makeComposition());
+    const xml = compiler.compile(makeComposition(), 'test-token');
     expect(xml).toContain('<?xml version="1.0"');
     expect(xml).toContain('<robot');
     expect(xml).toContain('</robot>');
   });
 
   it('generates base_link for composition root', () => {
-    const xml = compiler.compile(makeComposition());
+    const xml = compiler.compile(makeComposition(), 'test-token');
     expect(xml).toContain('base_link');
   });
 
@@ -62,7 +71,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     expect(xml).toContain('<link name="arm"');
   });
 
@@ -78,7 +87,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     expect(xml).toContain('<visual>');
   });
 
@@ -94,7 +103,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     expect(xml).toContain('<collision>');
   });
 
@@ -109,7 +118,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = c.compile(comp);
+    const xml = c.compile(comp, 'test-token');
     expect(xml).not.toContain('<collision>');
   });
 
@@ -126,7 +135,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = c.compile(comp);
+    const xml = c.compile(comp, 'test-token');
     expect(xml).toContain('<inertial>');
     expect(xml).toContain('<mass');
   });
@@ -143,7 +152,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     expect(xml).toContain('<sphere');
   });
 
@@ -157,7 +166,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     expect(xml).toContain('<cylinder');
   });
 
@@ -176,7 +185,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     expect(xml).toContain('1.5');
     expect(xml).toContain('2.5');
     expect(xml).toContain('3.5');
@@ -194,7 +203,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     expect(xml).toContain('<joint');
     expect(xml).toContain('type="fixed"');
   });
@@ -216,7 +225,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     expect(xml).toContain('arm_group');
   });
 
@@ -232,7 +241,7 @@ describe('URDFCompiler', () => {
         },
       ] as any,
     });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     expect(xml).toContain('my_object');
     expect(xml).not.toContain('!@#');
   });
@@ -241,7 +250,7 @@ describe('URDFCompiler', () => {
 
   it('escapes XML special characters', () => {
     const comp = makeComposition({ name: 'Test<>&' });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     // The robot name should be safe for XML
     expect(xml).toContain('<robot');
   });
@@ -255,7 +264,7 @@ describe('URDFCompiler', () => {
         { name: 'link_b', properties: [{ key: 'geometry', value: 'sphere' }], traits: [] },
       ] as any,
     });
-    const xml = compiler.compile(comp);
+    const xml = compiler.compile(comp, 'test-token');
     expect(xml).toContain('link_a');
     expect(xml).toContain('link_b');
     // Should have joints for both

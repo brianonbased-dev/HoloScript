@@ -6,9 +6,18 @@
  * HSPlusAST compile path, options (format, debug, simd, threads, generateBindings),
  * sanitizeName, escapeWATString, and reset().
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { WASMCompiler } from '../WASMCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -65,27 +74,27 @@ describe('WASMCompiler — Production', () => {
   // ─── compile() — result shape ──────────────────────────────────────────────
   describe('compile() — result shape', () => {
     it('returns WASMCompileResult with wat string', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(typeof result.wat).toBe('string');
     });
 
     it('returns bindings string', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(typeof result.bindings).toBe('string');
     });
 
     it('returns memoryLayout object', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(result.memoryLayout).toBeDefined();
     });
 
     it('returns exports array', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(Array.isArray(result.exports)).toBe(true);
     });
 
     it('returns imports array', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(Array.isArray(result.imports)).toBe(true);
     });
   });
@@ -93,28 +102,28 @@ describe('WASMCompiler — Production', () => {
   // ─── WAT structure ────────────────────────────────────────────────────────
   describe('compile() — WAT content', () => {
     it('WAT starts with module declaration', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(result.wat).toContain('(module');
     });
 
     it('WAT contains memory declaration', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(result.wat).toContain('memory');
     });
 
     it('WAT contains function or export', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(result.wat.length).toBeGreaterThan(50);
     });
 
     it('WAT contains export section', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(result.wat).toContain('export');
     });
 
     it('WAT with debug mode contains debug info', () => {
       const c = new WASMCompiler({ debug: true });
-      const result = c.compile(makeComp());
+      const result = c.compile(makeComp(), 'test-token');
       expect(result.wat).toBeDefined();
     });
   });
@@ -122,28 +131,28 @@ describe('WASMCompiler — Production', () => {
   // ─── Memory layout ─────────────────────────────────────────────────────────
   describe('compile() — memoryLayout', () => {
     it('memoryLayout has stateOffset', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(typeof result.memoryLayout.stateOffset).toBe('number');
     });
 
     it('memoryLayout has totalSize > 0', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(result.memoryLayout.totalSize).toBeGreaterThanOrEqual(0);
     });
 
     it('memoryLayout has objectsOffset', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(typeof result.memoryLayout.objectsOffset).toBe('number');
     });
 
     it('memoryLayout has stringsOffset', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(typeof result.memoryLayout.stringsOffset).toBe('number');
     });
 
     it('memoryPages option increases allocated pages', () => {
       const c4 = new WASMCompiler({ memoryPages: 4 });
-      const result = c4.compile(makeComp());
+      const result = c4.compile(makeComp(), 'test-token');
       expect(result.wat).toContain('4');
     });
   });
@@ -151,13 +160,13 @@ describe('WASMCompiler — Production', () => {
   // ─── Exports ──────────────────────────────────────────────────────────────
   describe('compile() — exports', () => {
     it('exports include init function', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       const initExport = result.exports.find(e => e.name.includes('init') || e.name.includes('Init'));
       expect(initExport).toBeDefined();
     });
 
     it('exports include memory', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       const memExport = result.exports.find(e => e.kind === 'memory');
       expect(memExport).toBeDefined();
     });
@@ -166,12 +175,12 @@ describe('WASMCompiler — Production', () => {
   // ─── Imports ──────────────────────────────────────────────────────────────
   describe('compile() — imports', () => {
     it('imports array is defined', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(result.imports).toBeDefined();
     });
 
     it('imports include env functions', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       const envImport = result.imports.find(i => i.module === 'env');
       expect(envImport).toBeDefined();
     });
@@ -180,19 +189,19 @@ describe('WASMCompiler — Production', () => {
   // ─── Bindings ─────────────────────────────────────────────────────────────
   describe('compile() — bindings', () => {
     it('bindings is non-empty string', () => {
-      const result = compiler.compile(makeComp());
+      const result = compiler.compile(makeComp(), 'test-token');
       expect(result.bindings.length).toBeGreaterThan(0);
     });
 
     it('bindings contain module name reference', () => {
       const c = new WASMCompiler({ moduleName: 'HoloModule' });
-      const result = c.compile(makeComp());
+      const result = c.compile(makeComp(), 'test-token');
       expect(result.bindings).toContain('HoloModule');
     });
 
     it('generateBindings: false produces empty or minimal bindings', () => {
       const c = new WASMCompiler({ generateBindings: false });
-      const result = c.compile(makeComp());
+      const result = c.compile(makeComp(), 'test-token');
       expect(result.bindings).toBeDefined(); // No throw
     });
   });
@@ -200,16 +209,14 @@ describe('WASMCompiler — Production', () => {
   // ─── State variables ──────────────────────────────────────────────────────
   describe('compile() — state variables', () => {
     it('compiles scene with state variables', () => {
-      const result = compiler.compile(
-        makeComp({
+      const result = compiler.compile(makeComp({
           state: {
             properties: [
               { key: 'count', value: 0 },
               { key: 'active', value: true },
             ],
           } as any,
-        })
-      );
+        }), 'test-token');
       expect(result.wat).toBeDefined();
     });
   });
@@ -217,14 +224,12 @@ describe('WASMCompiler — Production', () => {
   // ─── Objects ──────────────────────────────────────────────────────────────
   describe('compile() — objects', () => {
     it('compiles with single object', () => {
-      const result = compiler.compile(makeComp({ objects: [makeObj('box1')] }));
+      const result = compiler.compile(makeComp({ objects: [makeObj('box1')] }), 'test-token');
       expect(result.wat).toBeDefined();
     });
 
     it('compiles with multiple objects', () => {
-      const result = compiler.compile(
-        makeComp({ objects: [makeObj('a'), makeObj('b'), makeObj('c')] })
-      );
+      const result = compiler.compile(makeComp({ objects: [makeObj('a'), makeObj('b'), makeObj('c')] }), 'test-token');
       expect(result.wat.length).toBeGreaterThan(0);
     });
   });
@@ -251,13 +256,13 @@ describe('WASMCompiler — Production', () => {
   // ─── reset() ──────────────────────────────────────────────────────────────
   describe('reset()', () => {
     it('resets internal state between compilations', () => {
-      compiler.compile(makeComp({ objects: [makeObj('obj1')] }));
-      expect(() => compiler.compile(makeComp())).not.toThrow();
+      compiler.compile(makeComp({ objects: [makeObj('obj1')] }), 'test-token');
+      expect(() => compiler.compile(makeComp(), 'test-token')).not.toThrow();
     });
 
     it('calling compile twice does not throw', () => {
-      compiler.compile(makeComp());
-      expect(() => compiler.compile(makeComp())).not.toThrow();
+      compiler.compile(makeComp(), 'test-token');
+      expect(() => compiler.compile(makeComp(), 'test-token')).not.toThrow();
     });
   });
 
@@ -265,12 +270,12 @@ describe('WASMCompiler — Production', () => {
   describe('options — SIMD and threads', () => {
     it('simd: true compiles without error', () => {
       const c = new WASMCompiler({ simd: true });
-      expect(() => c.compile(makeComp())).not.toThrow();
+      expect(() => c.compile(makeComp(), 'test-token')).not.toThrow();
     });
 
     it('threads: true compiles without error', () => {
       const c = new WASMCompiler({ threads: true });
-      expect(() => c.compile(makeComp())).not.toThrow();
+      expect(() => c.compile(makeComp(), 'test-token')).not.toThrow();
     });
   });
 });

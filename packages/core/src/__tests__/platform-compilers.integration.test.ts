@@ -5,12 +5,23 @@
  * HoloCompositionParser -> Composition -> PlatformCompiler -> Output
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HoloCompositionParser } from '../parser/HoloCompositionParser';
 import { VRChatCompiler } from '../compiler/VRChatCompiler';
 import { UnrealCompiler } from '../compiler/UnrealCompiler';
 import { IOSCompiler } from '../compiler/IOSCompiler';
 import { AndroidCompiler } from '../compiler/AndroidCompiler';
+
+// Mock RBAC to bypass security checks (this test validates compiler OUTPUT, not security)
+vi.mock('../compiler/identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../compiler/identity/AgentRBAC')>();
+  return {
+    ...actual,
+    getRBAC: () => ({
+      checkAccess: () => ({ allowed: true, agentRole: 'code_generator' }),
+    }),
+  };
+});
 
 describe('Platform Compiler Integration Tests', () => {
   let parser: HoloCompositionParser;
@@ -66,7 +77,7 @@ describe('Platform Compiler Integration Tests', () => {
       expect(parseResult.ast).toBeDefined();
 
       const compiler = new VRChatCompiler({ namespace: 'TestWorld' });
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.mainScript).toBeDefined();
       expect(result.mainScript).toContain('using UdonSharp');
@@ -77,7 +88,7 @@ describe('Platform Compiler Integration Tests', () => {
     it('should include VRChat SDK imports', () => {
       const parseResult = parser.parse(sampleHoloSource);
       const compiler = new VRChatCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.mainScript).toContain('VRC.SDKBase');
       expect(result.mainScript).toContain('VRC.Udon');
@@ -86,7 +97,7 @@ describe('Platform Compiler Integration Tests', () => {
     it('should generate VRChat prefab configuration', () => {
       const parseResult = parser.parse(sampleHoloSource);
       const compiler = new VRChatCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.prefabHierarchy).toBeDefined();
       expect(result.prefabHierarchy).toContain('TestScene');
@@ -99,7 +110,7 @@ describe('Platform Compiler Integration Tests', () => {
       expect(parseResult.success).toBe(true);
 
       const compiler = new UnrealCompiler({ moduleName: 'TestModule' });
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.headerFile).toBeDefined();
       expect(result.sourceFile).toBeDefined();
@@ -111,7 +122,7 @@ describe('Platform Compiler Integration Tests', () => {
     it('should include Unreal Engine headers', () => {
       const parseResult = parser.parse(sampleHoloSource);
       const compiler = new UnrealCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.headerFile).toContain('CoreMinimal.h');
     });
@@ -119,7 +130,7 @@ describe('Platform Compiler Integration Tests', () => {
     it('should generate proper Unreal class hierarchy', () => {
       const parseResult = parser.parse(sampleHoloSource);
       const compiler = new UnrealCompiler({ className: 'ATestSceneActor' });
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.headerFile).toContain('ATestSceneActor');
       expect(result.headerFile).toContain('AActor');
@@ -132,7 +143,7 @@ describe('Platform Compiler Integration Tests', () => {
       expect(parseResult.success).toBe(true);
 
       const compiler = new IOSCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.viewFile).toBeDefined();
       expect(result.viewFile).toContain('import ARKit');
@@ -142,7 +153,7 @@ describe('Platform Compiler Integration Tests', () => {
     it('should generate ARKit scene configuration', () => {
       const parseResult = parser.parse(sampleHoloSource);
       const compiler = new IOSCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.sceneFile).toBeDefined();
       // ARKit configuration should be in scene or view file
@@ -154,7 +165,7 @@ describe('Platform Compiler Integration Tests', () => {
     it('should handle positions in Swift', () => {
       const parseResult = parser.parse(sampleHoloSource);
       const compiler = new IOSCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       // Position vectors in Swift
       expect(result.viewFile + result.sceneFile).toMatch(/SCNVector3|SIMD3|float3|position/);
@@ -167,7 +178,7 @@ describe('Platform Compiler Integration Tests', () => {
       expect(parseResult.success).toBe(true);
 
       const compiler = new AndroidCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.activityFile).toBeDefined();
       expect(result.activityFile).toContain('import com.google.ar');
@@ -176,7 +187,7 @@ describe('Platform Compiler Integration Tests', () => {
     it('should generate ARCore session setup', () => {
       const parseResult = parser.parse(sampleHoloSource);
       const compiler = new AndroidCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.activityFile).toMatch(/Session|ArSession|arSession/);
     });
@@ -184,7 +195,7 @@ describe('Platform Compiler Integration Tests', () => {
     it('should include Jetpack Compose in build config when enabled', () => {
       const parseResult = parser.parse(sampleHoloSource);
       const compiler = new AndroidCompiler({ useJetpackCompose: true });
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       // When Jetpack Compose is enabled, build.gradle should have compose dependencies
       expect(result.buildGradle).toMatch(/compose|androidx\.compose/i);
@@ -195,10 +206,10 @@ describe('Platform Compiler Integration Tests', () => {
     it('should preserve object names across all platforms', () => {
       const parseResult = parser.parse(sampleHoloSource);
 
-      const vrchat = new VRChatCompiler().compile(parseResult.ast!);
-      const unreal = new UnrealCompiler().compile(parseResult.ast!);
-      const ios = new IOSCompiler().compile(parseResult.ast!);
-      const android = new AndroidCompiler().compile(parseResult.ast!);
+      const vrchat = new VRChatCompiler().compile(parseResult.ast!, 'test-token');
+      const unreal = new UnrealCompiler().compile(parseResult.ast!, 'test-token');
+      const ios = new IOSCompiler().compile(parseResult.ast!, 'test-token');
+      const android = new AndroidCompiler().compile(parseResult.ast!, 'test-token');
 
       // All outputs should reference TestCube
       expect(vrchat.mainScript).toContain('TestCube');
@@ -219,8 +230,8 @@ describe('Platform Compiler Integration Tests', () => {
 
       const parseResult = parser.parse(positionSource);
 
-      const vrchat = new VRChatCompiler().compile(parseResult.ast!);
-      const unreal = new UnrealCompiler().compile(parseResult.ast!);
+      const vrchat = new VRChatCompiler().compile(parseResult.ast!, 'test-token');
+      const unreal = new UnrealCompiler().compile(parseResult.ast!, 'test-token');
 
       // Should mention the object
       expect(vrchat.mainScript).toContain('Cube');
@@ -276,7 +287,7 @@ describe('Platform Compiler Integration Tests', () => {
       expect(parseResult.success).toBe(true);
 
       const compiler = new VRChatCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.mainScript).toBeDefined();
       expect(result.mainScript).toContain('Ball1');
@@ -289,7 +300,7 @@ describe('Platform Compiler Integration Tests', () => {
       expect(parseResult.success).toBe(true);
 
       const compiler = new UnrealCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.headerFile).toBeDefined();
       expect(result.headerFile).toContain('Ball1');
@@ -301,7 +312,7 @@ describe('Platform Compiler Integration Tests', () => {
       expect(parseResult.success).toBe(true);
 
       const compiler = new IOSCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.viewFile).toBeDefined();
       const allCode = result.viewFile + result.sceneFile;
@@ -314,7 +325,7 @@ describe('Platform Compiler Integration Tests', () => {
       expect(parseResult.success).toBe(true);
 
       const compiler = new AndroidCompiler();
-      const result = compiler.compile(parseResult.ast!);
+      const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.activityFile).toBeDefined();
       const allCode = result.activityFile + result.nodeFactoryFile;
@@ -334,7 +345,7 @@ describe('Platform Compiler Integration Tests', () => {
       expect(parseResult.success).toBe(true);
       if (parseResult.ast) {
         const compiler = new VRChatCompiler();
-        expect(() => compiler.compile(parseResult.ast!)).not.toThrow();
+        expect(() => compiler.compile(parseResult.ast!, 'test-token')).not.toThrow();
       }
     });
 
@@ -350,7 +361,7 @@ describe('Platform Compiler Integration Tests', () => {
       const parseResult = parser.parse(minimalSource);
       expect(parseResult.success).toBe(true);
 
-      const result = new VRChatCompiler().compile(parseResult.ast!);
+      const result = new VRChatCompiler().compile(parseResult.ast!, 'test-token');
       expect(result.mainScript).toContain('Box');
     });
   });

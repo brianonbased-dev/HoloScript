@@ -225,11 +225,14 @@ describe('GraphQLCircuitBreakerClient', () => {
     it('should open circuit after consecutive timeouts', async () => {
       fetchMock.mockImplementation(() => {
         return new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Timeout')), 100);
+          const error = new Error('Request timeout');
+          error.name = 'TimeoutError';
+          setTimeout(() => reject(error), 10);
         });
       });
 
-      // Trigger 5 consecutive timeouts
+      // Each query retries maxRetries=3 times, then records 1 failure.
+      // Need consecutiveTimeoutThreshold=5 consecutive timeout failures to open.
       for (let i = 0; i < 5; i++) {
         try {
           await client.query({
@@ -248,11 +251,12 @@ describe('GraphQLCircuitBreakerClient', () => {
     });
 
     it('should open circuit when failure rate exceeds threshold', async () => {
+      // Use non-retriable errors so retries don't consume extra mocks
       const errorResponse = {
-        errors: [{ message: 'Error', extensions: { code: 'INTERNAL_SERVER_ERROR' } }]
+        errors: [{ message: 'Unauthorized', extensions: { code: 'UNAUTHENTICATED' } }]
       };
 
-      // 10 requests: 5 success, 5 failure (50% rate)
+      // 10 requests: 5 success, 5 non-retriable failure (50% rate = at threshold)
       for (let i = 0; i < 5; i++) {
         fetchMock.mockResolvedValueOnce({
           ok: true,
@@ -267,7 +271,7 @@ describe('GraphQLCircuitBreakerClient', () => {
         });
       }
 
-      // Execute queries
+      // Execute 10 queries (each consumed by exactly 1 fetch since non-retriable)
       for (let i = 0; i < 10; i++) {
         await client.query({
           query: 'query GetUser { user { id } }',
@@ -275,7 +279,7 @@ describe('GraphQLCircuitBreakerClient', () => {
         });
       }
 
-      // Add one more failure to exceed threshold
+      // Add one more failure to exceed threshold (>50%)
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: async () => errorResponse
@@ -308,15 +312,11 @@ describe('GraphQLCircuitBreakerClient', () => {
 
       expect(firstResult.success).toBe(true);
 
-      // Open circuit by triggering timeouts
+      // Open circuit by triggering timeout errors (need 5 consecutive)
       fetchMock.mockImplementation(() => {
-        return new Promise((_, reject) => {
-          setTimeout(() => {
-            const error = new Error('Timeout');
-            (error as any).name = 'TimeoutError';
-            reject(error);
-          }, 100);
-        });
+        const error = new Error('Request timeout');
+        error.name = 'TimeoutError';
+        return Promise.reject(error);
       });
 
       for (let i = 0; i < 5; i++) {
@@ -346,9 +346,11 @@ describe('GraphQLCircuitBreakerClient', () => {
         data: { posts: [] }
       });
 
-      // Open circuit
+      // Open circuit with TimeoutError to trigger consecutiveTimeoutThreshold
       fetchMock.mockImplementation(() => {
-        return Promise.reject(new Error('Service down'));
+        const error = new Error('Request timeout');
+        error.name = 'TimeoutError';
+        return Promise.reject(error);
       });
 
       for (let i = 0; i < 5; i++) {
@@ -384,9 +386,16 @@ describe('GraphQLCircuitBreakerClient', () => {
         operationName: 'GetUser'
       });
 
-      // Open circuit
+      // Open circuit by causing consecutive timeout failures.
+      // Each query retries maxRetries=3 times, so each query needs 4 rejections.
+      // Need 5 consecutive timeout failures to open (consecutiveTimeoutThreshold=5).
+      fetchMock.mockImplementation(() => {
+        const error = new Error('Request timeout');
+        error.name = 'TimeoutError';
+        return Promise.reject(error);
+      });
+
       for (let i = 0; i < 5; i++) {
-        fetchMock.mockRejectedValueOnce(new Error('Fail'));
         try {
           await client.query({
             query: 'query GetUser { user { id } }',
@@ -395,7 +404,7 @@ describe('GraphQLCircuitBreakerClient', () => {
         } catch (e) {}
       }
 
-      // Hit cache multiple times
+      // Hit cache multiple times (circuit should be open now)
       for (let i = 0; i < 3; i++) {
         await client.query({
           query: 'query GetUser { user { id } }',
@@ -430,9 +439,15 @@ describe('GraphQLCircuitBreakerClient', () => {
     });
 
     it('should indicate degraded mode when circuits open', async () => {
-      // Open circuit
+      // Open circuit by causing consecutive timeout failures.
+      // Each query retries maxRetries=3, so use persistent mock.
+      fetchMock.mockImplementation(() => {
+        const error = new Error('Request timeout');
+        error.name = 'TimeoutError';
+        return Promise.reject(error);
+      });
+
       for (let i = 0; i < 5; i++) {
-        fetchMock.mockRejectedValueOnce(new Error('Fail'));
         try {
           await client.query({
             query: 'query GetUser { user { id } }',
@@ -585,9 +600,15 @@ describe('Integration Scenarios', () => {
   });
 
   it('should recover from degraded mode', async () => {
-    // Cause degradation
+    // Cause degradation with TimeoutError to trigger consecutiveTimeoutThreshold=3
+    // Each query retries maxRetries=2 times, so we need persistent mock
+    fetchMock.mockImplementation(() => {
+      const error = new Error('Request timeout');
+      error.name = 'TimeoutError';
+      return Promise.reject(error);
+    });
+
     for (let i = 0; i < 3; i++) {
-      fetchMock.mockRejectedValueOnce(new Error('Timeout'));
       try {
         await client.query({
           query: 'query GetUser { user { id } }',

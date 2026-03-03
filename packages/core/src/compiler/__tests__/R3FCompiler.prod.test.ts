@@ -6,8 +6,17 @@
  * ENVIRONMENT_PRESETS (lighting configs), lights, camera, spatial groups,
  * traits, options, and default lighting injection.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { R3FCompiler, MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../R3FCompiler';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -44,14 +53,14 @@ describe('R3FCompiler — Production', () => {
   describe('compile()', () => {
     it('compiles a minimal HSPlusAST', () => {
       const ast = { root: { type: 'scene', children: [] } } as any;
-      const result = compiler.compile(ast);
+      const result = compiler.compile(ast, 'test-token');
       expect(result).toBeDefined();
       expect(result.type).toBeDefined();
     });
 
     it('returns a node with children array', () => {
       const ast = { root: { type: 'scene', children: [] } } as any;
-      const result = compiler.compile(ast);
+      const result = compiler.compile(ast, 'test-token');
       expect(Array.isArray(result.children)).toBe(true);
     });
 
@@ -62,7 +71,7 @@ describe('R3FCompiler — Production', () => {
           children: [{ type: 'cube', properties: {}, children: [] }],
         },
       } as any;
-      const result = compiler.compile(ast);
+      const result = compiler.compile(ast, 'test-token');
       expect(result).toBeDefined();
     });
   });

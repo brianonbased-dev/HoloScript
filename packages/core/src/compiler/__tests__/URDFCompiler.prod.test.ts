@@ -9,9 +9,18 @@
  * - sanitizeName() lowercases names: 'Gripper' → 'gripper'.
  * - Collision geometry is only emitted if object has @collidable or @physics trait.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { URDFCompiler } from '../URDFCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -52,45 +61,45 @@ describe('URDFCompiler — Production', () => {
 
   // ─── compile() returns XML ────────────────────────────────────────────
   it('compile returns a string', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(typeof out).toBe('string');
     expect(out.length).toBeGreaterThan(0);
   });
 
   it('empty composition compiles without error', () => {
-    expect(() => compiler.compile(makeComp())).not.toThrow();
+    expect(() => compiler.compile(makeComp(), 'test-token')).not.toThrow();
   });
 
   // ─── URDF XML structure ───────────────────────────────────────────────
   it('output contains XML declaration', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(out).toContain('<?xml');
   });
 
   it('output contains <robot> element', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(out).toContain('<robot');
   });
 
   it('output contains closing </robot>', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(out).toContain('</robot>');
   });
 
   it('robot name appears in output', () => {
     const c = new URDFCompiler({ robotName: 'ManipulatorBot' });
-    const out = c.compile(makeComp());
+    const out = c.compile(makeComp(), 'test-token');
     expect(out).toContain('ManipulatorBot');
   });
 
   // ─── Base link ────────────────────────────────────────────────────────
   it('output contains base_link', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(out).toContain('base_link');
   });
 
   it('output contains <link> element', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(out).toContain('<link');
   });
 
@@ -99,26 +108,26 @@ describe('URDFCompiler — Production', () => {
   // Use geometry key (not mesh) — URDFCompiler.extractGeometry reads property key 'geometry'.
   it('compiles a box object to a link (lowercase name)', () => {
     const obj = makeObj('Arm', [{ key: 'geometry', value: 'box' }]);
-    const out = compiler.compile(makeComp({ objects: [obj] }));
+    const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toContain('arm'); // sanitizeName lowercases
   });
 
   it('compiles a sphere object (lowercase name)', () => {
     const obj = makeObj('Gripper', [{ key: 'geometry', value: 'sphere' }]);
-    const out = compiler.compile(makeComp({ objects: [obj] }));
+    const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toContain('gripper'); // sanitizeName lowercases
   });
 
   it('compiles a cylinder object (lowercase name)', () => {
     const obj = makeObj('Joint1', [{ key: 'geometry', value: 'cylinder' }]);
-    const out = compiler.compile(makeComp({ objects: [obj] }));
+    const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toContain('joint1'); // sanitizeName lowercases
   });
 
   // ─── Object with position ─────────────────────────────────────────────
   it('compiles object with xyz position', () => {
     const obj = makeObj('Link1', [{ key: 'position', value: [0.1, 0.2, 0.3] }]);
-    const out = compiler.compile(makeComp({ objects: [obj] }));
+    const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toBeDefined();
   });
 
@@ -127,7 +136,7 @@ describe('URDFCompiler — Production', () => {
   it('includeVisual=true adds <visual> element for object with geometry', () => {
     const c = new URDFCompiler({ includeVisual: true });
     const obj = makeObj('Part', [{ key: 'geometry', value: 'box' }]);
-    const out = c.compile(makeComp({ objects: [obj] }));
+    const out = c.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toContain('<visual>');
   });
 
@@ -136,7 +145,7 @@ describe('URDFCompiler — Production', () => {
   it('includeCollision=true with collidable trait adds <collision> element', () => {
     const c = new URDFCompiler({ includeCollision: true });
     const obj = makeObj('Base', [{ key: 'geometry', value: 'box' }], [{ name: 'collidable' }]);
-    const out = c.compile(makeComp({ objects: [obj] }));
+    const out = c.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toContain('<collision>');
   });
 
@@ -144,7 +153,7 @@ describe('URDFCompiler — Production', () => {
   it('includeInertial=true adds <inertial> element', () => {
     const c = new URDFCompiler({ includeInertial: true, defaultMass: 1.5 });
     const obj = makeObj('Link', [{ key: 'geometry', value: 'box' }]);
-    const out = c.compile(makeComp({ objects: [obj] }));
+    const out = c.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toContain('<inertial>');
   });
 
@@ -152,7 +161,7 @@ describe('URDFCompiler — Production', () => {
   it('child object generates a joint', () => {
     const child = makeObj('Forearm', [{ key: 'geometry', value: 'cylinder' }]);
     const parent = { ...makeObj('UpperArm', [{ key: 'geometry', value: 'box' }]), children: [child] };
-    const out = compiler.compile(makeComp({ objects: [parent as any] }));
+    const out = compiler.compile(makeComp({ objects: [parent as any] }), 'test-token');
     expect(out).toContain('<joint');
   });
 
@@ -160,21 +169,21 @@ describe('URDFCompiler — Production', () => {
   it('physics trait does not throw and adds inertial', () => {
     const c = new URDFCompiler({ includeInertial: true });
     const obj = makeObj('HeavyPart', [{ key: 'geometry', value: 'box' }], [{ name: 'physics', config: { mass: 5.0 } }]);
-    expect(() => c.compile(makeComp({ objects: [obj] }))).not.toThrow();
+    expect(() => c.compile(makeComp({ objects: [obj] }), 'test-token')).not.toThrow();
   });
 
   // ─── Mesh path prefix ─────────────────────────────────────────────────
   it('custom geometry .dae file compiles without error', () => {
     const c = new URDFCompiler({ meshPathPrefix: 'package://myrobot/meshes/' });
     const obj = makeObj('Part', [{ key: 'geometry', value: 'custom.dae' }]);
-    const out = c.compile(makeComp({ objects: [obj] }));
+    const out = c.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toBeDefined();
   });
 
   // ─── Multiple objects ─────────────────────────────────────────────────
   it('compiles multiple objects as separate links', () => {
     const objs = [makeObj('Base'), makeObj('Shoulder'), makeObj('Elbow')];
-    const out = compiler.compile(makeComp({ objects: objs }));
+    const out = compiler.compile(makeComp({ objects: objs }), 'test-token');
     // sanitizeName lowercases all names
     expect(out).toContain('base');
     expect(out).toContain('shoulder');

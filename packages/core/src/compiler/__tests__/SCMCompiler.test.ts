@@ -1,6 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi} from 'vitest';
 import { SCMCompiler } from '../SCMCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 describe('SCMCompiler (Structural Causal Model)', () => {
   it('should compile HoloScript objects into a valid SCM-DAG format', () => {
@@ -47,7 +56,7 @@ describe('SCMCompiler (Structural Causal Model)', () => {
     } as unknown as HoloComposition;
 
     const compiler = new SCMCompiler();
-    const resultJson = compiler.compile(composition);
+    const resultJson = compiler.compile(composition, 'test-token');
     const parsed = JSON.parse(resultJson);
 
     // Validate Metadata

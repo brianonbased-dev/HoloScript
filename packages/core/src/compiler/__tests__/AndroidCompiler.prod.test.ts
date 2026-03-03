@@ -5,9 +5,18 @@
  * nodeFactoryFile, manifestFile, buildGradle), Kotlin/ARCore output,
  * objects, lights, audio, options, and compileToAndroid convenience fn.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { AndroidCompiler, compileToAndroid } from '../AndroidCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -48,7 +57,7 @@ describe('AndroidCompiler — Production', () => {
 
   // ─── compile() returns AndroidCompileResult ───────────────────────────
   it('compile returns all 5 output files', () => {
-    const result = compiler.compile(makeComp());
+    const result = compiler.compile(makeComp(), 'test-token');
     expect(typeof result.activityFile).toBe('string');
     expect(typeof result.stateFile).toBe('string');
     expect(typeof result.nodeFactoryFile).toBe('string');
@@ -57,64 +66,64 @@ describe('AndroidCompiler — Production', () => {
   });
 
   it('empty composition compiles without error', () => {
-    expect(() => compiler.compile(makeComp())).not.toThrow();
+    expect(() => compiler.compile(makeComp(), 'test-token')).not.toThrow();
   });
 
   // ─── activityFile content ─────────────────────────────────────────────
   it('activityFile contains package declaration', () => {
-    const { activityFile } = compiler.compile(makeComp());
+    const { activityFile } = compiler.compile(makeComp(), 'test-token');
     expect(activityFile).toContain('package');
   });
 
   it('activityFile contains import statements', () => {
-    const { activityFile } = compiler.compile(makeComp());
+    const { activityFile } = compiler.compile(makeComp(), 'test-token');
     expect(activityFile).toContain('import');
   });
 
   it('activityFile contains Activity class', () => {
-    const { activityFile } = compiler.compile(makeComp());
+    const { activityFile } = compiler.compile(makeComp(), 'test-token');
     expect(activityFile).toContain('Activity');
   });
 
   // ─── manifestFile content ─────────────────────────────────────────────
   it('manifestFile contains XML manifest', () => {
-    const { manifestFile } = compiler.compile(makeComp());
+    const { manifestFile } = compiler.compile(makeComp(), 'test-token');
     expect(manifestFile).toContain('<manifest');
   });
 
   it('manifestFile contains camera permission', () => {
-    const { manifestFile } = compiler.compile(makeComp());
+    const { manifestFile } = compiler.compile(makeComp(), 'test-token');
     expect(manifestFile.toLowerCase()).toContain('camera');
   });
 
   // ─── buildGradle content ──────────────────────────────────────────────
   it('buildGradle contains android block', () => {
-    const { buildGradle } = compiler.compile(makeComp());
+    const { buildGradle } = compiler.compile(makeComp(), 'test-token');
     expect(buildGradle).toContain('android');
   });
 
   it('buildGradle contains dependencies', () => {
-    const { buildGradle } = compiler.compile(makeComp());
+    const { buildGradle } = compiler.compile(makeComp(), 'test-token');
     expect(buildGradle.toLowerCase()).toContain('dependencies');
   });
 
   // ─── Package name ─────────────────────────────────────────────────────
   it('custom package name appears in activityFile', () => {
     const c = new AndroidCompiler({ packageName: 'com.mygame.ar' });
-    const { activityFile } = c.compile(makeComp());
+    const { activityFile } = c.compile(makeComp(), 'test-token');
     expect(activityFile).toContain('com.mygame.ar');
   });
 
   // ─── Objects ─────────────────────────────────────────────────────────
   it('compiles a sphere object', () => {
     const obj = makeObj('Ball', [{ key: 'mesh', value: 'sphere' }]);
-    const { nodeFactoryFile } = compiler.compile(makeComp({ objects: [obj] }));
+    const { nodeFactoryFile } = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(nodeFactoryFile).toBeDefined();
   });
 
   it('compiles a cube object', () => {
     const obj = makeObj('Box', [{ key: 'mesh', value: 'cube' }]);
-    const { nodeFactoryFile } = compiler.compile(makeComp({ objects: [obj] }));
+    const { nodeFactoryFile } = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(nodeFactoryFile).toBeDefined();
   });
 
@@ -122,20 +131,20 @@ describe('AndroidCompiler — Production', () => {
   it('compiles a point light', () => {
     const { activityFile } = compiler.compile(makeComp({
       lights: [{ name: 'Key', type: 'point', intensity: 500, color: '#ffffff' }],
-    }));
+    }), 'test-token');
     expect(activityFile).toBeDefined();
   });
 
   // ─── Jetpack Compose ─────────────────────────────────────────────────
   it('useJetpackCompose option compiles without error', () => {
     const c = new AndroidCompiler({ useJetpackCompose: true });
-    expect(() => c.compile(makeComp())).not.toThrow();
+    expect(() => c.compile(makeComp(), 'test-token')).not.toThrow();
   });
 
   // ─── SDK versions ─────────────────────────────────────────────────────
   it('minSdk and targetSdk appear in buildGradle', () => {
     const c = new AndroidCompiler({ minSdk: 26, targetSdk: 34 });
-    const { buildGradle } = c.compile(makeComp());
+    const { buildGradle } = c.compile(makeComp(), 'test-token');
     expect(buildGradle).toContain('26');
     expect(buildGradle).toContain('34');
   });
@@ -155,7 +164,7 @@ describe('AndroidCompiler — Production', () => {
   // ─── Multiple objects ─────────────────────────────────────────────────
   it('compiles multiple objects', () => {
     const objs = [makeObj('X'), makeObj('Y'), makeObj('Z')];
-    const { nodeFactoryFile } = compiler.compile(makeComp({ objects: objs }));
+    const { nodeFactoryFile } = compiler.compile(makeComp({ objects: objs }), 'test-token');
     expect(nodeFactoryFile).toContain('X');
     expect(nodeFactoryFile).toContain('Y');
   });

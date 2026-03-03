@@ -5,7 +5,7 @@
  * conflict detection, override precedence, and graph registration.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi} from 'vitest';
 import {
   TraitCompositionCompiler,
   CompositionConflictError,
@@ -14,6 +14,15 @@ import {
   type ComponentTraitHandler,
 } from '../../compiler/TraitCompositionCompiler';
 import { TraitDependencyGraph } from '../../compiler/TraitDependencyGraph';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

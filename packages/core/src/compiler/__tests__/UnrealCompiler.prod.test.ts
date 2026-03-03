@@ -5,9 +5,18 @@
  * AActor-derived class, static mesh components, lights, physics traits,
  * timelines, transitions, Blueprint JSON, and convenience function.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { UnrealCompiler, compileToUnreal } from '../UnrealCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,63 +61,63 @@ describe('UnrealCompiler — Production', () => {
 
   // ─── compile() returns result shape ──────────────────────────────────
   it('compile returns headerFile and sourceFile strings', () => {
-    const result = compiler.compile(makeComp());
+    const result = compiler.compile(makeComp(), 'test-token');
     expect(typeof result.headerFile).toBe('string');
     expect(typeof result.sourceFile).toBe('string');
   });
 
   it('empty composition compiles without error', () => {
-    expect(() => compiler.compile(makeComp())).not.toThrow();
+    expect(() => compiler.compile(makeComp(), 'test-token')).not.toThrow();
   });
 
   // ─── Header file ─────────────────────────────────────────────────────
   it('header includes #pragma once', () => {
-    const { headerFile } = compiler.compile(makeComp());
+    const { headerFile } = compiler.compile(makeComp(), 'test-token');
     expect(headerFile).toContain('#pragma once');
   });
 
   it('header includes UCLASS macro', () => {
-    const { headerFile } = compiler.compile(makeComp());
+    const { headerFile } = compiler.compile(makeComp(), 'test-token');
     expect(headerFile).toContain('UCLASS');
   });
 
   it('header contains class declaration inheriting from AActor', () => {
-    const { headerFile } = compiler.compile(makeComp());
+    const { headerFile } = compiler.compile(makeComp(), 'test-token');
     expect(headerFile).toContain('AActor');
   });
 
   it('header class name derived from composition name by default', () => {
     const c = new UnrealCompiler({ className: 'AMyScene' });
-    const { headerFile } = c.compile(makeComp({ name: 'MyScene' }));
+    const { headerFile } = c.compile(makeComp({ name: 'MyScene' }), 'test-token');
     expect(headerFile).toContain('AMyScene');
   });
 
   // ─── Source file ─────────────────────────────────────────────────────
   it('source includes UE5 include for the header', () => {
-    const { sourceFile } = compiler.compile(makeComp());
+    const { sourceFile } = compiler.compile(makeComp(), 'test-token');
     expect(sourceFile).toContain('#include');
   });
 
   it('source includes BeginPlay', () => {
-    const { sourceFile } = compiler.compile(makeComp());
+    const { sourceFile } = compiler.compile(makeComp(), 'test-token');
     expect(sourceFile).toContain('BeginPlay');
   });
 
   it('source includes Super::BeginPlay', () => {
-    const { sourceFile } = compiler.compile(makeComp());
+    const { sourceFile } = compiler.compile(makeComp(), 'test-token');
     expect(sourceFile).toContain('Super::BeginPlay');
   });
 
   // ─── Objects ─────────────────────────────────────────────────────────
   it('compiles a cube object to static mesh component', () => {
     const obj = makeObj('MyCube', [{ key: 'mesh', value: 'cube' }]);
-    const { sourceFile } = compiler.compile(makeComp({ objects: [obj] }));
+    const { sourceFile } = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(sourceFile.toLowerCase()).toContain('staticmesh');
   });
 
   it('compiles a sphere object', () => {
     const obj = makeObj('MySphere', [{ key: 'mesh', value: 'sphere' }]);
-    const { sourceFile } = compiler.compile(makeComp({ objects: [obj] }));
+    const { sourceFile } = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(sourceFile).toBeDefined();
   });
 
@@ -117,14 +126,14 @@ describe('UnrealCompiler — Production', () => {
       { key: 'mesh', value: 'box' },
       { key: 'position', value: [1, 2, 3] },
     ]);
-    const { sourceFile } = compiler.compile(makeComp({ objects: [obj] }));
+    const { sourceFile } = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(sourceFile).toBeDefined();
   });
 
   // ─── Physics trait ────────────────────────────────────────────────────
   it('physics trait adds UPrimitiveComponent or chaos physics', () => {
     const obj = makeObj('PhysBox', [{ key: 'mesh', value: 'cube' }], [{ name: 'physics', config: { mass: 5 } }]);
-    const { sourceFile } = compiler.compile(makeComp({ objects: [obj] }));
+    const { sourceFile } = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(sourceFile).toBeDefined();
   });
 
@@ -132,21 +141,21 @@ describe('UnrealCompiler — Production', () => {
   it('compiles a point light', () => {
     const { sourceFile } = compiler.compile(makeComp({
       lights: [{ name: 'Key', lightType: 'point', properties: [{ key: 'intensity', value: 1000 }, { key: 'color', value: '#ffffff' }] }] as any,
-    }));
+    }), 'test-token');
     expect(sourceFile.toLowerCase()).toContain('light');
   });
 
   it('compiles a directional light', () => {
     const { sourceFile } = compiler.compile(makeComp({
       lights: [{ name: 'Sun', lightType: 'directional', properties: [{ key: 'intensity', value: 5 }, { key: 'color', value: '#fff8e7' }] }] as any,
-    }));
+    }), 'test-token');
     expect(sourceFile).toBeDefined();
   });
 
   it('compiles a spot light', () => {
     const { sourceFile } = compiler.compile(makeComp({
       lights: [{ name: 'Spot', lightType: 'spot', properties: [{ key: 'intensity', value: 2000 }, { key: 'color', value: '#ffffaa' }] }] as any,
-    }));
+    }), 'test-token');
     expect(sourceFile).toBeDefined();
   });
 
@@ -154,7 +163,7 @@ describe('UnrealCompiler — Production', () => {
   it('compiles a timeline to UFUNCTION', () => {
     const { sourceFile } = compiler.compile(makeComp({
       timelines: [{ name: 'FadeIn', duration: 2, entries: [] }] as any,
-    }));
+    }), 'test-token');
     expect(sourceFile).toContain('FadeIn');
   });
 
@@ -162,14 +171,14 @@ describe('UnrealCompiler — Production', () => {
   it('compiles a transition', () => {
     const { sourceFile } = compiler.compile(makeComp({
       transitions: [{ name: 'FadeToBlack', properties: [{ key: 'destination', value: 'B' }, { key: 'duration', value: 1 }] }] as any,
-    }));
+    }), 'test-token');
     expect(sourceFile).toContain('FadeToBlack');
   });
 
   // ─── Blueprint JSON ───────────────────────────────────────────────────
   it('generateBlueprints option generates blueprintJson', () => {
     const c = new UnrealCompiler({ generateBlueprints: true });
-    const result = c.compile(makeComp({ objects: [makeObj('Wall')] }));
+    const result = c.compile(makeComp({ objects: [makeObj('Wall')] }), 'test-token');
     expect(typeof result.blueprintJson).toBe('string');
     const parsed = JSON.parse(result.blueprintJson!);
     expect(parsed).toBeDefined();
@@ -177,21 +186,21 @@ describe('UnrealCompiler — Production', () => {
 
   it('generateBlueprints=false produces no blueprintJson', () => {
     const c = new UnrealCompiler({ generateBlueprints: false });
-    const result = c.compile(makeComp());
+    const result = c.compile(makeComp(), 'test-token');
     expect(result.blueprintJson).toBeUndefined();
   });
 
   // ─── Engine version ───────────────────────────────────────────────────
   it('accepts engineVersion option without error', () => {
     const c = new UnrealCompiler({ engineVersion: '5.4' });
-    expect(() => c.compile(makeComp())).not.toThrow();
+    expect(() => c.compile(makeComp(), 'test-token')).not.toThrow();
   });
 
   // ─── Environment ─────────────────────────────────────────────────────
   it('compiles environment settings', () => {
     const { sourceFile } = compiler.compile(makeComp({
       environment: { properties: [{ key: 'skybox', value: 'day_sky' }] } as any,
-    }));
+    }), 'test-token');
     expect(sourceFile).toBeDefined();
   });
 
@@ -210,7 +219,7 @@ describe('UnrealCompiler — Production', () => {
   // ─── Multiple objects ─────────────────────────────────────────────────
   it('compiles multiple objects in sequence', () => {
     const objs = [makeObj('Floor'), makeObj('Wall'), makeObj('Ceiling')];
-    const { sourceFile } = compiler.compile(makeComp({ objects: objs }));
+    const { sourceFile } = compiler.compile(makeComp({ objects: objs }), 'test-token');
     expect(sourceFile).toContain('Floor');
     expect(sourceFile).toContain('Wall');
     expect(sourceFile).toContain('Ceiling');
@@ -220,7 +229,7 @@ describe('UnrealCompiler — Production', () => {
   it('compiles audio source', () => {
     const { sourceFile } = compiler.compile(makeComp({
       audio: [{ name: 'BgMusic', src: 'music.wav', loop: true, volume: 0.8 }],
-    } as any));
+    } as any), 'test-token');
     expect(sourceFile).toBeDefined();
   });
 });

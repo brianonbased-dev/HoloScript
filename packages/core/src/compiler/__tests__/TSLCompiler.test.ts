@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { TSLCompiler, type TSLCompilerOptions } from '../TSLCompiler';
 import type {
   HoloComposition,
@@ -8,6 +8,15 @@ import type {
   HoloCamera,
   HoloEnvironment,
 } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // =============================================================================
 // HELPERS
@@ -133,13 +142,13 @@ describe('TSLCompiler', () => {
 
   describe('minimal compilation', () => {
     it('compiles empty composition to multi-file output', () => {
-      const result = compiler.compile(makeComposition());
+      const result = compiler.compile(makeComposition(), 'test-token');
       expect(result).toBeDefined();
       expect(typeof result).toBe('object');
     });
 
     it('always produces global uniforms file', () => {
-      const result = compiler.compile(makeComposition());
+      const result = compiler.compile(makeComposition(), 'test-token');
       expect(result['_globals.wgsl']).toBeDefined();
       expect(result['_globals.wgsl']).toContain('CameraUniforms');
       expect(result['_globals.wgsl']).toContain('SceneUniforms');
@@ -148,7 +157,7 @@ describe('TSLCompiler', () => {
     });
 
     it('always produces helpers file when includeHelpers is true', () => {
-      const result = compiler.compile(makeComposition());
+      const result = compiler.compile(makeComposition(), 'test-token');
       expect(result['_helpers.wgsl']).toBeDefined();
       expect(result['_helpers.wgsl']).toContain('simpleNoise');
       expect(result['_helpers.wgsl']).toContain('distributionGGX');
@@ -156,14 +165,14 @@ describe('TSLCompiler', () => {
     });
 
     it('produces pipeline setup file', () => {
-      const result = compiler.compile(makeComposition());
+      const result = compiler.compile(makeComposition(), 'test-token');
       expect(result['_pipeline.ts']).toBeDefined();
       expect(result['_pipeline.ts']).toContain('createTSLPipelines');
     });
 
     it('does not produce helpers when disabled', () => {
       const c = new TSLCompiler({ includeHelpers: false });
-      const result = c.compile(makeComposition());
+      const result = c.compile(makeComposition(), 'test-token');
       expect(result['_helpers.wgsl']).toBeUndefined();
     });
   });
@@ -177,7 +186,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('MyCube', [{ name: 'pbr' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       expect(result['MyCube.vertex.wgsl']).toBeDefined();
       expect(result['MyCube.fragment.wgsl']).toBeDefined();
@@ -188,7 +197,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('TestObj', [{ name: 'pbr' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const vs = result['TestObj.vertex.wgsl'];
 
       expect(vs).toContain('struct VertexInput');
@@ -203,7 +212,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('TestObj', [{ name: 'pbr' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['TestObj.fragment.wgsl'];
 
       expect(fs).toContain('struct FragmentInput');
@@ -220,7 +229,7 @@ describe('TSLCompiler', () => {
           makeObject('ObjectC', []),
         ],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       expect(result['ObjectA.vertex.wgsl']).toBeDefined();
       expect(result['ObjectA.fragment.wgsl']).toBeDefined();
@@ -234,7 +243,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('my-complex.object!', [{ name: 'pbr' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       // Should sanitize to valid identifier
       expect(result['my_complex_object_.vertex.wgsl']).toBeDefined();
@@ -253,7 +262,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Cube', [{ name: 'pbr' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['Cube.fragment.wgsl'];
 
       expect(fs).toContain('MaterialUniforms');
@@ -269,7 +278,7 @@ describe('TSLCompiler', () => {
           config: { roughness: 0.8, metalness: 1.0 },
         }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const bindings = result['Cube.bindings.wgsl'];
 
       expect(bindings).toContain('u_roughness');
@@ -282,7 +291,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Glow', [{ name: 'emissive' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['Glow.fragment.wgsl'];
 
       expect(fs).toContain('u_emissiveColor');
@@ -296,7 +305,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Glass', [{ name: 'transparent' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['Glass.fragment.wgsl'];
 
       expect(fs).toContain('u_opacity');
@@ -309,7 +318,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Holo', [{ name: 'hologram' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['Holo.fragment.wgsl'];
 
       expect(fs).toContain('u_holoColor');
@@ -326,7 +335,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Disappearing', [{ name: 'dissolve' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['Disappearing.fragment.wgsl'];
 
       expect(fs).toContain('u_dissolveProgress');
@@ -341,7 +350,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Shield', [{ name: 'force_field' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['Shield.fragment.wgsl'];
 
       expect(fs).toContain('u_fieldColor');
@@ -355,7 +364,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Label', [{ name: 'billboard' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const vs = result['Label.vertex.wgsl'];
 
       expect(vs).toContain('billboardRight');
@@ -369,7 +378,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('WavyThing', [{ name: 'animated' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const vs = result['WavyThing.vertex.wgsl'];
 
       expect(vs).toContain('u_animSpeed');
@@ -383,7 +392,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Pickable', [{ name: 'grabbable' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['Pickable.fragment.wgsl'];
 
       expect(fs).toContain('u_grabHighlight');
@@ -396,7 +405,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Foo', [{ name: 'nonexistent_trait_xyz' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       expect(result['_warnings.txt']).toBeDefined();
       expect(result['_warnings.txt']).toContain('nonexistent_trait_xyz');
@@ -413,7 +422,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Particles', [{ name: 'gpu_particle', config: { count: 50000 } }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       expect(result['Particles.compute.gpu_particle.wgsl']).toBeDefined();
       const cs = result['Particles.compute.gpu_particle.wgsl'];
@@ -427,7 +436,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('PhysicsObj', [{ name: 'gpu_physics' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       expect(result['PhysicsObj.compute.gpu_physics.wgsl']).toBeDefined();
       const cs = result['PhysicsObj.compute.gpu_physics.wgsl'];
@@ -440,7 +449,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('CustomCompute', [{ name: 'compute' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       expect(result['CustomCompute.compute.compute.wgsl']).toBeDefined();
       const cs = result['CustomCompute.compute.compute.wgsl'];
@@ -452,7 +461,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Particles', [{ name: 'gpu_particle' }])],
       });
-      const result = c.compile(comp);
+      const result = c.compile(comp, 'test-token');
 
       const computeKeys = Object.keys(result).filter((k) => k.includes('.compute.'));
       expect(computeKeys).toHaveLength(0);
@@ -462,7 +471,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Particles', [{ name: 'gpu_particle' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const pipeline = result['_pipeline.ts'];
 
       expect(pipeline).toContain('createComputePipeline');
@@ -483,7 +492,7 @@ describe('TSLCompiler', () => {
           { name: 'animated', config: { speed: 3.0 } },
         ])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['ComplexObj.fragment.wgsl'];
       const vs = result['ComplexObj.vertex.wgsl'];
 
@@ -509,7 +518,7 @@ describe('TSLCompiler', () => {
           { name: 'force_field' },
         ])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['HoloShield.fragment.wgsl'];
 
       expect(fs).toContain('u_holoColor');
@@ -525,7 +534,7 @@ describe('TSLCompiler', () => {
           { name: 'gpu_particle' },
         ])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       // Should have render shaders
       expect(result['ParticleEmitter.vertex.wgsl']).toBeDefined();
@@ -545,7 +554,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Lit', [{ name: 'pbr' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['Lit.fragment.wgsl'];
 
       expect(fs).toContain('distributionGGX');
@@ -560,7 +569,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Unlit', [{ name: 'pbr' }])],
       });
-      const result = c.compile(comp);
+      const result = c.compile(comp, 'test-token');
       const fs = result['Unlit.fragment.wgsl'];
 
       expect(fs).toContain('Simple Lighting');
@@ -580,7 +589,7 @@ describe('TSLCompiler', () => {
           config: { roughness: 0.75 },
         }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const bindings = result['Obj.bindings.wgsl'];
 
       expect(bindings).toContain('u_roughness');
@@ -593,7 +602,7 @@ describe('TSLCompiler', () => {
           config: { color: '#ff0000' },
         }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const bindings = result['Obj.bindings.wgsl'];
 
       expect(bindings).toContain('u_holoColor');
@@ -606,7 +615,7 @@ describe('TSLCompiler', () => {
           config: { color: [1.0, 0.5, 0.0] },
         }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const bindings = result['Obj.bindings.wgsl'];
 
       expect(bindings).toContain('u_baseColor');
@@ -625,7 +634,7 @@ describe('TSLCompiler', () => {
           { key: 'ambient_light', value: 0.3 },
         ]),
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const globals = result['_globals.wgsl'];
 
       expect(globals).toContain('Environment defaults');
@@ -640,7 +649,7 @@ describe('TSLCompiler', () => {
           makeLight('Lamp', 'point'),
         ],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const globals = result['_globals.wgsl'];
 
       expect(globals).toContain('Scene lights: 2');
@@ -658,7 +667,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Hero', [{ name: 'pbr' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const pipeline = result['_pipeline.ts'];
 
       expect(pipeline).toContain('createRenderPipeline');
@@ -675,7 +684,7 @@ describe('TSLCompiler', () => {
           { name: 'gpu_physics' },
         ])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const pipeline = result['_pipeline.ts'];
 
       expect(pipeline).toContain('renderPipelines');
@@ -685,7 +694,7 @@ describe('TSLCompiler', () => {
 
     it('includes TypeScript type definitions', () => {
       const comp = makeComposition();
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const pipeline = result['_pipeline.ts'];
 
       expect(pipeline).toContain('TSLPipelineBundle');
@@ -703,7 +712,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Box', [{ name: 'pbr' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const layout = result['Box.bindings.wgsl'];
 
       expect(layout).toContain('Group 0: Camera');
@@ -718,7 +727,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Plain', [])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const layout = result['Plain.bindings.wgsl'];
 
       expect(layout).toContain('no trait uniforms');
@@ -735,7 +744,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Dbg', [{ name: 'pbr' }, { name: 'hologram' }])],
       });
-      const result = c.compile(comp);
+      const result = c.compile(comp, 'test-token');
       const fs = result['Dbg.fragment.wgsl'];
 
       // In debug mode, uniform struct should have trait source comments
@@ -753,7 +762,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Bare', [])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       expect(result['Bare.vertex.wgsl']).toBeDefined();
       expect(result['Bare.fragment.wgsl']).toBeDefined();
@@ -764,7 +773,7 @@ describe('TSLCompiler', () => {
 
     it('handles composition with no objects', () => {
       const comp = makeComposition({ objects: [] });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       // Should still produce global files
       expect(result['_globals.wgsl']).toBeDefined();
@@ -775,7 +784,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Obj', [{ name: 'pbr', config: {} }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       // Should use default values
       expect(result['Obj.fragment.wgsl']).toContain('u_roughness');
@@ -788,7 +797,7 @@ describe('TSLCompiler', () => {
           makeObject('B', [{ name: 'pbr', config: { roughness: 0.9 } }]),
         ],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       // Both objects should have their own shaders
       expect(result['A.fragment.wgsl']).toBeDefined();
@@ -801,7 +810,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Splats', [{ name: 'gaussian_splat' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['Splats.fragment.wgsl'];
 
       expect(fs).toContain('splatAlpha');
@@ -812,7 +821,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Cloud', [{ name: 'point_cloud' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const fs = result['Cloud.fragment.wgsl'];
 
       expect(fs).toContain('u_pointSize');
@@ -831,7 +840,7 @@ describe('TSLCompiler', () => {
           makeObject('Player', [{ name: 'pbr' }, { name: 'gpu_particle' }]),
         ],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const keys = Object.keys(result);
 
       expect(keys).toContain('_helpers.wgsl');
@@ -851,7 +860,7 @@ describe('TSLCompiler', () => {
   describe('composition metadata', () => {
     it('includes composition name in generated headers', () => {
       const comp = makeComposition({ name: 'MyAwesomeScene' });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
 
       expect(result['_globals.wgsl']).toContain('MyAwesomeScene');
       expect(result['_pipeline.ts']).toContain('MyAwesomeScene');
@@ -861,7 +870,7 @@ describe('TSLCompiler', () => {
       const comp = makeComposition({
         objects: [makeObject('Obj', [{ name: 'hologram' }, { name: 'dissolve' }])],
       });
-      const result = compiler.compile(comp);
+      const result = compiler.compile(comp, 'test-token');
       const vs = result['Obj.vertex.wgsl'];
       const fs = result['Obj.fragment.wgsl'];
 

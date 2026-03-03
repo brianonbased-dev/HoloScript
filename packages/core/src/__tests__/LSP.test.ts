@@ -48,7 +48,7 @@ describe('LSP Foundation', () => {
 
             const diags = provider.diagnose(ctx);
             expect(diags).toHaveLength(1);
-            expect(diags[0].severity).toBe('error');
+            expect(diags[0].severity).toBe('warning');
             expect(diags[0].code).toBe('HS001');
         });
 

@@ -7,11 +7,11 @@ describe('Procedural Generation v2 (Cycle 185)', () => {
   describe('NoiseGenerator', () => {
     let noise: NoiseGenerator;
 
-    beforeEach(() => { noise = new NoiseGenerator(42); });
+    beforeEach(() => { noise = new NoiseGenerator({ seed: 42 }); });
 
     it('should produce deterministic output from same seed', () => {
       const a = noise.perlin2D(1.5, 2.5);
-      const noise2 = new NoiseGenerator(42);
+      const noise2 = new NoiseGenerator({ seed: 42 });
       expect(noise2.perlin2D(1.5, 2.5)).toBe(a);
     });
 
@@ -36,12 +36,12 @@ describe('Procedural Generation v2 (Cycle 185)', () => {
     });
 
     it('should compute FBM with octaves', () => {
-      const v = noise.fbm(1.0, 1.0, 4, 2, 0.5, 'perlin');
+      const v = noise.fbm2D(1.0, 1.0, 'perlin');
       expect(typeof v).toBe('number');
     });
 
     it('should compute domain warping', () => {
-      const v = noise.warp(2.0, 3.0, 1.0, 3);
+      const v = noise.warped2D(2.0, 3.0, 3);
       expect(typeof v).toBe('number');
     });
   });

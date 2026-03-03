@@ -1,6 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { VRChatCompiler } from '../VRChatCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestWorld', objects: [], ...overrides } as HoloComposition;
@@ -16,7 +25,7 @@ describe('VRChatCompiler', () => {
   // =========== Result structure ===========
 
   it('returns VRChatCompileResult with all fields', () => {
-    const result = compiler.compile(makeComposition());
+    const result = compiler.compile(makeComposition(), 'test-token');
     expect(result).toHaveProperty('mainScript');
     expect(result).toHaveProperty('udonScripts');
     expect(result).toHaveProperty('prefabHierarchy');
@@ -26,13 +35,13 @@ describe('VRChatCompiler', () => {
   // =========== Main script ===========
 
   it('generates UdonSharp main script', () => {
-    const result = compiler.compile(makeComposition());
+    const result = compiler.compile(makeComposition(), 'test-token');
     expect(result.mainScript).toContain('UdonSharp');
     expect(result.mainScript).toContain('class');
   });
 
   it('includes VRChat SDK imports', () => {
-    const result = compiler.compile(makeComposition());
+    const result = compiler.compile(makeComposition(), 'test-token');
     expect(result.mainScript).toContain('VRC');
   });
 
@@ -40,13 +49,13 @@ describe('VRChatCompiler', () => {
 
   it('respects custom class name', () => {
     const c = new VRChatCompiler({ className: 'MyWorld' });
-    const result = c.compile(makeComposition());
+    const result = c.compile(makeComposition(), 'test-token');
     expect(result.mainScript).toContain('MyWorld');
   });
 
   it('respects custom world name', () => {
     const c = new VRChatCompiler({ worldName: 'CoolWorld' });
-    const result = c.compile(makeComposition());
+    const result = c.compile(makeComposition(), 'test-token');
     expect(result.worldDescriptor).toContain('CoolWorld');
   });
 
@@ -56,7 +65,7 @@ describe('VRChatCompiler', () => {
     const comp = makeComposition({
       state: { properties: [{ key: 'score', value: 0 }] },
     });
-    const result = compiler.compile(comp);
+    const result = compiler.compile(comp, 'test-token');
     expect(result.mainScript).toContain('score');
   });
 
@@ -68,14 +77,14 @@ describe('VRChatCompiler', () => {
         { name: 'cube', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
       ] as any,
     });
-    const result = compiler.compile(comp);
+    const result = compiler.compile(comp, 'test-token');
     expect(result.prefabHierarchy).toContain('cube');
   });
 
   // =========== World descriptor ===========
 
   it('generates world descriptor', () => {
-    const result = compiler.compile(makeComposition());
+    const result = compiler.compile(makeComposition(), 'test-token');
     expect(result.worldDescriptor).toBeDefined();
     expect(result.worldDescriptor.length).toBeGreaterThan(0);
   });
@@ -88,7 +97,7 @@ describe('VRChatCompiler', () => {
         { name: 'coin', properties: [{ key: 'geometry', value: 'sphere' }], traits: [{ name: 'grabbable' }] },
       ] as any,
     });
-    const result = compiler.compile(comp);
+    const result = compiler.compile(comp, 'test-token');
     expect(result.udonScripts.size).toBeGreaterThan(0);
   });
 
@@ -101,7 +110,7 @@ describe('VRChatCompiler', () => {
         { name: 'obj_b', properties: [{ key: 'geometry', value: 'sphere' }], traits: [] },
       ] as any,
     });
-    const result = compiler.compile(comp);
+    const result = compiler.compile(comp, 'test-token');
     expect(result.prefabHierarchy).toContain('obj_a');
     expect(result.prefabHierarchy).toContain('obj_b');
   });

@@ -1,6 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { OpenXRCompiler } from '../OpenXRCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 /**
  * Helper to build a minimal HoloComposition AST for testing
@@ -52,19 +61,19 @@ describe('OpenXRCompiler', () => {
   // ===========================================================================
   describe('compile empty scene', () => {
     it('produces valid C++ output', () => {
-      const result = compiler.compile(makeComposition());
+      const result = compiler.compile(makeComposition(), 'test-token');
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
     });
 
     it('includes OpenXR headers', () => {
-      const result = compiler.compile(makeComposition());
+      const result = compiler.compile(makeComposition(), 'test-token');
       expect(result).toContain('#include');
       expect(result).toContain('openxr');
     });
 
     it('includes main function or entry point', () => {
-      const result = compiler.compile(makeComposition());
+      const result = compiler.compile(makeComposition(), 'test-token');
       expect(result).toMatch(/main|int\s+main|void\s+app/i);
     });
   });
@@ -85,7 +94,7 @@ describe('OpenXRCompiler', () => {
           traits: [],
           children: [],
         }] as any,
-      }));
+      }), 'test-token');
       expect(result).toContain('my_cube');
     });
 
@@ -95,7 +104,7 @@ describe('OpenXRCompiler', () => {
           { name: 'obj1', mesh: 'box', properties: [{ key: 'mesh', value: 'box' }], traits: [], children: [] },
           { name: 'obj2', mesh: 'sphere', properties: [{ key: 'mesh', value: 'sphere' }], traits: [], children: [] },
         ] as any,
-      }));
+      }), 'test-token');
       expect(result).toContain('obj1');
       expect(result).toContain('obj2');
     });
@@ -116,7 +125,7 @@ describe('OpenXRCompiler', () => {
             { key: 'intensity', value: 1.0 },
           ],
         }] as any,
-      }));
+      }), 'test-token');
       expect(result).toContain('sun');
     });
   });
@@ -132,7 +141,7 @@ describe('OpenXRCompiler', () => {
             { key: 'far', value: 1000 },
           ],
         } as any,
-      }));
+      }), 'test-token');
       // emitCamera doesn't embed camera name, but emits xrLocateViews + nearClip/farClip
       expect(result).toContain('xrLocateViews');
       expect(result).toContain('nearClip');
@@ -158,7 +167,7 @@ describe('OpenXRCompiler', () => {
             children: [],
           }],
         }] as any,
-      }));
+      }), 'test-token');
       expect(result).toContain('gallery');
     });
   });
@@ -169,25 +178,25 @@ describe('OpenXRCompiler', () => {
   describe('option variants', () => {
     it('Vulkan backend includes Vulkan references', () => {
       const c = new OpenXRCompiler({ renderBackend: 'vulkan' });
-      const result = c.compile(makeComposition());
+      const result = c.compile(makeComposition(), 'test-token');
       expect(result.toLowerCase()).toContain('vulkan');
     });
 
     it('OpenGL ES backend includes GL references', () => {
       const c = new OpenXRCompiler({ renderBackend: 'opengl_es' });
-      const result = c.compile(makeComposition());
+      const result = c.compile(makeComposition(), 'test-token');
       expect(result.toLowerCase()).toMatch(/gl|opengl/);
     });
 
     it('hand tracking option emits hand tracking code', () => {
       const c = new OpenXRCompiler({ enableHandTracking: true });
-      const result = c.compile(makeComposition());
+      const result = c.compile(makeComposition(), 'test-token');
       expect(result.toLowerCase()).toContain('hand');
     });
 
     it('passthrough option emits passthrough code', () => {
       const c = new OpenXRCompiler({ enablePassthrough: true });
-      const result = c.compile(makeComposition());
+      const result = c.compile(makeComposition(), 'test-token');
       expect(result.toLowerCase()).toContain('passthrough');
     });
   });
@@ -204,7 +213,7 @@ describe('OpenXRCompiler', () => {
           traits: [],
           children: [],
         }] as any,
-      }));
+      }), 'test-token');
       expect(result).toBeDefined();
     });
   });

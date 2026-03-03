@@ -1,6 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { PlayCanvasCompiler } from '../PlayCanvasCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
@@ -16,12 +25,12 @@ describe('PlayCanvasCompiler', () => {
   // =========== Minimal output ===========
 
   it('compiles minimal composition to PlayCanvas code', () => {
-    const code = compiler.compile(makeComposition());
+    const code = compiler.compile(makeComposition(), 'test-token');
     expect(code).toContain('pc');
   });
 
   it('includes application setup', () => {
-    const code = compiler.compile(makeComposition());
+    const code = compiler.compile(makeComposition(), 'test-token');
     expect(code).toContain('app');
   });
 
@@ -29,13 +38,13 @@ describe('PlayCanvasCompiler', () => {
 
   it('respects custom class name', () => {
     const c = new PlayCanvasCompiler({ className: 'MyScene' });
-    const code = c.compile(makeComposition());
+    const code = c.compile(makeComposition(), 'test-token');
     expect(code).toContain('MyScene');
   });
 
   it('includes XR setup when enabled', () => {
     const c = new PlayCanvasCompiler({ enableXR: true });
-    const code = c.compile(makeComposition());
+    const code = c.compile(makeComposition(), 'test-token');
     expect(code).toContain('xr');
   });
 
@@ -47,7 +56,7 @@ describe('PlayCanvasCompiler', () => {
         { name: 'cube', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
       ] as any,
     });
-    const code = compiler.compile(comp);
+    const code = compiler.compile(comp, 'test-token');
     expect(code).toContain('Entity');
     expect(code).toContain('cube');
   });
@@ -58,7 +67,7 @@ describe('PlayCanvasCompiler', () => {
         { name: 'ball', properties: [{ key: 'geometry', value: 'sphere' }], traits: [] },
       ] as any,
     });
-    const code = compiler.compile(comp);
+    const code = compiler.compile(comp, 'test-token');
     expect(code).toContain('ball');
   });
 
@@ -68,7 +77,7 @@ describe('PlayCanvasCompiler', () => {
     const comp = makeComposition({
       lights: [{ name: 'sun', lightType: 'directional', properties: [{ key: 'intensity', value: 1.0 }] }] as any,
     });
-    const code = compiler.compile(comp);
+    const code = compiler.compile(comp, 'test-token');
     expect(code).toContain('light');
     expect(code).toContain('sun');
   });
@@ -79,7 +88,7 @@ describe('PlayCanvasCompiler', () => {
     const comp = makeComposition({
       camera: { name: 'main', properties: [{ key: 'position', value: [0, 5, -10] }] } as any,
     });
-    const code = compiler.compile(comp);
+    const code = compiler.compile(comp, 'test-token');
     expect(code).toContain('camera');
   });
 
@@ -89,7 +98,7 @@ describe('PlayCanvasCompiler', () => {
     const comp = makeComposition({
       environment: { properties: [{ key: 'skybox', value: 'sunset' }] } as any,
     });
-    const code = compiler.compile(comp);
+    const code = compiler.compile(comp, 'test-token');
     expect(code).toBeDefined();
   });
 
@@ -102,7 +111,7 @@ describe('PlayCanvasCompiler', () => {
         { name: 'obj_b', properties: [{ key: 'geometry', value: 'sphere' }], traits: [] },
       ] as any,
     });
-    const code = compiler.compile(comp);
+    const code = compiler.compile(comp, 'test-token');
     expect(code).toContain('obj_a');
     expect(code).toContain('obj_b');
   });
@@ -119,15 +128,15 @@ describe('PlayCanvasCompiler', () => {
         },
       ] as any,
     });
-    const code = compiler.compile(comp);
+    const code = compiler.compile(comp, 'test-token');
     expect(code).toContain('grp');
   });
 
   // =========== Reset ===========
 
   it('resets between compilations', () => {
-    compiler.compile(makeComposition({ name: 'first' }));
-    const code = compiler.compile(makeComposition({ name: 'second' }));
+    compiler.compile(makeComposition({ name: 'first' }), 'test-token');
+    const code = compiler.compile(makeComposition({ name: 'second' }), 'test-token');
     expect(code).toContain('second');
   });
 });

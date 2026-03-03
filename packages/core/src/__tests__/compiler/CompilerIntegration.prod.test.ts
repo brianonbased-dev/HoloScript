@@ -33,35 +33,35 @@ const compile = (obj: any) => `/* ${obj.name} output */`;
 
 describe('Compiler + TraitDependencyGraph — shared trait graph', () => {
 
-  it('compiler compiles and registers objects in the trait graph', () => {
+  it('compiler compiles and registers objects in the trait graph', async () => {
     const tg = new TraitDependencyGraph();
     const compiler = new IncrementalCompiler(tg);
     const ast = makeAST([makeObj('Cube', ['physics', 'grabbable'])]);
-    compiler.compile(ast, compile);
+    await compiler.compile(ast, compile);
     expect(tg.getObjectsUsingTrait('physics').has('Cube')).toBe(true);
     expect(tg.getObjectsUsingTrait('grabbable').has('Cube')).toBe(true);
   });
 
-  it('after compile, trait graph stats reflect the compiled scene', () => {
+  it('after compile, trait graph stats reflect the compiled scene', async () => {
     const tg = new TraitDependencyGraph();
     const compiler = new IncrementalCompiler(tg);
     const ast = makeAST([makeObj('A', ['glow']), makeObj('B', ['glow'])]);
-    compiler.compile(ast, compile);
+    await compiler.compile(ast, compile);
     expect(tg.getStats().objectCount).toBe(2);
     expect(tg.getObjectsUsingTrait('glow').size).toBe(2);
   });
 
-  it('re-compiling an updated AST adds new traits to trait graph', () => {
+  it('re-compiling an updated AST adds new traits to trait graph', async () => {
     const tg = new TraitDependencyGraph();
     const compiler = new IncrementalCompiler(tg);
 
     const ast1 = makeAST([makeObj('Box', ['physics'])]);
-    compiler.compile(ast1, compile);
+    await compiler.compile(ast1, compile);
     expect(tg.getObjectsUsingTrait('physics').has('Box')).toBe(true);
 
     // Update Box traits: add grabbable
     const ast2 = makeAST([makeObj('Box', ['grabbable'])]);
-    compiler.compile(ast2, compile);
+    await compiler.compile(ast2, compile);
     // New trait is now tracked
     expect(tg.getObjectsUsingTrait('grabbable').has('Box')).toBe(true);
   });
@@ -112,31 +112,31 @@ describe('Compiler + TraitDependencyGraph — import edge propagation', () => {
 
 describe('Compiler + TraitDependencyGraph — cache invalidation', () => {
 
-  it('object with modified property is not served from cache', () => {
+  it('object with modified property is not served from cache', async () => {
     const compiler = new IncrementalCompiler();
     const ast1 = makeAST([makeObj('Sphere', [], 1.0)]);
-    compiler.compile(ast1, compile);
+    await compiler.compile(ast1, compile);
 
     const ast2 = makeAST([makeObj('Sphere', [], 2.0)]);
-    const r2 = compiler.compile(ast2, compile);
+    const r2 = await compiler.compile(ast2, compile);
 
     expect(r2.recompiledObjects).toContain('Sphere');
     expect(r2.cachedObjects).not.toContain('Sphere');
   });
 
-  it('unchanged object is served from cache on second compile', () => {
+  it('unchanged object is served from cache on second compile', async () => {
     const compiler = new IncrementalCompiler();
     const ast = makeAST([makeObj('Plane', [], 0.5)]);
-    compiler.compile(ast, compile);
-    const r2 = compiler.compile(ast, compile);
+    await compiler.compile(ast, compile);
+    const r2 = await compiler.compile(ast, compile);
     expect(r2.cachedObjects).toContain('Plane');
   });
 
-  it('forceRecompile bypasses cache for specified objects', () => {
+  it('forceRecompile bypasses cache for specified objects', async () => {
     const compiler = new IncrementalCompiler();
     const ast = makeAST([makeObj('Crystal')]);
-    compiler.compile(ast, compile);
-    const r2 = compiler.compile(ast, compile, { forceRecompile: ['Crystal'] });
+    await compiler.compile(ast, compile);
+    const r2 = await compiler.compile(ast, compile, { forceRecompile: ['Crystal'] });
     expect(r2.recompiledObjects).toContain('Crystal');
   });
 });
@@ -145,30 +145,30 @@ describe('Compiler + TraitDependencyGraph — cache invalidation', () => {
 
 describe('Compiler — dependency-driven recompilation', () => {
 
-  it('dependent object is recompiled when dependency changes', () => {
+  it('dependent object is recompiled when dependency changes', async () => {
     const compiler = new IncrementalCompiler();
     // B depends on A
     compiler.updateDependencies('B', ['A']);
 
     const ast1 = makeAST([makeObj('A', [], 1), makeObj('B')]);
-    compiler.compile(ast1, compile);
+    await compiler.compile(ast1, compile);
 
     // Modify A
     const ast2 = makeAST([makeObj('A', [], 2), makeObj('B')]);
-    const r2 = compiler.compile(ast2, compile);
+    const r2 = await compiler.compile(ast2, compile);
 
     expect(r2.recompiledObjects).toContain('A');
     expect(r2.recompiledObjects).toContain('B'); // cascaded
   });
 
-  it('non-dependent objects are cached when dependency changes', () => {
+  it('non-dependent objects are cached when dependency changes', async () => {
     const compiler = new IncrementalCompiler();
     // C does NOT depend on A
     const ast1 = makeAST([makeObj('A', [], 1), makeObj('C')]);
-    compiler.compile(ast1, compile);
+    await compiler.compile(ast1, compile);
 
     const ast2 = makeAST([makeObj('A', [], 2), makeObj('C')]);
-    const r2 = compiler.compile(ast2, compile);
+    const r2 = await compiler.compile(ast2, compile);
     expect(r2.cachedObjects).toContain('C');
   });
 });
@@ -177,24 +177,24 @@ describe('Compiler — dependency-driven recompilation', () => {
 
 describe('Compiler — state preservation across hot reload', () => {
 
-  it('saveState + restoreState round-trips object states', () => {
+  it('saveState + restoreState round-trips object states', async () => {
     const compiler = new IncrementalCompiler();
     const states = new Map<string, Record<string, unknown>>([
       ['Player', { hp: 100, pos: { x: 1 } }],
     ]);
     compiler.saveState(states);
     const ast = makeAST([makeObj('Player')]);
-    const r = compiler.compile(ast, compile, { preserveState: true });
+    const r = await compiler.compile(ast, compile, { preserveState: true });
     expect(r.statePreserved).toBe(true);
     const snap = compiler.restoreState();
     expect(snap?.objectStates.get('Player')).toEqual({ hp: 100, pos: { x: 1 } });
   });
 
-  it('statePreserved=false when preserveState option is off', () => {
+  it('statePreserved=false when preserveState option is off', async () => {
     const compiler = new IncrementalCompiler();
     compiler.saveState(new Map([['X', {}]]));
     const ast = makeAST([makeObj('X')]);
-    const r = compiler.compile(ast, compile, { preserveState: false });
+    const r = await compiler.compile(ast, compile, { preserveState: false });
     expect(r.statePreserved).toBe(false);
   });
 });
@@ -203,10 +203,10 @@ describe('Compiler — state preservation across hot reload', () => {
 
 describe('Compiler — serialize / deserialize with trait graph', () => {
 
-  it('deserializes and retains cache entries', () => {
+  it('deserializes and retains cache entries', async () => {
     const compiler = new IncrementalCompiler();
     const ast = makeAST([makeObj('Orb', ['glow'])]);
-    compiler.compile(ast, compile);
+    await compiler.compile(ast, compile);
 
     const json = compiler.serialize();
     const c2 = IncrementalCompiler.deserialize(json);
@@ -214,7 +214,8 @@ describe('Compiler — serialize / deserialize with trait graph', () => {
     // c2 should have a usable trait graph
     expect(c2.getTraitGraph()).toBeDefined();
     // Stats can be queried without throwing
-    expect(() => c2.getStats()).not.toThrow();
+    const stats = await c2.getStats();
+    expect(stats).toBeDefined();
   });
 
   it('deserializing malformed version throws', () => {
@@ -235,11 +236,11 @@ describe('Compiler — getTraitChanges integration', () => {
     expect(changes[0].changeType).toBe('added');
   });
 
-  it('detects added trait after compile + snapshot', () => {
+  it('detects added trait after compile + snapshot', async () => {
     const tg = new TraitDependencyGraph();
     const compiler = new IncrementalCompiler(tg);
     const ast = makeAST([makeObj('Box', ['physics'])]);
-    compiler.compile(ast, compile);
+    await compiler.compile(ast, compile);
     tg.saveSnapshot();
 
     const changes = compiler.getTraitChanges('Box', [

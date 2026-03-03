@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as crypto from 'crypto';
 import {
   generateNonce,
   calculateContentDigest,
@@ -16,6 +17,17 @@ import {
   SignatureMetadata,
 } from '../AgentPoP';
 import { AgentRole, generateAgentKeyPair, AgentKeyPair } from '../AgentIdentity';
+
+/**
+ * Helper: Sign a signature base directly using crypto.sign, bypassing signRequest()
+ * which adds the nonce to the module-level nonceCache. This allows verifySignature()
+ * tests to work without hitting REPLAY_ATTACK on first verification.
+ */
+function signDirectly(signatureBase: string, privateKeyPem: string): string {
+  const privateKey = crypto.createPrivateKey(privateKeyPem);
+  const signature = crypto.sign(null, Buffer.from(signatureBase, 'utf8'), privateKey);
+  return signature.toString('base64url');
+}
 
 describe('AgentPoP', () => {
   let keyPair: AgentKeyPair;
@@ -211,63 +223,69 @@ describe('AgentPoP', () => {
 
   describe('verifySignature', () => {
     it('should verify valid signature', () => {
+      // Use direct crypto signing to avoid signRequest() polluting the nonce cache
+      // (signRequest caches the nonce, causing verifySignature to return REPLAY_ATTACK)
+      const now = Math.floor(Date.now() / 1000);
+      const nonce = generateNonce();
+
+      const metadata: SignatureMetadata = {
+        keyid: keyPair.kid,
+        alg: 'ed25519',
+        created: now,
+        nonce,
+      };
+
       const components: SignatureComponents = {
         '@method': 'POST',
         '@target-uri': '/api/compile',
-        '@request-timestamp': 0,
-        '@nonce': '',
+        '@request-timestamp': now,
+        '@nonce': nonce,
       };
 
-      const nonce = generateNonce();
-      const httpSignature = signRequest(components, keyPair, nonce);
-
-      // Reconstruct signature base for verification
-      const enrichedComponents: SignatureComponents = {
-        ...components,
-        '@request-timestamp': httpSignature.metadata.created,
-        '@nonce': httpSignature.metadata.nonce,
-      };
-
-      const signatureBase = constructSignatureBase(enrichedComponents, httpSignature.metadata);
+      const signatureBase = constructSignatureBase(components, metadata);
+      const signature = signDirectly(signatureBase, keyPair.privateKey);
 
       const result = verifySignature(
         signatureBase,
-        httpSignature.signature,
+        signature,
         keyPair.publicKey,
-        httpSignature.metadata
+        metadata
       );
 
       expect(result.valid).toBe(true);
       expect(result.error).toBeUndefined();
     });
 
-    it('should reject signature with wrong public key', () => {
+    it('should reject signature with wrong public key', async () => {
+      // Use direct crypto signing to avoid nonce cache pollution
+      const now = Math.floor(Date.now() / 1000);
+      const nonce = generateNonce();
+
+      const metadata: SignatureMetadata = {
+        keyid: keyPair.kid,
+        alg: 'ed25519',
+        created: now,
+        nonce,
+      };
+
       const components: SignatureComponents = {
         '@method': 'GET',
         '@target-uri': '/test',
-        '@request-timestamp': 0,
-        '@nonce': '',
+        '@request-timestamp': now,
+        '@nonce': nonce,
       };
 
-      const nonce = generateNonce();
-      const httpSignature = signRequest(components, keyPair, nonce);
+      const signatureBase = constructSignatureBase(components, metadata);
+      const signature = signDirectly(signatureBase, keyPair.privateKey);
 
-      // Use different key pair
+      // Use different key pair for verification
       const wrongKeyPair = await generateAgentKeyPair(AgentRole.SYNTAX_ANALYZER);
-
-      const enrichedComponents: SignatureComponents = {
-        ...components,
-        '@request-timestamp': httpSignature.metadata.created,
-        '@nonce': httpSignature.metadata.nonce,
-      };
-
-      const signatureBase = constructSignatureBase(enrichedComponents, httpSignature.metadata);
 
       const result = verifySignature(
         signatureBase,
-        httpSignature.signature,
+        signature,
         wrongKeyPair.publicKey, // Wrong public key
-        httpSignature.metadata
+        metadata
       );
 
       expect(result.valid).toBe(false);
@@ -275,31 +293,42 @@ describe('AgentPoP', () => {
     });
 
     it('should reject signature with tampered signature base', () => {
+      // Use direct crypto signing to avoid nonce cache pollution
+      const now = Math.floor(Date.now() / 1000);
+      const nonce = generateNonce();
+
+      const metadata: SignatureMetadata = {
+        keyid: keyPair.kid,
+        alg: 'ed25519',
+        created: now,
+        nonce,
+      };
+
       const components: SignatureComponents = {
         '@method': 'POST',
         '@target-uri': '/api/compile',
-        '@request-timestamp': 0,
-        '@nonce': '',
+        '@request-timestamp': now,
+        '@nonce': nonce,
       };
 
-      const nonce = generateNonce();
-      const httpSignature = signRequest(components, keyPair, nonce);
+      const signatureBase = constructSignatureBase(components, metadata);
+      const signature = signDirectly(signatureBase, keyPair.privateKey);
 
       // Tamper with signature base
       const tamperedComponents: SignatureComponents = {
         '@method': 'DELETE', // Changed from POST
         '@target-uri': '/api/compile',
-        '@request-timestamp': httpSignature.metadata.created,
-        '@nonce': httpSignature.metadata.nonce,
+        '@request-timestamp': now,
+        '@nonce': nonce,
       };
 
-      const tamperedBase = constructSignatureBase(tamperedComponents, httpSignature.metadata);
+      const tamperedBase = constructSignatureBase(tamperedComponents, metadata);
 
       const result = verifySignature(
         tamperedBase,
-        httpSignature.signature,
+        signature,
         keyPair.publicKey,
-        httpSignature.metadata
+        metadata
       );
 
       expect(result.valid).toBe(false);
@@ -462,22 +491,39 @@ describe('AgentPoP', () => {
 
   describe('end-to-end signature flow', () => {
     it('should sign and verify complete HTTP request', async () => {
-      // 1. Create request components
+      // Use direct crypto signing to avoid nonce cache pollution from signRequest()
+      const now = Math.floor(Date.now() / 1000);
+      const nonce = generateNonce();
       const requestBody = '{"code":"holoscript code here"}';
+
+      const metadata: SignatureMetadata = {
+        keyid: keyPair.kid,
+        alg: 'ed25519',
+        created: now,
+        nonce,
+      };
+
+      // 1. Create request components
       const components: SignatureComponents = {
         '@method': 'POST',
         '@target-uri': '/api/compile',
-        '@request-timestamp': 0,
-        '@nonce': '',
+        '@request-timestamp': now,
+        '@nonce': nonce,
         authorization: 'Bearer test-jwt-token',
         'content-type': 'application/json',
         'content-digest': calculateContentDigest(requestBody),
       };
 
-      // 2. Sign request
-      const httpSignature = signRequest(components, keyPair);
+      // 2. Construct signature base and sign directly
+      const signatureBase = constructSignatureBase(components, metadata);
+      const signature = signDirectly(signatureBase, keyPair.privateKey);
 
-      // 3. Format headers
+      // 3. Format headers (manually construct HTTPSignature for formatting)
+      const httpSignature = {
+        signature,
+        metadata,
+        components: Object.keys(components).filter(k => components[k as keyof SignatureComponents] !== undefined),
+      };
       const headers = formatSignatureHeaders(httpSignature);
 
       // 4. Parse headers (simulating server-side)
@@ -499,11 +545,11 @@ describe('AgentPoP', () => {
         'content-digest': calculateContentDigest(requestBody),
       };
 
-      const signatureBase = constructSignatureBase(enrichedComponents, parsed!.metadata);
+      const verifyBase = constructSignatureBase(enrichedComponents, parsed!.metadata);
 
       // 6. Verify signature
       const result = verifySignature(
-        signatureBase,
+        verifyBase,
         parsed!.signature,
         keyPair.publicKey,
         parsed!.metadata
@@ -515,40 +561,44 @@ describe('AgentPoP', () => {
 
   describe('replay attack prevention', () => {
     it('should prevent replay of same nonce within time window', async () => {
+      // Use direct crypto signing to avoid signRequest() polluting the nonce cache
+      const now = Math.floor(Date.now() / 1000);
+      const nonce = generateNonce();
+
+      const metadata: SignatureMetadata = {
+        keyid: keyPair.kid,
+        alg: 'ed25519',
+        created: now,
+        nonce,
+      };
+
       const components: SignatureComponents = {
         '@method': 'POST',
         '@target-uri': '/api/compile',
-        '@request-timestamp': 0,
-        '@nonce': '',
+        '@request-timestamp': now,
+        '@nonce': nonce,
       };
 
-      const nonce = generateNonce();
-      const httpSignature = signRequest(components, keyPair, nonce);
+      const signatureBase = constructSignatureBase(components, metadata);
+      const signature = signDirectly(signatureBase, keyPair.privateKey);
 
-      const enrichedComponents: SignatureComponents = {
-        ...components,
-        '@request-timestamp': httpSignature.metadata.created,
-        '@nonce': httpSignature.metadata.nonce,
-      };
-
-      const signatureBase = constructSignatureBase(enrichedComponents, httpSignature.metadata);
-
-      // First verification should succeed
+      // First verification should succeed (nonce not in cache)
       const result1 = verifySignature(
         signatureBase,
-        httpSignature.signature,
+        signature,
         keyPair.publicKey,
-        httpSignature.metadata
+        metadata
       );
 
       expect(result1.valid).toBe(true);
 
       // Second verification with same nonce should fail (replay attack)
+      // verifySignature stores the nonce on successful verification
       const result2 = verifySignature(
         signatureBase,
-        httpSignature.signature,
+        signature,
         keyPair.publicKey,
-        httpSignature.metadata
+        metadata
       );
 
       expect(result2.valid).toBe(false);

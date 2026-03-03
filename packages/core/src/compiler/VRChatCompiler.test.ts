@@ -5,9 +5,17 @@
  * Verifies correct C# generation for VRChat worlds.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VRChatCompiler, type VRChatCompilerOptions } from './VRChatCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
+
+vi.mock('./identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
 
 describe('VRChatCompiler', () => {
   let compiler: VRChatCompiler;
@@ -62,7 +70,7 @@ describe('VRChatCompiler', () => {
 
     it('should compile an empty composition', () => {
       const composition = createComposition();
-      const result = compiler.compile(composition);
+      const result = compiler.compile(composition, 'test-token');
 
       expect(result).toBeDefined();
       expect(result.mainScript).toBeDefined();
@@ -73,7 +81,7 @@ describe('VRChatCompiler', () => {
 
     it('should include VRChat SDK imports', () => {
       const composition = createComposition();
-      const result = compiler.compile(composition);
+      const result = compiler.compile(composition, 'test-token');
 
       expect(result.mainScript).toContain('using VRC.SDKBase');
       expect(result.mainScript).toContain('using UdonSharp');
@@ -82,7 +90,7 @@ describe('VRChatCompiler', () => {
     it('should use custom namespace', () => {
       const customCompiler = new VRChatCompiler({ namespace: 'MyWorld' });
       const composition = createComposition();
-      const result = customCompiler.compile(composition);
+      const result = customCompiler.compile(composition, 'test-token');
 
       expect(result.mainScript).toContain('namespace MyWorld');
     });
@@ -90,7 +98,7 @@ describe('VRChatCompiler', () => {
     it('should use custom class name', () => {
       const customCompiler = new VRChatCompiler({ className: 'CustomWorld' });
       const composition = createComposition();
-      const result = customCompiler.compile(composition);
+      const result = customCompiler.compile(composition, 'test-token');
 
       expect(result.mainScript).toContain('class CustomWorld');
     });
@@ -108,7 +116,7 @@ describe('VRChatCompiler', () => {
           }),
         ],
       });
-      const result = compiler.compile(composition);
+      const result = compiler.compile(composition, 'test-token');
 
       expect(result.prefabHierarchy).toContain('TestCube');
     });
@@ -122,7 +130,7 @@ describe('VRChatCompiler', () => {
           }),
         ],
       });
-      const result = compiler.compile(composition);
+      const result = compiler.compile(composition, 'test-token');
 
       expect(result.prefabHierarchy).toContain('GrabbableCube');
     });
@@ -139,7 +147,7 @@ describe('VRChatCompiler', () => {
           }),
         ],
       });
-      const result = compiler.compile(composition);
+      const result = compiler.compile(composition, 'test-token');
 
       expect(result.prefabHierarchy).toContain('PhysicsCube');
     });
@@ -149,7 +157,7 @@ describe('VRChatCompiler', () => {
     it('should support SDK 3.5', () => {
       const customCompiler = new VRChatCompiler({ sdkVersion: '3.5' });
       const composition = createComposition();
-      const result = customCompiler.compile(composition);
+      const result = customCompiler.compile(composition, 'test-token');
 
       expect(result.mainScript).toBeDefined();
     });
@@ -157,7 +165,7 @@ describe('VRChatCompiler', () => {
     it('should support SDK 3.0', () => {
       const customCompiler = new VRChatCompiler({ sdkVersion: '3.0' });
       const composition = createComposition();
-      const result = customCompiler.compile(composition);
+      const result = customCompiler.compile(composition, 'test-token');
 
       expect(result.mainScript).toBeDefined();
     });
@@ -174,7 +182,7 @@ describe('VRChatCompiler', () => {
           }),
         ],
       });
-      const result = customCompiler.compile(composition);
+      const result = customCompiler.compile(composition, 'test-token');
 
       expect(result.udonScripts).toBeDefined();
     });
@@ -183,7 +191,7 @@ describe('VRChatCompiler', () => {
   describe('World Descriptor', () => {
     it('should generate world descriptor', () => {
       const composition = createComposition({ name: 'MyTestWorld' });
-      const result = compiler.compile(composition);
+      const result = compiler.compile(composition, 'test-token');
 
       expect(result.worldDescriptor).toBeDefined();
       expect(result.worldDescriptor.length).toBeGreaterThan(0);
@@ -200,7 +208,7 @@ describe('VRChatCompiler', () => {
           ],
         },
       });
-      const result = compiler.compile(composition);
+      const result = compiler.compile(composition, 'test-token');
 
       expect(result.mainScript).toBeDefined();
     });

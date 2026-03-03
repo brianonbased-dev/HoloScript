@@ -202,8 +202,11 @@ describe('CircuitBreaker', () => {
         circuit.recordSuccess(); // Simulate health check
       }
 
-      // Should not allow more
-      expect(circuit.canExecute()).toBe(false);
+      // After all healthCheckCount successes, circuit transitions to CLOSED
+      // (successThreshold=3 met), so canExecute() returns true (CLOSED state)
+      const metrics = circuit.getMetrics();
+      expect(metrics.state).toBe(CircuitState.CLOSED);
+      expect(circuit.canExecute()).toBe(true);
     });
 
     it('should close circuit after successful health checks', () => {

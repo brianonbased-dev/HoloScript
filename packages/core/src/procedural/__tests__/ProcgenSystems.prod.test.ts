@@ -108,7 +108,7 @@ describe('DungeonGenerator', () => {
 
 describe('NoiseGenerator', () => {
   let ng: NoiseGenerator;
-  beforeEach(() => { ng = new NoiseGenerator(42); });
+  beforeEach(() => { ng = new NoiseGenerator({ seed: 42 }); });
 
   it('perlin2D returns value in roughly [-1, 1] range', () => {
     for (let x = 0; x < 5; x++) {
@@ -121,12 +121,12 @@ describe('NoiseGenerator', () => {
   });
 
   it('perlin2D is deterministic for the same seed', () => {
-    const ng2 = new NoiseGenerator(42);
+    const ng2 = new NoiseGenerator({ seed: 42 });
     expect(ng.perlin2D(1.5, 2.7)).toBeCloseTo(ng2.perlin2D(1.5, 2.7));
   });
 
   it('different seeds produce different perlin values', () => {
-    const ng2 = new NoiseGenerator(99);
+    const ng2 = new NoiseGenerator({ seed: 99 });
     expect(ng.perlin2D(1.1, 1.1)).not.toBeCloseTo(ng2.perlin2D(1.1, 1.1), 3);
   });
 
@@ -150,28 +150,28 @@ describe('NoiseGenerator', () => {
     }
   });
 
-  it('fbm returns finite number', () => {
-    const v = ng.fbm(1.0, 2.0, 4);
+  it('fbm2D returns finite number', () => {
+    const v = ng.fbm2D(1.0, 2.0);
     expect(isFinite(v)).toBe(true);
   });
 
-  it('fbm with value type returns finite number', () => {
-    const v = ng.fbm(1.0, 2.0, 4, 2, 0.5, 'value');
+  it('fbm2D with value type returns finite number', () => {
+    const v = ng.fbm2D(1.0, 2.0, 'value');
     expect(isFinite(v)).toBe(true);
   });
 
-  it('fbm with worley type returns finite number', () => {
-    const v = ng.fbm(1.0, 2.0, 4, 2, 0.5, 'worley');
+  it('worley2D via sample2D returns finite number', () => {
+    const v = ng.sample2D(1.0, 2.0, 'worley');
     expect(isFinite(v)).toBe(true);
   });
 
-  it('warp returns finite number', () => {
-    const v = ng.warp(1.0, 2.0, 1, 3);
+  it('warped2D returns finite number', () => {
+    const v = ng.warped2D(1.0, 2.0, 3);
     expect(isFinite(v)).toBe(true);
   });
 
-  it('getSeed returns the seed provided', () => {
-    expect(ng.getSeed()).toBe(42);
+  it('getConfig returns config with the seed provided', () => {
+    expect(ng.getConfig().seed).toBe(42);
   });
 });
 

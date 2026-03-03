@@ -1,6 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi} from 'vitest';
 import { SCMCompiler, AffectiveState } from '../SCMCompiler';
 import type { HoloComposition } from '../../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 describe('SCMCompiler - Affective Causality', () => {
   const mockComposition = {
@@ -43,7 +52,7 @@ describe('SCMCompiler - Affective Causality', () => {
     const calmState: AffectiveState = { valence: 0.5, arousal: 0.2, dominantEmotion: 'calm' };
     const compiler = new SCMCompiler({ affectiveContext: calmState });
     
-    const resultJson = compiler.compile(mockComposition);
+    const resultJson = compiler.compile(mockComposition, 'test-token');
     const parsed = JSON.parse(resultJson);
 
     // Should include all nodes (Agent_Player, Distant_Decor, Enemy_Goblin, Pebble)
@@ -57,7 +66,7 @@ describe('SCMCompiler - Affective Causality', () => {
     const panicState: AffectiveState = { valence: -0.8, arousal: 0.9, dominantEmotion: 'anxious' };
     const compiler = new SCMCompiler({ affectiveContext: panicState });
     
-    const resultJson = compiler.compile(mockComposition);
+    const resultJson = compiler.compile(mockComposition, 'test-token');
     const parsed = JSON.parse(resultJson);
 
     // Agent_Player (global), Distant_Decor (global), Enemy_Goblin (do_capable)
@@ -75,7 +84,7 @@ describe('SCMCompiler - Affective Causality', () => {
     const engagedState: AffectiveState = { valence: 0.6, arousal: 0.6, dominantEmotion: 'engaged' };
     const compiler = new SCMCompiler({ affectiveContext: engagedState });
     
-    const resultJson = compiler.compile(mockComposition);
+    const resultJson = compiler.compile(mockComposition, 'test-token');
     const parsed = JSON.parse(resultJson);
 
     expect(parsed.edges).toHaveLength(2);

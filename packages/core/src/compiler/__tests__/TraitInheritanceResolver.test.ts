@@ -39,7 +39,7 @@
  * @version 1.0.0
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import {
   TraitInheritanceResolver,
   TraitInheritanceError,
@@ -49,6 +49,15 @@ import type { HoloTraitDefinition } from '../../parser/HoloCompositionTypes';
 import { TraitCompositionCompiler } from '../TraitCompositionCompiler';
 import { TraitComposer } from '../TraitComposer';
 import { TraitDependencyGraph } from '../TraitDependencyGraph';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // =============================================================================
 // HELPERS

@@ -4,9 +4,18 @@
  * Tests the per-node reactive state extraction from HS+ AST stateBlock fields.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi} from 'vitest';
 import { StateCompiler } from '../../compiler/StateCompiler';
 import type { HSPlusAST, HSPlusNode } from '../../types/HoloScriptPlus';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -32,19 +41,19 @@ describe('StateCompiler — Production', () => {
 
   it('returns empty map for node with no stateBlock', () => {
     const ast = makeAST(makeNode('empty'));
-    expect(compiler.compile(ast).size).toBe(0);
+    expect(compiler.compile(ast, 'test-token').size).toBe(0);
   });
 
   it('extracts a single state variable', () => {
     const ast = makeAST(makeNode('Player', { hp: 100 }));
-    const map = compiler.compile(ast);
+    const map = compiler.compile(ast, 'test-token');
     expect(map.has('Player')).toBe(true);
     expect(map.get('Player')!.initialState.hp).toBe(100);
   });
 
   it('extracts multiple state variables', () => {
     const ast = makeAST(makeNode('Enemy', { hp: 50, mana: 80, speed: 3.5 }));
-    const shape = compiler.compile(ast).get('Enemy')!;
+    const shape = compiler.compile(ast, 'test-token').get('Enemy')!;
     expect(shape.initialState.hp).toBe(50);
     expect(shape.initialState.mana).toBe(80);
     expect(shape.initialState.speed).toBe(3.5);
@@ -56,7 +65,7 @@ describe('StateCompiler — Production', () => {
       score: 0,
       __spread_0: { type: 'spread', argument: 'baseState' },
     }));
-    const shape = compiler.compile(ast).get('Obj')!;
+    const shape = compiler.compile(ast, 'test-token').get('Obj')!;
     expect(shape.vars.map(v => v.name)).toEqual(['score']);
     expect(shape.initialState.__spread_0).toBeUndefined();
   });
@@ -64,7 +73,7 @@ describe('StateCompiler — Production', () => {
   it('recursively finds state in nested children', () => {
     const child = makeNode('Item', { equipped: false });
     const root = makeNode('Player', { hp: 100 }, [child]);
-    const map = compiler.compile(makeAST(root));
+    const map = compiler.compile(makeAST(root), 'test-token');
     expect(map.has('Player')).toBe(true);
     expect(map.has('Item')).toBe(true);
     expect(map.get('Item')!.initialState.equipped).toBe(false);
@@ -77,7 +86,7 @@ describe('StateCompiler — Production', () => {
       position: [0, 1, 0],
       maxHp: 200,
     }));
-    const shape = compiler.compile(ast).get('Hero')!;
+    const shape = compiler.compile(ast, 'test-token').get('Hero')!;
     expect(shape.initialState.name).toBe('Aria');
     expect(shape.initialState.alive).toBe(true);
     expect(shape.initialState.position).toEqual([0, 1, 0]);
@@ -124,14 +133,14 @@ describe('StateCompiler — Production', () => {
 
   it('initialState is a plain object (not a Proxy)', () => {
     const ast = makeAST(makeNode('Widget', { count: 0 }));
-    const shape = compiler.compile(ast).get('Widget')!;
+    const shape = compiler.compile(ast, 'test-token').get('Widget')!;
     // Should be safe to use as ReactiveState initial state
     expect(Object.keys(shape.initialState)).toEqual(['count']);
   });
 
   it('vars descriptors match keys in initialState', () => {
     const ast = makeAST(makeNode('Obj', { a: 1, b: 2, c: 3 }));
-    const shape = compiler.compile(ast).get('Obj')!;
+    const shape = compiler.compile(ast, 'test-token').get('Obj')!;
     const varNames = shape.vars.map(v => v.name).sort();
     const initKeys = Object.keys(shape.initialState).sort();
     expect(varNames).toEqual(initKeys);
@@ -144,7 +153,7 @@ describe('StateCompiler — Production', () => {
     const b = makeNode('B', { y: 1 });
     // Root acts as a container with no stateBlock
     const root: HSPlusNode = { type: 'Scene', children: [a, b] };
-    const map = compiler.compile(makeAST(root));
+    const map = compiler.compile(makeAST(root), 'test-token');
     expect(map.size).toBe(2);
     expect(map.has('A')).toBe(true);
     expect(map.has('B')).toBe(true);

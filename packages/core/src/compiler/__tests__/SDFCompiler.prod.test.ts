@@ -5,9 +5,18 @@
  * geometry types (sphere/cube/cylinder/cone), light mapping, color parsing,
  * XML escaping, name sanitization.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi} from 'vitest';
 import SDFCompiler from '../SDFCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // ─── Helpers ────────────────────────────────────────────────────────
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
@@ -25,41 +34,41 @@ describe('SDFCompiler — Production', () => {
   // ─── Basic Output ─────────────────────────────────────────────────
   it('generates valid SDF XML header', () => {
     const compiler = new SDFCompiler();
-    const sdf = compiler.compile(makeComposition());
+    const sdf = compiler.compile(makeComposition(), 'test-token');
     expect(sdf).toContain('<?xml version="1.0"');
     expect(sdf).toContain('<sdf version=');
   });
 
   it('wraps content in <world> tag', () => {
     const compiler = new SDFCompiler();
-    const sdf = compiler.compile(makeComposition());
+    const sdf = compiler.compile(makeComposition(), 'test-token');
     expect(sdf).toContain('<world name=');
     expect(sdf).toContain('</world>');
   });
 
   it('respects custom worldName', () => {
     const compiler = new SDFCompiler({ worldName: 'MyUniverse' });
-    const sdf = compiler.compile(makeComposition());
+    const sdf = compiler.compile(makeComposition(), 'test-token');
     expect(sdf).toContain('MyUniverse');
   });
 
   // ─── Physics ──────────────────────────────────────────────────────
   it('includes physics when enabled', () => {
     const compiler = new SDFCompiler({ includePhysics: true });
-    const sdf = compiler.compile(makeComposition());
+    const sdf = compiler.compile(makeComposition(), 'test-token');
     expect(sdf).toContain('<physics');
   });
 
   it('uses custom physics engine', () => {
     const compiler = new SDFCompiler({ includePhysics: true, physicsEngine: 'bullet' });
-    const sdf = compiler.compile(makeComposition());
+    const sdf = compiler.compile(makeComposition(), 'test-token');
     expect(sdf).toContain('bullet');
   });
 
   // ─── Models / Geometry ────────────────────────────────────────────
   it('generates model for object', () => {
     const compiler = new SDFCompiler();
-    const sdf = compiler.compile(makeComposition());
+    const sdf = compiler.compile(makeComposition(), 'test-token');
     expect(sdf).toContain('<model name=');
     expect(sdf).toContain('box1');
   });
@@ -68,7 +77,7 @@ describe('SDFCompiler — Production', () => {
     const comp = makeComposition({
       objects: [{ name: 'Ball', traits: [], properties: [{ key: 'geometry', value: 'sphere' }, { key: 'radius', value: 2 }] }],
     });
-    const sdf = new SDFCompiler().compile(comp);
+    const sdf = new SDFCompiler().compile(comp, 'test-token');
     expect(sdf).toContain('<sphere>');
     expect(sdf).toContain('<radius>');
   });
@@ -77,7 +86,7 @@ describe('SDFCompiler — Production', () => {
     const comp = makeComposition({
       objects: [{ name: 'Piston', traits: [], properties: [{ key: 'geometry', value: 'cylinder' }] }],
     });
-    const sdf = new SDFCompiler().compile(comp);
+    const sdf = new SDFCompiler().compile(comp, 'test-token');
     expect(sdf).toContain('<cylinder>');
   });
 
@@ -86,7 +95,7 @@ describe('SDFCompiler — Production', () => {
     const comp = makeComposition({
       objects: [{ name: 'A', traits: [], properties: [{ key: 'type', value: 'cube' }, { key: 'position', value: [1, 2, 3] }] }],
     });
-    const sdf = new SDFCompiler().compile(comp);
+    const sdf = new SDFCompiler().compile(comp, 'test-token');
     expect(sdf).toContain('<pose>');
     expect(sdf).toContain('1 2 3');
   });
@@ -94,14 +103,14 @@ describe('SDFCompiler — Production', () => {
   // ─── Scene ────────────────────────────────────────────────────────
   it('includes scene when enabled', () => {
     const compiler = new SDFCompiler({ includeScene: true });
-    const sdf = compiler.compile(makeComposition());
+    const sdf = compiler.compile(makeComposition(), 'test-token');
     expect(sdf).toContain('<scene>');
   });
 
   // ─── Ground Plane ─────────────────────────────────────────────────
   it('generates ground plane model', () => {
     const compiler = new SDFCompiler();
-    const sdf = compiler.compile(makeComposition());
+    const sdf = compiler.compile(makeComposition(), 'test-token');
     expect(sdf).toContain('ground_plane');
   });
 
@@ -110,14 +119,14 @@ describe('SDFCompiler — Production', () => {
     const comp = makeComposition({
       objects: [{ name: 'My-Object!@#', traits: [], properties: [{ key: 'geometry', value: 'cube' }] }],
     });
-    const sdf = new SDFCompiler().compile(comp);
+    const sdf = new SDFCompiler().compile(comp, 'test-token');
     expect(sdf).toContain('my_object___');
   });
 
   // ─── SDF Version ──────────────────────────────────────────────────
   it('uses custom SDF version', () => {
     const compiler = new SDFCompiler({ sdfVersion: '1.7' });
-    const sdf = compiler.compile(makeComposition());
+    const sdf = compiler.compile(makeComposition(), 'test-token');
     expect(sdf).toContain('version="1.7"');
   });
 });

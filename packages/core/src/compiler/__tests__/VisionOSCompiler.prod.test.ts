@@ -4,9 +4,18 @@
  * Covers: Swift/RealityKit output, ImmersiveSpace, RealityView,
  * objects, lights, audio, zones, timelines, transitions, UI components.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { VisionOSCompiler } from '../VisionOSCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 function makeComp(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -47,53 +56,53 @@ describe('VisionOSCompiler — Production', () => {
 
   // ─── compile() ────────────────────────────────────────────────────────
   it('compile returns a string', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(typeof out).toBe('string');
     expect(out.length).toBeGreaterThan(0);
   });
 
   it('empty composition compiles without error', () => {
-    expect(() => compiler.compile(makeComp())).not.toThrow();
+    expect(() => compiler.compile(makeComp(), 'test-token')).not.toThrow();
   });
 
   // ─── Swift/RealityKit structure ────────────────────────────────────────
   it('output contains import RealityKit', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(out).toContain('RealityKit');
   });
 
   it('output contains SwiftUI import', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(out).toContain('SwiftUI');
   });
 
   it('output contains struct definition', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(out).toContain('struct');
   });
 
   it('output contains RealityView', () => {
-    const out = compiler.compile(makeComp());
+    const out = compiler.compile(makeComp(), 'test-token');
     expect(out).toContain('RealityView');
   });
 
   // ─── Struct name ───────────────────────────────────────────────────────
   it('custom structName appears in output', () => {
     const c = new VisionOSCompiler({ structName: 'MyImmersiveScene' });
-    const out = c.compile(makeComp());
+    const out = c.compile(makeComp(), 'test-token');
     expect(out).toContain('MyImmersiveScene');
   });
 
   // ─── Objects ─────────────────────────────────────────────────────────
   it('compiles a cube mesh object', () => {
     const obj = makeObj('MyCube', [{ key: 'mesh', value: 'cube' }]);
-    const out = compiler.compile(makeComp({ objects: [obj] }));
+    const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toContain('MyCube');
   });
 
   it('compiles a sphere mesh object', () => {
     const obj = makeObj('Orb', [{ key: 'mesh', value: 'sphere' }]);
-    const out = compiler.compile(makeComp({ objects: [obj] }));
+    const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toContain('Orb');
   });
 
@@ -102,7 +111,7 @@ describe('VisionOSCompiler — Production', () => {
       { key: 'mesh', value: 'plane' },
       { key: 'position', value: [0, -0.5, -2] },
     ]);
-    const out = compiler.compile(makeComp({ objects: [obj] }));
+    const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toBeDefined();
   });
 
@@ -111,14 +120,14 @@ describe('VisionOSCompiler — Production', () => {
       { key: 'mesh', value: 'sphere' },
       { key: 'material', value: 'gold' },
     ]);
-    const out = compiler.compile(makeComp({ objects: [obj] }));
+    const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toBeDefined();
   });
 
   // ─── Physics trait ────────────────────────────────────────────────────
   it('physics trait compiles without error', () => {
     const obj = makeObj('PhysBox', [{ key: 'mesh', value: 'cube' }], [{ name: 'physics', config: {} }]);
-    const out = compiler.compile(makeComp({ objects: [obj] }));
+    const out = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
     expect(out).toBeDefined();
   });
 
@@ -126,21 +135,21 @@ describe('VisionOSCompiler — Production', () => {
   it('compiles point light', () => {
     const out = compiler.compile(makeComp({
       lights: [{ name: 'Key', type: 'point', intensity: 1000, color: '#ffffff' }],
-    }));
+    }), 'test-token');
     expect(out).toContain('Key');
   });
 
   it('compiles directional light', () => {
     const out = compiler.compile(makeComp({
       lights: [{ name: 'Sun', type: 'directional', intensity: 5, color: '#fff8e7' }],
-    }));
+    }), 'test-token');
     expect(out).toBeDefined();
   });
 
   it('compiles spot light', () => {
     const out = compiler.compile(makeComp({
       lights: [{ name: 'Spot', type: 'spot', intensity: 2000, color: '#ffd700' }],
-    }));
+    }), 'test-token');
     expect(out).toBeDefined();
   });
 
@@ -156,7 +165,7 @@ describe('VisionOSCompiler — Production', () => {
           { key: 'volume', value: 0.5 },
         ],
       }],
-    } as any));
+    } as any), 'test-token');
     expect(out).toBeDefined();
   });
 
@@ -165,7 +174,7 @@ describe('VisionOSCompiler — Production', () => {
   it('compiles a timeline', () => {
     const out = compiler.compile(makeComp({
       timelines: [{ name: 'Pulse', duration: 1.5, entries: [] }],
-    } as any));
+    } as any), 'test-token');
     expect(out).toContain('Pulse');
   });
 
@@ -181,7 +190,7 @@ describe('VisionOSCompiler — Production', () => {
           { key: 'duration', value: 0.5 },
         ],
       }],
-    } as any));
+    } as any), 'test-token');
     expect(out).toContain('FadeIn');
   });
 
@@ -197,7 +206,7 @@ describe('VisionOSCompiler — Production', () => {
         ],
         handlers: [],
       }],
-    } as any));
+    } as any), 'test-token');
     expect(out).toBeDefined();
   });
 
@@ -211,14 +220,14 @@ describe('VisionOSCompiler — Production', () => {
           { effectType: 'dof', properties: [] },
         ],
       },
-    } as any));
+    } as any), 'test-token');
     expect(out).toBeDefined();
   });
 
   // ─── Multiple objects ─────────────────────────────────────────────────
   it('compiles multiple objects', () => {
     const objs = [makeObj('Alpha'), makeObj('Beta'), makeObj('Gamma')];
-    const out = compiler.compile(makeComp({ objects: objs }));
+    const out = compiler.compile(makeComp({ objects: objs }), 'test-token');
     expect(out).toContain('Alpha');
     expect(out).toContain('Beta');
     expect(out).toContain('Gamma');

@@ -1,6 +1,15 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi} from 'vitest';
 import { MultiLayerCompiler } from '../MultiLayerCompiler';
 import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 describe('MultiLayerCompiler', () => {
   const parser = new HoloCompositionParser();
@@ -23,7 +32,7 @@ describe('MultiLayerCompiler', () => {
       source_maps: false
     });
 
-    const result = compiler.compile(parseResult.ast!);
+    const result = compiler.compile(parseResult.ast!, 'test-token');
 
     expect(result.success).toBe(true);
     expect(result.vrr).toBeDefined();

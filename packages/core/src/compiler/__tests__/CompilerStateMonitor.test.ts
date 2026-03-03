@@ -340,7 +340,8 @@ describe('CompilerStateMonitor', () => {
   // ===========================================================================
 
   describe('Memory Alerts', () => {
-    it('should emit alert when RAM threshold exceeded', (done) => {
+    it('should emit alert when RAM threshold exceeded', () => {
+      const alerts: MemoryAlert[] = [];
       const alertMonitor = createCompilerStateMonitor({
         enabled: false,
         thresholds: {
@@ -350,15 +351,18 @@ describe('CompilerStateMonitor', () => {
           symbolTableThreshold: 100000,
         },
         onAlert: (alert: MemoryAlert) => {
-          expect(alert.level).toMatch(/warning|critical/);
-          expect(alert.type).toBe('ram_utilization');
-          expect(alert.message).toContain('RAM utilization');
-          done();
+          alerts.push(alert);
         },
       });
 
       alertMonitor.checkMemoryStatus();
       alertMonitor.dispose();
+
+      expect(alerts.length).toBeGreaterThan(0);
+      const ramAlert = alerts.find(a => a.type === 'ram_utilization');
+      expect(ramAlert).toBeDefined();
+      expect(ramAlert!.level).toMatch(/warning|critical/);
+      expect(ramAlert!.message).toContain('RAM utilization');
     });
 
     it('should track alert history', () => {
@@ -432,7 +436,7 @@ describe('CompilerStateMonitor', () => {
   // ===========================================================================
 
   describe('Monitoring', () => {
-    it('should start and stop monitoring', (done) => {
+    it('should start and stop monitoring', async () => {
       let checkCount = 0;
       const monitoringMonitor = createCompilerStateMonitor({
         enabled: false,
@@ -450,12 +454,14 @@ describe('CompilerStateMonitor', () => {
 
       monitoringMonitor.startMonitoring();
 
-      setTimeout(() => {
-        monitoringMonitor.stopMonitoring();
-        expect(checkCount).toBeGreaterThan(0); // Should have checked at least once
-        monitoringMonitor.dispose();
-        done();
-      }, 200); // Wait for 4 checks (50ms × 4 = 200ms)
+      await new Promise<void>((resolve) => {
+        setTimeout(() => {
+          monitoringMonitor.stopMonitoring();
+          expect(checkCount).toBeGreaterThan(0); // Should have checked at least once
+          monitoringMonitor.dispose();
+          resolve();
+        }, 200); // Wait for 4 checks (50ms × 4 = 200ms)
+      });
     });
 
     it('should detect heap growth', () => {

@@ -1,5 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi} from 'vitest';
 import { R3FCompiler, MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../R3FCompiler';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 describe('R3FCompiler', () => {
   // =========== Constructor & compile ===========
@@ -14,7 +23,7 @@ describe('R3FCompiler', () => {
     const ast = {
       root: { type: 'scene', children: [] },
     } as any;
-    const result = compiler.compile(ast);
+    const result = compiler.compile(ast, 'test-token');
     expect(result).toBeDefined();
     expect(result.type).toBeDefined();
   });

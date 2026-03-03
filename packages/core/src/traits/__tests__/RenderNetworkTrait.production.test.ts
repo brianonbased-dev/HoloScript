@@ -10,6 +10,23 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderNetworkHandler } from '../RenderNetworkTrait';
 
+// ─── Mock JobQueuePersistence (used with `new` in onAttach) ──────────────────
+
+vi.mock('../RenderJobPersistence', () => ({
+  JobQueuePersistence: vi.fn().mockImplementation(function () {
+    return {
+      init: vi.fn().mockResolvedValue(undefined),
+      loadState: vi.fn().mockResolvedValue(null),
+      loadActiveJobs: vi.fn().mockResolvedValue([]),
+      loadCompletedJobs: vi.fn().mockResolvedValue([]),
+      saveJob: vi.fn().mockResolvedValue(undefined),
+      moveToCompleted: vi.fn().mockResolvedValue(undefined),
+      saveState: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+  }),
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -30,10 +47,10 @@ function defaultConfig() {
   return { ...renderNetworkHandler.defaultConfig };
 }
 
-function attachNode(config = defaultConfig()) {
+async function attachNode(config = defaultConfig()) {
   const node = makeNode();
   const ctx = makeContext();
-  renderNetworkHandler.onAttach(node, config, ctx);
+  await renderNetworkHandler.onAttach(node, config, ctx);
   return { node, ctx };
 }
 
@@ -99,59 +116,59 @@ describe('RenderNetworkTrait — Production Tests', () => {
   // onAttach — State initialization
   // =========================================================================
   describe('onAttach', () => {
-    it('initializes state on node', () => {
-      const { node } = attachNode();
+    it('initializes state on node', async () => {
+      const { node } = await attachNode();
       expect(node.__renderNetworkState).toBeDefined();
     });
 
-    it('starts not connected', () => {
-      const { node } = attachNode();
+    it('starts not connected', async () => {
+      const { node } = await attachNode();
       expect(node.__renderNetworkState.isConnected).toBe(false);
     });
 
-    it('starts with no active jobs', () => {
-      const { node } = attachNode();
+    it('starts with no active jobs', async () => {
+      const { node } = await attachNode();
       expect(node.__renderNetworkState.activeJobs).toEqual([]);
     });
 
-    it('starts with empty completed jobs', () => {
-      const { node } = attachNode();
+    it('starts with empty completed jobs', async () => {
+      const { node } = await attachNode();
       expect(node.__renderNetworkState.completedJobs).toEqual([]);
     });
 
-    it('starts with null credits', () => {
-      const { node } = attachNode();
+    it('starts with null credits', async () => {
+      const { node } = await attachNode();
       expect(node.__renderNetworkState.credits).toBeNull();
     });
 
-    it('starts with offline network status', () => {
-      const { node } = attachNode();
+    it('starts with offline network status', async () => {
+      const { node } = await attachNode();
       expect(node.__renderNetworkState.networkStatus).toBe('offline');
     });
 
-    it('starts with zero available nodes', () => {
-      const { node } = attachNode();
+    it('starts with zero available nodes', async () => {
+      const { node } = await attachNode();
       expect(node.__renderNetworkState.availableNodes).toBe(0);
     });
 
-    it('starts with zero estimated wait time', () => {
-      const { node } = attachNode();
+    it('starts with zero estimated wait time', async () => {
+      const { node } = await attachNode();
       expect(node.__renderNetworkState.estimatedWaitTime).toBe(0);
     });
 
-    it('starts with queue position 0', () => {
-      const { node } = attachNode();
+    it('starts with queue position 0', async () => {
+      const { node } = await attachNode();
       expect(node.__renderNetworkState.queuePosition).toBe(0);
     });
 
-    it('stores API key from config', () => {
+    it('stores API key from config', async () => {
       const config = { ...defaultConfig(), api_key: 'test-key' };
-      const { node } = attachNode(config);
+      const { node } = await attachNode(config);
       expect(node.__renderNetworkState.apiKey).toBe('test-key');
     });
 
-    it('sets apiKey to null when not provided', () => {
-      const { node } = attachNode();
+    it('sets apiKey to null when not provided', async () => {
+      const { node } = await attachNode();
       expect(node.__renderNetworkState.apiKey).toBeNull();
     });
   });
@@ -160,22 +177,22 @@ describe('RenderNetworkTrait — Production Tests', () => {
   // onDetach — Cleanup
   // =========================================================================
   describe('onDetach', () => {
-    it('removes state from node', () => {
-      const { node, ctx } = attachNode();
+    it('removes state from node', async () => {
+      const { node, ctx } = await attachNode();
       renderNetworkHandler.onDetach(node, defaultConfig(), ctx);
       expect(node.__renderNetworkState).toBeUndefined();
     });
 
-    it('emits disconnect event if was connected', () => {
-      const { node, ctx } = attachNode();
+    it('emits disconnect event if was connected', async () => {
+      const { node, ctx } = await attachNode();
       node.__renderNetworkState.isConnected = true;
       renderNetworkHandler.onDetach(node, defaultConfig(), ctx);
       const disconnectEvents = ctx.emitted.filter((e) => e.event === 'render_network_disconnect');
       expect(disconnectEvents.length).toBe(1);
     });
 
-    it('does not emit disconnect if not connected', () => {
-      const { node, ctx } = attachNode();
+    it('does not emit disconnect if not connected', async () => {
+      const { node, ctx } = await attachNode();
       const beforeCount = ctx.emitted.length;
       renderNetworkHandler.onDetach(node, defaultConfig(), ctx);
       const disconnectEvents = ctx.emitted
@@ -189,8 +206,8 @@ describe('RenderNetworkTrait — Production Tests', () => {
   // onEvent — render_submit
   // =========================================================================
   describe('onEvent — render_submit', () => {
-    it('submits a render job and emits render_job_submitted', () => {
-      const { node, ctx } = attachNode();
+    it('submits a render job and emits render_job_submitted', async () => {
+      const { node, ctx } = await attachNode();
       node.__renderNetworkState.isConnected = true;
       node.__renderNetworkState.networkStatus = 'online';
       renderNetworkHandler.onEvent(node, defaultConfig(), ctx, {
@@ -207,8 +224,8 @@ describe('RenderNetworkTrait — Production Tests', () => {
       expect(submitted.length).toBe(1);
     });
 
-    it('creates job with correct frame count', () => {
-      const { node, ctx } = attachNode();
+    it('creates job with correct frame count', async () => {
+      const { node, ctx } = await attachNode();
       node.__renderNetworkState.isConnected = true;
       renderNetworkHandler.onEvent(node, defaultConfig(), ctx, {
         type: 'render_submit',
@@ -221,9 +238,9 @@ describe('RenderNetworkTrait — Production Tests', () => {
       expect(job.frames.total).toBe(10);
     });
 
-    it('rejects job exceeding max credits', () => {
+    it('rejects job exceeding max credits', async () => {
       const config = { ...defaultConfig(), max_credits_per_job: 1 };
-      const { node, ctx } = attachNode(config);
+      const { node, ctx } = await attachNode(config);
       node.__renderNetworkState.isConnected = true;
       renderNetworkHandler.onEvent(node, config, ctx, {
         type: 'render_submit',
@@ -242,8 +259,8 @@ describe('RenderNetworkTrait — Production Tests', () => {
   // onEvent — render_cancel
   // =========================================================================
   describe('onEvent — render_cancel', () => {
-    it('cancels an active job and moves to completed', () => {
-      const { node, ctx } = attachNode();
+    it('cancels an active job and moves to completed', async () => {
+      const { node, ctx } = await attachNode();
       node.__renderNetworkState.activeJobs.push({
         id: 'job-cancel-1',
         status: 'queued',
@@ -274,8 +291,8 @@ describe('RenderNetworkTrait — Production Tests', () => {
   // onEvent — volumetric_process
   // =========================================================================
   describe('onEvent — volumetric_process', () => {
-    it('submits volumetric job when enabled', () => {
-      const { node, ctx } = attachNode();
+    it('submits volumetric job when enabled', async () => {
+      const { node, ctx } = await attachNode();
       node.__renderNetworkState.isConnected = true;
       renderNetworkHandler.onEvent(node, defaultConfig(), ctx, {
         type: 'volumetric_process',
@@ -285,9 +302,9 @@ describe('RenderNetworkTrait — Production Tests', () => {
       expect(submitted.length).toBe(1);
     });
 
-    it('ignores volumetric when disabled', () => {
+    it('ignores volumetric when disabled', async () => {
       const config = { ...defaultConfig(), volumetric_enabled: false };
-      const { node, ctx } = attachNode(config);
+      const { node, ctx } = await attachNode(config);
       renderNetworkHandler.onEvent(node, config, ctx, {
         type: 'volumetric_process',
         payload: { source: 'video.mp4', outputFormat: 'mp4' },
@@ -301,8 +318,8 @@ describe('RenderNetworkTrait — Production Tests', () => {
   // onEvent — splat_bake
   // =========================================================================
   describe('onEvent — splat_bake', () => {
-    it('submits splat bake job when enabled', () => {
-      const { node, ctx } = attachNode();
+    it('submits splat bake job when enabled', async () => {
+      const { node, ctx } = await attachNode();
       node.__renderNetworkState.isConnected = true;
       renderNetworkHandler.onEvent(node, defaultConfig(), ctx, {
         type: 'splat_bake',
@@ -317,13 +334,13 @@ describe('RenderNetworkTrait — Production Tests', () => {
   // onUpdate — Job polling
   // =========================================================================
   describe('onUpdate', () => {
-    it('does not throw when not connected', () => {
-      const { node, ctx } = attachNode();
+    it('does not throw when not connected', async () => {
+      const { node, ctx } = await attachNode();
       expect(() => renderNetworkHandler.onUpdate(node, defaultConfig(), ctx, 16)).not.toThrow();
     });
 
-    it('does not throw when connected with no jobs', () => {
-      const { node, ctx } = attachNode();
+    it('does not throw when connected with no jobs', async () => {
+      const { node, ctx } = await attachNode();
       node.__renderNetworkState.isConnected = true;
       expect(() => renderNetworkHandler.onUpdate(node, defaultConfig(), ctx, 16)).not.toThrow();
     });
@@ -333,8 +350,8 @@ describe('RenderNetworkTrait — Production Tests', () => {
   // Job lifecycle states
   // =========================================================================
   describe('job lifecycle', () => {
-    it('jobs start in queued status with 0 progress', () => {
-      const { node, ctx } = attachNode();
+    it('jobs start in queued status with 0 progress', async () => {
+      const { node, ctx } = await attachNode();
       node.__renderNetworkState.isConnected = true;
       renderNetworkHandler.onEvent(node, defaultConfig(), ctx, {
         type: 'render_submit',
@@ -349,8 +366,8 @@ describe('RenderNetworkTrait — Production Tests', () => {
       expect(job.progress).toBe(0);
     });
 
-    it('job id starts with rndr_', () => {
-      const { node, ctx } = attachNode();
+    it('job id starts with rndr_', async () => {
+      const { node, ctx } = await attachNode();
       node.__renderNetworkState.isConnected = true;
       renderNetworkHandler.onEvent(node, defaultConfig(), ctx, {
         type: 'render_submit',
@@ -359,8 +376,8 @@ describe('RenderNetworkTrait — Production Tests', () => {
       expect(node.__renderNetworkState.activeJobs[0].id).toMatch(/^rndr_/);
     });
 
-    it('calculates nodeCount based on frame count', () => {
-      const { node, ctx } = attachNode();
+    it('calculates nodeCount based on frame count', async () => {
+      const { node, ctx } = await attachNode();
       node.__renderNetworkState.isConnected = true;
       renderNetworkHandler.onEvent(node, defaultConfig(), ctx, {
         type: 'render_submit',

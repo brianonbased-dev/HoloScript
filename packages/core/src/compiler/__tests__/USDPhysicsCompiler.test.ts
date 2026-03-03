@@ -1,6 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { USDPhysicsCompiler } from '../USDPhysicsCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestRobot', objects: [], ...overrides } as HoloComposition;
@@ -16,13 +25,13 @@ describe('USDPhysicsCompiler', () => {
   // =========== Constructor / defaults ===========
 
   it('compiles minimal composition to USDA', () => {
-    const usda = compiler.compile(makeComposition());
+    const usda = compiler.compile(makeComposition(), 'test-token');
     expect(usda).toContain('#usda');
     expect(usda).toContain('def Xform');
   });
 
   it('includes stage metadata', () => {
-    const usda = compiler.compile(makeComposition());
+    const usda = compiler.compile(makeComposition(), 'test-token');
     expect(usda).toContain('upAxis');
     expect(usda).toContain('metersPerUnit');
   });
@@ -31,18 +40,18 @@ describe('USDPhysicsCompiler', () => {
 
   it('respects upAxis option', () => {
     const c = new USDPhysicsCompiler({ upAxis: 'Z' });
-    const usda = c.compile(makeComposition());
+    const usda = c.compile(makeComposition(), 'test-token');
     expect(usda).toContain('"Z"');
   });
 
   it('includes physics scene by default', () => {
-    const usda = compiler.compile(makeComposition());
+    const usda = compiler.compile(makeComposition(), 'test-token');
     expect(usda).toContain('PhysicsScene');
   });
 
   it('omits physics scene when disabled', () => {
     const c = new USDPhysicsCompiler({ includePhysicsScene: false });
-    const usda = c.compile(makeComposition());
+    const usda = c.compile(makeComposition(), 'test-token');
     expect(usda).not.toContain('PhysicsScene');
   });
 
@@ -61,7 +70,7 @@ describe('USDPhysicsCompiler', () => {
         },
       ] as any,
     });
-    const usda = compiler.compile(comp);
+    const usda = compiler.compile(comp, 'test-token');
     expect(usda).toContain('block');
   });
 
@@ -75,7 +84,7 @@ describe('USDPhysicsCompiler', () => {
         },
       ] as any,
     });
-    const usda = compiler.compile(comp);
+    const usda = compiler.compile(comp, 'test-token');
     expect(usda).toContain('Collision');
   });
 
@@ -89,7 +98,7 @@ describe('USDPhysicsCompiler', () => {
         },
       ] as any,
     });
-    const usda = compiler.compile(comp);
+    const usda = compiler.compile(comp, 'test-token');
     expect(usda).toContain('RigidBody');
   });
 
@@ -101,7 +110,7 @@ describe('USDPhysicsCompiler', () => {
         { name: 'ball', properties: [{ key: 'geometry', value: 'sphere' }], traits: ['physics'] },
       ] as any,
     });
-    const usda = compiler.compile(comp);
+    const usda = compiler.compile(comp, 'test-token');
     expect(usda).toContain('Sphere');
   });
 
@@ -111,7 +120,7 @@ describe('USDPhysicsCompiler', () => {
         { name: 'tube', properties: [{ key: 'geometry', value: 'cylinder' }], traits: ['physics'] },
       ] as any,
     });
-    const usda = compiler.compile(comp);
+    const usda = compiler.compile(comp, 'test-token');
     expect(usda).toContain('Cylinder');
   });
 
@@ -128,7 +137,7 @@ describe('USDPhysicsCompiler', () => {
         },
       ] as any,
     });
-    const usda = compiler.compile(comp);
+    const usda = compiler.compile(comp, 'test-token');
     expect(usda).toContain('robot_arm');
   });
 
@@ -136,7 +145,7 @@ describe('USDPhysicsCompiler', () => {
 
   it('respects custom gravity', () => {
     const c = new USDPhysicsCompiler({ gravity: [0, 0, -9.81] });
-    const usda = c.compile(makeComposition());
+    const usda = c.compile(makeComposition(), 'test-token');
     // Gravity magnitude is emitted as absolute value
     expect(usda).toContain('9.81');
   });
@@ -150,7 +159,7 @@ describe('USDPhysicsCompiler', () => {
         { name: 'prim_b', properties: [{ key: 'geometry', value: 'sphere' }], traits: [] },
       ] as any,
     });
-    const usda = compiler.compile(comp);
+    const usda = compiler.compile(comp, 'test-token');
     expect(usda).toContain('prim_a');
     expect(usda).toContain('prim_b');
   });
@@ -163,15 +172,15 @@ describe('USDPhysicsCompiler', () => {
         { name: 'my object!', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
       ] as any,
     });
-    const usda = compiler.compile(comp);
+    const usda = compiler.compile(comp, 'test-token');
     expect(usda).not.toContain('!');
   });
 
   // =========== Reset between compilations ===========
 
   it('resets state between compilations', () => {
-    compiler.compile(makeComposition({ name: 'first' }));
-    const usda = compiler.compile(makeComposition({ name: 'second' }));
+    compiler.compile(makeComposition({ name: 'first' }), 'test-token');
+    const usda = compiler.compile(makeComposition({ name: 'second' }), 'test-token');
     expect(usda).toContain('second');
     // Should not contain first composition data
     expect(usda).not.toContain('"first"');

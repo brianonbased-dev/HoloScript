@@ -11,9 +11,12 @@ class MockWebSocket {
   readyState = 1;
   sentMessages: string[] = [];
 
+  static OPEN = 1;
+  static CLOSED = 3;
+
   constructor(url: string) {
     this.url = url;
-    // Simulate immediate asynchronous connection connection
+    // Simulate immediate asynchronous connection
     setTimeout(() => {
         if (this.onopen) this.onopen();
     }, 10);
@@ -35,7 +38,15 @@ describe('WebSocketTransport', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         global.WebSocket = MockWebSocket as any;
-        transport = new WebSocketTransport('local_actor', 'ws://localhost:8080');
+        transport = new WebSocketTransport({
+            serverUrl: 'ws://localhost:8080',
+            roomId: 'test-room',
+            peerId: 'local_actor',
+            maxReconnectAttempts: 10,
+            initialBackoffMs: 1000,
+            maxBackoffMs: 30000,
+            heartbeatIntervalMs: 30000,
+        });
     });
 
     afterEach(() => {
@@ -45,52 +56,63 @@ describe('WebSocketTransport', () => {
         delete global.WebSocket;
     });
 
-    it('should connect to the WebSocket server', () => {
-        const connected = transport.connect('spatial-engine-server');
-        expect(connected).toBe(true);
+    it('should connect to the WebSocket server', async () => {
+        const connectPromise = transport.connect();
 
         // Advance timers to trigger the mock open event
         vi.advanceTimersByTime(20);
-        
-        // At this point, it should be registered
-        const peers = transport.getConnectedPeers();
-        expect(peers).toContain('spatial-engine-server');
+
+        await connectPromise;
+
+        // At this point, it should be connected
+        expect(transport.getIsConnected()).toBe(true);
     });
 
-    it('should intercept send() and route it over the WebSocket directly', () => {
-        transport.connect('spatial-engine-server');
+    it('should send messages over the WebSocket', async () => {
+        const connectPromise = transport.connect();
         vi.advanceTimersByTime(20); // wait for open
-        
-        const success = transport.send('spatial-engine-server', 'client_deltas', {
-            deltas: [{ id: '123', field: 'x', value: 1.0, time: 0 }]
+        await connectPromise;
+
+        transport.sendMessage({
+            type: 'state-sync',
+            payload: {
+                deltas: [{ id: '123', field: 'x', value: 1.0, time: 0 }]
+            },
         });
 
-        expect(success).toBe(true);
-
         const wsInstance = (transport as any).ws as MockWebSocket;
-        expect(wsInstance.sentMessages.length).toBe(1);
-        
-        const sentJson = JSON.parse(wsInstance.sentMessages[0]);
-        expect(sentJson.type).toBe('client_deltas');
+        // sentMessages includes the auth message sent on connect + our message
+        expect(wsInstance.sentMessages.length).toBeGreaterThanOrEqual(2);
+
+        const lastSent = wsInstance.sentMessages[wsInstance.sentMessages.length - 1];
+        const sentJson = JSON.parse(lastSent);
+        expect(sentJson.type).toBe('state-sync');
         expect(sentJson.payload.deltas[0].field).toBe('x');
     });
 
-    it('should unpack inbound payloads using the onInboundState hook', () => {
-        transport.connect('spatial-engine-server');
+    it('should dispatch inbound messages to registered handlers', async () => {
+        const connectPromise = transport.connect();
         vi.advanceTimersByTime(20);
+        await connectPromise;
 
-        let receivedPayload = null;
-        transport.onInboundState = (payload) => {
-            receivedPayload = payload;
-        };
+        let receivedPayload: any = null;
+        transport.onMessage('state-sync', (msg) => {
+            receivedPayload = msg.payload;
+        });
 
         const wsInstance = (transport as any).ws as MockWebSocket;
 
-        // Simulate server broadcasting a WorldStatePayload
+        // Simulate server broadcasting a state-sync message
         const mockServerPayload = {
+            id: 'msg-1',
+            type: 'state-sync',
+            peerId: 'server',
+            roomId: 'test-room',
             timestamp: 12345,
-            agent_updates: [{ id: 'agent-1', x: 10, y: 0, z: 5 }],
-            room_updates: []
+            payload: {
+                agent_updates: [{ id: 'agent-1', x: 10, y: 0, z: 5 }],
+                room_updates: []
+            },
         };
 
         if (wsInstance.onmessage) {
@@ -98,6 +120,6 @@ describe('WebSocketTransport', () => {
         }
 
         expect(receivedPayload).toBeDefined();
-        expect((receivedPayload as any).agent_updates[0].id).toBe('agent-1');
+        expect(receivedPayload.agent_updates[0].id).toBe('agent-1');
     });
 });

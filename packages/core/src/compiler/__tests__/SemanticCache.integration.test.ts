@@ -5,10 +5,19 @@
  * Validates 50-80% compilation time reduction on incremental builds.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi} from 'vitest';
 import { IncrementalCompiler } from '../IncrementalCompiler';
 import { createSemanticCache } from '../SemanticCache';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 describe('SemanticCache Integration', () => {
   let compiler: IncrementalCompiler;

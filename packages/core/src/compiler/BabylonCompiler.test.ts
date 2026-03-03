@@ -897,16 +897,16 @@ describe('BabylonCompiler', () => {
       const composition = createComposition({
         objects: [createObject('Obj', { properties: [{ key: 'geometry', value: 'sphere' }] } as any)],
       });
-      const output1 = compiler.compile(composition);
-      const output2 = compiler.compile(composition);
+      const output1 = compiler.compile(composition, testToken);
+      const output2 = compiler.compile(composition, testToken);
       expect(output1).toBe(output2);
     });
 
     it('should reset state between compilations', () => {
       const comp1 = createComposition({ name: 'Scene1', objects: [] });
       const comp2 = createComposition({ name: 'Scene2', objects: [] });
-      const out1 = compiler.compile(comp1);
-      const out2 = compiler.compile(comp2);
+      const out1 = compiler.compile(comp1, testToken);
+      const out2 = compiler.compile(comp2, testToken);
       expect(out1).toContain('Scene1');
       expect(out1).not.toContain('Scene2');
       expect(out2).toContain('Scene2');

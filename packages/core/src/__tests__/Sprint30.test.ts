@@ -32,39 +32,39 @@ import { TerrainBrush } from '../environment/TerrainBrush.js';
 // =============================================================================
 describe('Feature 1: NoiseGenerator', () => {
   it('perlin2D returns a number in [-1, 1] range', () => {
-    const ng = new NoiseGenerator(1);
+    const ng = new NoiseGenerator({ seed: 1 });
     const val = ng.perlin2D(0.5, 0.5);
     expect(typeof val).toBe('number');
   });
 
   it('perlin2D is deterministic with same seed', () => {
-    const a = new NoiseGenerator(42);
-    const b = new NoiseGenerator(42);
+    const a = new NoiseGenerator({ seed: 42 });
+    const b = new NoiseGenerator({ seed: 42 });
     expect(a.perlin2D(1.5, 2.3)).toBe(b.perlin2D(1.5, 2.3));
   });
 
   it('perlin2D varies between different seeds', () => {
-    const a = new NoiseGenerator(1);
-    const b = new NoiseGenerator(2);
-    expect(a.perlin2D(1, 1)).not.toBe(b.perlin2D(1, 1));
+    const a = new NoiseGenerator({ seed: 1 });
+    const b = new NoiseGenerator({ seed: 2 });
+    expect(a.perlin2D(1.1, 1.1)).not.toBe(b.perlin2D(1.1, 1.1));
   });
 
   it('value2D returns a number', () => {
     expect(typeof new NoiseGenerator().value2D(0.3, 0.7)).toBe('number');
   });
 
-  it('fbm returns a number', () => {
-    const ng = new NoiseGenerator(42);
-    const val = ng.fbm(1.0, 1.0, 4);
+  it('fbm2D returns a number', () => {
+    const ng = new NoiseGenerator({ seed: 42 });
+    const val = ng.fbm2D(1.0, 1.0);
     expect(typeof val).toBe('number');
   });
 
-  it('getSeed returns the seed used', () => {
-    expect(new NoiseGenerator(99).getSeed()).toBe(99);
+  it('getConfig returns the seed used', () => {
+    expect(new NoiseGenerator({ seed: 99 }).getConfig().seed).toBe(99);
   });
 
-  it('warp returns a number', () => {
-    expect(typeof new NoiseGenerator().warp(1.0, 1.0)).toBe('number');
+  it('warped2D returns a number', () => {
+    expect(typeof new NoiseGenerator().warped2D(1.0, 1.0)).toBe('number');
   });
 });
 

@@ -2,7 +2,7 @@
  * WASM Compiler Tests
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   WASMCompiler,
   createWASMCompiler,
@@ -12,6 +12,14 @@ import {
 } from './WASMCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';
 import type { HSPlusAST, HSPlusNode } from '../types/HoloScriptPlus';
+
+vi.mock('./identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
 
 // Helper to create test composition
 function createTestComposition(

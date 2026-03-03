@@ -6,8 +6,8 @@ describe('Procedural Generation Systems', () => {
   describe('NoiseGenerator Determinism', () => {
     it('generates deterministic perlin noise for the same seed', () => {
       const seed = 12345;
-      const noise1 = new NoiseGenerator(seed);
-      const noise2 = new NoiseGenerator(seed);
+      const noise1 = new NoiseGenerator({ seed });
+      const noise2 = new NoiseGenerator({ seed });
 
       for (let x = 0; x < 10; x += 0.5) {
         for (let y = 0; y < 10; y += 0.5) {
@@ -17,8 +17,8 @@ describe('Procedural Generation Systems', () => {
     });
 
     it('generates different noise outputs for different seeds', () => {
-      const noiseA = new NoiseGenerator(100);
-      const noiseB = new NoiseGenerator(200);
+      const noiseA = new NoiseGenerator({ seed: 100 });
+      const noiseB = new NoiseGenerator({ seed: 200 });
       
       let differences = 0;
       for (let i = 0; i < 10; i++) {
@@ -30,10 +30,10 @@ describe('Procedural Generation Systems', () => {
       expect(differences).toBeGreaterThan(0);
     });
 
-    it('fractal brownian motion (fbm) aggregates octaves deterministically', () => {
-        const noise = new NoiseGenerator(999);
-        const val1 = noise.fbm(0.5, 0.5, 4, 2, 0.5, 'perlin');
-        const val2 = noise.fbm(0.5, 0.5, 4, 2, 0.5, 'perlin');
+    it('fractal brownian motion (fbm2D) aggregates octaves deterministically', () => {
+        const noise = new NoiseGenerator({ seed: 999 });
+        const val1 = noise.fbm2D(0.5, 0.5, 'perlin');
+        const val2 = noise.fbm2D(0.5, 0.5, 'perlin');
         expect(val1).toBe(val2);
     });
   });

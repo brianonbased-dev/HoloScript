@@ -1,6 +1,15 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi} from 'vitest';
 import { ARCompiler } from '../ARCompiler';
 import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 describe('ARCompiler', () => {
   const parser = new HoloCompositionParser();
@@ -28,7 +37,7 @@ describe('ARCompiler', () => {
     `;
 
     const parseResult = parser.parse(input);
-    const result = compiler.compile(parseResult.ast!);
+    const result = compiler.compile(parseResult.ast!, 'test-token');
 
     expect(result.success).toBe(true);
     expect(result.target).toBe('webxr');
@@ -58,7 +67,7 @@ describe('ARCompiler', () => {
     `;
 
     const parseResult = parser.parse(input);
-    const result = compiler.compile(parseResult.ast!);
+    const result = compiler.compile(parseResult.ast!, 'test-token');
     console.log("VITEST GOT:", result.code);
     expect(result.success).toBe(true);
     expect(result.code).toContain("arRuntime.onBeaconDetected('global', (pose) => {");

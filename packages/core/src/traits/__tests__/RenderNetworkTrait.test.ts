@@ -4,17 +4,45 @@
  * Tests for distributed GPU rendering via Render Network
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderNetworkHandler } from '../RenderNetworkTrait';
 import {
   createMockContext,
   createMockNode,
-  attachTrait,
   sendEvent,
   updateTrait,
   getLastEvent,
   getEventCount,
 } from './traitTestHelpers';
+
+// ─── Mock JobQueuePersistence (used with `new` in onAttach) ──────────────────
+
+vi.mock('../RenderJobPersistence', () => ({
+  JobQueuePersistence: vi.fn().mockImplementation(function () {
+    return {
+      init: vi.fn().mockResolvedValue(undefined),
+      loadState: vi.fn().mockResolvedValue(null),
+      loadActiveJobs: vi.fn().mockResolvedValue([]),
+      loadCompletedJobs: vi.fn().mockResolvedValue([]),
+      saveJob: vi.fn().mockResolvedValue(undefined),
+      moveToCompleted: vi.fn().mockResolvedValue(undefined),
+      saveState: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
+    };
+  }),
+}));
+
+// ─── Async attach helper (onAttach is async due to JobQueuePersistence) ──────
+
+async function attachTraitAsync<T>(
+  handler: { defaultConfig: T; onAttach?: (node: any, config: T, ctx: any) => any },
+  node: Record<string, unknown>,
+  config: Partial<T>,
+  ctx: any
+): Promise<void> {
+  const fullConfig = { ...handler.defaultConfig, ...config };
+  await handler.onAttach?.(node as any, fullConfig, ctx as any);
+}
 
 describe('RenderNetworkTrait', () => {
   let node: Record<string, unknown>;
@@ -37,8 +65,8 @@ describe('RenderNetworkTrait', () => {
       expect(renderNetworkHandler.defaultConfig.cache_enabled).toBe(true);
     });
 
-    it('should attach and initialize state', () => {
-      attachTrait(renderNetworkHandler, node, {}, ctx);
+    it('should attach and initialize state', async () => {
+      await attachTraitAsync(renderNetworkHandler, node, {}, ctx);
 
       const state = (node as any).__renderNetworkState;
       expect(state).toBeDefined();
@@ -48,8 +76,8 @@ describe('RenderNetworkTrait', () => {
       expect(state.networkStatus).toBe('offline');
     });
 
-    it('should attempt connection when API key provided', () => {
-      attachTrait(
+    it('should attempt connection when API key provided', async () => {
+      await attachTraitAsync(
         renderNetworkHandler,
         node,
         {
@@ -65,28 +93,28 @@ describe('RenderNetworkTrait', () => {
   });
 
   describe('render quality presets', () => {
-    it('should support preview quality', () => {
-      attachTrait(renderNetworkHandler, node, { default_quality: 'preview' }, ctx);
+    it('should support preview quality', async () => {
+      await attachTraitAsync(renderNetworkHandler, node, { default_quality: 'preview' }, ctx);
 
       expect(renderNetworkHandler.defaultConfig.default_quality).toBeDefined();
     });
 
-    it('should support draft quality', () => {
-      attachTrait(renderNetworkHandler, node, { default_quality: 'draft' }, ctx);
+    it('should support draft quality', async () => {
+      await attachTraitAsync(renderNetworkHandler, node, { default_quality: 'draft' }, ctx);
 
       const state = (node as any).__renderNetworkState;
       expect(state).toBeDefined();
     });
 
-    it('should support production quality', () => {
-      attachTrait(renderNetworkHandler, node, { default_quality: 'production' }, ctx);
+    it('should support production quality', async () => {
+      await attachTraitAsync(renderNetworkHandler, node, { default_quality: 'production' }, ctx);
 
       const state = (node as any).__renderNetworkState;
       expect(state).toBeDefined();
     });
 
-    it('should support film quality', () => {
-      attachTrait(renderNetworkHandler, node, { default_quality: 'film' }, ctx);
+    it('should support film quality', async () => {
+      await attachTraitAsync(renderNetworkHandler, node, { default_quality: 'film' }, ctx);
 
       const state = (node as any).__renderNetworkState;
       expect(state).toBeDefined();
@@ -97,8 +125,8 @@ describe('RenderNetworkTrait', () => {
     const engines = ['octane', 'redshift', 'arnold', 'blender_cycles', 'auto'];
 
     engines.forEach((engine) => {
-      it(`should support ${engine} engine`, () => {
-        attachTrait(renderNetworkHandler, node, { default_engine: engine as any }, ctx);
+      it(`should support ${engine} engine`, async () => {
+        await attachTraitAsync(renderNetworkHandler, node, { default_engine: engine as any }, ctx);
 
         const state = (node as any).__renderNetworkState;
         expect(state).toBeDefined();
@@ -107,8 +135,8 @@ describe('RenderNetworkTrait', () => {
   });
 
   describe('job submission', () => {
-    beforeEach(() => {
-      attachTrait(
+    beforeEach(async () => {
+      await attachTraitAsync(
         renderNetworkHandler,
         node,
         {
@@ -189,8 +217,8 @@ describe('RenderNetworkTrait', () => {
   });
 
   describe('volumetric processing', () => {
-    beforeEach(() => {
-      attachTrait(
+    beforeEach(async () => {
+      await attachTraitAsync(
         renderNetworkHandler,
         node,
         {
@@ -226,8 +254,8 @@ describe('RenderNetworkTrait', () => {
       expect(ctx.emittedEvents.length).toBeGreaterThanOrEqual(0);
     });
 
-    it('should ignore volumetric_process when disabled', () => {
-      attachTrait(
+    it('should ignore volumetric_process when disabled', async () => {
+      await attachTraitAsync(
         renderNetworkHandler,
         node,
         {
@@ -261,8 +289,8 @@ describe('RenderNetworkTrait', () => {
   });
 
   describe('gaussian splat baking', () => {
-    beforeEach(() => {
-      attachTrait(
+    beforeEach(async () => {
+      await attachTraitAsync(
         renderNetworkHandler,
         node,
         {
@@ -298,8 +326,8 @@ describe('RenderNetworkTrait', () => {
       expect(ctx.emittedEvents.length).toBeGreaterThanOrEqual(0);
     });
 
-    it('should ignore splat_bake when disabled', () => {
-      attachTrait(
+    it('should ignore splat_bake when disabled', async () => {
+      await attachTraitAsync(
         renderNetworkHandler,
         node,
         {
@@ -333,8 +361,8 @@ describe('RenderNetworkTrait', () => {
   });
 
   describe('job management', () => {
-    beforeEach(() => {
-      attachTrait(renderNetworkHandler, node, { api_key: 'test-key' }, ctx);
+    beforeEach(async () => {
+      await attachTraitAsync(renderNetworkHandler, node, { api_key: 'test-key' }, ctx);
       const state = (node as any).__renderNetworkState;
       state.isConnected = true;
       state.activeJobs = [
@@ -416,8 +444,8 @@ describe('RenderNetworkTrait', () => {
   });
 
   describe('job polling', () => {
-    it('should poll active jobs during update', () => {
-      attachTrait(renderNetworkHandler, node, { api_key: 'test-key' }, ctx);
+    it('should poll active jobs during update', async () => {
+      await attachTraitAsync(renderNetworkHandler, node, { api_key: 'test-key' }, ctx);
 
       const state = (node as any).__renderNetworkState;
       state.isConnected = true;
@@ -445,8 +473,8 @@ describe('RenderNetworkTrait', () => {
       expect(state.activeJobs[0].status).toBeDefined();
     });
 
-    it('should skip polling when disconnected', () => {
-      attachTrait(renderNetworkHandler, node, {}, ctx);
+    it('should skip polling when disconnected', async () => {
+      await attachTraitAsync(renderNetworkHandler, node, {}, ctx);
 
       const state = (node as any).__renderNetworkState;
       state.isConnected = false;
@@ -460,8 +488,8 @@ describe('RenderNetworkTrait', () => {
   });
 
   describe('detach', () => {
-    it('should emit disconnect event when connected', () => {
-      attachTrait(renderNetworkHandler, node, { api_key: 'test-key' }, ctx);
+    it('should emit disconnect event when connected', async () => {
+      await attachTraitAsync(renderNetworkHandler, node, { api_key: 'test-key' }, ctx);
 
       const state = (node as any).__renderNetworkState;
       state.isConnected = true;
@@ -472,8 +500,8 @@ describe('RenderNetworkTrait', () => {
       expect(getEventCount(ctx, 'render_network_disconnect')).toBe(1);
     });
 
-    it('should clean up state on detach', () => {
-      attachTrait(renderNetworkHandler, node, {}, ctx);
+    it('should clean up state on detach', async () => {
+      await attachTraitAsync(renderNetworkHandler, node, {}, ctx);
       renderNetworkHandler.onDetach?.(node as any, renderNetworkHandler.defaultConfig, ctx as any);
 
       expect((node as any).__renderNetworkState).toBeUndefined();
@@ -484,8 +512,8 @@ describe('RenderNetworkTrait', () => {
     const formats = ['png', 'exr', 'jpg', 'mp4', 'webm', 'glb'];
 
     formats.forEach((format) => {
-      it(`should support ${format} output format`, () => {
-        attachTrait(renderNetworkHandler, node, { output_format: format as any }, ctx);
+      it(`should support ${format} output format`, async () => {
+        await attachTraitAsync(renderNetworkHandler, node, { output_format: format as any }, ctx);
 
         const state = (node as any).__renderNetworkState;
         expect(state).toBeDefined();
@@ -497,8 +525,8 @@ describe('RenderNetworkTrait', () => {
     const priorities = ['low', 'normal', 'high', 'rush'];
 
     priorities.forEach((priority) => {
-      it(`should support ${priority} priority`, () => {
-        attachTrait(renderNetworkHandler, node, { default_priority: priority as any }, ctx);
+      it(`should support ${priority} priority`, async () => {
+        await attachTraitAsync(renderNetworkHandler, node, { default_priority: priority as any }, ctx);
 
         const state = (node as any).__renderNetworkState;
         expect(state).toBeDefined();

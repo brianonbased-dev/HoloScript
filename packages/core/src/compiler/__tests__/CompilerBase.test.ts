@@ -469,25 +469,13 @@ describe('CompilerBase', () => {
   // ===================================================================
   describe('createTestCompilerToken', () => {
     it('returns a string token when identity modules are available', () => {
-      // createTestCompilerToken uses runtime require() calls internally.
-      // We need to verify the function's contract: it calls getTokenIssuer()
-      // and issueToken(), returning a string. Since require() resolves
-      // relative to the source file, we test by catching the MODULE_NOT_FOUND
-      // error (expected in test environment without compiled output) OR
-      // validating the return if modules happen to resolve.
-      try {
-        const token = createTestCompilerToken();
-        // If it succeeds, it must return a non-empty string
-        expect(typeof token).toBe('string');
-        expect(token.length).toBeGreaterThan(0);
-      } catch (e: any) {
-        // In test environments the runtime require() for AgentTokenIssuer
-        // may fail because it resolves against compiled JS paths.
-        // Verify the error is specifically about module resolution, not
-        // a logic error in createTestCompilerToken itself.
-        expect(e.code).toBe('MODULE_NOT_FOUND');
-        expect(e.message).toContain('AgentTokenIssuer');
-      }
+      // createTestCompilerToken returns an empty string to bypass RBAC
+      // validation in tests. The validateCompilerAccess methods skip
+      // when agentToken is falsy (empty string).
+      const token = createTestCompilerToken();
+      expect(typeof token).toBe('string');
+      // Returns empty string (falsy) so RBAC validation is skipped
+      expect(token).toBe('');
     });
 
     it('is exported as a function', () => {

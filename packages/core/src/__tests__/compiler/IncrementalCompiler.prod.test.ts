@@ -107,51 +107,51 @@ describe('IncrementalCompiler — diff (old → new)', () => {
 
 describe('IncrementalCompiler — compile', () => {
 
-  it('first compile processes all objects', () => {
+  it('first compile processes all objects', async () => {
     const c = new IncrementalCompiler();
     const ast = makeAST([makeObj('A'), makeObj('B')]);
-    const r = c.compile(ast, compile);
+    const r = await c.compile(ast, compile);
     expect(r.recompiledObjects).toContain('A');
     expect(r.recompiledObjects).toContain('B');
   });
 
-  it('second compile with same AST uses cache', () => {
+  it('second compile with same AST uses cache', async () => {
     const c = new IncrementalCompiler();
     const ast = makeAST([makeObj('Cube')]);
-    c.compile(ast, compile); // warm cache
-    const r = c.compile(ast, compile); // should hit cache
+    await c.compile(ast, compile); // warm cache
+    const r = await c.compile(ast, compile); // should hit cache
     expect(r.cachedObjects).toContain('Cube');
     expect(r.recompiledObjects).not.toContain('Cube');
   });
 
-  it('compiledCode joins output from all objects', () => {
+  it('compiledCode joins output from all objects', async () => {
     const c = new IncrementalCompiler();
     const ast = makeAST([makeObj('X'), makeObj('Y')]);
-    const r = c.compile(ast, compile);
+    const r = await c.compile(ast, compile);
     expect(r.compiledCode).toContain('compiled:X');
     expect(r.compiledCode).toContain('compiled:Y');
   });
 
-  it('forces recompile for specified objects', () => {
+  it('forces recompile for specified objects', async () => {
     const c = new IncrementalCompiler();
     const ast = makeAST([makeObj('Cube')]);
-    c.compile(ast, compile);
-    const r = c.compile(ast, compile, { forceRecompile: ['Cube'] });
+    await c.compile(ast, compile);
+    const r = await c.compile(ast, compile, { forceRecompile: ['Cube'] });
     expect(r.recompiledObjects).toContain('Cube');
   });
 
-  it('modified object is recompiled second time', () => {
+  it('modified object is recompiled second time', async () => {
     const c = new IncrementalCompiler();
     const old = makeAST([makeObj('Box', [], 1)]);
     const next = makeAST([makeObj('Box', [], 2)]);
-    c.compile(old, compile);
-    const r = c.compile(next, compile);
+    await c.compile(old, compile);
+    const r = await c.compile(next, compile);
     expect(r.recompiledObjects).toContain('Box');
   });
 
-  it('statePreserved = false when no state snapshot', () => {
+  it('statePreserved = false when no state snapshot', async () => {
     const c = new IncrementalCompiler();
-    const r = c.compile(makeAST([makeObj('A')]), compile);
+    const r = await c.compile(makeAST([makeObj('A')]), compile);
     expect(r.statePreserved).toBe(false);
   });
 });
@@ -296,28 +296,28 @@ describe('IncrementalCompiler — trait graph integration', () => {
 
 describe('IncrementalCompiler — getStats', () => {
 
-  it('initial stats have cacheSize=0', () => {
+  it('initial stats have cacheSize=0', async () => {
     const c = new IncrementalCompiler();
-    expect(c.getStats().cacheSize).toBe(0);
+    expect((await c.getStats()).cacheSize).toBe(0);
   });
 
-  it('stats cacheSize reflects setCached calls', () => {
+  it('stats cacheSize reflects setCached calls', async () => {
     const c = new IncrementalCompiler();
     c.setCached('A', 'h1', '/* A */', []);
     c.setCached('B', 'h2', '/* B */', []);
-    expect(c.getStats().cacheSize).toBe(2);
+    expect((await c.getStats()).cacheSize).toBe(2);
   });
 
-  it('stats objectsCached lists cached names', () => {
+  it('stats objectsCached lists cached names', async () => {
     const c = new IncrementalCompiler();
     c.setCached('MyObj', 'hh', '/* x */', []);
-    expect(c.getStats().objectsCached).toContain('MyObj');
+    expect((await c.getStats()).objectsCached).toContain('MyObj');
   });
 
-  it('stats dependencyEdges count correctly', () => {
+  it('stats dependencyEdges count correctly', async () => {
     const c = new IncrementalCompiler();
     c.updateDependencies('B', ['A', 'C']);
-    expect(c.getStats().dependencyEdges).toBe(2);
+    expect((await c.getStats()).dependencyEdges).toBe(2);
   });
 });
 
@@ -325,11 +325,11 @@ describe('IncrementalCompiler — getStats', () => {
 
 describe('IncrementalCompiler — reset', () => {
 
-  it('reset clears cache', () => {
+  it('reset clears cache', async () => {
     const c = new IncrementalCompiler();
     c.setCached('X', 'h', '/* X */', []);
     c.reset();
-    expect(c.getStats().cacheSize).toBe(0);
+    expect((await c.getStats()).cacheSize).toBe(0);
   });
 
   it('reset clears dependency graph', () => {
@@ -359,13 +359,13 @@ describe('IncrementalCompiler — serialize / deserialize', () => {
     expect(parsed.version).toBe(1);
   });
 
-  it('deserialize round-trips cache entries', () => {
+  it('deserialize round-trips cache entries', async () => {
     const c = new IncrementalCompiler();
     c.setCached('Cube', 'hashA', '/* Cube */', ['dep1']);
     const json = c.serialize();
     const c2 = IncrementalCompiler.deserialize(json);
     // Cache is preserved
-    expect(c2.getStats().cacheSize).toBeGreaterThanOrEqual(0);
+    expect((await c2.getStats()).cacheSize).toBeGreaterThanOrEqual(0);
   });
 
   it('deserializeCache factory function works', () => {
@@ -385,9 +385,9 @@ describe('IncrementalCompiler — serialize / deserialize', () => {
 
 describe('createIncrementalCompiler', () => {
 
-  it('creates a fresh IncrementalCompiler', () => {
+  it('creates a fresh IncrementalCompiler', async () => {
     const c = createIncrementalCompiler();
     expect(c).toBeInstanceOf(IncrementalCompiler);
-    expect(c.getStats().cacheSize).toBe(0);
+    expect((await c.getStats()).cacheSize).toBe(0);
   });
 });
