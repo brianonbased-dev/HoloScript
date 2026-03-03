@@ -24,6 +24,9 @@ dist/
 !prettier.config.js
 !eslint.config.js
 
+# Exception: Keep scripts directory (committed utilities)
+!scripts/**/*.js
+
 # Exception: Keep package entry points in certain contexts
 !packages/*/dist/**/*.js
 !packages/*/dist/**/*.d.ts

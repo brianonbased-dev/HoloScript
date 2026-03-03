@@ -903,8 +903,8 @@ importers:
   packages/registry:
     dependencies:
       better-sqlite3:
-        specifier: ^9.2.2
-        version: 9.6.0
+        specifier: ^11.7.0
+        version: 11.10.0
       express:
         specifier: ^4.18.2
         version: 4.22.1
@@ -919,7 +919,7 @@ importers:
         version: 3.25.76
     devDependencies:
       '@types/better-sqlite3':
-        specifier: ^7.6.8
+        specifier: ^7.6.12
         version: 7.6.13
       '@types/express':
         specifier: ^4.17.21
@@ -12014,7 +12014,7 @@ packages:
   /@types/better-sqlite3@7.6.13:
     resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
     dependencies:
-      '@types/node': 20.19.29
+      '@types/node': 24.10.13
     dev: true
 
   /@types/body-parser@1.19.6:
@@ -15593,8 +15593,8 @@ packages:
       open: 8.4.2
     dev: true
 
-  /better-sqlite3@9.6.0:
-    resolution: {integrity: sha512-yR5HATnqeYNVnkaUTf4bOP2dJSnyhP4puJN/QPRyx4YkBEEUxib422n2XzPqDEHjQQqazoYoADdAm5vE15+dAQ==}
+  /better-sqlite3@11.10.0:
+    resolution: {integrity: sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ==}
     requiresBuild: true
     dependencies:
       bindings: 1.5.0
@@ -23882,6 +23882,7 @@ packages:
   /prebuild-install@7.1.3:
     resolution: {integrity: sha512-8Mf2cbV7x1cXPUILADGI3wuhfqWvtiLA1iclTDbFRZkgRQS0NqsPZphna9V+HyTEadheuPmjaJMsbzKQFOzLug==}
     engines: {node: '>=10'}
+    deprecated: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
     hasBin: true
     requiresBuild: true
     dependencies:
