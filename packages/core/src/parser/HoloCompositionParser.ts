@@ -282,6 +282,11 @@ type TokenType =
   | 'BEHAVIOR_TREE'
   | 'INPUT_BLOCK'
   | 'INTERACTION'
+  // Codebase absorption (v4.3)
+  | 'CODEBASE'
+  | 'MODULE_MAP'
+  | 'DEPENDENCY_GRAPH'
+  | 'CALL_GRAPH'
   | 'ANNOTATION'
   // Spatial primitives
   | 'SPAWN_GROUP'
@@ -522,6 +527,11 @@ const KEYWORDS: Record<string, TokenType> = {
   interaction: 'INTERACTION',
   gesture_profile: 'INPUT_BLOCK',
   controller_map: 'INPUT_BLOCK',
+  // Codebase absorption (v4.3)
+  codebase: 'CODEBASE',
+  module_map: 'MODULE_MAP',
+  dependency_graph: 'DEPENDENCY_GRAPH',
+  call_graph: 'CALL_GRAPH',
   true: 'BOOLEAN',
   false: 'BOOLEAN',
   null: 'NULL',
@@ -4804,6 +4814,8 @@ export class HoloCompositionParser {
     'LOD_BLOCK', 'RENDER',
     'NAVMESH', 'NAV_AGENT', 'BEHAVIOR_TREE',
     'INPUT_BLOCK', 'INTERACTION',
+    // Codebase absorption (v4.3)
+    'CODEBASE', 'MODULE_MAP', 'DEPENDENCY_GRAPH', 'CALL_GRAPH',
   ]);
 
   /** Token → domain type mapping */
@@ -4835,6 +4847,9 @@ export class HoloCompositionParser {
     LOD_BLOCK: 'rendering', RENDER: 'rendering',
     NAVMESH: 'navigation', NAV_AGENT: 'navigation', BEHAVIOR_TREE: 'navigation',
     INPUT_BLOCK: 'input', INTERACTION: 'input',
+    // Codebase absorption (v4.3)
+    CODEBASE: 'codebase', MODULE_MAP: 'codebase',
+    DEPENDENCY_GRAPH: 'codebase', CALL_GRAPH: 'codebase',
   };
 
   /** Check if current token is a domain block token */

@@ -615,6 +615,18 @@
   name: (identifier) @type.definition)
 
 ; =============================================================================
+; CODEBASE ABSORPTION (v4.3)
+; =============================================================================
+
+["codebase" "module_map" "dependency_graph" "call_graph"] @keyword.type
+
+(codebase_block
+  name: (string) @type.definition)
+
+(codebase_block
+  name: (identifier) @type.definition)
+
+; =============================================================================
 ; ANNOTATIONS
 ; =============================================================================
 

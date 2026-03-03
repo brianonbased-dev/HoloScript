@@ -46,6 +46,11 @@
       "import": "./dist/wot/index.js",
       "require": "./dist/wot/index.js"
     },
+    "./codebase": {
+      "types": "./dist/codebase/index.d.ts",
+      "import": "./dist/codebase/index.js",
+      "require": "./dist/codebase/index.js"
+    },
     "./compiler/*": {
       "types": "./dist/compiler/*.d.ts",
       "import": "./dist/compiler/*.js",

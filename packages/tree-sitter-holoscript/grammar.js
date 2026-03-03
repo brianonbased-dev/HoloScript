@@ -111,6 +111,8 @@ module.exports = grammar({
         $.annotation,
         // Built-in test framework
         $.test_block,
+        // Codebase absorption (v4.3)
+        $.codebase_block,
         // Shared constructs
         $.action,
         $.event_bus,
@@ -174,6 +176,7 @@ module.exports = grammar({
         $.render_hints,
         $.annotation,
         $.test_block,
+        $.codebase_block,
         $.custom_block
       ),
 
@@ -603,6 +606,21 @@ module.exports = grammar({
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
         '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+      ),
+
+    // =========================================================================
+    // CODEBASE ABSORPTION (v4.3 — March 2026)
+    // Spatial code intelligence: absorb any repo into navigable knowledge graph
+    // codebase "MyProject" { source: "./src" language: "typescript" }
+    // module_map "Architecture" { layout: "layered" group_by: "directory" }
+    // =========================================================================
+
+    codebase_block: ($) =>
+      seq(
+        choice('codebase', 'module_map', 'dependency_graph', 'call_graph'),
+        field('name', choice($.string, $.identifier)),
+        optional($.trait_list),
+        '{', repeat(choice(seq($.property, optional(',')), $.event_handler, $.object, $.spatial_group)), '}'
       ),
 
     // =========================================================================

@@ -49,6 +49,7 @@ export interface CLIOptions {
     | 'screenshot'
     | 'prerender'
     | 'pdf'
+    | 'absorb'
     | 'help'
     | 'version';
   input?: string;

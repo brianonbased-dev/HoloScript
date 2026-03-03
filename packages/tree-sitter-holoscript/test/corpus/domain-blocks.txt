@@ -1350,3 +1350,126 @@ Annotation with Multiple Entries
     (annotation_entry
       key: (identifier)
       (string))))
+
+================================================================================
+Codebase Block - Basic
+================================================================================
+
+codebase "HoloScript" @absorbed {
+  source: "./packages"
+  language: "typescript"
+  max_files: 10000
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (codebase_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))))
+
+================================================================================
+Codebase Block - Module Map with Nested Objects
+================================================================================
+
+module_map "Architecture" {
+  layout: "layered"
+  group_by: "community"
+
+  object "ApiLayer" @spatial_group {
+    position: [0, 2, 0]
+    color: "blue"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (codebase_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (object
+      name: (string)
+      (trait_list
+        (trait_inline
+          name: (identifier)))
+      (property
+        key: (identifier)
+        value: (array
+          (number)
+          (number)
+          (number)))
+      (property
+        key: (identifier)
+        value: (string)))))
+
+================================================================================
+Codebase Block - Dependency Graph
+================================================================================
+
+dependency_graph "Imports" {
+  depth: 3
+  highlight: "blast_radius"
+  entry_point: "src/index.ts"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (codebase_block
+    name: (string)
+    (property
+      key: (identifier)
+      value: (number))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))))
+
+================================================================================
+Codebase Block - Call Graph
+================================================================================
+
+call_graph "DataFlow" @interactive @vr {
+  entry: "handleRequest"
+  depth: 5
+  show_args: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (codebase_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))
+    (property
+      key: (identifier)
+      value: (boolean))))

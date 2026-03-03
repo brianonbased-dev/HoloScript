@@ -175,6 +175,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "codebase_block"
+        },
+        {
+          "type": "SYMBOL",
           "name": "action"
         },
         {
@@ -397,6 +401,10 @@
         {
           "type": "SYMBOL",
           "name": "test_block"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "codebase_block"
         },
         {
           "type": "SYMBOL",
@@ -3871,6 +3879,110 @@
               {
                 "type": "SYMBOL",
                 "name": "object"
+              }
+            ]
+          }
+        },
+        {
+          "type": "STRING",
+          "value": "}"
+        }
+      ]
+    },
+    "codebase_block": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "codebase"
+            },
+            {
+              "type": "STRING",
+              "value": "module_map"
+            },
+            {
+              "type": "STRING",
+              "value": "dependency_graph"
+            },
+            {
+              "type": "STRING",
+              "value": "call_graph"
+            }
+          ]
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "string"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "identifier"
+              }
+            ]
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "trait_list"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": "{"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "property"
+                  },
+                  {
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "STRING",
+                        "value": ","
+                      },
+                      {
+                        "type": "BLANK"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "SYMBOL",
+                "name": "event_handler"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "object"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "spatial_group"
               }
             ]
           }

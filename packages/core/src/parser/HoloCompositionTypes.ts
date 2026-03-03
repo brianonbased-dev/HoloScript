@@ -1191,6 +1191,7 @@ export type HoloDomainType =
   | 'rendering'   // lod, render
   | 'navigation'  // navmesh, nav_agent, behavior_tree
   | 'input'       // input, interaction, gesture_profile
+  | 'codebase'  // codebase absorption: codebase, module_map, dependency_graph, call_graph
   | 'custom';  // any user-defined block keyword
 
 export interface HoloDomainBlock extends HoloNode {

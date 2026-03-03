@@ -10,6 +10,7 @@ import { graphTools } from './graph-tools';
 import { ideTools } from './ide-tools';
 import { brittneyLiteTools } from './brittney-lite';
 import { PluginManager } from './PluginManager';
+import { codebaseTools } from './codebase-tools';
 import {
   BrowserLaunchSchema,
   BrowserExecuteSchema,
@@ -525,6 +526,7 @@ export const tools: Tool[] = [
   ...textTo3DTools,
   ...browserControlTools,
   ...hololandTrainingTools,
+  ...codebaseTools,
   ...PluginManager.getTools(),
 ];
 

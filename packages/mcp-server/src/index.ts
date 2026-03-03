@@ -24,6 +24,7 @@ import { networkingTools, handleNetworkingTool } from './networking-tools';
 import { snapshotTools, handleSnapshotTool } from './snapshot-tools';
 import { monitoringTools, handleMonitoringTool } from './monitoring-tools';
 import { compilerTools, handleCompilerTool } from './compiler-tools';
+import { handleCodebaseTool } from './codebase-tools';
 
 // Create MCP server
 const server = new Server(
@@ -87,6 +88,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (monitoringResult !== null) {
       return {
         content: [{ type: 'text', text: JSON.stringify(monitoringResult, null, 2) }],
+      };
+    }
+
+    // Check Codebase Absorption tools
+    const codebaseResult = await handleCodebaseTool(name, args || {});
+    if (codebaseResult !== null) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify(codebaseResult, null, 2) }],
       };
     }
 

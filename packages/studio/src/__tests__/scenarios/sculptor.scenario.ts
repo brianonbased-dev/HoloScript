@@ -388,8 +388,17 @@ describe('Scenario: Sculptor — Material Authoring (shader graph → GLSL)', ()
 
     const result = translateGraphToWGSL(nodes, edges);
     expect(result.ok).toBe(true);
-    expect(result.wgsl).toContain('let albedo = vec3f(1.0, 1.0, 1.0)'); // Stub verification
-    expect(result.wgsl).toContain('let roughness = 0.5'); // Stub verification
+    // Resolved upstream constants are declared as variables
+    expect(result.wgsl).toContain('vec3f(1.0, 0.0, 0.0)');  // Albedo resolved from connected node
+    expect(result.wgsl).toContain('0.2');                     // Roughness resolved from connected node
+    expect(result.wgsl).toContain('0.8');                     // Metallic resolved from connected node
+    // PBR output references resolved variables
+    expect(result.wgsl).toContain('let albedo = var_albedo');
+    expect(result.wgsl).toContain('let roughness = var_roughness');
+    expect(result.wgsl).toContain('let metallic = var_metallic');
+    // PBR lighting model is assembled
+    expect(result.wgsl).toContain('Cook-Torrance');
+    expect(result.wgsl).toContain('Fresnel');
   });
 
   it('normal map bake — computes tangent-space norms in WGSL logic', () => {

@@ -1,92 +1,83 @@
-<!doctype html>
-<html>
-  <head>
-    <title>Visual Regression Report</title>
-    <style>
-      body {
-        font-family: sans-serif;
-        padding: 20px;
-      }
-      .test-case {
-        margin-bottom: 30px;
-        border-bottom: 1px solid #ccc;
-        padding-bottom: 20px;
-      }
-      .pass {
-        color: green;
-      }
-      .fail {
-        color: red;
-      }
-      .images {
-        display: flex;
-        gap: 10px;
-      }
-      .image-col {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      img {
-        max-width: 300px;
-        border: 1px solid #eee;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Visual Regression Report</h1>
-    <p>Total Tests: 3</p>
-    <p>Passed: <span class="pass">2</span></p>
-    <p>Failed: <span class="fail">1</span></p>
 
-    <div class="test-case">
-      <h2 class="pass">red-box</h2>
-      <p>Diff Pixels: 0</p>
-      <div class="images">
-        <div class="image-col">
-          <strong>Baseline</strong>
-          <img src="../baselines/red-box.png" />
-        </div>
-        <div class="image-col">
-          <strong>Actual</strong>
-          <img src="red-box_actual.png" />
-        </div>
-      </div>
-    </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Visual Regression Report</title>
+        <style>
+          body { font-family: sans-serif; padding: 20px; }
+          .test-case { margin-bottom: 30px; border-bottom: 1px solid #ccc; padding-bottom: 20px; }
+          .pass { color: green; }
+          .fail { color: red; }
+          .images { display: flex; gap: 10px; }
+          .image-col { display: flex; flex-direction: column; align-items: center; }
+          img { max-width: 300px; border: 1px solid #eee; }
+        </style>
+      </head>
+      <body>
+        <h1>Visual Regression Report</h1>
+        <p>Total Tests: 3</p>
+        <p>Passed: <span class="pass">1</span></p>
+        <p>Failed: <span class="fail">2</span></p>
 
-    <div class="test-case">
-      <h2 class="pass">red-box</h2>
-      <p>Diff Pixels: 0</p>
-      <div class="images">
-        <div class="image-col">
-          <strong>Baseline</strong>
-          <img src="../baselines/red-box.png" />
-        </div>
-        <div class="image-col">
-          <strong>Actual</strong>
-          <img src="red-box_actual.png" />
-        </div>
-      </div>
-    </div>
-
-    <div class="test-case">
-      <h2 class="fail">red-box</h2>
-      <p>Diff Pixels: 10000</p>
-      <div class="images">
-        <div class="image-col">
-          <strong>Baseline</strong>
-          <img src="../baselines/red-box.png" />
-        </div>
-        <div class="image-col">
-          <strong>Actual</strong>
-          <img src="red-box_actual.png" />
-        </div>
-
-        <div class="image-col">
-          <strong>Diff</strong>
-          <img src="red-box_diff.png" />
-        </div>
-      </div>
-    </div>
-  </body>
-</html>
+        
+          <div class="test-case">
+            <h2 class="pass">red-box</h2>
+            <p>Diff Pixels: 0</p>
+            <div class="images">
+              <div class="image-col">
+                <strong>Baseline</strong>
+                <img src="../baselines/red-box.png" />
+              </div>
+              <div class="image-col">
+                <strong>Actual</strong>
+                <img src="red-box_actual.png" />
+              </div>
+              
+            </div>
+          </div>
+        
+          <div class="test-case">
+            <h2 class="fail">red-box</h2>
+            <p>Diff Pixels: 0</p>
+            <div class="images">
+              <div class="image-col">
+                <strong>Baseline</strong>
+                <img src="../baselines/red-box.png" />
+              </div>
+              <div class="image-col">
+                <strong>Actual</strong>
+                <img src="red-box_actual.png" />
+              </div>
+              
+              <div class="image-col">
+                <strong>Diff</strong>
+                <img src="red-box_diff.png" />
+              </div>
+              
+            </div>
+          </div>
+        
+          <div class="test-case">
+            <h2 class="fail">red-box</h2>
+            <p>Diff Pixels: 0</p>
+            <div class="images">
+              <div class="image-col">
+                <strong>Baseline</strong>
+                <img src="../baselines/red-box.png" />
+              </div>
+              <div class="image-col">
+                <strong>Actual</strong>
+                <img src="red-box_actual.png" />
+              </div>
+              
+              <div class="image-col">
+                <strong>Diff</strong>
+                <img src="red-box_diff.png" />
+              </div>
+              
+            </div>
+          </div>
+        
+      </body>
+      </html>
+    

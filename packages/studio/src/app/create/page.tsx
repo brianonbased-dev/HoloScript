@@ -10,7 +10,7 @@ import { TraitPalette } from '@/components/inspector/TraitPalette';
 import { BrittneyChatPanel } from '@/components/ai/BrittneyChatPanel';
 import { AssetLibrary } from '@/components/assets/AssetLibrary';
 import { SplatCaptureWizard } from '@/components/assets/SplatCaptureWizard';
-import { useSceneStore, useEditorStore, useSceneGraphStore } from '@/lib/store';
+import { useSceneStore, useEditorStore, useSceneGraphStore, usePanelVisibilityStore } from '@/lib/store';
 import { useAssetStore } from '@/components/assets/useAssetStore';
 import { decodeSceneFromURL } from '@/lib/serializer';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
@@ -485,22 +485,34 @@ function ViewportToolbar({ profilerOpen, onToggleProfiler }: { profilerOpen: boo
 function AIPromptOverlay() {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false); // Changed from useAIStore
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Removed: const code = useSceneStore((s) => s.code);
-  // Removed: const status = useAIStore((s) => s.status);
-  // Removed: const generateFn = useAIStore((s) => s.addPrompt);
-  // Removed: const isGenerating = status === 'generating';
+  const code = useSceneStore((s) => s.code);
+  const setCode = useSceneStore((s) => s.setCode);
 
-  // Placeholder for actual generation logic
   const handleGenerate = async () => {
     setIsGenerating(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    console.log("Generating with prompt:", prompt);
-    setIsGenerating(false);
-    setOpen(false); // Close after generation
-    setPrompt(''); // Clear prompt
+    setError(null);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, existingCode: code || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.error || 'Generation failed');
+        return;
+      }
+      setCode(data.code);
+      setOpen(false);
+      setPrompt('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   if (!open) {
@@ -531,9 +543,14 @@ function AIPromptOverlay() {
         rows={2}
         className="mb-2 w-full resize-none rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-xs text-studio-text outline-none focus:border-studio-accent"
       />
+      {error && (
+        <div className="mb-2 rounded-lg border border-studio-error/30 bg-studio-error/10 px-3 py-1.5 text-[11px] text-studio-error">
+          {error}
+        </div>
+      )}
       <button
         disabled={isGenerating || !prompt.trim()}
-        onClick={handleGenerate} // Added onClick handler
+        onClick={handleGenerate}
         className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-studio-accent py-2 text-xs font-medium text-white transition hover:bg-studio-accent/80 disabled:opacity-40"
       >
         {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
@@ -564,63 +581,143 @@ export default function CreatePage() {
   const [bottomPanelH, setBottomPanelH] = useState(224);
   const [rightPanelW,  setRightPanelW]  = useState(288);
 
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(true);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [profilerOpen, setProfilerOpen] = useState(false);
-  const [shaderEditorOpen, setShaderEditorOpen] = useState(false);
-  const [timelineOpen, setTimelineOpen] = useState(false);
-  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
-  const [aiMaterialOpen, setAiMaterialOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [critiqueOpen, setCritiqueOpen] = useState(false);
-  const [assetPackOpen, setAssetPackOpen] = useState(false);
-  const [versionsOpen, setVersionsOpen] = useState(false);
-  const [replOpen, setReplOpen] = useState(false);
-  const [registryOpen, setRegistryOpen] = useState(false);
-  const [remoteOpen, setRemoteOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [generatorOpen, setGeneratorOpen] = useState(false);
+  // ── Panel visibility — centralised in panelVisibilityStore ────────────────
+  const paletteOpen = usePanelVisibilityStore((s) => s.paletteOpen);
+  const setPaletteOpen = usePanelVisibilityStore((s) => s.setPaletteOpen);
+  const chatOpen = usePanelVisibilityStore((s) => s.chatOpen);
+  const setChatOpen = usePanelVisibilityStore((s) => s.setChatOpen);
+  const toggleChatOpen = usePanelVisibilityStore((s) => s.toggleChatOpen);
+  const historyOpen = usePanelVisibilityStore((s) => s.historyOpen);
+  const setHistoryOpen = usePanelVisibilityStore((s) => s.setHistoryOpen);
+  const toggleHistoryOpen = usePanelVisibilityStore((s) => s.toggleHistoryOpen);
+  const profilerOpen = usePanelVisibilityStore((s) => s.profilerOpen);
+  const setProfilerOpen = usePanelVisibilityStore((s) => s.setProfilerOpen);
+  const toggleProfilerOpen = usePanelVisibilityStore((s) => s.toggleProfilerOpen);
+  const shaderEditorOpen = usePanelVisibilityStore((s) => s.shaderEditorOpen);
+  const setShaderEditorOpen = usePanelVisibilityStore((s) => s.setShaderEditorOpen);
+  const toggleShaderEditorOpen = usePanelVisibilityStore((s) => s.toggleShaderEditorOpen);
+  const timelineOpen = usePanelVisibilityStore((s) => s.timelineOpen);
+  const setTimelineOpen = usePanelVisibilityStore((s) => s.setTimelineOpen);
+  const toggleTimelineOpen = usePanelVisibilityStore((s) => s.toggleTimelineOpen);
+  const templatePickerOpen = usePanelVisibilityStore((s) => s.templatePickerOpen);
+  const setTemplatePickerOpen = usePanelVisibilityStore((s) => s.setTemplatePickerOpen);
+  const aiMaterialOpen = usePanelVisibilityStore((s) => s.aiMaterialOpen);
+  const setAiMaterialOpen = usePanelVisibilityStore((s) => s.setAiMaterialOpen);
+  const toggleAiMaterialOpen = usePanelVisibilityStore((s) => s.toggleAiMaterialOpen);
+  const shareOpen = usePanelVisibilityStore((s) => s.shareOpen);
+  const setShareOpen = usePanelVisibilityStore((s) => s.setShareOpen);
+  const toggleShareOpen = usePanelVisibilityStore((s) => s.toggleShareOpen);
+  const critiqueOpen = usePanelVisibilityStore((s) => s.critiqueOpen);
+  const setCritiqueOpen = usePanelVisibilityStore((s) => s.setCritiqueOpen);
+  const toggleCritiqueOpen = usePanelVisibilityStore((s) => s.toggleCritiqueOpen);
+  const assetPackOpen = usePanelVisibilityStore((s) => s.assetPackOpen);
+  const setAssetPackOpen = usePanelVisibilityStore((s) => s.setAssetPackOpen);
+  const toggleAssetPackOpen = usePanelVisibilityStore((s) => s.toggleAssetPackOpen);
+  const versionsOpen = usePanelVisibilityStore((s) => s.versionsOpen);
+  const setVersionsOpen = usePanelVisibilityStore((s) => s.setVersionsOpen);
+  const toggleVersionsOpen = usePanelVisibilityStore((s) => s.toggleVersionsOpen);
+  const replOpen = usePanelVisibilityStore((s) => s.replOpen);
+  const setReplOpen = usePanelVisibilityStore((s) => s.setReplOpen);
+  const toggleReplOpen = usePanelVisibilityStore((s) => s.toggleReplOpen);
+  const registryOpen = usePanelVisibilityStore((s) => s.registryOpen);
+  const setRegistryOpen = usePanelVisibilityStore((s) => s.setRegistryOpen);
+  const toggleRegistryOpen = usePanelVisibilityStore((s) => s.toggleRegistryOpen);
+  const remoteOpen = usePanelVisibilityStore((s) => s.remoteOpen);
+  const setRemoteOpen = usePanelVisibilityStore((s) => s.setRemoteOpen);
+  const toggleRemoteOpen = usePanelVisibilityStore((s) => s.toggleRemoteOpen);
+  const exportOpen = usePanelVisibilityStore((s) => s.exportOpen);
+  const setExportOpen = usePanelVisibilityStore((s) => s.setExportOpen);
+  const toggleExportOpen = usePanelVisibilityStore((s) => s.toggleExportOpen);
+  const generatorOpen = usePanelVisibilityStore((s) => s.generatorOpen);
+  const setGeneratorOpen = usePanelVisibilityStore((s) => s.setGeneratorOpen);
+  const toggleGeneratorOpen = usePanelVisibilityStore((s) => s.toggleGeneratorOpen);
+  const multiplayerOpen = usePanelVisibilityStore((s) => s.multiplayerOpen);
+  const setMultiplayerOpen = usePanelVisibilityStore((s) => s.setMultiplayerOpen);
+  const toggleMultiplayerOpen = usePanelVisibilityStore((s) => s.toggleMultiplayerOpen);
+  const debuggerOpen = usePanelVisibilityStore((s) => s.debuggerOpen);
+  const setDebuggerOpen = usePanelVisibilityStore((s) => s.setDebuggerOpen);
+  const toggleDebuggerOpen = usePanelVisibilityStore((s) => s.toggleDebuggerOpen);
+  const snapshotsOpen = usePanelVisibilityStore((s) => s.snapshotsOpen);
+  const setSnapshotsOpen = usePanelVisibilityStore((s) => s.setSnapshotsOpen);
+  const toggleSnapshotsOpen = usePanelVisibilityStore((s) => s.toggleSnapshotsOpen);
+  const assetLibOpen = usePanelVisibilityStore((s) => s.assetLibOpen);
+  const setAssetLibOpen = usePanelVisibilityStore((s) => s.setAssetLibOpen);
+  const toggleAssetLibOpen = usePanelVisibilityStore((s) => s.toggleAssetLibOpen);
+  const templateGalleryOpen = usePanelVisibilityStore((s) => s.templateGalleryOpen);
+  const setTemplateGalleryOpen = usePanelVisibilityStore((s) => s.setTemplateGalleryOpen);
+  const toggleTemplateGalleryOpen = usePanelVisibilityStore((s) => s.toggleTemplateGalleryOpen);
+  const minimapOpen = usePanelVisibilityStore((s) => s.minimapOpen);
+  const setMinimapOpen = usePanelVisibilityStore((s) => s.setMinimapOpen);
+  const toggleMinimapOpen = usePanelVisibilityStore((s) => s.toggleMinimapOpen);
+  const audioOpen = usePanelVisibilityStore((s) => s.audioOpen);
+  const setAudioOpen = usePanelVisibilityStore((s) => s.setAudioOpen);
+  const toggleAudioOpen = usePanelVisibilityStore((s) => s.toggleAudioOpen);
+  const exportV2Open = usePanelVisibilityStore((s) => s.exportV2Open);
+  const setExportV2Open = usePanelVisibilityStore((s) => s.setExportV2Open);
+  const toggleExportV2Open = usePanelVisibilityStore((s) => s.toggleExportV2Open);
+  const nodeGraphOpen = usePanelVisibilityStore((s) => s.nodeGraphOpen);
+  const setNodeGraphOpen = usePanelVisibilityStore((s) => s.setNodeGraphOpen);
+  const toggleNodeGraphOpen = usePanelVisibilityStore((s) => s.toggleNodeGraphOpen);
+  const keyframesOpen = usePanelVisibilityStore((s) => s.keyframesOpen);
+  const setKeyframesOpen = usePanelVisibilityStore((s) => s.setKeyframesOpen);
+  const toggleKeyframesOpen = usePanelVisibilityStore((s) => s.toggleKeyframesOpen);
+  const sceneSearchOpen = usePanelVisibilityStore((s) => s.sceneSearchOpen);
+  const setSceneSearchOpen = usePanelVisibilityStore((s) => s.setSceneSearchOpen);
+  const toggleSceneSearchOpen = usePanelVisibilityStore((s) => s.toggleSceneSearchOpen);
+  const particlesOpen = usePanelVisibilityStore((s) => s.particlesOpen);
+  const setParticlesOpen = usePanelVisibilityStore((s) => s.setParticlesOpen);
+  const toggleParticlesOpen = usePanelVisibilityStore((s) => s.toggleParticlesOpen);
+  const lodOpen = usePanelVisibilityStore((s) => s.lodOpen);
+  const setLodOpen = usePanelVisibilityStore((s) => s.setLodOpen);
+  const toggleLodOpen = usePanelVisibilityStore((s) => s.toggleLodOpen);
+  const consoleOpen = usePanelVisibilityStore((s) => s.consoleOpen);
+  const setConsoleOpen = usePanelVisibilityStore((s) => s.setConsoleOpen);
+  const toggleConsoleOpen = usePanelVisibilityStore((s) => s.toggleConsoleOpen);
+  const undoHistoryOpen = usePanelVisibilityStore((s) => s.undoHistoryOpen);
+  const setUndoHistoryOpen = usePanelVisibilityStore((s) => s.setUndoHistoryOpen);
+  const toggleUndoHistoryOpen = usePanelVisibilityStore((s) => s.toggleUndoHistoryOpen);
+  const outlinerOpen = usePanelVisibilityStore((s) => s.outlinerOpen);
+  const setOutlinerOpen = usePanelVisibilityStore((s) => s.setOutlinerOpen);
+  const toggleOutlinerOpen = usePanelVisibilityStore((s) => s.toggleOutlinerOpen);
+  const materialOpen = usePanelVisibilityStore((s) => s.materialOpen);
+  const setMaterialOpen = usePanelVisibilityStore((s) => s.setMaterialOpen);
+  const toggleMaterialOpen = usePanelVisibilityStore((s) => s.toggleMaterialOpen);
+  const physicsOpen = usePanelVisibilityStore((s) => s.physicsOpen);
+  const setPhysicsOpen = usePanelVisibilityStore((s) => s.setPhysicsOpen);
+  const togglePhysicsOpen = usePanelVisibilityStore((s) => s.togglePhysicsOpen);
+  const snapshotDiffOpen = usePanelVisibilityStore((s) => s.snapshotDiffOpen);
+  const setSnapshotDiffOpen = usePanelVisibilityStore((s) => s.setSnapshotDiffOpen);
+  const toggleSnapshotDiffOpen = usePanelVisibilityStore((s) => s.toggleSnapshotDiffOpen);
+  const audioVisualizerOpen = usePanelVisibilityStore((s) => s.audioVisualizerOpen);
+  const setAudioVisualizerOpen = usePanelVisibilityStore((s) => s.setAudioVisualizerOpen);
+  const toggleAudioVisualizerOpen = usePanelVisibilityStore((s) => s.toggleAudioVisualizerOpen);
+  const multiTransformOpen = usePanelVisibilityStore((s) => s.multiTransformOpen);
+  const setMultiTransformOpen = usePanelVisibilityStore((s) => s.setMultiTransformOpen);
+  const toggleMultiTransformOpen = usePanelVisibilityStore((s) => s.toggleMultiTransformOpen);
+  const environmentOpen = usePanelVisibilityStore((s) => s.environmentOpen);
+  const setEnvironmentOpen = usePanelVisibilityStore((s) => s.setEnvironmentOpen);
+  const toggleEnvironmentOpen = usePanelVisibilityStore((s) => s.toggleEnvironmentOpen);
+  const inspectorOpen = usePanelVisibilityStore((s) => s.inspectorOpen);
+  const setInspectorOpen = usePanelVisibilityStore((s) => s.setInspectorOpen);
+  const toggleInspectorOpen = usePanelVisibilityStore((s) => s.toggleInspectorOpen);
+  const hotkeyOpen = usePanelVisibilityStore((s) => s.hotkeyOpen);
+  const setHotkeyOpen = usePanelVisibilityStore((s) => s.setHotkeyOpen);
+  const toggleHotkeyOpen = usePanelVisibilityStore((s) => s.toggleHotkeyOpen);
+  const pluginsOpen = usePanelVisibilityStore((s) => s.pluginsOpen);
+  const setPluginsOpen = usePanelVisibilityStore((s) => s.setPluginsOpen);
+  const togglePluginsOpen = usePanelVisibilityStore((s) => s.togglePluginsOpen);
+  const sandboxedPluginsOpen = usePanelVisibilityStore((s) => s.sandboxedPluginsOpen);
+  const setSandboxedPluginsOpen = usePanelVisibilityStore((s) => s.setSandboxedPluginsOpen);
+  const toggleSandboxedPluginsOpen = usePanelVisibilityStore((s) => s.toggleSandboxedPluginsOpen);
+  const splatWizardOpen = usePanelVisibilityStore((s) => s.splatWizardOpen);
+  const setSplatWizardOpen = usePanelVisibilityStore((s) => s.setSplatWizardOpen);
+  const toggleExclusive = usePanelVisibilityStore((s) => s.toggleExclusive);
+
+  // Non-panel state (kept local — layout dimensions, left tab)
   const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph'>('scene');
-  const [multiplayerOpen, setMultiplayerOpen] = useState(false);
-  const [debuggerOpen, setDebuggerOpen] = useState(false);
-  const [snapshotsOpen, setSnapshotsOpen] = useState(false);
-  const [assetLibOpen, setAssetLibOpen] = useState(false);
-  // Sprint R
-  const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
-  const [minimapOpen, setMinimapOpen] = useState(true);
-  const [audioOpen, setAudioOpen] = useState(false);
-  const [exportV2Open, setExportV2Open] = useState(false);
-  // Sprint S
-  const [nodeGraphOpen, setNodeGraphOpen] = useState(false);
-  const [keyframesOpen, setKeyframesOpen] = useState(false);
-  const [sceneSearchOpen, setSceneSearchOpen] = useState(false);
-  // collabV2Open removed — V2 is now always-on (consolidated from V1+V2)
-  // Sprint T
-  const [particlesOpen, setParticlesOpen] = useState(false);
-  const [lodOpen, setLodOpen] = useState(false);
-  const [consoleOpen, setConsoleOpen] = useState(false);
-  const [undoHistoryOpen, setUndoHistoryOpen] = useState(false);
-  // Sprint U
-  const [outlinerOpen, setOutlinerOpen] = useState(false);
-  const [materialOpen, setMaterialOpen] = useState(false);
-  const [physicsOpen, setPhysicsOpen] = useState(false);
-  const [snapshotDiffOpen, setSnapshotDiffOpen] = useState(false);
-  // Sprint V (new additions only — shaderEditorOpen and critiqueOpen already declared above)
-  const [audioVisualizerOpen, setAudioVisualizerOpen] = useState(false);
-  const [multiTransformOpen, setMultiTransformOpen] = useState(false);
-  // Sprint W (assetPackOpen already declared above)
-  const [environmentOpen, setEnvironmentOpen] = useState(false);
-  // Sprint Z
-  const [inspectorOpen, setInspectorOpen] = useState(false);
-  const [hotkeyOpen, setHotkeyOpen] = useState(false);
-  const [pluginsOpen, setPluginsOpen] = useState(false);
-  // Sandboxed plugin host panel
-  const [sandboxedPluginsOpen, setSandboxedPluginsOpen] = useState(false);
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
-  const [splatWizardOpen, setSplatWizardOpen] = useState(false);
 
   useOllamaStatus();
 
@@ -774,7 +871,7 @@ export default function CreatePage() {
                 <SceneRenderer r3fTree={r3fTree} profilerOpen={profilerOpen} />
               </StudioErrorBoundary>
             )}
-            <ViewportToolbar profilerOpen={profilerOpen} onToggleProfiler={() => setProfilerOpen((v) => !v)} />
+            <ViewportToolbar profilerOpen={profilerOpen} onToggleProfiler={toggleProfilerOpen} />
             <AIPromptOverlay />
             <ProfilerOverlay active={profilerOpen} />
             <AssetDropOverlay />
@@ -1212,7 +1309,7 @@ export default function CreatePage() {
         <div className="studio-icon-rail flex shrink-0 flex-col items-center gap-1 overflow-y-auto border-l border-studio-border bg-[#1e1e2e] px-1.5 py-3">
           {/* Brittney toggle */}
           <button
-            onClick={() => setChatOpen((v) => !v)}
+            onClick={toggleChatOpen}
             title={chatOpen ? 'Hide Brittney' : 'Open Brittney'}
             className="text-studio-muted transition hover:text-studio-text"
           >
@@ -1220,7 +1317,7 @@ export default function CreatePage() {
           </button>
           {/* History toggle */}
           <button
-            onClick={() => setHistoryOpen((v) => !v)}
+            onClick={toggleHistoryOpen}
             title={historyOpen ? 'Hide History' : 'Show History'}
             className={`transition ${
               historyOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1230,7 +1327,7 @@ export default function CreatePage() {
           </button>
           {/* Timeline toggle */}
           <button
-            onClick={() => { setTimelineOpen((v) => !v); setShaderEditorOpen(false); }}
+            onClick={() => toggleExclusive('timeline', ['shaderEditor'])}
             title={timelineOpen ? 'Close Timeline' : 'Open Animation Timeline'}
             className={`transition ${
               timelineOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1240,7 +1337,7 @@ export default function CreatePage() {
           </button>
           {/* AI Material toggle */}
           <button
-            onClick={() => { setAiMaterialOpen((v) => !v); setShareOpen(false); }}
+            onClick={() => toggleExclusive('aiMaterial', ['share'])}
             title={aiMaterialOpen ? 'Close AI Materials' : 'AI Material Generator'}
             className={`transition ${
               aiMaterialOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1250,7 +1347,7 @@ export default function CreatePage() {
           </button>
           {/* Share toggle */}
           <button
-            onClick={() => { setShareOpen((v) => !v); setAiMaterialOpen(false); }}
+            onClick={() => toggleExclusive('share', ['aiMaterial'])}
             title={shareOpen ? 'Close Share' : 'Share Scene'}
             className={`transition ${
               shareOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1264,7 +1361,7 @@ export default function CreatePage() {
           </div>
           {/* AI Critique toggle */}
           <button
-            onClick={() => { setCritiqueOpen((v) => !v); setAssetPackOpen(false); }}
+            onClick={() => toggleExclusive('critique', ['assetPack'])}
             title={critiqueOpen ? 'Close Critique' : 'Scene Critique (AI)'}
             className={`transition ${
               critiqueOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1274,7 +1371,7 @@ export default function CreatePage() {
           </button>
           {/* Asset Pack toggle */}
           <button
-            onClick={() => { setAssetPackOpen((v) => !v); setCritiqueOpen(false); }}
+            onClick={() => toggleExclusive('assetPack', ['critique'])}
             title={assetPackOpen ? 'Close Asset Pack' : 'Import Asset Pack'}
             className={`transition ${
               assetPackOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1284,7 +1381,7 @@ export default function CreatePage() {
           </button>
           {/* Versions toggle */}
           <button
-            onClick={() => { setVersionsOpen((v) => !v); setReplOpen(false); }}
+            onClick={() => toggleExclusive('versions', ['repl'])}
             title={versionsOpen ? 'Close Versions' : 'Scene Version History'}
             className={`transition ${
               versionsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1294,7 +1391,7 @@ export default function CreatePage() {
           </button>
           {/* REPL toggle */}
           <button
-            onClick={() => { setReplOpen((v) => !v); setVersionsOpen(false); }}
+            onClick={() => toggleExclusive('repl', ['versions'])}
             title={replOpen ? 'Close REPL' : 'HoloScript REPL'}
             className={`transition ${
               replOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1304,7 +1401,7 @@ export default function CreatePage() {
           </button>
           {/* Registry toggle */}
           <button
-            onClick={() => { setRegistryOpen((v) => !v); setRemoteOpen(false); }}
+            onClick={() => toggleExclusive('registry', ['remote'])}
             title={registryOpen ? 'Close Registry' : 'Pack Registry'}
             className={`transition ${
               registryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1314,7 +1411,7 @@ export default function CreatePage() {
           </button>
           {/* Mobile Remote toggle */}
           <button
-            onClick={() => { setRemoteOpen((v) => !v); setRegistryOpen(false); }}
+            onClick={() => toggleExclusive('remote', ['registry'])}
             title={remoteOpen ? 'Close Remote' : 'Mobile Remote (QR)'}
             className={`transition ${
               remoteOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1324,7 +1421,7 @@ export default function CreatePage() {
           </button>
           {/* Export toggle */}
           <button
-            onClick={() => { setExportOpen((v) => !v); setGeneratorOpen(false); setProfilerOpen(false); }}
+            onClick={() => toggleExclusive('export', ['generator', 'profiler'])}
             title={exportOpen ? 'Close Export' : 'Export Scene'}
             className={`transition ${
               exportOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1334,7 +1431,7 @@ export default function CreatePage() {
           </button>
           {/* AI Generator toggle */}
           <button
-            onClick={() => { setGeneratorOpen((v) => !v); setExportOpen(false); setProfilerOpen(false); }}
+            onClick={() => toggleExclusive('generator', ['export', 'profiler'])}
             title={generatorOpen ? 'Close AI Generator' : 'AI Scene Generator'}
             className={`transition ${
               generatorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1344,7 +1441,7 @@ export default function CreatePage() {
           </button>
           {/* Profiler toggle */}
           <button
-            onClick={() => { setProfilerOpen((v) => !v); setExportOpen(false); setGeneratorOpen(false); }}
+            onClick={() => toggleExclusive('profiler', ['export', 'generator'])}
             title={profilerOpen ? 'Close Profiler' : 'Performance Profiler'}
             className={`transition ${
               profilerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'
@@ -1354,7 +1451,7 @@ export default function CreatePage() {
           </button>
           {/* Multiplayer toggle */}
           <button
-            onClick={() => { setMultiplayerOpen((v) => !v); setDebuggerOpen(false); setSnapshotsOpen(false); setAssetLibOpen(false); }}
+            onClick={() => toggleExclusive('multiplayer', ['debugger', 'snapshots', 'assetLib'])}
             title={multiplayerOpen ? 'Close Multiplayer' : 'Multiplayer Room'}
             className={`transition ${multiplayerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1362,7 +1459,7 @@ export default function CreatePage() {
           </button>
           {/* Debugger toggle */}
           <button
-            onClick={() => { setDebuggerOpen((v) => !v); setMultiplayerOpen(false); setSnapshotsOpen(false); setAssetLibOpen(false); }}
+            onClick={() => toggleExclusive('debugger', ['multiplayer', 'snapshots', 'assetLib'])}
             title={debuggerOpen ? 'Close Debugger' : 'HoloScript Debugger'}
             className={`transition ${debuggerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1370,7 +1467,7 @@ export default function CreatePage() {
           </button>
           {/* Snapshot Gallery toggle */}
           <button
-            onClick={() => { setSnapshotsOpen((v) => !v); setMultiplayerOpen(false); setDebuggerOpen(false); setAssetLibOpen(false); }}
+            onClick={() => toggleExclusive('snapshots', ['multiplayer', 'debugger', 'assetLib'])}
             title={snapshotsOpen ? 'Close Gallery' : 'Snapshot Gallery'}
             className={`transition ${snapshotsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1378,7 +1475,7 @@ export default function CreatePage() {
           </button>
           {/* Asset Library toggle */}
           <button
-            onClick={() => { setAssetLibOpen((v) => !v); setMultiplayerOpen(false); setDebuggerOpen(false); setSnapshotsOpen(false); }}
+            onClick={() => toggleExclusive('assetLib', ['multiplayer', 'debugger', 'snapshots'])}
             title={assetLibOpen ? 'Close Asset Library' : 'Asset Library v2'}
             className={`transition ${assetLibOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1386,7 +1483,7 @@ export default function CreatePage() {
           </button>
           {/* Templates gallery toggle */}
           <button
-            onClick={() => { setTemplateGalleryOpen((v) => !v); setAudioOpen(false); setExportV2Open(false); }}
+            onClick={() => toggleExclusive('templateGallery', ['audio', 'exportV2'])}
             title={templateGalleryOpen ? 'Close Templates' : 'Scene Templates v2'}
             className={`transition ${templateGalleryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1394,7 +1491,7 @@ export default function CreatePage() {
           </button>
           {/* Audio Traits toggle */}
           <button
-            onClick={() => { setAudioOpen((v) => !v); setTemplateGalleryOpen(false); setExportV2Open(false); }}
+            onClick={() => toggleExclusive('audio', ['templateGallery', 'exportV2'])}
             title={audioOpen ? 'Close Audio' : 'Audio Traits'}
             className={`transition ${audioOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1402,7 +1499,7 @@ export default function CreatePage() {
           </button>
           {/* Export Pipeline v2 toggle */}
           <button
-            onClick={() => { setExportV2Open((v) => !v); setTemplateGalleryOpen(false); setAudioOpen(false); }}
+            onClick={() => toggleExclusive('exportV2', ['templateGallery', 'audio'])}
             title={exportV2Open ? 'Close Export v2' : 'Export Pipeline v2'}
             className={`transition ${exportV2Open ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1410,7 +1507,7 @@ export default function CreatePage() {
           </button>
           {/* Minimap toggle */}
           <button
-            onClick={() => setMinimapOpen((v) => !v)}
+            onClick={toggleMinimapOpen}
             title={minimapOpen ? 'Hide Minimap' : 'Show Minimap'}
             className={`transition ${minimapOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1418,7 +1515,7 @@ export default function CreatePage() {
           </button>
           {/* Node Graph toggle */}
           <button
-            onClick={() => { setNodeGraphOpen((v) => !v); setKeyframesOpen(false); }}
+            onClick={() => toggleExclusive('nodeGraph', ['keyframes'])}
             title={nodeGraphOpen ? 'Close Node Graph' : 'Node Graph Editor'}
             className={`transition ${nodeGraphOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1426,7 +1523,7 @@ export default function CreatePage() {
           </button>
           {/* Keyframe Editor toggle */}
           <button
-            onClick={() => { setKeyframesOpen((v) => !v); setNodeGraphOpen(false); }}
+            onClick={() => toggleExclusive('keyframes', ['nodeGraph'])}
             title={keyframesOpen ? 'Close Keyframes' : 'Animation Keyframes'}
             className={`transition ${keyframesOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1434,7 +1531,7 @@ export default function CreatePage() {
           </button>
           {/* Scene Search toggle */}
           <button
-            onClick={() => setSceneSearchOpen((v) => !v)}
+            onClick={toggleSceneSearchOpen}
             title={sceneSearchOpen ? 'Close Scene Search' : 'Scene Search (Ctrl+F)'}
             className={`transition ${sceneSearchOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1442,7 +1539,7 @@ export default function CreatePage() {
           </button>
           {/* Particle Traits toggle */}
           <button
-            onClick={() => setParticlesOpen((v) => !v)}
+            onClick={toggleParticlesOpen}
             title={particlesOpen ? 'Close Particles' : 'Particle Traits'}
             className={`transition ${particlesOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1450,7 +1547,7 @@ export default function CreatePage() {
           </button>
           {/* LOD / Camera Culling toggle */}
           <button
-            onClick={() => setLodOpen((v) => !v)}
+            onClick={toggleLodOpen}
             title={lodOpen ? 'Close LOD' : 'LOD / Camera Culling'}
             className={`transition ${lodOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1458,7 +1555,7 @@ export default function CreatePage() {
           </button>
           {/* Script Console toggle */}
           <button
-            onClick={() => setConsoleOpen((v) => !v)}
+            onClick={toggleConsoleOpen}
             title={consoleOpen ? 'Close Console' : 'Script Console'}
             className={`transition ${consoleOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1466,7 +1563,7 @@ export default function CreatePage() {
           </button>
           {/* Undo History toggle */}
           <button
-            onClick={() => setUndoHistoryOpen((v) => !v)}
+            onClick={toggleUndoHistoryOpen}
             title={undoHistoryOpen ? 'Close History' : 'Undo History'}
             className={`transition ${undoHistoryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1474,7 +1571,7 @@ export default function CreatePage() {
           </button>
           {/* Scene Outliner toggle */}
           <button
-            onClick={() => setOutlinerOpen((v) => !v)}
+            onClick={toggleOutlinerOpen}
             title={outlinerOpen ? 'Close Outliner' : 'Scene Outliner'}
             className={`transition ${outlinerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1482,7 +1579,7 @@ export default function CreatePage() {
           </button>
           {/* Material Editor toggle */}
           <button
-            onClick={() => setMaterialOpen((v) => !v)}
+            onClick={toggleMaterialOpen}
             title={materialOpen ? 'Close Material Editor' : 'Material Editor'}
             className={`transition ${materialOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1490,7 +1587,7 @@ export default function CreatePage() {
           </button>
           {/* Physics Traits toggle */}
           <button
-            onClick={() => setPhysicsOpen((v) => !v)}
+            onClick={togglePhysicsOpen}
             title={physicsOpen ? 'Close Physics' : 'Physics Traits'}
             className={`transition ${physicsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1498,7 +1595,7 @@ export default function CreatePage() {
           </button>
           {/* Snapshot Diff toggle */}
           <button
-            onClick={() => setSnapshotDiffOpen((v) => !v)}
+            onClick={toggleSnapshotDiffOpen}
             title={snapshotDiffOpen ? 'Close Diff' : 'Snapshot Diff'}
             className={`transition ${snapshotDiffOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1506,7 +1603,7 @@ export default function CreatePage() {
           </button>
           {/* Audio Visualizer toggle */}
           <button
-            onClick={() => setAudioVisualizerOpen((v) => !v)}
+            onClick={toggleAudioVisualizerOpen}
             title={audioVisualizerOpen ? 'Close Audio Visualizer' : 'Audio Visualizer'}
             className={`transition ${audioVisualizerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1514,7 +1611,7 @@ export default function CreatePage() {
           </button>
           {/* Shader Editor toggle */}
           <button
-            onClick={() => setShaderEditorOpen((v) => !v)}
+            onClick={toggleShaderEditorOpen}
             title={shaderEditorOpen ? 'Close Shader Editor' : 'Shader Editor'}
             className={`transition ${shaderEditorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1522,7 +1619,7 @@ export default function CreatePage() {
           </button>
           {/* Multi-Object Transform toggle */}
           <button
-            onClick={() => setMultiTransformOpen((v) => !v)}
+            onClick={toggleMultiTransformOpen}
             title={multiTransformOpen ? 'Close Multi-Transform' : 'Multi-Object Transform'}
             className={`transition ${multiTransformOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1530,7 +1627,7 @@ export default function CreatePage() {
           </button>
           {/* Scene Critique toggle */}
           <button
-            onClick={() => setCritiqueOpen((v) => !v)}
+            onClick={toggleCritiqueOpen}
             title={critiqueOpen ? 'Close Critique' : 'Scene Critique'}
             className={`transition ${critiqueOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1538,7 +1635,7 @@ export default function CreatePage() {
           </button>
           {/* Environment Builder toggle */}
           <button
-            onClick={() => setEnvironmentOpen((v) => !v)}
+            onClick={toggleEnvironmentOpen}
             title={environmentOpen ? 'Close Environment' : 'Environment Builder'}
             className={`transition ${environmentOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1546,7 +1643,7 @@ export default function CreatePage() {
           </button>
           {/* Asset Pack Store toggle */}
           <button
-            onClick={() => setAssetPackOpen((v) => !v)}
+            onClick={toggleAssetPackOpen}
             title={assetPackOpen ? 'Close Store' : 'Asset Pack Store'}
             className={`transition ${assetPackOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1554,7 +1651,7 @@ export default function CreatePage() {
           </button>
           {/* Performance Profiler toggle */}
           <button
-            onClick={() => setProfilerOpen((v) => !v)}
+            onClick={toggleProfilerOpen}
             title={profilerOpen ? 'Close Profiler' : 'Performance Profiler'}
             className={`transition ${profilerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1562,7 +1659,7 @@ export default function CreatePage() {
           </button>
           {/* Version History toggle */}
           <button
-            onClick={() => setVersionsOpen((v) => !v)}
+            onClick={toggleVersionsOpen}
             title={versionsOpen ? 'Close History' : 'Version History'}
             className={`transition ${versionsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1570,7 +1667,7 @@ export default function CreatePage() {
           </button>
           {/* Trait Registry toggle */}
           <button
-            onClick={() => setRegistryOpen((v) => !v)}
+            onClick={toggleRegistryOpen}
             title={registryOpen ? 'Close Registry' : 'Trait Registry'}
             className={`transition ${registryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1578,7 +1675,7 @@ export default function CreatePage() {
           </button>
           {/* Remote Preview toggle */}
           <button
-            onClick={() => setRemoteOpen((v) => !v)}
+            onClick={toggleRemoteOpen}
             title={remoteOpen ? 'Close Remote' : 'Remote Preview'}
             className={`transition ${remoteOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1586,7 +1683,7 @@ export default function CreatePage() {
           </button>
           {/* Debugger toggle */}
           <button
-            onClick={() => setDebuggerOpen((v) => !v)}
+            onClick={toggleDebuggerOpen}
             title={debuggerOpen ? 'Close Debugger' : 'HoloScript Debugger'}
             className={`transition ${debuggerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1594,7 +1691,7 @@ export default function CreatePage() {
           </button>
           {/* Scene Generator toggle */}
           <button
-            onClick={() => setGeneratorOpen((v) => !v)}
+            onClick={toggleGeneratorOpen}
             title={generatorOpen ? 'Close Generator' : 'AI Scene Generator'}
             className={`transition ${generatorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1602,7 +1699,7 @@ export default function CreatePage() {
           </button>
           {/* Node Inspector toggle */}
           <button
-            onClick={() => setInspectorOpen((v) => !v)}
+            onClick={toggleInspectorOpen}
             title={inspectorOpen ? 'Close Inspector' : 'Node Inspector'}
             className={`transition ${inspectorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1610,7 +1707,7 @@ export default function CreatePage() {
           </button>
           {/* Plugin Marketplace toggle */}
           <button
-            onClick={() => setPluginsOpen((v) => !v)}
+            onClick={togglePluginsOpen}
             title={pluginsOpen ? 'Close Plugins' : 'Plugin Marketplace'}
             className={`transition ${pluginsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1618,7 +1715,7 @@ export default function CreatePage() {
           </button>
           {/* Sandboxed Plugins toggle */}
           <button
-            onClick={() => setSandboxedPluginsOpen((v) => !v)}
+            onClick={toggleSandboxedPluginsOpen}
             title={sandboxedPluginsOpen ? 'Close Sandboxed Plugins' : 'Sandboxed Plugins'}
             className={`transition ${sandboxedPluginsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >
@@ -1626,7 +1723,7 @@ export default function CreatePage() {
           </button>
           {/* Hotkey Map toggle */}
           <button
-            onClick={() => setHotkeyOpen((v) => !v)}
+            onClick={toggleHotkeyOpen}
             title="Keyboard Shortcuts (?)"
             className={`transition ${hotkeyOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
           >

@@ -24,6 +24,10 @@
         "named": true
       },
       {
+        "type": "codebase_block",
+        "named": true
+      },
+      {
         "type": "composition",
         "named": true
       },
@@ -951,6 +955,52 @@
     }
   },
   {
+    "type": "codebase_block",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "event_handler",
+          "named": true
+        },
+        {
+          "type": "object",
+          "named": true
+        },
+        {
+          "type": "property",
+          "named": true
+        },
+        {
+          "type": "spatial_group",
+          "named": true
+        },
+        {
+          "type": "trait_list",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "collider_block",
     "named": true,
     "fields": {
@@ -1067,6 +1117,10 @@
         },
         {
           "type": "camera",
+          "named": true
+        },
+        {
+          "type": "codebase_block",
           "named": true
         },
         {
@@ -4852,6 +4906,10 @@
     "named": false
   },
   {
+    "type": "call_graph",
+    "named": false
+  },
+  {
     "type": "camera",
     "named": false
   },
@@ -4897,6 +4955,10 @@
   },
   {
     "type": "clouds",
+    "named": false
+  },
+  {
+    "type": "codebase",
     "named": false
   },
   {
@@ -5026,6 +5088,10 @@
   },
   {
     "type": "default",
+    "named": false
+  },
+  {
+    "type": "dependency_graph",
     "named": false
   },
   {
@@ -5410,6 +5476,10 @@
   },
   {
     "type": "module",
+    "named": false
+  },
+  {
+    "type": "module_map",
     "named": false
   },
   {

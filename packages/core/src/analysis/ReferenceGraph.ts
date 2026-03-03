@@ -24,7 +24,20 @@ export type SymbolType =
   | 'parameter'
   | 'import'
   | 'export'
-  | 'composition';
+  | 'composition'
+  // External language symbols (codebase absorption)
+  | 'class'
+  | 'interface'
+  | 'enum'
+  | 'struct'
+  | 'trait'
+  | 'method'
+  | 'field'
+  | 'constant'
+  | 'type_alias'
+  | 'module'
+  | 'namespace'
+  | 'package';
 
 /**
  * Symbol definition

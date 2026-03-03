@@ -3,6 +3,9 @@
  *
  * Provides preview generation and sharing endpoints for HoloScript scenes.
  * Designed for X (Twitter) card previews and social sharing.
+ *
+ * Scene parsing uses @holoscript/core's HoloCompositionParser instead of
+ * regex-based extraction for accurate, full-fidelity scene understanding.
  */
 
 import express from 'express';
@@ -10,6 +13,7 @@ import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
 import QRCode from 'qrcode';
+import { parseHoloScriptCode } from './parseScene.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -102,7 +106,8 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     service: 'holoscript-render', 
-    version: '1.0.0',
+    version: '2.0.0',
+    parser: '@holoscript/core',
     cache: {
       scenes: scenes.size,
       maxScenes: MAX_SCENES,
@@ -161,6 +166,16 @@ app.get('/scene/:id/code', (req, res) => {
     return res.status(404).json({ error: 'Scene not found' });
   }
   res.type('text/plain').send(scene.code);
+});
+
+// Get parsed scene data (server-side compiled via @holoscript/core)
+app.get('/scene/:id/parsed', (req, res) => {
+  const scene = scenes.get(req.params.id);
+  if (!scene) {
+    return res.status(404).json({ error: 'Scene not found' });
+  }
+  const parsed = parseHoloScriptCode(scene.code);
+  res.json(parsed);
 });
 
 // Embeddable HTML with Twitter Card meta tags
@@ -307,7 +322,10 @@ function generateEmbedHTML(id, scene) {
 
 function generatePreviewHTML(id, scene) {
   const title = escapeHtml(scene.title);
-  const codeJson = JSON.stringify(scene.code);
+
+  // Parse HoloScript code server-side using @holoscript/core compiler
+  const parsed = parseHoloScriptCode(scene.code);
+  const sceneDataJson = JSON.stringify(parsed);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -333,67 +351,108 @@ function generatePreviewHTML(id, scene) {
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0a0f);
-    
+
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(5, 3, 5);
-    
+
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
-    
+
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.autoRotate = true;
     controls.enableDamping = true;
-    
+
     scene.add(new THREE.AmbientLight(0xffffff, 0.5));
     const dirLight = new THREE.DirectionalLight(0xffffff, 1);
     dirLight.position.set(5, 10, 5);
     scene.add(dirLight);
-    
-    const code = ${codeJson};
-    renderHoloScript(code, scene);
-    
-    function renderHoloScript(code, threeScene) {
-      const objectMatch = code.match(/geometry:\\s*["']?(\\w+)["']?/);
-      const colorMatch = code.match(/color:\\s*["']?(#?[\\w]+)["']?/);
-      const posMatch = code.match(/position:\\s*\\[([\\d.,\\s-]+)\\]/);
-      
-      const geometry = objectMatch ? objectMatch[1] : 'sphere';
-      const color = colorMatch ? colorMatch[1] : '#00ffff';
-      const pos = posMatch ? posMatch[1].split(',').map(n => parseFloat(n.trim())) : [0, 1, 0];
-      
-      let geo;
-      switch (geometry.toLowerCase()) {
-        case 'cube': case 'box': geo = new THREE.BoxGeometry(); break;
-        case 'cylinder': geo = new THREE.CylinderGeometry(); break;
-        case 'cone': geo = new THREE.ConeGeometry(); break;
-        case 'torus': geo = new THREE.TorusGeometry(); break;
-        default: geo = new THREE.SphereGeometry();
+
+    // Scene data parsed server-side by @holoscript/core compiler
+    const sceneData = ${sceneDataJson};
+    renderParsedScene(sceneData, scene);
+
+    /**
+     * Render pre-parsed scene objects into the Three.js scene.
+     * The parsing was done server-side by @holoscript/core's
+     * HoloCompositionParser, so geometry/color/position/traits
+     * are already extracted with full fidelity.
+     */
+    function renderParsedScene(sceneData, threeScene) {
+      if (!sceneData || !sceneData.objects || sceneData.objects.length === 0) {
+        // Fallback: render a default sphere if no objects were parsed
+        const geo = new THREE.SphereGeometry();
+        const mat = new THREE.MeshStandardMaterial({
+          color: '#00ffff',
+          emissive: '#00ffff',
+          emissiveIntensity: 0.3,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(0, 1, 0);
+        threeScene.add(mesh);
+      } else {
+        for (const obj of sceneData.objects) {
+          const geo = createGeometry(obj.geometry);
+          const matProps = {
+            color: obj.color || '#00ffff',
+            emissive: obj.color || '#00ffff',
+            emissiveIntensity: obj.emissiveIntensity || 0.3,
+          };
+          if (obj.metalness !== undefined) matProps.metalness = obj.metalness;
+          if (obj.roughness !== undefined) matProps.roughness = obj.roughness;
+          if (obj.opacity !== undefined) {
+            matProps.opacity = obj.opacity;
+            matProps.transparent = obj.opacity < 1;
+          }
+          if (obj.emissive) matProps.emissive = obj.emissive;
+
+          const mat = new THREE.MeshStandardMaterial(matProps);
+          const mesh = new THREE.Mesh(geo, mat);
+
+          const pos = obj.position || [0, 1, 0];
+          mesh.position.set(pos[0] || 0, pos[1] || 1, pos[2] || 0);
+
+          if (obj.rotation) {
+            mesh.rotation.set(obj.rotation[0] || 0, obj.rotation[1] || 0, obj.rotation[2] || 0);
+          }
+          if (obj.scale) {
+            mesh.scale.set(obj.scale[0] || 1, obj.scale[1] || 1, obj.scale[2] || 1);
+          }
+
+          threeScene.add(mesh);
+        }
       }
-      
-      const material = new THREE.MeshStandardMaterial({ 
-        color: color.startsWith('#') ? color : '#' + color,
-        emissive: color.startsWith('#') ? color : '#' + color,
-        emissiveIntensity: 0.3,
-      });
-      
-      const mesh = new THREE.Mesh(geo, material);
-      mesh.position.set(pos[0] || 0, pos[1] || 1, pos[2] || 0);
-      threeScene.add(mesh);
-      
+
       threeScene.add(new THREE.GridHelper(10, 10, 0x444444, 0x222222));
     }
-    
+
+    function createGeometry(type) {
+      switch ((type || 'sphere').toLowerCase()) {
+        case 'cube': case 'box': return new THREE.BoxGeometry();
+        case 'cylinder': return new THREE.CylinderGeometry();
+        case 'cone': return new THREE.ConeGeometry();
+        case 'torus': return new THREE.TorusGeometry();
+        case 'capsule': return new THREE.CapsuleGeometry();
+        case 'plane': return new THREE.PlaneGeometry();
+        case 'ring': return new THREE.RingGeometry();
+        case 'dodecahedron': return new THREE.DodecahedronGeometry();
+        case 'icosahedron': return new THREE.IcosahedronGeometry();
+        case 'octahedron': return new THREE.OctahedronGeometry();
+        case 'tetrahedron': return new THREE.TetrahedronGeometry();
+        default: return new THREE.SphereGeometry();
+      }
+    }
+
     function animate() {
       requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
     }
     animate();
-    
+
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
@@ -406,7 +465,10 @@ function generatePreviewHTML(id, scene) {
 
 function generateRenderHTML(id, scene) {
   const title = escapeHtml(scene.title);
-  const codeJson = JSON.stringify(scene.code);
+
+  // Parse HoloScript code server-side using @holoscript/core compiler
+  const parsed = parseHoloScriptCode(scene.code);
+  const sceneDataJson = JSON.stringify(parsed);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -436,30 +498,30 @@ function generateRenderHTML(id, scene) {
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { VRButton } from 'three/addons/webxr/VRButton.js';
-    
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0a0f);
-    
+
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(3, 2, 3);
-    
+
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
-    
+
     if ('xr' in navigator) {
       document.body.appendChild(VRButton.createButton(renderer));
     }
-    
+
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    
+
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
     const dirLight = new THREE.DirectionalLight(0xffffff, 1);
     dirLight.position.set(5, 10, 5);
     scene.add(dirLight);
-    
+
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(20, 20),
       new THREE.MeshStandardMaterial({ color: 0x111111 })
@@ -467,66 +529,86 @@ function generateRenderHTML(id, scene) {
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
     scene.add(new THREE.GridHelper(20, 20, 0x333333, 0x222222));
-    
-    const code = ${codeJson};
-    parseAndRender(code);
-    
-    function parseAndRender(code) {
-      const geometryRegex = /geometry:\\s*["']?(\\w+)["']?/;
-      const colorRegex = /color:\\s*["']?(#?[\\w]+)["']?/;
-      const posRegex = /position:\\s*\\[([\\d.,\\s-]+)\\]/;
-      
-      const geo = new THREE.SphereGeometry(0.5);
-      const mat = new THREE.MeshStandardMaterial({ 
-        color: 0x00ffff,
-        emissive: 0x00ffff,
-        emissiveIntensity: 0.2,
-        metalness: 0.3,
-        roughness: 0.7,
-      });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(0, 1, 0);
-      scene.add(mesh);
-      
-      const geoMatch = code.match(geometryRegex);
-      if (geoMatch) {
-        const geoType = geoMatch[1].toLowerCase();
-        let newGeo;
-        switch (geoType) {
-          case 'cube': case 'box': newGeo = new THREE.BoxGeometry(); break;
-          case 'cylinder': newGeo = new THREE.CylinderGeometry(0.5, 0.5, 1); break;
-          case 'cone': newGeo = new THREE.ConeGeometry(); break;
-          case 'torus': newGeo = new THREE.TorusGeometry(); break;
-          case 'capsule': newGeo = new THREE.CapsuleGeometry(); break;
-          case 'plane': newGeo = new THREE.PlaneGeometry(); break;
-          default: newGeo = new THREE.SphereGeometry();
+
+    // Scene data parsed server-side by @holoscript/core compiler
+    const sceneData = ${sceneDataJson};
+    renderParsedScene(sceneData);
+
+    /**
+     * Render pre-parsed scene objects into the Three.js scene.
+     * The parsing was done server-side by @holoscript/core's
+     * HoloCompositionParser, so all properties are pre-extracted.
+     */
+    function renderParsedScene(sceneData) {
+      if (!sceneData || !sceneData.objects || sceneData.objects.length === 0) {
+        // Fallback: render a default sphere if no objects were parsed
+        const geo = new THREE.SphereGeometry(0.5);
+        const mat = new THREE.MeshStandardMaterial({
+          color: 0x00ffff,
+          emissive: 0x00ffff,
+          emissiveIntensity: 0.2,
+          metalness: 0.3,
+          roughness: 0.7,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(0, 1, 0);
+        scene.add(mesh);
+        return;
+      }
+
+      for (const obj of sceneData.objects) {
+        const geo = createGeometry(obj.geometry);
+        const matProps = {
+          color: obj.color || '#00ffff',
+          emissive: obj.emissive || obj.color || '#00ffff',
+          emissiveIntensity: obj.emissiveIntensity || 0.2,
+          metalness: obj.metalness !== undefined ? obj.metalness : 0.3,
+          roughness: obj.roughness !== undefined ? obj.roughness : 0.7,
+        };
+        if (obj.opacity !== undefined) {
+          matProps.opacity = obj.opacity;
+          matProps.transparent = obj.opacity < 1;
         }
-        mesh.geometry = newGeo;
-      }
-      
-      const colorMatch = code.match(colorRegex);
-      if (colorMatch) {
-        const c = colorMatch[1].startsWith('#') ? colorMatch[1] : '#' + colorMatch[1];
-        mesh.material.color.set(c);
-        mesh.material.emissive.set(c);
-      }
-      
-      const posMatch = code.match(posRegex);
-      if (posMatch) {
-        const [x, y, z] = posMatch[1].split(',').map(n => parseFloat(n.trim()));
-        mesh.position.set(x || 0, y || 1, z || 0);
-      }
-      
-      if (code.includes('@glowing') || code.includes('@emissive')) {
-        mesh.material.emissiveIntensity = 0.5;
+
+        const mat = new THREE.MeshStandardMaterial(matProps);
+        const mesh = new THREE.Mesh(geo, mat);
+
+        const pos = obj.position || [0, 1, 0];
+        mesh.position.set(pos[0] || 0, pos[1] || 1, pos[2] || 0);
+
+        if (obj.rotation) {
+          mesh.rotation.set(obj.rotation[0] || 0, obj.rotation[1] || 0, obj.rotation[2] || 0);
+        }
+        if (obj.scale) {
+          mesh.scale.set(obj.scale[0] || 1, obj.scale[1] || 1, obj.scale[2] || 1);
+        }
+
+        scene.add(mesh);
       }
     }
-    
+
+    function createGeometry(type) {
+      switch ((type || 'sphere').toLowerCase()) {
+        case 'cube': case 'box': return new THREE.BoxGeometry();
+        case 'cylinder': return new THREE.CylinderGeometry(0.5, 0.5, 1);
+        case 'cone': return new THREE.ConeGeometry();
+        case 'torus': return new THREE.TorusGeometry();
+        case 'capsule': return new THREE.CapsuleGeometry();
+        case 'plane': return new THREE.PlaneGeometry();
+        case 'ring': return new THREE.RingGeometry();
+        case 'dodecahedron': return new THREE.DodecahedronGeometry();
+        case 'icosahedron': return new THREE.IcosahedronGeometry();
+        case 'octahedron': return new THREE.OctahedronGeometry();
+        case 'tetrahedron': return new THREE.TetrahedronGeometry();
+        default: return new THREE.SphereGeometry();
+      }
+    }
+
     renderer.setAnimationLoop(() => {
       controls.update();
       renderer.render(scene, camera);
     });
-    
+
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();

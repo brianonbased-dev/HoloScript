@@ -41,7 +41,8 @@ export type VRTraitName =
   | 'hidd'
   | 'seated'
   | 'eye_tracked'
-  | 'hitl';
+  | 'hitl'
+  | 'interactive_graph';
 
 // ============================================================================
 // Base AST Node (without directive reference to avoid circular dependency)

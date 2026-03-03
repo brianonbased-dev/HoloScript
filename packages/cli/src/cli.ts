@@ -2340,6 +2340,85 @@ async function main(): Promise<void> {
       break;
     }
 
+    case 'absorb': {
+      if (!options.input) {
+        console.error('\x1b[31mError: No input directory specified.\x1b[0m');
+        console.log('Usage: holoscript absorb <directory> [-o output.holo] [--layout force|layered] [--json]');
+        process.exit(1);
+      }
+
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const pkg = '@holoscript/core';
+        const { CodebaseScanner, CodebaseGraph, HoloEmitter } = await import(pkg + '/codebase');
+
+        const rootDir = path.resolve(options.input);
+        if (!fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) {
+          console.error(`\x1b[31mError: Not a directory: ${rootDir}\x1b[0m`);
+          process.exit(1);
+        }
+
+        console.log(`\n\x1b[36m🔍 Absorbing codebase: ${rootDir}\x1b[0m\n`);
+
+        // Scan
+        const scanner = new CodebaseScanner();
+        const scanStart = Date.now();
+        const scanResult = await scanner.scan({ rootDir });
+
+        console.log(`  \x1b[32m✓\x1b[0m Scanned ${scanResult.stats.totalFiles} files in ${Date.now() - scanStart}ms`);
+        console.log(`    Languages: ${Object.entries(scanResult.stats.filesByLanguage).map(([l, n]) => `${l}(${n})`).join(', ')}`);
+        console.log(`    Symbols: ${scanResult.stats.totalSymbols} | Imports: ${scanResult.stats.totalImports} | Calls: ${scanResult.stats.totalCalls}`);
+        console.log(`    LOC: ${scanResult.stats.totalLoc.toLocaleString()}`);
+
+        if (scanResult.stats.errors.length > 0) {
+          console.log(`    \x1b[33m⚠ ${scanResult.stats.errors.length} files had errors\x1b[0m`);
+        }
+
+        // Build graph
+        const graph = new CodebaseGraph();
+        graph.buildFromScanResult(scanResult);
+
+        // Detect communities
+        const communities = graph.detectCommunities();
+        console.log(`  \x1b[32m✓\x1b[0m Detected ${communities.size} module communities`);
+
+        if (options.json) {
+          // JSON output: serialized graph
+          const output = graph.serialize();
+          if (options.output) {
+            fs.writeFileSync(path.resolve(options.output), output);
+            console.log(`\n  \x1b[32m✓\x1b[0m Graph saved to ${options.output}`);
+          } else {
+            console.log(output);
+          }
+        } else {
+          // .holo output
+          const emitter = new HoloEmitter();
+          const layout = (options as any).layout === 'layered' ? 'layered' : 'force';
+          const holoSource = emitter.emit(graph, {
+            name: path.basename(rootDir),
+            layout: layout as 'force' | 'layered',
+          });
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            fs.writeFileSync(outputPath, holoSource);
+            console.log(`\n  \x1b[32m✓\x1b[0m Generated ${outputPath} (${holoSource.length.toLocaleString()} chars)`);
+          } else {
+            console.log('\n' + holoSource);
+          }
+        }
+
+        process.exit(0);
+      } catch (err: any) {
+        console.error(`\x1b[31mAbsorb error: ${err.message}\x1b[0m`);
+        if (err.stack) console.error(err.stack);
+        process.exit(1);
+      }
+      break;
+    }
+
     default:
       const cli = new HoloScriptCLI(options);
       const exitCode = await cli.run();
