@@ -319,7 +319,7 @@ MIT © HoloScript Team
 
 ## Resources
 
-- [Plugin Development Guide](https://holoscript.xyz/docs/plugins)
-- [API Documentation](https://holoscript.xyz/docs/plugins/api)
+- [Plugin Development Guide](https://holoscript.net/docs/plugins)
+- [API Documentation](https://holoscript.net/docs/plugins/api)
 - [Example Plugins](https://github.com/holoscript/plugins)
-- [Community Plugins](https://marketplace.holoscript.xyz)
+- [Community Plugins](https://marketplace.holoscript.net)

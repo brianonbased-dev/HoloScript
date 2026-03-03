@@ -99,7 +99,7 @@ Phase 3 transforms HoloScript Studio into a platform with:
 - `useCollections()` - Curated collections
 
 **API Integration:**
-- Base URL: `https://marketplace.holoscript.xyz/api`
+- Base URL: `https://marketplace.holoscript.net/api`
 - Endpoints: `/content/*` (universal, not `/templates/*`)
 - Auth: Bearer token in `Authorization` header
 - Pagination: `page` + `limit` parameters
@@ -408,7 +408,7 @@ npx create-holoscript-plugin my-plugin --template=panel
 
 ### 4.1 Real-Time Sync (Week 15-16)
 - Yjs integration for CRDT
-- WebSocket provider (wss://collab.holoscript.xyz)
+- WebSocket provider (wss://collab.holoscript.net)
 - Conflict resolution
 
 ### 4.2 Collaboration UI (Week 17-18)
