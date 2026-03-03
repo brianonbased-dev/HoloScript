@@ -7,6 +7,21 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Mock persistence module before importing the trait
+vi.mock('../RenderJobPersistence', () => ({
+  JobQueuePersistence: class {
+    async init() {}
+    async loadState() { return null; }
+    async loadActiveJobs() { return []; }
+    async loadCompletedJobs() { return []; }
+    async saveJob() {}
+    async saveState() {}
+    async moveToCompleted() {}
+    close() {}
+  },
+}));
+
 import { renderNetworkHandler } from '../RenderNetworkTrait';
 
 // =============================================================================
@@ -33,9 +48,9 @@ function makeContext() {
 }
 
 /** Attach without triggering the async API connection */
-function attachLocal(node: any, ctx: ReturnType<typeof makeContext>) {
+async function attachLocal(node: any, ctx: ReturnType<typeof makeContext>) {
   const localConfig = makeConfig({ api_key: '' });
-  renderNetworkHandler.onAttach(node, localConfig, ctx);
+  await renderNetworkHandler.onAttach(node, localConfig, ctx);
   return localConfig;
 }
 
@@ -56,11 +71,28 @@ function setConnectedState(node: any, credits?: Partial<any>) {
   };
 }
 
+/** Mock fetch to handle selectOptimalRegion (4 region pings) + auth call */
+function setupConnectionMocks(authResponse: any) {
+  let callCount = 0;
+  mockFetch.mockImplementation(() => {
+    callCount++;
+    if (callCount <= 4) {
+      // Region pings
+      return Promise.resolve({ ok: true });
+    }
+    // Auth/validation call
+    if (authResponse instanceof Error) {
+      return Promise.reject(authResponse);
+    }
+    return Promise.resolve(authResponse);
+  });
+}
+
 // =============================================================================
 // TESTS
 // =============================================================================
 
-describe('RenderNetworkTrait — v3.3 Production', () => {
+describe('RenderNetworkTrait \u2014 v3.3 Production', () => {
   let node: any;
   let config: ReturnType<typeof makeConfig>;
   let ctx: ReturnType<typeof makeContext>;
@@ -81,8 +113,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
   // ======== CONSTRUCTION & DEFAULTS ========
 
   describe('construction & defaults', () => {
-    it('initializes state on attach without api_key', () => {
-      attachLocal(node, ctx);
+    it('initializes state on attach without api_key', async () => {
+      await attachLocal(node, ctx);
       const state = (node as any).__renderNetworkState;
 
       expect(state).toBeDefined();
@@ -95,17 +127,14 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
       expect(state.availableNodes).toBe(0);
     });
 
-    it('stores api_key when provided', () => {
-      mockFetch.mockResolvedValueOnce({
+    it('stores api_key when provided', async () => {
+      setupConnectionMocks({
         ok: true,
-        json: () =>
-          Promise.resolve({
-            available_nodes: 10,
-            credits: { balance: 50 },
-          }),
+        json: () => Promise.resolve({ available_nodes: 10, credits: { balance: 50 } }),
       });
-      renderNetworkHandler.onAttach(node, config, ctx);
+      await renderNetworkHandler.onAttach(node, config, ctx);
       expect((node as any).__renderNetworkState.apiKey).toBe('rndr_test_key');
+      mockFetch.mockReset();
     });
 
     it('has sensible default config', () => {
@@ -127,26 +156,29 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
       expect(renderNetworkHandler.name).toBe('render_network');
     });
 
-    it('calls fetch to authenticate when api_key is set', () => {
-      mockFetch.mockResolvedValueOnce({
+    it('calls fetch to authenticate when api_key is set', async () => {
+      setupConnectionMocks({
         ok: true,
         json: () => Promise.resolve({ available_nodes: 5, credits: {} }),
       });
-      renderNetworkHandler.onAttach(node, config, ctx);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.rendernetwork.com/v2/auth/validate',
-        expect.objectContaining({
-          method: 'GET',
-          headers: expect.objectContaining({
-            Authorization: 'Bearer rndr_test_key',
-          }),
-        })
-      );
+      await renderNetworkHandler.onAttach(node, config, ctx);
+      // connectToRenderNetwork is fire-and-forget; wait for it to finish
+      await vi.waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          'https://api.rendernetwork.com/v2/auth/validate',
+          expect.objectContaining({
+            method: 'GET',
+            headers: expect.objectContaining({
+              Authorization: 'Bearer rndr_test_key',
+            }),
+          })
+        );
+      });
+      mockFetch.mockReset();
     });
 
-    it('does NOT call fetch when api_key is empty', () => {
-      attachLocal(node, ctx);
+    it('does NOT call fetch when api_key is empty', async () => {
+      await attachLocal(node, ctx);
       expect(mockFetch).not.toHaveBeenCalled();
     });
   });
@@ -155,7 +187,7 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
 
   describe('async connection', () => {
     it('sets connected state on success', async () => {
-      mockFetch.mockResolvedValueOnce({
+      setupConnectionMocks({
         ok: true,
         json: () =>
           Promise.resolve({
@@ -165,8 +197,9 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
           }),
       });
 
-      renderNetworkHandler.onAttach(node, config, ctx);
+      await renderNetworkHandler.onAttach(node, config, ctx);
 
+      // connectToRenderNetwork is fire-and-forget; wait for it to finish
       await vi.waitFor(() => {
         const state = (node as any).__renderNetworkState;
         expect(state.isConnected).toBe(true);
@@ -178,28 +211,32 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
       expect(state.estimatedWaitTime).toBe(5000);
       expect(state.credits.balance).toBe(100);
       expect(state.credits.pending).toBe(5);
+      mockFetch.mockReset();
     });
 
     it('emits render_network_connected', async () => {
-      mockFetch.mockResolvedValueOnce({
+      setupConnectionMocks({
         ok: true,
         json: () => Promise.resolve({ available_nodes: 10, credits: { balance: 50 } }),
       });
 
-      renderNetworkHandler.onAttach(node, config, ctx);
+      await renderNetworkHandler.onAttach(node, config, ctx);
 
+      // connectToRenderNetwork is fire-and-forget; wait for it to finish
       await vi.waitFor(() => {
         expect(ctx.emit).toHaveBeenCalledWith(
           'render_network_connected',
           expect.objectContaining({ node, availableNodes: 10 })
         );
       });
+      mockFetch.mockReset();
     });
 
     it('emits render_network_error on failure', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
-      renderNetworkHandler.onAttach(node, config, ctx);
+      setupConnectionMocks(new Error('Connection refused'));
+      await renderNetworkHandler.onAttach(node, config, ctx);
 
+      // connectToRenderNetwork is fire-and-forget; wait for it to finish
       await vi.waitFor(() => {
         expect(ctx.emit).toHaveBeenCalledWith(
           'render_network_error',
@@ -210,12 +247,20 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
       });
 
       expect((node as any).__renderNetworkState.networkStatus).toBe('offline');
+      mockFetch.mockReset();
     });
 
     it('emits error on HTTP non-OK response', async () => {
-      mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
-      renderNetworkHandler.onAttach(node, config, ctx);
+      // First 4 calls (region pings) succeed, auth fails with 401
+      let callCount = 0;
+      mockFetch.mockImplementation(() => {
+        callCount++;
+        if (callCount <= 4) return Promise.resolve({ ok: true }); // region pings
+        return Promise.resolve({ ok: false, status: 401 }); // auth fail
+      });
+      await renderNetworkHandler.onAttach(node, config, ctx);
 
+      // connectToRenderNetwork is fire-and-forget; wait for it to finish
       await vi.waitFor(() => {
         expect(ctx.emit).toHaveBeenCalledWith(
           'render_network_error',
@@ -224,14 +269,15 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
           })
         );
       });
+      mockFetch.mockReset();
     });
   });
 
   // ======== DETACH ========
 
   describe('detach', () => {
-    it('emits disconnect when connected', () => {
-      attachLocal(node, ctx);
+    it('emits disconnect when connected', async () => {
+      await attachLocal(node, ctx);
       setConnectedState(node);
 
       renderNetworkHandler.onDetach!(node, config, ctx);
@@ -242,8 +288,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
       expect((node as any).__renderNetworkState).toBeUndefined();
     });
 
-    it('does not emit disconnect when not connected', () => {
-      attachLocal(node, ctx);
+    it('does not emit disconnect when not connected', async () => {
+      await attachLocal(node, ctx);
       renderNetworkHandler.onDetach!(node, config, ctx);
       expect(ctx.emit).not.toHaveBeenCalledWith('render_network_disconnect', expect.anything());
     });
@@ -252,8 +298,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
   // ======== JOB SUBMISSION ========
 
   describe('render job submission', () => {
-    it('emits render_job_submitted with correct estimates', () => {
-      attachLocal(node, ctx);
+    it('emits render_job_submitted with correct estimates', async () => {
+      await attachLocal(node, ctx);
       setConnectedState(node);
 
       const lc = makeConfig({ api_key: '', max_credits_per_job: 500 });
@@ -272,26 +318,29 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
         },
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith(
-        'render_job_submitted',
-        expect.objectContaining({
-          node,
-          job: expect.objectContaining({
-            status: 'queued',
-            quality: 'production',
-            engine: 'octane',
-            frames: { total: 10, completed: 0, failed: 0 },
-            estimatedCredits: 20, // production = 2.0 credits × 10 frames × 1.0 scale
-          }),
-        })
-      );
+      // Wait for async submitRenderJob to emit
+      await vi.waitFor(() => {
+        expect(ctx.emit).toHaveBeenCalledWith(
+          'render_job_submitted',
+          expect.objectContaining({
+            node,
+            job: expect.objectContaining({
+              status: 'queued',
+              quality: 'production',
+              engine: 'octane',
+              frames: { total: 10, completed: 0, failed: 0 },
+              estimatedCredits: 20, // production = 2.0 credits x 10 frames x 1.0 scale
+            }),
+          })
+        );
+      });
 
       const state = (node as any).__renderNetworkState;
       expect(state.activeJobs).toHaveLength(1);
     });
 
-    it('uses config defaults for missing params', () => {
-      attachLocal(node, ctx);
+    it('uses config defaults for missing params', async () => {
+      await attachLocal(node, ctx);
       setConnectedState(node);
 
       const lc = makeConfig({
@@ -308,20 +357,22 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
         payload: { scene: {} },
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith(
-        'render_job_submitted',
-        expect.objectContaining({
-          job: expect.objectContaining({
-            quality: 'draft',
-            engine: 'blender',
-            priority: 'high',
-          }),
-        })
-      );
+      await vi.waitFor(() => {
+        expect(ctx.emit).toHaveBeenCalledWith(
+          'render_job_submitted',
+          expect.objectContaining({
+            job: expect.objectContaining({
+              quality: 'draft',
+              engine: 'blender',
+              priority: 'high',
+            }),
+          })
+        );
+      });
     });
 
-    it('rejects job exceeding max_credits_per_job', () => {
-      attachLocal(node, ctx);
+    it('rejects job exceeding max_credits_per_job', async () => {
+      await attachLocal(node, ctx);
       setConnectedState(node);
 
       const lc = makeConfig({ api_key: '', max_credits_per_job: 10 });
@@ -335,21 +386,23 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
         },
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith(
-        'render_job_rejected',
-        expect.objectContaining({
-          reason: 'exceeds_max_credits',
-          estimated: 100,
-          max: 10,
-        })
-      );
+      await vi.waitFor(() => {
+        expect(ctx.emit).toHaveBeenCalledWith(
+          'render_job_rejected',
+          expect.objectContaining({
+            reason: 'exceeds_max_credits',
+            estimated: 100,
+            max: 10,
+          })
+        );
+      });
 
       const state = (node as any).__renderNetworkState;
       expect(state.activeJobs).toHaveLength(0);
     });
 
-    it('calculates nodeCount based on frame count', () => {
-      attachLocal(node, ctx);
+    it('calculates nodeCount based on frame count', async () => {
+      await attachLocal(node, ctx);
       setConnectedState(node);
       const lc = makeConfig({ api_key: '', max_credits_per_job: 0 });
       mockFetch.mockRejectedValueOnce(new Error('offline'));
@@ -363,14 +416,16 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
         },
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith(
-        'render_job_submitted',
-        expect.objectContaining({
-          job: expect.objectContaining({
-            nodeCount: 3, // ceil(25/10)
-          }),
-        })
-      );
+      await vi.waitFor(() => {
+        expect(ctx.emit).toHaveBeenCalledWith(
+          'render_job_submitted',
+          expect.objectContaining({
+            job: expect.objectContaining({
+              nodeCount: 3, // ceil(25/10)
+            }),
+          })
+        );
+      });
     });
   });
 
@@ -385,8 +440,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
     ];
 
     creditCases.forEach(({ quality, frames, scale, expected }) => {
-      it(`estimates ${expected} credits for ${quality}×${frames} frames at ${scale}x`, () => {
-        attachLocal(node, ctx);
+      it(`estimates ${expected} credits for ${quality}\u00d7${frames} frames at ${scale}x`, async () => {
+        await attachLocal(node, ctx);
         setConnectedState(node);
 
         const lc = makeConfig({
@@ -405,12 +460,14 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
           },
         });
 
-        expect(ctx.emit).toHaveBeenCalledWith(
-          'render_job_submitted',
-          expect.objectContaining({
-            job: expect.objectContaining({ estimatedCredits: expected }),
-          })
-        );
+        await vi.waitFor(() => {
+          expect(ctx.emit).toHaveBeenCalledWith(
+            'render_job_submitted',
+            expect.objectContaining({
+              job: expect.objectContaining({ estimatedCredits: expected }),
+            })
+          );
+        });
       });
     });
   });
@@ -418,8 +475,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
   // ======== VOLUMETRIC ========
 
   describe('volumetric processing', () => {
-    it('submits volumetric job when enabled', () => {
-      const lc = attachLocal(node, ctx);
+    it('submits volumetric job when enabled', async () => {
+      await attachLocal(node, ctx);
       const volConfig = makeConfig({ api_key: '', volumetric_enabled: true });
 
       renderNetworkHandler.onEvent!(node, volConfig, ctx, {
@@ -430,26 +487,28 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
         },
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith(
-        'volumetric_job_submitted',
-        expect.objectContaining({
-          node,
-          source: 'https://storage.example.com/capture.mp4',
-          format: 'webm',
-          job: expect.objectContaining({
-            quality: 'production',
-            estimatedCredits: 5.0,
-          }),
-        })
-      );
+      await vi.waitFor(() => {
+        expect(ctx.emit).toHaveBeenCalledWith(
+          'volumetric_job_submitted',
+          expect.objectContaining({
+            node,
+            source: 'https://storage.example.com/capture.mp4',
+            format: 'webm',
+            job: expect.objectContaining({
+              quality: 'production',
+              estimatedCredits: 5.0,
+            }),
+          })
+        );
+      });
 
       const state = (node as any).__renderNetworkState;
       expect(state.activeJobs).toHaveLength(1);
       expect(state.activeJobs[0].id).toMatch(/^vol_/);
     });
 
-    it('ignores volumetric_process when disabled', () => {
-      attachLocal(node, ctx);
+    it('ignores volumetric_process when disabled', async () => {
+      await attachLocal(node, ctx);
       const noVolConfig = makeConfig({ api_key: '', volumetric_enabled: false });
 
       renderNetworkHandler.onEvent!(node, noVolConfig, ctx, {
@@ -464,8 +523,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
   // ======== SPLAT BAKING ========
 
   describe('splat baking', () => {
-    it('submits splat bake job with quality-based credits', () => {
-      attachLocal(node, ctx);
+    it('submits splat bake job with quality-based credits', async () => {
+      await attachLocal(node, ctx);
       const splatConfig = makeConfig({ api_key: '', splat_baking_enabled: true });
 
       renderNetworkHandler.onEvent!(node, splatConfig, ctx, {
@@ -477,17 +536,19 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
         },
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith(
-        'splat_bake_submitted',
-        expect.objectContaining({
-          node,
-          source: 'https://storage.example.com/pointcloud.ply',
-          targetSplatCount: 500000,
-          job: expect.objectContaining({
-            estimatedCredits: 3.0, // high = 3.0
-          }),
-        })
-      );
+      await vi.waitFor(() => {
+        expect(ctx.emit).toHaveBeenCalledWith(
+          'splat_bake_submitted',
+          expect.objectContaining({
+            node,
+            source: 'https://storage.example.com/pointcloud.ply',
+            targetSplatCount: 500000,
+            job: expect.objectContaining({
+              estimatedCredits: 3.0, // high = 3.0
+            }),
+          })
+        );
+      });
 
       const state = (node as any).__renderNetworkState;
       expect(state.activeJobs[0].id).toMatch(/^splat_/);
@@ -500,8 +561,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
     ];
 
     splatCreditCases.forEach(({ quality, credits }) => {
-      it(`estimates ${credits} credits for ${quality} splat bake`, () => {
-        attachLocal(node, ctx);
+      it(`estimates ${credits} credits for ${quality} splat bake`, async () => {
+        await attachLocal(node, ctx);
         const sc = makeConfig({ api_key: '', splat_baking_enabled: true });
 
         renderNetworkHandler.onEvent!(node, sc, ctx, {
@@ -509,17 +570,19 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
           payload: { source: 'test.ply', targetSplatCount: 100, quality },
         });
 
-        expect(ctx.emit).toHaveBeenCalledWith(
-          'splat_bake_submitted',
-          expect.objectContaining({
-            job: expect.objectContaining({ estimatedCredits: credits }),
-          })
-        );
+        await vi.waitFor(() => {
+          expect(ctx.emit).toHaveBeenCalledWith(
+            'splat_bake_submitted',
+            expect.objectContaining({
+              job: expect.objectContaining({ estimatedCredits: credits }),
+            })
+          );
+        });
       });
     });
 
-    it('ignores splat_bake when disabled', () => {
-      attachLocal(node, ctx);
+    it('ignores splat_bake when disabled', async () => {
+      await attachLocal(node, ctx);
       const noSplatConfig = makeConfig({ api_key: '', splat_baking_enabled: false });
 
       renderNetworkHandler.onEvent!(node, noSplatConfig, ctx, {
@@ -534,8 +597,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
   // ======== CANCELLATION ========
 
   describe('cancellation', () => {
-    it('cancels an active job', () => {
-      attachLocal(node, ctx);
+    it('cancels an active job', async () => {
+      await attachLocal(node, ctx);
       setConnectedState(node);
 
       const state = (node as any).__renderNetworkState;
@@ -562,8 +625,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
       );
     });
 
-    it('does nothing for unknown job ID', () => {
-      attachLocal(node, ctx);
+    it('does nothing for unknown job ID', async () => {
+      await attachLocal(node, ctx);
       renderNetworkHandler.onEvent!(node, config, ctx, {
         type: 'render_cancel',
         payload: { jobId: 'nonexistent' },
@@ -575,8 +638,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
   // ======== DOWNLOAD ========
 
   describe('download', () => {
-    it('emits render_download_ready for completed job', () => {
-      attachLocal(node, ctx);
+    it('emits render_download_ready for completed job', async () => {
+      await attachLocal(node, ctx);
       const state = (node as any).__renderNetworkState;
       state.completedJobs.push({
         id: 'rndr_done',
@@ -609,8 +672,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
       );
     });
 
-    it('does not emit for unknown job', () => {
-      attachLocal(node, ctx);
+    it('does not emit for unknown job', async () => {
+      await attachLocal(node, ctx);
       renderNetworkHandler.onEvent!(node, config, ctx, {
         type: 'render_download',
         payload: { jobId: 'nope' },
@@ -618,8 +681,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
       expect(ctx.emit).not.toHaveBeenCalledWith('render_download_ready', expect.anything());
     });
 
-    it('does not emit for out-of-range outputIndex', () => {
-      attachLocal(node, ctx);
+    it('does not emit for out-of-range outputIndex', async () => {
+      await attachLocal(node, ctx);
       const state = (node as any).__renderNetworkState;
       state.completedJobs.push({
         id: 'rndr_done2',
@@ -638,7 +701,7 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
 
   describe('credits refresh', () => {
     it('refreshes credits via API', async () => {
-      attachLocal(node, ctx);
+      await attachLocal(node, ctx);
       setConnectedState(node);
 
       const creditConfig = makeConfig({ api_key: 'rndr_test_key' });
@@ -673,8 +736,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
   // ======== UPDATE LIFECYCLE ========
 
   describe('update lifecycle', () => {
-    it('skips when not connected', () => {
-      attachLocal(node, ctx);
+    it('skips when not connected', async () => {
+      await attachLocal(node, ctx);
       renderNetworkHandler.onUpdate!(node, config, ctx, 16);
       // No errors, no emissions
     });
@@ -696,8 +759,8 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
       expect(ctx.emit).not.toHaveBeenCalled();
     });
 
-    it('default frames default to {start:0, end:0}', () => {
-      attachLocal(node, ctx);
+    it('default frames default to {start:0, end:0}', async () => {
+      await attachLocal(node, ctx);
       setConnectedState(node);
       const lc = makeConfig({ api_key: '', max_credits_per_job: 0 });
       mockFetch.mockRejectedValueOnce(new Error('offline'));
@@ -707,14 +770,16 @@ describe('RenderNetworkTrait — v3.3 Production', () => {
         payload: { scene: {} },
       });
 
-      expect(ctx.emit).toHaveBeenCalledWith(
-        'render_job_submitted',
-        expect.objectContaining({
-          job: expect.objectContaining({
-            frames: { total: 1, completed: 0, failed: 0 },
-          }),
-        })
-      );
+      await vi.waitFor(() => {
+        expect(ctx.emit).toHaveBeenCalledWith(
+          'render_job_submitted',
+          expect.objectContaining({
+            job: expect.objectContaining({
+              frames: { total: 1, completed: 0, failed: 0 },
+            }),
+          })
+        );
+      });
     });
   });
 });
