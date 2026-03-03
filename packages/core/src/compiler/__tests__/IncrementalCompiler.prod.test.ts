@@ -4,9 +4,18 @@
  * Tests public API only: diff(), compile(), cache management,
  * state snapshots, dependency graph, stats, serialize/deserialize.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi} from 'vitest';
 import { IncrementalCompiler } from '../IncrementalCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 // ─── Helpers ────────────────────────────────────────────────────────
 function makeObj(name: string, props: Array<{ key: string; value: unknown }> = [], traits: unknown[] = []): HoloObjectDecl {
@@ -111,11 +120,11 @@ describe('IncrementalCompiler — Production', () => {
   });
 
   // ─── Stats ────────────────────────────────────────────────────────
-  it('getStats reports cache and dependency info', () => {
+  it('getStats reports cache and dependency info', async () => {
     const ic = new IncrementalCompiler();
     ic.setCached('A', 'h', 'code', []);
     ic.updateDependencies('B', ['A']);
-    const stats = ic.getStats();
+    const stats = await ic.getStats();
     expect(stats.cacheSize).toBe(1);
     expect(stats.objectsCached).toContain('A');
     expect(stats.dependencyEdges).toBe(1);
@@ -134,11 +143,11 @@ describe('IncrementalCompiler — Production', () => {
   });
 
   // ─── Compile ──────────────────────────────────────────────────────
-  it('compile invokes compileObject for each object', () => {
+  it('compile invokes compileObject for each object', async () => {
     const ic = new IncrementalCompiler();
     const ast = makeComp('Scene', [makeObj('A'), makeObj('B')]);
     const compiled: string[] = [];
-    const result = ic.compile(ast, (obj) => {
+    const result = await ic.compile(ast, (obj) => {
       compiled.push(obj.name);
       return `code_${obj.name}`;
     });

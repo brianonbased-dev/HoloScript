@@ -1,6 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi} from 'vitest';
 import { IncrementalCompiler } from '../IncrementalCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
 
 /**
  * Build a minimal HoloComposition.
@@ -115,28 +124,28 @@ describe('IncrementalCompiler', () => {
 
   // =========== compile (incremental) ===========
 
-  it('compile results in full recompile on first call', () => {
+  it('compile results in full recompile on first call', async () => {
     const comp = makeComposition('Scene', [makeObject('Box')]);
-    const result = compiler.compile(comp, compileObject);
+    const result = await compiler.compile(comp, compileObject);
     expect(result.fullRecompile).toBe(true);
     expect(result.recompiledObjects).toContain('Box');
     expect(typeof result.compiledCode).toBe('string');
     expect(result.compiledCode).toContain('compiled:Box');
   });
 
-  it('incremental compile detects cached objects', () => {
+  it('incremental compile detects cached objects', async () => {
     const comp1 = makeComposition('Scene', [
       makeObject('Box', [{ key: 'size', value: 1 }]),
       makeObject('Sphere'),
     ]);
-    compiler.compile(comp1, compileObject);
+    await compiler.compile(comp1, compileObject);
 
     // Second compile with only Box changed
     const comp2 = makeComposition('Scene', [
       makeObject('Box', [{ key: 'size', value: 2 }]),
       makeObject('Sphere'),
     ]);
-    const result = compiler.compile(comp2, compileObject);
+    const result = await compiler.compile(comp2, compileObject);
     expect(result.fullRecompile).toBe(false);
     expect(result.cachedObjects).toContain('Sphere');
     expect(result.recompiledObjects).toContain('Box');
@@ -162,9 +171,9 @@ describe('IncrementalCompiler', () => {
 
   // =========== serialization ===========
 
-  it('serialize/deserialize roundtrip', () => {
+  it('serialize/deserialize roundtrip', async () => {
     const comp = makeComposition('Scene', [makeObject('A'), makeObject('B')]);
-    compiler.compile(comp, compileObject);
+    await compiler.compile(comp, compileObject);
 
     const json = compiler.serialize();
     expect(typeof json).toBe('string');
@@ -186,11 +195,11 @@ describe('IncrementalCompiler', () => {
 
   // =========== forceRecompile option ===========
 
-  it('force recompile bypasses cache', () => {
+  it('force recompile bypasses cache', async () => {
     const comp = makeComposition('Scene', [makeObject('A')]);
-    compiler.compile(comp, compileObject);
+    await compiler.compile(comp, compileObject);
 
-    const result = compiler.compile(comp, compileObject, { forceRecompile: ['A'] });
+    const result = await compiler.compile(comp, compileObject, { forceRecompile: ['A'] });
     expect(result.recompiledObjects).toContain('A');
   });
 });
