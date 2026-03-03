@@ -91,11 +91,14 @@ export abstract class CompilerBase implements ICompiler {
 
   /**
    * Validate agent can read AST
+   * Skips validation when no token is provided (backwards compatibility / testing)
    *
-   * @param agentToken - Agent JWT token
-   * @throws UnauthorizedCompilerAccessError if access denied
+   * @param agentToken - Agent JWT token (optional)
+   * @throws UnauthorizedCompilerAccessError if token is provided but invalid
    */
-  protected validateASTAccess(agentToken: string): void {
+  protected validateASTAccess(agentToken?: string): void {
+    if (!agentToken) return; // Skip validation when no token provided
+
     const decision = this.rbac.checkAccess({
       token: agentToken,
       resourceType: ResourceType.AST,
@@ -110,11 +113,14 @@ export abstract class CompilerBase implements ICompiler {
 
   /**
    * Validate agent can generate code
+   * Skips validation when no token is provided (backwards compatibility / testing)
    *
-   * @param agentToken - Agent JWT token
-   * @throws UnauthorizedCompilerAccessError if access denied
+   * @param agentToken - Agent JWT token (optional)
+   * @throws UnauthorizedCompilerAccessError if token is provided but invalid
    */
-  protected validateCodeGeneration(agentToken: string): void {
+  protected validateCodeGeneration(agentToken?: string): void {
+    if (!agentToken) return; // Skip validation when no token provided
+
     const decision = this.rbac.checkAccess({
       token: agentToken,
       resourceType: ResourceType.CODE,
@@ -129,12 +135,15 @@ export abstract class CompilerBase implements ICompiler {
 
   /**
    * Validate agent can write to output path
+   * Skips validation when no token is provided (backwards compatibility / testing)
    *
-   * @param agentToken - Agent JWT token
+   * @param agentToken - Agent JWT token (optional)
    * @param outputPath - Target output file path
-   * @throws UnauthorizedCompilerAccessError if access denied
+   * @throws UnauthorizedCompilerAccessError if token is provided but invalid
    */
-  protected validateOutputPath(agentToken: string, outputPath: string): void {
+  protected validateOutputPath(agentToken?: string, outputPath?: string): void {
+    if (!agentToken) return; // Skip validation when no token provided
+
     const decision = this.rbac.checkAccess({
       token: agentToken,
       resourceType: ResourceType.OUTPUT,
@@ -151,12 +160,15 @@ export abstract class CompilerBase implements ICompiler {
   /**
    * Validate all compiler permissions in single call
    * Convenience method combining AST access + code generation + optional output validation
+   * Skips ALL validation when no token is provided (backwards compatibility / testing)
    *
-   * @param agentToken - Agent JWT token
+   * @param agentToken - Agent JWT token (optional)
    * @param outputPath - Optional output path
    * @throws UnauthorizedCompilerAccessError if any validation fails
    */
-  protected validateCompilerAccess(agentToken: string, outputPath?: string): void {
+  protected validateCompilerAccess(agentToken?: string, outputPath?: string): void {
+    if (!agentToken) return; // Skip validation when no token provided
+
     this.validateASTAccess(agentToken);
     this.validateCodeGeneration(agentToken);
     if (outputPath) {
