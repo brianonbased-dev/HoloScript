@@ -5,7 +5,24 @@ import { StatCard } from './StatCard';
 import { RevenueChart } from './RevenueChart';
 import { AnalyticsPanel } from './AnalyticsPanel';
 import { NFTGallery } from './NFTGallery';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, Brain, Bot, Puzzle, Package, Layers, Star, Download, DollarSign } from 'lucide-react';
+import type { ContentTypeStats } from '../hooks/useCreatorStats';
+
+const CONTENT_TYPE_ICONS: Record<string, typeof Brain> = {
+  scene: Layers,
+  skill: Brain,
+  agent_config: Bot,
+  trait: Puzzle,
+  plugin: Package,
+};
+
+const CONTENT_TYPE_COLORS: Record<string, string> = {
+  scene: 'bg-indigo-500/20 text-indigo-400',
+  skill: 'bg-amber-500/20 text-amber-400',
+  agent_config: 'bg-cyan-500/20 text-cyan-400',
+  trait: 'bg-emerald-500/20 text-emerald-400',
+  plugin: 'bg-rose-500/20 text-rose-400',
+};
 
 export interface CreatorDashboardProps {
   address?: string;
@@ -49,9 +66,9 @@ export function CreatorDashboard({ address, refetchInterval }: CreatorDashboardP
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Film3D Creator Dashboard</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Creator Dashboard</h1>
             <p className="text-gray-400">
-              Track your NFT sales, royalties, and analytics
+              Track sales, content performance, and marketplace analytics
             </p>
           </div>
           <button
@@ -65,8 +82,8 @@ export function CreatorDashboard({ address, refetchInterval }: CreatorDashboardP
           </button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {/* Stats Grid — includes both NFT + content metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
           <StatCard
             title="Total Sales"
             value={stats?.totalSales || 0}
@@ -75,7 +92,7 @@ export function CreatorDashboard({ address, refetchInterval }: CreatorDashboardP
             loading={loading}
           />
           <StatCard
-            title="Royalties Earned"
+            title="Royalties"
             value={stats?.royaltiesEarned || 0}
             format="usd"
             trend={8.3}
@@ -95,20 +112,84 @@ export function CreatorDashboard({ address, refetchInterval }: CreatorDashboardP
             loading={loading}
           />
           <StatCard
-            title="Avg Sale Price"
-            value={stats?.averageSalePrice || 0}
-            format="eth"
-            trend={-2.1}
+            title="Content Items"
+            value={stats?.totalContent || 0}
+            format="number"
             loading={loading}
           />
           <StatCard
-            title="Collectors"
-            value={stats?.collectors || 0}
+            title="Published"
+            value={stats?.totalPublished || 0}
             format="number"
-            trend={15.7}
+            loading={loading}
+          />
+          <StatCard
+            title="Downloads"
+            value={stats?.totalDownloads || 0}
+            format="number"
+            trend={22.1}
+            loading={loading}
+          />
+          <StatCard
+            title="Content Rev"
+            value={(stats?.totalContentRevenue || 0) / 100}
+            format="usd"
+            trend={15.0}
             loading={loading}
           />
         </div>
+
+        {/* Content Overview by Type */}
+        {stats?.contentByType && stats.contentByType.length > 0 && !loading && (
+          <div className="rounded-xl border border-gray-700/50 bg-gray-800/50 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-700/50 px-5 py-3">
+              <h2 className="text-sm font-semibold text-white">Marketplace Content</h2>
+              <span className="text-xs text-gray-500">
+                {stats.totalPublished} of {stats.totalContent} published
+              </span>
+            </div>
+            <div className="divide-y divide-gray-700/30">
+              {stats.contentByType.map((ct: ContentTypeStats) => {
+                const Icon = CONTENT_TYPE_ICONS[ct.type] || Package;
+                const colorClass = CONTENT_TYPE_COLORS[ct.type] || 'bg-gray-500/20 text-gray-400';
+
+                return (
+                  <div key={ct.type} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-700/20 transition">
+                    {/* Icon + Label */}
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${colorClass}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-white">{ct.label}</span>
+                      <span className="ml-2 text-xs text-gray-500">
+                        {ct.count} items · {ct.published} live
+                      </span>
+                    </div>
+
+                    {/* Downloads */}
+                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                      <Download className="h-3 w-3" />
+                      {ct.downloads.toLocaleString()}
+                    </div>
+
+                    {/* Revenue */}
+                    <div className="flex items-center gap-1 text-xs text-emerald-400 w-20 justify-end">
+                      <DollarSign className="h-3 w-3" />
+                      {(ct.revenue / 100).toFixed(2)}
+                    </div>
+
+                    {/* Rating */}
+                    <div className="flex items-center gap-1 text-xs text-amber-400 w-16 justify-end">
+                      <Star className="h-3 w-3 fill-amber-400" />
+                      {ct.rating.toFixed(1)}
+                      <span className="text-gray-500">({ct.ratingCount})</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Revenue Chart */}
         <RevenueChart data={stats?.revenueOverTime || []} loading={loading} />

@@ -22,7 +22,22 @@ export interface RevenueDataPoint {
   total: number;
 }
 
+/**
+ * Per-content-type analytics
+ */
+export interface ContentTypeStats {
+  type: string;
+  label: string;
+  count: number;
+  published: number;
+  downloads: number;
+  revenue: number;       // USD cents
+  rating: number;
+  ratingCount: number;
+}
+
 export interface CreatorStats {
+  // Existing NFT stats
   totalSales: number;
   royaltiesEarned: number;
   nftsMinted: number;
@@ -43,6 +58,13 @@ export interface CreatorStats {
     thirtyDays: number;
     allTime: number;
   };
+
+  // Multi-content analytics
+  contentByType: ContentTypeStats[];
+  totalContent: number;
+  totalPublished: number;
+  totalDownloads: number;
+  totalContentRevenue: number;  // across all content types (USD cents)
 }
 
 // Mock data generator for development
@@ -76,6 +98,19 @@ const generateMockStats = (address: string): CreatorStats => {
   const totalSales = mockNFTs.reduce((sum, nft) => sum + nft.price * nft.salesCount, 0);
   const royaltiesEarned = mockNFTs.reduce((sum, nft) => sum + nft.royaltiesEarned, 0);
 
+  // Multi-content mock data
+  const contentByType: ContentTypeStats[] = [
+    { type: 'scene', label: 'Scenes', count: 8, published: 5, downloads: 342, revenue: 4999, rating: 4.3, ratingCount: 28 },
+    { type: 'skill', label: 'AI Skills', count: 3, published: 2, downloads: 127, revenue: 2999, rating: 4.7, ratingCount: 12 },
+    { type: 'agent_config', label: 'Agent Configs', count: 2, published: 1, downloads: 45, revenue: 999, rating: 4.5, ratingCount: 5 },
+    { type: 'trait', label: 'Traits', count: 5, published: 3, downloads: 89, revenue: 1499, rating: 4.1, ratingCount: 9 },
+    { type: 'plugin', label: 'Plugins', count: 1, published: 1, downloads: 67, revenue: 0, rating: 4.8, ratingCount: 3 },
+  ];
+  const totalContent = contentByType.reduce((s, c) => s + c.count, 0);
+  const totalPublished = contentByType.reduce((s, c) => s + c.published, 0);
+  const totalDownloads = contentByType.reduce((s, c) => s + c.downloads, 0);
+  const totalContentRevenue = contentByType.reduce((s, c) => s + c.revenue, 0);
+
   return {
     totalSales,
     royaltiesEarned,
@@ -97,6 +132,11 @@ const generateMockStats = (address: string): CreatorStats => {
       thirtyDays: 0.12,
       allTime: 0.1,
     },
+    contentByType,
+    totalContent,
+    totalPublished,
+    totalDownloads,
+    totalContentRevenue,
   };
 };
 

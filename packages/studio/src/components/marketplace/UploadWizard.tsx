@@ -306,13 +306,35 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
                     className="w-full rounded-lg border border-studio-border bg-studio-surface px-3 py-2 text-sm text-studio-text outline-none focus:border-studio-accent"
                   >
                     <option value="">Select category</option>
-                    <option value="ai-workflows">AI Workflows</option>
-                    <option value="3d-scenes">3D Scenes</option>
-                    <option value="characters">Characters</option>
-                    <option value="visual-programming">Visual Programming</option>
-                    <option value="audio">Audio</option>
-                    <option value="vr-ar">VR/AR</option>
-                    <option value="utilities">Utilities</option>
+                    <optgroup label="AI Skills & Configs">
+                      <option value="ai-skills">AI Skills</option>
+                      <option value="agent-configs">Agent Configs</option>
+                      <option value="mcp-bundles">MCP Bundles</option>
+                    </optgroup>
+                    <optgroup label="AI Orchestration">
+                      <option value="ai-workflows">AI Workflows</option>
+                      <option value="behavior-trees">Behavior Trees</option>
+                    </optgroup>
+                    <optgroup label="3D Content">
+                      <option value="scenes">3D Scenes</option>
+                      <option value="characters">Characters</option>
+                      <option value="models">3D Models</option>
+                      <option value="materials">Materials</option>
+                    </optgroup>
+                    <optgroup label="Media">
+                      <option value="animations">Animations</option>
+                      <option value="audio">Audio</option>
+                      <option value="music">Music</option>
+                    </optgroup>
+                    <optgroup label="XR">
+                      <option value="vr-environments">VR Environments</option>
+                      <option value="ar-experiences">AR Experiences</option>
+                    </optgroup>
+                    <optgroup label="Development">
+                      <option value="plugins">Plugins</option>
+                      <option value="scripts">Scripts</option>
+                      <option value="presets">Presets</option>
+                    </optgroup>
                   </select>
                 </div>
 
