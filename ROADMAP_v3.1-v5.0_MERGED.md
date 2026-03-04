@@ -578,7 +578,7 @@ See [`IMMUTABILITY_MANIFESTO.md`](IMMUTABILITY_MANIFESTO.md) for the full legal 
 - [x] Revenue split: 92/8 (remains best in market)
 - [x] **"Instant Remix"** feature: one-click fork any world → new URL
 - [x] AI moderation stack: OpenAI Moderation API (free) + Hive + Secur3D; $8.5M Year 1 budget (17% of revenue)
-- [ ] Discovery system: algorithmic + editorial curation
+- [x] Discovery system: algorithmic + editorial curation
 - [x] Mobile web optimization (battery/thermal benchmarks)
 
 #### Month 10–12: Public Launch (10,000 Creators, 100,000 Players) ✅ COMPLETE (March 2026)
