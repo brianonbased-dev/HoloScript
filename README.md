@@ -1,10 +1,11 @@
 # HoloScript v5.0.0
 
-## The Commons-Based Meta-Framework for Spatial Computing
+## The Open Platform for Spatial Computing
 
-> **Three languages. One platform. 25+ compile targets. 8 industry domains.** Write spatial experiences with a complete stack: scene graph + core language + TypeScript for XR.
+> **3 languages. 25+ compile targets. 48 packages. AI agent runtime. Visual studio.**
+> Describe a dragon in 200 primitives. Compile it to Unity, Unreal, VRChat, WebGPU, ROS 2, or visionOS — from the same source.
 
-HoloScript is a complete spatial computing stack: **three specialized file formats + runtime execution + multi-target compiler**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) (our VR social platform) to prove it works—now you can build your own.
+HoloScript is a complete spatial computing stack: **three specialized file formats** (`.holo` scene graph, `.hs` agent logic, `.hsplus` typed modules) + **runtime execution** + **multi-target compiler** + **AI studio** + **autonomous agent ecosystem**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) to prove it works — now you can build your own.
 
 **Even playing field**: Hololand uses the same public APIs as everyone else. No privileged access, no lock-in.
 
@@ -264,12 +265,13 @@ Write **one** HoloScript file. Compile to:
 - **Specialized**: Robotics (URDF/SDF), IoT (DTDL), Healthcare, Education, Music, Architecture, Web3
 
 ### 4. Feature-Rich
-- ✅ **1,800+ VR Traits** - `@grabbable`, `@physics`, `@ai_agent`, `@teleport`
-- ✅ **600+ Visual Traits** - PBR materials, procedural textures, mood lighting
-- ✅ **AI-Native** - Built for LLMs, real-time generation via MCP tools (Brittney agent)
-- ✅ **8 Industry Domains** - IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
-- ✅ **Simulation Layer** - Materials, particles, post-processing, weather, procedural terrain, navigation, physics
-- ✅ **Production-Ready** - WebGPU rendering, CRDT state, resilience patterns, 45 packages
+- ✅ **1,800+ Semantic Traits** — `@grabbable`, `@physics`, `@ai_agent`, `@teleport`, `@protein_visualization`
+- ✅ **600+ Visual Traits** — PBR materials, procedural textures, mood lighting, Gaussian splatting
+- ✅ **AI-Native** — 43+ MCP tools, Brittney agent, scene generation from natural language
+- ✅ **Autonomous Agents** — Cross-scene messaging, economic primitives, self-improving feedback loops
+- ✅ **8 Industry Domains** — IoT, Robotics, DataViz, Education, Healthcare, Music, Architecture, Web3
+- ✅ **Simulation Layer** — PBR materials, particles, post-processing, weather, procedural terrain, navigation, physics
+- ✅ **Production-Ready** — WebGPU rendering, CRDT state, resilience patterns, 48 packages
 
 ---
 
@@ -337,11 +339,12 @@ narrative "Tutorial" {
 
 ## 🛠️ Tooling
 
-- **HoloScript Studio** - AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
-- **Plugin System** - Sandboxed plugin API with PluginLoader, ModRegistry, and permission-based asset/event access.
-- **VS Code Extension** - Syntax highlighting and trait IntelliSense.
-- **MCP Server** - Give your AI agents the power to build spatial worlds (Default Orchestrator Port: `5567`). **[Full guide →](./docs/MCP_SERVER_GUIDE.md)**
-- **HoloScript CLI** - Parse, validate, and compile from your terminal.
+- **`holoscript absorb`** — Scan any codebase (TypeScript, Python, Rust, Go), extract symbols, build a knowledge graph, and generate a `.holo` composition for spatial visualization. Then query it with Graph RAG: `"what calls X?"`, `"trace call chain from A to B"`.
+- **HoloScript Studio** — AI-powered 3D scene builder with templates (Enchanted Forest, Space Station, Art Gallery, Zen Garden, Neon City).
+- **MCP Server (43+ tools)** — Parse, validate, compile, generate, review, and debug HoloScript from any AI agent (Claude, Cursor, Copilot). **[Full guide →](./docs/MCP_SERVER_GUIDE.md)**
+- **VS Code Extension** — Syntax highlighting, trait IntelliSense, debugger, collaborative editing, semantic diff.
+- **Plugin System** — Sandboxed plugin API with PluginLoader, ModRegistry, and permission-based asset/event access.
+- **HoloScript CLI** — Parse, validate, compile, absorb, and preview from your terminal.
 
 ### Companion Repositories
 
@@ -418,7 +421,7 @@ composition "Robot Arm" {
 
 ## 🏗️ Build Your Own Platform
 
-HoloScript is a **meta-framework**—the foundation for building spatial computing platforms.
+HoloScript is not just a language — it's an **open platform**: the foundation for building spatial computing products.
 
 ### Reference Implementation: Hololand
 [Hololand](https://github.com/brianonbased-dev/Hololand) is a VR social platform ("Roblox for VR") built entirely on HoloScript:

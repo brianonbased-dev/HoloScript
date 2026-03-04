@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   title: 'HoloScript',
   description:
-    'Open-source programming language compiling to 25+ targets — Unity, Unreal, Godot, visionOS, robotics, IoT, and more',
+    'Open spatial computing platform — 3 languages, 25+ compile targets, AI agent runtime, visual studio, and 48 packages',
 
   // Ignore dead links in excluded dev notes and cross-repo references
   ignoreDeadLinks: true,
@@ -64,7 +64,7 @@ export default defineConfig({
       {
         property: 'og:description',
         content:
-          'Open-source programming language for VR, AR, robotics, IoT, and digital twins. 1,800+ semantic trait annotations. 25+ compilation targets. One source, every platform.',
+          'Open spatial computing platform — 3 languages, 25+ compile targets, AI agent runtime, 1,800+ semantic traits. Write once, deploy to Unity, Unreal, WebXR, robotics, and IoT.',
       },
     ],
     ['meta', { property: 'og:image', content: 'https://holoscript.net/og-image.png' }],
@@ -76,7 +76,7 @@ export default defineConfig({
       {
         name: 'twitter:description',
         content:
-          'Open-source programming language for VR, AR, robotics, IoT, and digital twins. 1,800+ semantic traits. 25+ compilation targets.',
+          'Open spatial computing platform — 3 languages, 25+ compile targets, AI agents, 1,800+ traits. Write once, run everywhere.',
       },
     ],
     ['meta', { name: 'twitter:image', content: 'https://holoscript.net/og-image.png' }],

@@ -1,7 +1,7 @@
 ---
 layout: page
 title: HoloScript - One Language, Every Platform
-description: Open-source programming language compiling to 18+ targets — Unity, Unreal, Godot, visionOS, robotics, IoT, and more
+description: Open spatial computing platform — 3 languages, 25+ compile targets, AI agent runtime, and visual studio. Write once, deploy to Unity, Unreal, WebXR, robotics, and IoT.
 ---
 
 <LandingPage />
