@@ -213,6 +213,50 @@ export type {
   EconomicTraitDefinition,
 } from './traits/EconomicTraits.js';
 
+// SimulationLab primitives (v4.3)
+export {
+  // Statistics
+  mean,
+  variance,
+  standardDeviation,
+  standardError,
+  cohensD,
+  // Statistical tests
+  tTest,
+  oneSampleTTest,
+  mannWhitneyU,
+  chiSquaredTest,
+  // Parameter sweeps
+  expandSweep,
+  generateSweepCombinations,
+  isParameterRange,
+  // Metric aggregation
+  extractMetric,
+  groupByParameter,
+  summarizeMetrics,
+} from './traits/SimulationLabPrimitives.js';
+export type {
+  Hypothesis,
+  HypothesisDirection,
+  SimulationStatus,
+  ParameterRange,
+  ParameterSet,
+  ParameterSweep,
+  SimulationMetrics,
+  StatisticalResult,
+  ExperimentResult,
+} from './traits/SimulationLabPrimitives.js';
+
+// SimulationLab traits (v4.3)
+export {
+  SimulationLabTraits,
+  getSimulationTraitNames,
+  getSimulationTrait,
+} from './traits/SimulationLabTraits.js';
+export type {
+  SimulationTraitDefinition,
+} from './traits/SimulationLabTraits.js';
+
 // Time utilities
 export {
   now,
