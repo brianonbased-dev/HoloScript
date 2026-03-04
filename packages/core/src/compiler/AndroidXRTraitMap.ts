@@ -7,12 +7,19 @@
  *
  * Platform stack:
  *   - Jetpack XR SceneCore (entities, components, ECS)
- *   - ARCore for Jetpack XR (perception, anchors, hand tracking)
+ *   - ARCore for Jetpack XR (perception, anchors, hand tracking, face tracking)
  *   - Filament (PBR rendering, lighting, shadows)
- *   - Jetpack Compose for XR (spatial UI)
+ *   - Jetpack Compose for XR (spatial UI, UserSubspace, SceneCoreEntity)
  *   - Oboe / SoundPool / MediaPlayer (spatial audio)
+ *   - SurfaceEntity with DRM (Widevine protected video playback)
  *
- * @version 1.0.0
+ * DP3 additions (Android XR SDK Developer Preview 3):
+ *   - face_tracking: 68 blendshapes via FaceTrackingMode.BLEND_SHAPES
+ *   - follows_head / head_follow: UserSubspace soft-locking follow behavior
+ *   - drm_video / protected_video: SurfaceEntity with SurfaceProtection.PROTECTED
+ *   - scene_core_entity: SceneCoreEntity composable for 3D model placement
+ *
+ * @version 2.0.0 — Android XR SDK Developer Preview 3
  */
 
 // =============================================================================
@@ -33,6 +40,9 @@ export type AndroidXRComponent =
   | 'SoundFieldAttributes'
   | 'SpatialEnvironment'
   | 'HandTrackingProvider'
+  | 'FaceTrackingProvider'     // DP3: Face tracking with 68 blendshapes
+  | 'UserSubspaceComponent'    // DP3: Head-following UI via UserSubspace
+  | 'SceneCoreEntityComponent' // DP3: SceneCoreEntity composable
   | 'PlaneTrackable'
   | 'CollisionComponent'
   | 'PhysicsComponent'
@@ -1156,6 +1166,277 @@ export const ENVIRONMENT_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
 };
 
 // =============================================================================
+// DP3 (DEVELOPER PREVIEW 3) TRAITS — New in Android XR SDK DP3
+// =============================================================================
+
+export const DP3_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
+  face_tracking: {
+    trait: 'face_tracking',
+    components: [],
+    level: 'full',
+    imports: [
+      'androidx.xr.arcore.Face',
+      'androidx.xr.arcore.FaceBlendShapeType',
+      'androidx.xr.arcore.FaceConfidenceRegion',
+      'androidx.xr.runtime.FaceTrackingMode',
+    ],
+    minSdkVersion: 30,
+    generate: (varName, config) => {
+      const blendshapes = (config.blendshapes as string[]) || [];
+      const lines = [
+        `// @face_tracking -- DP3: ARCore face tracking with 68 blendshapes`,
+        `// android.permission.FACE_TRACKING required`,
+        `val ${varName}FaceConfig = session.config.copy(`,
+        `    faceTracking = FaceTrackingMode.BLEND_SHAPES`,
+        `)`,
+        `when (val result = session.configure(${varName}FaceConfig)) {`,
+        `    is SessionConfigureSuccess -> { /* Face tracking enabled */ }`,
+        `    else -> { /* Configuration failed */ }`,
+        `}`,
+        ``,
+        `val ${varName}Face = Face.getUserFace(session)`,
+        `${varName}Face?.state?.collect { faceState ->`,
+        `    if (faceState.trackingState != TrackingState.TRACKING) return@collect`,
+      ];
+      if (blendshapes.length > 0) {
+        for (const bs of blendshapes) {
+          lines.push(
+            `    val ${varName}_${bs.toLowerCase()} = faceState.blendShapes[FaceBlendShapeType.FACE_BLEND_SHAPE_TYPE_${bs.toUpperCase()}]`
+          );
+        }
+      } else {
+        lines.push(
+          `    // 68 blendshapes available across 3 confidence regions:`,
+          `    // Upper (18): BROW_LOWERER_L/R, EYES_CLOSED_L/R, EYES_LOOK_DOWN/LEFT/RIGHT/UP_L/R,`,
+          `    //   INNER_BROW_RAISER_L/R, LID_TIGHTENER_L/R, OUTER_BROW_RAISER_L/R, UPPER_LID_RAISER_L/R`,
+          `    // Lower (50): CHEEK_PUFF/RAISER/SUCK_L/R, CHIN_RAISER_B/T, DIMPLER_L/R,`,
+          `    //   JAW_DROP/SIDEWAYS_LEFT/RIGHT/THRUST, LIP_CORNER_DEPRESSOR/PULLER_L/R,`,
+          `    //   LIP_FUNNELER/PRESSOR/PUCKER/STRETCHER/SUCK/TIGHTENER_L/R, LIPS_TOWARD,`,
+          `    //   LOWER_LIP_DEPRESSOR_L/R, MOUTH_LEFT/RIGHT, NOSE_WRINKLER_L/R,`,
+          `    //   UPPER_LIP_RAISER_L/R, TONGUE_OUT/LEFT/RIGHT/UP/DOWN`,
+          `    val jawDrop = faceState.blendShapes[FaceBlendShapeType.FACE_BLEND_SHAPE_TYPE_JAW_DROP]`,
+          `    val confidence = faceState.getConfidence(FaceConfidenceRegion.FACE_CONFIDENCE_REGION_LOWER)`,
+        );
+      }
+      lines.push(`}`);
+      return lines;
+    },
+  },
+
+  follows_head: {
+    trait: 'follows_head',
+    components: ['PanelEntity'],
+    level: 'full',
+    imports: [
+      'androidx.xr.compose.spatial.UserSubspace',
+      'androidx.xr.compose.spatial.SpatialPanel',
+      'androidx.xr.compose.subspace.layout.SubspaceModifier',
+    ],
+    generate: (varName, config) => {
+      const distance = config.distance ?? config.follow_distance ?? 1.5;
+      const width = config.width ?? 400;
+      const height = config.height ?? 300;
+      return [
+        `// @follows_head -- DP3: UserSubspace with soft-locking follow behavior`,
+        `// android.permission.HEAD_TRACKING required`,
+        `// Content follows user's head at ${distance}m (soft-locking)`,
+        `UserSubspace {`,
+        `    SpatialPanel(SubspaceModifier.width(${width}f).height(${height}f)) {`,
+        `        Column(modifier = Modifier.fillMaxSize()) {`,
+        `            Text("${varName}")`,
+        `        }`,
+        `    }`,
+        `}`,
+      ];
+    },
+  },
+
+  head_follow: {
+    trait: 'head_follow',
+    components: ['PanelEntity'],
+    level: 'full',
+    imports: [
+      'androidx.xr.compose.spatial.UserSubspace',
+      'androidx.xr.compose.spatial.SpatialPanel',
+      'androidx.xr.compose.subspace.layout.SubspaceModifier',
+    ],
+    generate: (varName, config) => {
+      const distance = config.distance ?? config.follow_distance ?? 1.5;
+      const width = config.width ?? 400;
+      const height = config.height ?? 300;
+      return [
+        `// @head_follow -- DP3: UserSubspace with soft-locking follow behavior`,
+        `// android.permission.HEAD_TRACKING required`,
+        `// Content follows user's head at ${distance}m (soft-locking)`,
+        `UserSubspace {`,
+        `    SpatialPanel(SubspaceModifier.width(${width}f).height(${height}f)) {`,
+        `        Column(modifier = Modifier.fillMaxSize()) {`,
+        `            Text("${varName}")`,
+        `        }`,
+        `    }`,
+        `}`,
+      ];
+    },
+  },
+
+  drm_video: {
+    trait: 'drm_video',
+    components: ['SurfaceEntity'],
+    level: 'full',
+    imports: [
+      'androidx.xr.scenecore.SurfaceEntity',
+      'androidx.media3.exoplayer.ExoPlayer',
+      'androidx.media3.common.MediaItem',
+      'androidx.media3.common.C',
+    ],
+    minSdkVersion: 30,
+    generate: (varName, config) => {
+      const videoUri = config.uri ?? config.src ?? '';
+      const licenseUri = config.license_uri ?? config.drm_license ?? '';
+      const stereoMode = String(config.stereo_mode || 'SIDE_BY_SIDE');
+      const shape = String(config.shape || 'quad');
+      const width = config.width ?? 1.0;
+      const height = config.height ?? 1.0;
+      const radius = config.radius ?? 5.0;
+
+      const stereoModeMap: Record<string, string> = {
+        SIDE_BY_SIDE: 'SurfaceEntity.StereoMode.SIDE_BY_SIDE',
+        TOP_BOTTOM: 'SurfaceEntity.StereoMode.TOP_BOTTOM',
+        MONO: 'SurfaceEntity.StereoMode.MONO',
+        MULTIVIEW_LEFT: 'SurfaceEntity.StereoMode.MULTIVIEW_LEFT_PRIMARY',
+        MULTIVIEW_RIGHT: 'SurfaceEntity.StereoMode.MULTIVIEW_RIGHT_PRIMARY',
+      };
+      const stereoKotlin = stereoModeMap[stereoMode] ?? 'SurfaceEntity.StereoMode.SIDE_BY_SIDE';
+
+      let shapeCode: string;
+      if (shape === 'sphere') {
+        shapeCode = `SurfaceEntity.Shape.Sphere(${radius}f)`;
+      } else if (shape === 'hemisphere') {
+        shapeCode = `SurfaceEntity.Shape.Hemisphere(${radius}f)`;
+      } else {
+        shapeCode = `SurfaceEntity.Shape.Quad(FloatSize2d(${width}f, ${height}f))`;
+      }
+
+      const lines = [
+        `// @drm_video -- DP3: SurfaceEntity with Widevine DRM protection`,
+        `// Shape: ${shape}, StereoMode: ${stereoMode}`,
+        `val ${varName}Surface = SurfaceEntity.create(`,
+        `    session = session,`,
+        `    stereoMode = ${stereoKotlin},`,
+        `    pose = Pose(Vector3(0f, 0f, -1.5f), Quaternion.identity()),`,
+        `    shape = ${shapeCode},`,
+        `    surfaceProtection = SurfaceEntity.SurfaceProtection.PROTECTED`,
+        `)`,
+      ];
+
+      if (videoUri) {
+        lines.push(
+          ``,
+          `val ${varName}MediaItem = MediaItem.Builder()`,
+          `    .setUri("${videoUri}")`,
+        );
+        if (licenseUri) {
+          lines.push(
+            `    .setDrmConfiguration(`,
+            `        MediaItem.DrmConfiguration.Builder(C.WIDEVINE_UUID)`,
+            `            .setLicenseUri("${licenseUri}")`,
+            `            .build()`,
+            `    )`,
+          );
+        }
+        lines.push(
+          `    .build()`,
+          ``,
+          `val ${varName}Player = ExoPlayer.Builder(context).build()`,
+          `${varName}Player.setVideoSurface(${varName}Surface.getSurface())`,
+          `${varName}Player.setMediaItem(${varName}MediaItem)`,
+          `${varName}Player.prepare()`,
+          `${varName}Player.play()`,
+        );
+      }
+
+      return lines;
+    },
+  },
+
+  protected_video: {
+    trait: 'protected_video',
+    components: ['SurfaceEntity'],
+    level: 'full',
+    imports: [
+      'androidx.xr.scenecore.SurfaceEntity',
+      'androidx.media3.exoplayer.ExoPlayer',
+      'androidx.media3.common.MediaItem',
+      'androidx.media3.common.C',
+    ],
+    minSdkVersion: 30,
+    generate: (varName, config) => {
+      // Delegates to the same implementation as drm_video
+      const videoUri = config.uri ?? config.src ?? '';
+      const shape = String(config.shape || 'quad');
+      const width = config.width ?? 1.0;
+      const height = config.height ?? 1.0;
+      const radius = config.radius ?? 5.0;
+
+      let shapeCode: string;
+      if (shape === 'sphere') {
+        shapeCode = `SurfaceEntity.Shape.Sphere(${radius}f)`;
+      } else if (shape === 'hemisphere') {
+        shapeCode = `SurfaceEntity.Shape.Hemisphere(${radius}f)`;
+      } else {
+        shapeCode = `SurfaceEntity.Shape.Quad(FloatSize2d(${width}f, ${height}f))`;
+      }
+
+      return [
+        `// @protected_video -- DP3: SurfaceEntity with DRM surface protection`,
+        `val ${varName}Surface = SurfaceEntity.create(`,
+        `    session = session,`,
+        `    stereoMode = SurfaceEntity.StereoMode.SIDE_BY_SIDE,`,
+        `    pose = Pose.Identity,`,
+        `    shape = ${shapeCode},`,
+        `    surfaceProtection = SurfaceEntity.SurfaceProtection.PROTECTED`,
+        `)`,
+        ...(videoUri ? [
+          `val ${varName}Player = ExoPlayer.Builder(context).build()`,
+          `${varName}Player.setVideoSurface(${varName}Surface.getSurface())`,
+          `${varName}Player.setMediaItem(MediaItem.fromUri("${videoUri}"))`,
+          `${varName}Player.prepare()`,
+          `${varName}Player.play()`,
+        ] : []),
+      ];
+    },
+  },
+
+  scene_core_entity: {
+    trait: 'scene_core_entity',
+    components: ['GltfModelEntity'],
+    level: 'full',
+    imports: [
+      'androidx.xr.compose.spatial.SceneCoreEntity',
+      'androidx.xr.scenecore.GltfModel',
+      'androidx.xr.scenecore.GltfModelEntity',
+    ],
+    generate: (varName, config) => {
+      const modelUri = String(config.model ?? config.src ?? `${varName}.glb`);
+      return [
+        `// @scene_core_entity -- DP3: SceneCoreEntity composable for 3D model placement`,
+        `SceneCoreEntity(`,
+        `    factory = {`,
+        `        val ${varName}Model = GltfModel.create(session, Uri.parse("${modelUri}"))`,
+        `        GltfModelEntity.create(session, ${varName}Model)`,
+        `    },`,
+        `    update = { entity ->`,
+        `        // Apply compose state changes to the entity`,
+        `    }`,
+        `) {`,
+        `    // Child content within the SceneCoreEntity`,
+        `}`,
+      ];
+    },
+  },
+};
+
+// =============================================================================
 // V43 AI/XR TRAIT MAP
 // =============================================================================
 
@@ -1469,6 +1750,188 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
 };
 
 // =============================================================================
+// AI GLASSES TRAITS — Jetpack Compose Glimmer + Jetpack Projected
+// =============================================================================
+
+export const GLASSES_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
+  glimmer_card: {
+    trait: 'glimmer_card',
+    components: ['PanelEntity'],
+    level: 'full',
+    imports: [
+      'androidx.xr.glimmer.Card',
+      'androidx.xr.glimmer.Text',
+      'androidx.xr.glimmer.Button',
+    ],
+    generate: (varName, config) => {
+      const title = String(config.title || varName);
+      const subtitle = String(config.subtitle || '');
+      const actionLabel = String(config.action_label || 'View');
+      return [
+        `// @glimmer_card -- AI Glasses Glimmer Card composable`,
+        `Card(`,
+        `    title = { Text("${title}") },`,
+        `    action = {`,
+        `        Button(onClick = { /* ${varName} action */ }) {`,
+        `            Text("${actionLabel}")`,
+        `        }`,
+        `    }`,
+        `) {`,
+        ...(subtitle ? [`    Text("${subtitle}")`] : [`    // ${varName} card content`]),
+        `}`,
+      ];
+    },
+  },
+
+  glimmer_list: {
+    trait: 'glimmer_list',
+    components: ['PanelEntity'],
+    level: 'full',
+    imports: [
+      'androidx.xr.glimmer.ListItem',
+      'androidx.xr.glimmer.Text',
+    ],
+    generate: (varName, config) => {
+      const items = (config.items as string[]) ?? [];
+      const lines = [
+        `// @glimmer_list -- AI Glasses Glimmer List composable`,
+        `Column {`,
+      ];
+      if (items.length > 0) {
+        for (const item of items) {
+          lines.push(`    ListItem(headlineContent = { Text("${item}") })`);
+        }
+      } else {
+        lines.push(`    ListItem(headlineContent = { Text("${varName}") })`);
+      }
+      lines.push(`}`);
+      return lines;
+    },
+  },
+
+  glimmer_title_chip: {
+    trait: 'glimmer_title_chip',
+    components: ['PanelEntity'],
+    level: 'full',
+    imports: [
+      'androidx.xr.glimmer.TitleChip',
+    ],
+    generate: (varName, config) => {
+      const title = String(config.title || varName);
+      return [
+        `// @glimmer_title_chip -- AI Glasses Glimmer TitleChip`,
+        `TitleChip(title = "${title}")`,
+      ];
+    },
+  },
+
+  projected_camera: {
+    trait: 'projected_camera',
+    components: [],
+    level: 'full',
+    imports: [
+      'androidx.xr.projected.ProjectedContext',
+      'androidx.camera.lifecycle.ProcessCameraProvider',
+      'androidx.camera.core.CameraSelector',
+      'androidx.camera.core.ImageCapture',
+    ],
+    generate: (varName, config) => {
+      const resolution = String(config.resolution || '1920x1080');
+      const fps = config.fps ?? 30;
+      return [
+        `// @projected_camera -- AI Glasses camera via ProjectedContext`,
+        `// Resolution: ${resolution}, FPS: ${fps}`,
+        `val ${varName}GlassesContext = ProjectedContext.createProjectedDeviceContext(this)`,
+        `val ${varName}CameraFuture = ProcessCameraProvider.getInstance(${varName}GlassesContext)`,
+        `${varName}CameraFuture.addListener({`,
+        `    val cameraProvider = ${varName}CameraFuture.get()`,
+        `    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA`,
+        `    if (cameraProvider.hasCamera(cameraSelector)) {`,
+        `        val imageCapture = ImageCapture.Builder().build()`,
+        `        cameraProvider.bindToLifecycle(this, cameraSelector, imageCapture)`,
+        `    }`,
+        `}, ContextCompat.getMainExecutor(this))`,
+      ];
+    },
+  },
+
+  projected_audio: {
+    trait: 'projected_audio',
+    components: [],
+    level: 'full',
+    imports: [
+      'androidx.xr.projected.ProjectedContext',
+    ],
+    generate: (varName) => [
+      `// @projected_audio -- AI Glasses audio via Bluetooth A2DP/HFP`,
+      `// Glasses connect as standard Bluetooth audio device`,
+      `// Audio routing handled automatically via Android AudioManager`,
+      `val ${varName}GlassesContext = ProjectedContext.createProjectedDeviceContext(this)`,
+      `// Use ${varName}GlassesContext for glasses speaker output`,
+    ],
+  },
+
+  glasses_display: {
+    trait: 'glasses_display',
+    components: [],
+    level: 'full',
+    imports: [
+      'androidx.xr.projected.ProjectedDisplayController',
+      'androidx.xr.projected.ProjectedDeviceController',
+    ],
+    generate: (varName, config) => {
+      const brightness = config.brightness ?? 1.0;
+      return [
+        `// @glasses_display -- AI Glasses display control via ProjectedDisplayController`,
+        `val ${varName}DisplayController = ProjectedDisplayController.create(this)`,
+        `// Brightness: ${brightness}`,
+        `lifecycleScope.launch {`,
+        `    val controller = ProjectedDeviceController.create(this@${varName})`,
+        `    val hasVisualUI = controller.capabilities.contains(`,
+        `        ProjectedDeviceController.CAPABILITY_VISUAL_UI`,
+        `    )`,
+        `    if (hasVisualUI) {`,
+        `        // Display is available, show AR overlay`,
+        `    }`,
+        `}`,
+      ];
+    },
+  },
+
+  glasses_touchpad: {
+    trait: 'glasses_touchpad',
+    components: ['InteractableComponent'],
+    level: 'full',
+    imports: [
+      'androidx.xr.glimmer.surface',
+    ],
+    generate: (varName) => [
+      `// @glasses_touchpad -- AI Glasses touchpad input handling`,
+      `// Touchpad gestures: tap, swipe, long-press`,
+      `// Glimmer components have built-in touchpad focus/interaction support`,
+      `// Apply .surface(focusable = true) for touchpad-focusable elements`,
+      `Modifier.surface(focusable = true) // enables touchpad focus for ${varName}`,
+    ],
+  },
+
+  glasses_voice: {
+    trait: 'glasses_voice',
+    components: [],
+    level: 'partial',
+    imports: [],
+    generate: (varName, config) => {
+      const commands = (config.commands as string[]) ?? [];
+      return [
+        `// @glasses_voice -- AI Glasses voice input`,
+        `// Voice commands available: ${commands.length > 0 ? commands.join(', ') : 'system default'}`,
+        `// Uses Android SpeechRecognizer with glasses microphone`,
+        `// TODO: configure voice command recognition for ${varName}`,
+      ];
+    },
+  },
+};
+
+// =============================================================================
 // COMBINED TRAIT MAP
 // =============================================================================
 
@@ -1481,7 +1944,9 @@ export const ANDROIDXR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
   ...ACCESSIBILITY_TRAIT_MAP,
   ...UI_TRAIT_MAP,
   ...ENVIRONMENT_TRAIT_MAP,
+  ...DP3_TRAIT_MAP,
   ...V43_TRAIT_MAP,
+  ...GLASSES_TRAIT_MAP,
 };
 
 // =============================================================================

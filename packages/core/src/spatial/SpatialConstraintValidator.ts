@@ -679,6 +679,403 @@ export class SpatialConstraintValidator {
   }
 
   // -------------------------------------------------------------------------
+  // Pass 3d: Temporal adjacency validation
+  // -------------------------------------------------------------------------
+
+  private validateTemporalAdjacent(
+    source: SpatialDeclaration,
+    constraint: SpatialTemporalAdjacentConstraint
+  ): void {
+    const target = this.resolveTarget(constraint.targetId);
+    if (!target) return; // Already reported in resolveReferences
+
+    // Validate configuration: minDuration must be non-negative
+    if (constraint.minDuration < 0) {
+      this.addDiagnostic(
+        'error',
+        'HSP036',
+        `spatial_temporal_adjacent on '${source.entityId}': minDuration must be >= 0 ` +
+          `(got ${constraint.minDuration}s).`,
+        source.line ?? 0,
+        source.column ?? 0,
+        'spatial_temporal_adjacent',
+        source.entityId,
+        constraint.targetId,
+        ['Set minDuration to a non-negative value.']
+      );
+      return;
+    }
+
+    // Validate gracePeriod
+    if (constraint.gracePeriod !== undefined && constraint.gracePeriod < 0) {
+      this.addDiagnostic(
+        'error',
+        'HSP036',
+        `spatial_temporal_adjacent on '${source.entityId}': gracePeriod must be >= 0 ` +
+          `(got ${constraint.gracePeriod}s).`,
+        source.line ?? 0,
+        source.column ?? 0,
+        'spatial_temporal_adjacent',
+        source.entityId,
+        constraint.targetId,
+        ['Set gracePeriod to a non-negative value.']
+      );
+      return;
+    }
+
+    // Warn if gracePeriod exceeds minDuration (probably a config error)
+    if (
+      constraint.gracePeriod !== undefined &&
+      constraint.gracePeriod > constraint.minDuration &&
+      constraint.minDuration > 0
+    ) {
+      this.addDiagnostic(
+        'warning',
+        'HSP036',
+        `spatial_temporal_adjacent on '${source.entityId}': gracePeriod (${constraint.gracePeriod}s) ` +
+          `exceeds minDuration (${constraint.minDuration}s). The grace period allows the entity ` +
+          `to remain out of range longer than the required adjacency duration.`,
+        source.line ?? 0,
+        source.column ?? 0,
+        'spatial_temporal_adjacent',
+        source.entityId,
+        constraint.targetId,
+        ['Consider reducing gracePeriod or increasing minDuration.']
+      );
+    }
+
+    // If both positions are known, verify static adjacency is achievable
+    if (source.position && target.position) {
+      const dist = this.computeAxisDistance(
+        source.position,
+        target.position,
+        constraint.axis ?? 'xyz'
+      );
+
+      if (dist > constraint.maxDistance) {
+        this.addDiagnostic(
+          'error',
+          'HSP036',
+          `spatial_temporal_adjacent violation: '${source.entityId}' is ${dist.toFixed(2)}m from ` +
+            `'${constraint.targetId}' (max: ${constraint.maxDistance}m). The duration constraint ` +
+            `of ${constraint.minDuration}s cannot be satisfied if entities start out of range` +
+            (constraint.axis && constraint.axis !== 'xyz'
+              ? ` (on ${constraint.axis} axis)`
+              : '') +
+            `.${constraint.label ? ` (${constraint.label})` : ''}`,
+          source.line ?? 0,
+          source.column ?? 0,
+          'spatial_temporal_adjacent',
+          source.entityId,
+          constraint.targetId,
+          [
+            `Move '${source.entityId}' within ${constraint.maxDistance}m of '${constraint.targetId}'.`,
+            `Or ensure runtime movement brings entities into range.`,
+          ]
+        );
+      }
+    } else {
+      this.addDiagnostic(
+        'info',
+        'HSP036',
+        `spatial_temporal_adjacent between '${source.entityId}' and '${constraint.targetId}': ` +
+          `positions not fully known at compile time. Duration constraint ` +
+          `(${constraint.minDuration}s hold, ${constraint.gracePeriod ?? 0}s grace) ` +
+          `will be verified at runtime.`,
+        source.line ?? 0,
+        source.column ?? 0,
+        'spatial_temporal_adjacent',
+        source.entityId,
+        constraint.targetId
+      );
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Pass 3e: Temporal reachability validation
+  // -------------------------------------------------------------------------
+
+  private validateTemporalReachable(
+    source: SpatialDeclaration,
+    constraint: SpatialTemporalReachableConstraint
+  ): void {
+    const target = this.resolveTarget(constraint.targetId);
+    if (!target) return;
+
+    // Validate predictionHorizon
+    if (constraint.predictionHorizon <= 0) {
+      this.addDiagnostic(
+        'error',
+        'HSP037',
+        `spatial_temporal_reachable on '${source.entityId}': predictionHorizon must be > 0 ` +
+          `(got ${constraint.predictionHorizon}s).`,
+        source.line ?? 0,
+        source.column ?? 0,
+        'spatial_temporal_reachable',
+        source.entityId,
+        constraint.targetId,
+        ['Set predictionHorizon to a positive value.']
+      );
+      return;
+    }
+
+    // Validate safetyMargin
+    if (constraint.safetyMargin !== undefined && constraint.safetyMargin < 0) {
+      this.addDiagnostic(
+        'error',
+        'HSP037',
+        `spatial_temporal_reachable on '${source.entityId}': safetyMargin must be >= 0 ` +
+          `(got ${constraint.safetyMargin}m).`,
+        source.line ?? 0,
+        source.column ?? 0,
+        'spatial_temporal_reachable',
+        source.entityId,
+        constraint.targetId,
+        ['Set safetyMargin to a non-negative value.']
+      );
+      return;
+    }
+
+    // Warn if no moving obstacles are specified (should use regular spatial_reachable)
+    if (
+      (!constraint.movingObstacles || constraint.movingObstacles.length === 0) &&
+      (!constraint.staticObstacles || constraint.staticObstacles.length === 0)
+    ) {
+      this.addDiagnostic(
+        'warning',
+        'HSP037',
+        `spatial_temporal_reachable on '${source.entityId}': no moving or static obstacles specified. ` +
+          `Consider using spatial_reachable instead if velocity prediction is not needed.`,
+        source.line ?? 0,
+        source.column ?? 0,
+        'spatial_temporal_reachable',
+        source.entityId,
+        constraint.targetId,
+        [
+          'Add movingObstacles or staticObstacles to the constraint.',
+          'Or use @spatial_reachable if velocity prediction is not needed.',
+        ]
+      );
+    }
+
+    // Static distance check (same as reachable)
+    if (source.position && target.position) {
+      const straightDist = distance(source.position, target.position);
+      if (constraint.maxPathLength !== undefined && straightDist > constraint.maxPathLength) {
+        this.addDiagnostic(
+          'error',
+          'HSP037',
+          `spatial_temporal_reachable violation: straight-line distance from '${source.entityId}' ` +
+            `to '${constraint.targetId}' is ${straightDist.toFixed(2)}m, exceeding ` +
+            `maxPathLength of ${constraint.maxPathLength}m. No valid path can exist ` +
+            `(prediction horizon: ${constraint.predictionHorizon}s).`,
+          source.line ?? 0,
+          source.column ?? 0,
+          'spatial_temporal_reachable',
+          source.entityId,
+          constraint.targetId,
+          [
+            `Move '${source.entityId}' closer to '${constraint.targetId}' or increase maxPathLength.`,
+          ]
+        );
+      }
+    } else {
+      this.addDiagnostic(
+        'info',
+        'HSP037',
+        `spatial_temporal_reachable between '${source.entityId}' and '${constraint.targetId}': ` +
+          `positions not known at compile time. Velocity-predicted reachability ` +
+          `(horizon: ${constraint.predictionHorizon}s) will be verified at runtime.`,
+        source.line ?? 0,
+        source.column ?? 0,
+        'spatial_temporal_reachable',
+        source.entityId,
+        constraint.targetId
+      );
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Pass 3f: Trajectory validation
+  // -------------------------------------------------------------------------
+
+  private validateTrajectory(
+    source: SpatialDeclaration,
+    constraint: SpatialTrajectoryConstraint
+  ): void {
+    // Validate horizon
+    if (constraint.horizon <= 0) {
+      this.addDiagnostic(
+        'error',
+        'HSP038',
+        `spatial_trajectory on '${source.entityId}': horizon must be > 0 ` +
+          `(got ${constraint.horizon}s).`,
+        source.line ?? 0,
+        source.column ?? 0,
+        'spatial_trajectory',
+        source.entityId,
+        constraint.regionId ?? source.entityId,
+        ['Set horizon to a positive value.']
+      );
+      return;
+    }
+
+    // Validate sampleCount
+    if (constraint.sampleCount !== undefined && constraint.sampleCount < 1) {
+      this.addDiagnostic(
+        'error',
+        'HSP038',
+        `spatial_trajectory on '${source.entityId}': sampleCount must be >= 1 ` +
+          `(got ${constraint.sampleCount}).`,
+        source.line ?? 0,
+        source.column ?? 0,
+        'spatial_trajectory',
+        source.entityId,
+        constraint.regionId ?? source.entityId,
+        ['Set sampleCount to at least 1.']
+      );
+      return;
+    }
+
+    // Mode-specific validation
+    switch (constraint.mode) {
+      case 'keep_in':
+      case 'keep_out': {
+        // Must specify a regionId
+        if (!constraint.regionId) {
+          this.addDiagnostic(
+            'error',
+            'HSP038',
+            `spatial_trajectory (${constraint.mode}) on '${source.entityId}': ` +
+              `regionId is required for '${constraint.mode}' mode.`,
+            source.line ?? 0,
+            source.column ?? 0,
+            'spatial_trajectory',
+            source.entityId,
+            source.entityId,
+            [`Add regionId to the @spatial_trajectory constraint.`]
+          );
+        } else {
+          // Check that region entity exists and has bounds
+          const region = this.resolveTarget(constraint.regionId);
+          if (region && !region.bounds) {
+            this.addDiagnostic(
+              'warning',
+              'HSP038',
+              `spatial_trajectory (${constraint.mode}) on '${source.entityId}': ` +
+                `region '${constraint.regionId}' has no declared bounds. ` +
+                `Trajectory containment cannot be verified at compile time.`,
+              source.line ?? 0,
+              source.column ?? 0,
+              'spatial_trajectory',
+              source.entityId,
+              constraint.regionId,
+              [`Add bounds to '${constraint.regionId}' for compile-time trajectory checking.`]
+            );
+          }
+        }
+        break;
+      }
+
+      case 'follow': {
+        // Must specify reference path
+        if (!constraint.referencePath || constraint.referencePath.length < 2) {
+          this.addDiagnostic(
+            'error',
+            'HSP038',
+            `spatial_trajectory (follow) on '${source.entityId}': ` +
+              `referencePath must contain at least 2 points for 'follow' mode ` +
+              `(got ${constraint.referencePath?.length ?? 0}).`,
+            source.line ?? 0,
+            source.column ?? 0,
+            'spatial_trajectory',
+            source.entityId,
+            constraint.regionId ?? source.entityId,
+            ['Provide a referencePath with at least 2 waypoints.']
+          );
+        }
+
+        // maxDeviation must be positive
+        if (constraint.maxDeviation !== undefined && constraint.maxDeviation <= 0) {
+          this.addDiagnostic(
+            'error',
+            'HSP038',
+            `spatial_trajectory (follow) on '${source.entityId}': ` +
+              `maxDeviation must be > 0 (got ${constraint.maxDeviation}m).`,
+            source.line ?? 0,
+            source.column ?? 0,
+            'spatial_trajectory',
+            source.entityId,
+            constraint.regionId ?? source.entityId,
+            ['Set maxDeviation to a positive value.']
+          );
+        }
+
+        // If source position is known, check it's near the reference path
+        if (source.position && constraint.referencePath && constraint.referencePath.length >= 2) {
+          const distToStart = distance(source.position, constraint.referencePath[0]);
+          const maxDev = constraint.maxDeviation ?? 1.0;
+          if (distToStart > maxDev * 3) {
+            this.addDiagnostic(
+              'warning',
+              'HSP038',
+              `spatial_trajectory (follow) on '${source.entityId}': entity starts ` +
+                `${distToStart.toFixed(2)}m from the reference path origin ` +
+                `(maxDeviation: ${maxDev}m). The entity may immediately violate the constraint.`,
+              source.line ?? 0,
+              source.column ?? 0,
+              'spatial_trajectory',
+              source.entityId,
+              constraint.regionId ?? source.entityId,
+              [`Move '${source.entityId}' closer to the reference path start point.`]
+            );
+          }
+        }
+        break;
+      }
+
+      case 'waypoint': {
+        // Must specify waypoints
+        if (!constraint.waypoints || constraint.waypoints.length === 0) {
+          this.addDiagnostic(
+            'error',
+            'HSP038',
+            `spatial_trajectory (waypoint) on '${source.entityId}': ` +
+              `at least one waypoint is required for 'waypoint' mode.`,
+            source.line ?? 0,
+            source.column ?? 0,
+            'spatial_trajectory',
+            source.entityId,
+            constraint.regionId ?? source.entityId,
+            ['Add waypoints with position and radius to the constraint.']
+          );
+        } else {
+          // Validate each waypoint has positive radius
+          for (let i = 0; i < constraint.waypoints.length; i++) {
+            const wp = constraint.waypoints[i];
+            if (wp.radius <= 0) {
+              this.addDiagnostic(
+                'error',
+                'HSP038',
+                `spatial_trajectory (waypoint) on '${source.entityId}': ` +
+                  `waypoint ${i} (${wp.label ?? 'unnamed'}) has invalid radius ${wp.radius}m. ` +
+                  `Radius must be > 0.`,
+                source.line ?? 0,
+                source.column ?? 0,
+                'spatial_trajectory',
+                source.entityId,
+                constraint.regionId ?? source.entityId,
+                [`Set waypoint ${i} radius to a positive value.`]
+              );
+            }
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // Pass 4: Cross-constraint consistency
   // -------------------------------------------------------------------------
 

@@ -247,4 +247,74 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     suggestion:
       'Choose the most appropriate spatial relationship: @spatial_adjacent for "near" or @spatial_contains for "inside".',
   },
+
+  // =============================================================================
+  // SPATIOTEMPORAL CONSTRAINT TRAIT REQUIREMENTS
+  // =============================================================================
+
+  // spatial_temporal_adjacent requires collidable for distance measurement
+  {
+    type: 'requires',
+    source: 'spatial_temporal_adjacent',
+    targets: ['collidable'],
+    message:
+      'spatial_temporal_adjacent requires collidable bounds to measure distance and track duration.',
+    suggestion:
+      'Add @collidable to provide bounds for temporal adjacency checking.',
+  },
+
+  // spatial_temporal_adjacent conflicts with plain spatial_adjacent on same entity
+  {
+    type: 'conflicts',
+    source: 'spatial_temporal_adjacent',
+    targets: ['spatial_adjacent'],
+    message:
+      'spatial_temporal_adjacent supersedes spatial_adjacent. Use one or the other.',
+    suggestion:
+      'Remove @spatial_adjacent if duration-based adjacency is desired, or remove @spatial_temporal_adjacent for simple distance checking.',
+  },
+
+  // spatial_temporal_reachable requires spatial_awareness
+  {
+    type: 'requires',
+    source: 'spatial_temporal_reachable',
+    targets: ['spatial_awareness'],
+    message:
+      'spatial_temporal_reachable requires spatial_awareness for velocity tracking and obstacle prediction.',
+    suggestion:
+      'Add @spatial_awareness to enable spatial context for velocity-predicted reachability.',
+  },
+
+  // spatial_temporal_reachable conflicts with plain spatial_reachable
+  {
+    type: 'conflicts',
+    source: 'spatial_temporal_reachable',
+    targets: ['spatial_reachable'],
+    message:
+      'spatial_temporal_reachable supersedes spatial_reachable. Use one or the other.',
+    suggestion:
+      'Remove @spatial_reachable if velocity-predicted reachability is desired, or remove @spatial_temporal_reachable for static reachability.',
+  },
+
+  // spatial_trajectory requires physics for velocity/acceleration data
+  {
+    type: 'requires',
+    source: 'spatial_trajectory',
+    targets: ['physics'],
+    message:
+      'spatial_trajectory requires physics for velocity and acceleration data to predict trajectories.',
+    suggestion:
+      'Add @physics to enable trajectory prediction from velocity data.',
+  },
+
+  // spatial_trajectory requires collidable for bounds checking
+  {
+    type: 'requires',
+    source: 'spatial_trajectory',
+    targets: ['collidable'],
+    message:
+      'spatial_trajectory requires collidable bounds for keep_in/keep_out region checking.',
+    suggestion:
+      'Add @collidable to provide bounds for trajectory constraint checking.',
+  },
 ];

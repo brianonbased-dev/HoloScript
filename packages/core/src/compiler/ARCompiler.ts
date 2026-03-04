@@ -9,6 +9,7 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 
 export interface ARCompilerOptions {
   target: 'webxr' | 'ar.js';
@@ -32,6 +33,11 @@ export interface ARCompilationResult {
 
 export class ARCompiler extends CompilerBase {
   protected readonly compilerName = 'ARCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.AR;
+  }
+
   private options: ARCompilerOptions;
   private errors: string[] = [];
   private warnings: string[] = [];

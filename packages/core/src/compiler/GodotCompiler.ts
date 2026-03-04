@@ -30,6 +30,7 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -54,6 +55,11 @@ export interface GodotCompilerOptions {
 
 export class GodotCompiler extends CompilerBase {
   protected readonly compilerName = 'GodotCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.GODOT;
+  }
+
   private options: Required<GodotCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

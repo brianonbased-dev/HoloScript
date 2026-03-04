@@ -16,6 +16,7 @@
 
 import type { HoloComposition, HoloObjectDecl, HoloValue } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 
 export interface AndroidCompilerOptions {
   packageName?: string;
@@ -38,6 +39,11 @@ export interface AndroidCompileResult {
 
 export class AndroidCompiler extends CompilerBase {
   protected readonly compilerName = 'AndroidCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.ANDROID;
+  }
+
   private options: Required<AndroidCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

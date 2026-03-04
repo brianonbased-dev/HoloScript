@@ -29,6 +29,22 @@ import {
 } from './AgentIdentity';
 import { getKeystore } from './AgentKeystore';
 
+import type {
+  Capability,
+  CapabilityToken,
+} from './CapabilityToken';
+
+import {
+  PERMISSION_TO_ACTION,
+  HOLOSCRIPT_RESOURCE_ALL,
+  HOLOSCRIPT_RESOURCE_SCHEME,
+} from './CapabilityToken';
+
+import {
+  CapabilityTokenIssuer,
+  getCapabilityTokenIssuer,
+} from './CapabilityTokenIssuer';
+
 /**
  * Token issuer configuration
  */
@@ -80,6 +96,78 @@ export interface TokenVerificationResult {
   payload?: IntentTokenPayload;
   error?: string;
   errorCode?: 'EXPIRED' | 'INVALID_SIGNATURE' | 'INVALID_CLAIMS' | 'WORKFLOW_VIOLATION';
+}
+
+/**
+ * Options for issuing a UCAN capability token through the AgentTokenIssuer.
+ *
+ * Bridges the JWT-based token request model to the UCAN capability model
+ * by mapping agent roles to capabilities automatically.
+ */
+export interface CapabilityTokenOptions {
+  /** Agent configuration (role determines capabilities) */
+  agentConfig: AgentConfig;
+
+  /** Audience identifier (DID or agent ID the token is delegated to) */
+  audience: string;
+
+  /** Agent's Ed25519 key pair for signing */
+  keyPair: AgentKeyPair;
+
+  /** Optional resource scope restriction (e.g. 'packages/core/ast') */
+  scope?: string;
+
+  /** Token lifetime in seconds (default: issuer's default) */
+  lifetimeSec?: number;
+
+  /** Optional additional facts / metadata attached to the token */
+  facts?: Record<string, unknown>;
+}
+
+/**
+ * Result of issuing a hybrid token containing both JWT and UCAN capability token.
+ *
+ * Enables gradual migration from JWT-only to UCAN by providing both token formats
+ * for the same agent and intent context.
+ */
+export interface HybridTokenResult {
+  /** Traditional JWT token (existing format) */
+  jwt: string;
+
+  /** UCAN capability token */
+  capabilityToken: CapabilityToken;
+
+  /** Agent role that both tokens were issued for */
+  agentRole: AgentRole;
+
+  /** Capabilities granted in the UCAN token */
+  capabilities: Capability[];
+
+  /** Timestamp when both tokens were issued (Unix seconds) */
+  issuedAt: number;
+}
+
+/**
+ * Options for delegating (attenuating) a UCAN capability token to a target agent.
+ */
+export interface DelegationRequest {
+  /** The parent UCAN capability token being delegated from */
+  parentToken: CapabilityToken;
+
+  /** DID or agent identifier of the target (delegatee) */
+  targetDID: string;
+
+  /** Attenuated capabilities to grant (must be subsets of parent capabilities) */
+  attenuatedCapabilities: Capability[];
+
+  /** Delegator's Ed25519 key pair for signing the new token */
+  keyPair: AgentKeyPair;
+
+  /** Optional lifetime in seconds (must not exceed parent's remaining lifetime) */
+  lifetimeSec?: number;
+
+  /** Optional additional facts / metadata */
+  facts?: Record<string, unknown>;
 }
 
 const DEFAULT_ISSUER = 'holoscript-orchestrator';
@@ -325,6 +413,178 @@ export class AgentTokenIssuer {
     }
 
     return true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // UCAN Capability Token Methods (migration bridge)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Issue a UCAN capability token for an agent.
+   *
+   * Maps the agent's role to capabilities using the PERMISSION_TO_ACTION bridge
+   * constants defined in CapabilityToken.ts. This enables agents that currently
+   * use JWT tokens to obtain equivalent UCAN capability tokens for the gradual
+   * migration to capability-based authorization.
+   *
+   * @param options  Capability token issuance options
+   * @returns        Signed UCAN CapabilityToken
+   */
+  async issueCapabilityToken(options: CapabilityTokenOptions): Promise<CapabilityToken> {
+    const { agentConfig, audience, keyPair, scope, lifetimeSec, facts } = options;
+
+    const capIssuer = this.getCapabilityTokenIssuer();
+
+    // Map role permissions to capabilities using the bridge constants
+    const permissions = getDefaultPermissions(agentConfig.role);
+    const capabilities: Capability[] = permissions.map((perm) => {
+      const action = PERMISSION_TO_ACTION[perm] || perm;
+      const resource = scope
+        ? `${HOLOSCRIPT_RESOURCE_SCHEME}${scope}`
+        : HOLOSCRIPT_RESOURCE_ALL;
+      return { with: resource, can: action };
+    });
+
+    const issuer = `agent:${agentConfig.role}:${agentConfig.name}`;
+
+    return capIssuer.issueRoot(
+      {
+        issuer,
+        audience,
+        capabilities,
+        lifetimeSec,
+        facts: {
+          ...facts,
+          agent_version: agentConfig.version,
+          agent_role: agentConfig.role,
+        },
+      },
+      keyPair
+    );
+  }
+
+  /**
+   * Issue both a JWT token and a UCAN capability token for the same agent
+   * and intent context.
+   *
+   * This method enables gradual migration from JWT-only authorization to
+   * UCAN capability-based authorization. Consuming services can validate
+   * either token during the transition period.
+   *
+   * @param request          Standard JWT token request parameters
+   * @param capabilityOptions  Additional options for the capability token
+   *                           (audience defaults to 'holoscript-compiler')
+   * @returns                 HybridTokenResult with both tokens
+   */
+  async issueHybridToken(
+    request: TokenRequest,
+    capabilityOptions?: {
+      audience?: string;
+      scope?: string;
+      lifetimeSec?: number;
+      facts?: Record<string, unknown>;
+    }
+  ): Promise<HybridTokenResult> {
+    // Issue the traditional JWT token (unchanged behavior)
+    const jwtToken = await this.issueToken(request);
+
+    // Issue the UCAN capability token
+    const audience = capabilityOptions?.audience ?? 'holoscript-compiler';
+    const capabilityToken = await this.issueCapabilityToken({
+      agentConfig: request.agentConfig,
+      audience,
+      keyPair: request.keyPair,
+      scope: capabilityOptions?.scope ?? request.agentConfig.scope,
+      lifetimeSec: capabilityOptions?.lifetimeSec,
+      facts: {
+        ...capabilityOptions?.facts,
+        workflow_id: request.workflowId,
+        workflow_step: request.workflowStep,
+        initiated_by: request.initiatedBy,
+      },
+    });
+
+    // Derive the capabilities that were granted
+    const permissions = getDefaultPermissions(request.agentConfig.role);
+    const scope = capabilityOptions?.scope ?? request.agentConfig.scope;
+    const capabilities: Capability[] = permissions.map((perm) => {
+      const action = PERMISSION_TO_ACTION[perm] || perm;
+      const resource = scope
+        ? `${HOLOSCRIPT_RESOURCE_SCHEME}${scope}`
+        : HOLOSCRIPT_RESOURCE_ALL;
+      return { with: resource, can: action };
+    });
+
+    return {
+      jwt: jwtToken,
+      capabilityToken,
+      agentRole: request.agentConfig.role,
+      capabilities,
+      issuedAt: Math.floor(Date.now() / 1000),
+    };
+  }
+
+  /**
+   * Delegate (attenuate) an existing UCAN capability token to a target agent.
+   *
+   * Creates a new UCAN token with a subset of the parent token's capabilities,
+   * enforcing UCAN attenuation invariants:
+   * - Every capability in the child MUST be a subset of the parent's capabilities
+   * - Child expiration MUST NOT exceed parent expiration
+   * - Delegation depth MUST NOT exceed the configured maximum
+   *
+   * @param parentToken             The parent UCAN capability token to delegate from
+   * @param targetDID               DID or agent identifier of the delegatee
+   * @param attenuatedCapabilities  Capabilities to grant (must be subsets of parent)
+   * @param keyPair                 Delegator's Ed25519 key pair for signing
+   * @param lifetimeSec             Optional lifetime in seconds
+   * @param facts                   Optional metadata
+   * @returns                       New signed CapabilityToken (attenuated delegation)
+   * @throws                        Error if attenuation invariants are violated
+   */
+  async delegateCapability(
+    parentToken: CapabilityToken,
+    targetDID: string,
+    attenuatedCapabilities: Capability[],
+    keyPair?: AgentKeyPair,
+    lifetimeSec?: number,
+    facts?: Record<string, unknown>
+  ): Promise<CapabilityToken> {
+    const capIssuer = this.getCapabilityTokenIssuer();
+
+    // Ensure the parent token is stored for proof chain resolution
+    capIssuer.storeToken(parentToken);
+
+    // Use provided keyPair or require one
+    if (!keyPair) {
+      throw new Error(
+        'A key pair is required to sign the delegated capability token. ' +
+        'Pass the delegator\'s AgentKeyPair.'
+      );
+    }
+
+    return capIssuer.delegate(
+      {
+        parentToken,
+        audience: targetDID,
+        capabilities: attenuatedCapabilities,
+        lifetimeSec,
+        facts,
+      },
+      keyPair
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Get or create the CapabilityTokenIssuer instance used by this issuer.
+   * @internal
+   */
+  private getCapabilityTokenIssuer(): CapabilityTokenIssuer {
+    return getCapabilityTokenIssuer();
   }
 
   /**

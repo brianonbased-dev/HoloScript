@@ -49,6 +49,9 @@ export {
   type TokenIssuerConfig,
   type TokenRequest,
   type TokenVerificationResult,
+  type CapabilityTokenOptions,
+  type HybridTokenResult,
+  type DelegationRequest,
   AgentTokenIssuer,
   getTokenIssuer,
   resetTokenIssuer,
@@ -152,6 +155,7 @@ export {
   WALOperation,
 
   // Types
+  type DIDVersion,
   type AgentDIDDocument,
   type DIDVerificationMethod,
   type DIDServiceEndpoint,
@@ -164,8 +168,21 @@ export {
   type AgentPassport,
   type CreatePassportOptions,
 
-  // Functions
+  // Functions — DID v1 (legacy)
   generateAgentDID,
+  extractRoleFromDID,
+
+  // Functions — DID v2 (role-agnostic)
+  generateAgentDIDv2,
+  detectDIDVersion,
+  getDIDv2,
+  migratePassportToV2,
+
+  // Functions — UCAN delegation
+  getCapabilities,
+  addDelegation,
+
+  // Functions — common
   createDIDDocument,
   createAgentPassport,
   signPassport,
@@ -174,7 +191,6 @@ export {
   validatePassport,
   createEmptyStateSnapshot,
   createEmptyMemory,
-  extractRoleFromDID,
   estimatePassportSize,
 } from './AgentPassport';
 

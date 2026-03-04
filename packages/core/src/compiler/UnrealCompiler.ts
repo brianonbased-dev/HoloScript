@@ -26,6 +26,7 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -59,6 +60,11 @@ export interface UnrealCompileResult {
 
 export class UnrealCompiler extends CompilerBase {
   protected readonly compilerName = 'UnrealCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.UNREAL;
+  }
+
   private options: Required<UnrealCompilerOptions>;
   private headerLines: string[] = [];
   private sourceLines: string[] = [];

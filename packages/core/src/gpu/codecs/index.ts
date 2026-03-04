@@ -60,6 +60,7 @@ export {
 // ─── Codec Implementations ─────────────────────────────────────────────────
 
 export { SpzCodec } from './SpzCodec.js';
+export { GltfGaussianSplatCodec } from './GltfGaussianSplatCodec.js';
 export { MpegGscCodec } from './MpegGscCodec.js';
 export type { MpegGscStatus } from './MpegGscCodec.js';
 

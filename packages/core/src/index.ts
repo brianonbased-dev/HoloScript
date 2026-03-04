@@ -280,7 +280,7 @@ export { VisionOSCompiler, type VisionOSCompilerOptions } from './compiler/Visio
 // HoloScript New Platform Compilers (NEW - Phase 14)
 export { WebGPUCompiler, type WebGPUCompilerOptions } from './compiler/WebGPUCompiler';
 export { BabylonCompiler, type BabylonCompilerOptions } from './compiler/BabylonCompiler';
-export { AndroidXRCompiler, type AndroidXRCompilerOptions } from './compiler/AndroidXRCompiler';
+export { AndroidXRCompiler, type AndroidXRCompilerOptions, type AndroidXRCompileResult, compileToAndroidXR } from './compiler/AndroidXRCompiler';
 export { OpenXRCompiler, type OpenXRCompilerOptions } from './compiler/OpenXRCompiler';
 export { VRRCompiler, type VRRCompilerOptions, type VRRCompilationResult } from './compiler/VRRCompiler';
 export { ARCompiler, type ARCompilerOptions, type ARCompilationResult } from './compiler/ARCompiler';

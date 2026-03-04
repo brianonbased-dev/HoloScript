@@ -18,6 +18,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -47,6 +48,11 @@ export interface OpenXRCompilerOptions {
 
 export class OpenXRCompiler extends CompilerBase {
   protected readonly compilerName = 'OpenXRCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.OPENXR;
+  }
+
   private options: Required<OpenXRCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

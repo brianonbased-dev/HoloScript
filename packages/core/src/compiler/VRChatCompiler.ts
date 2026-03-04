@@ -15,6 +15,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -57,6 +58,11 @@ export interface VRChatCompileResult {
 
 export class VRChatCompiler extends CompilerBase {
   protected readonly compilerName = 'VRChatCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.VRCHAT;
+  }
+
   private options: Required<VRChatCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

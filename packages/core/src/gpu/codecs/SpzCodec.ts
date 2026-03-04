@@ -16,7 +16,8 @@
  *
  * Supports:
  *   - SPZ v1, v2, v3 decoding
- *   - SPZ v2 encoding (with configurable quality)
+ *   - SPZ v2 encoding (3-byte first-three quaternion packing)
+ *   - SPZ v3 encoding (4-byte smallest-three quaternion packing, default)
  *   - Streaming decode via gzip DecompressionStream
  *   - Memory budget pre-check (G.030.06)
  *
@@ -384,6 +385,7 @@ export class SpzCodec extends AbstractGaussianCodec {
     const shDegree = options?.shDegree ?? data.shDegree;
     const fractionalBits = options?.fractionalBits ?? 12;
     const antialiased = options?.antialiased ?? false;
+    const encodingVersion = options?.encodingVersion ?? 3;
     const N = data.count;
 
     if (N > SPZ_MAX_POINTS) {
@@ -393,8 +395,9 @@ export class SpzCodec extends AbstractGaussianCodec {
       );
     }
 
+    const isV3 = encodingVersion >= 3;
     const shDim = shDimForDegree(shDegree);
-    const rotBytes = 3; // Encode as v2 (3-byte first-three)
+    const rotBytes = isV3 ? 4 : 3;
 
     // Calculate buffer size
     const payloadSize =
@@ -412,7 +415,7 @@ export class SpzCodec extends AbstractGaussianCodec {
 
     // Write header
     outView.setUint32(0, SPZ_MAGIC, true);
-    outView.setUint32(4, 2, true); // version 2
+    outView.setUint32(4, encodingVersion, true);
     outView.setUint32(8, N, true);
     out[12] = shDegree;
     out[13] = fractionalBits;
@@ -466,16 +469,34 @@ export class SpzCodec extends AbstractGaussianCodec {
       }
     }
 
-    // Encode rotations (v2: 3-byte first-three)
+    // Encode rotations
     const rotStart = scaleStart + N * 3;
-    for (let i = 0; i < N; i++) {
-      const rOff = rotStart + i * 3;
-      const x = data.rotations[i * 4];
-      const y = data.rotations[i * 4 + 1];
-      const z = data.rotations[i * 4 + 2];
-      out[rOff] = Math.round(Math.max(0, Math.min(255, (x + 1) * 127.5)));
-      out[rOff + 1] = Math.round(Math.max(0, Math.min(255, (y + 1) * 127.5)));
-      out[rOff + 2] = Math.round(Math.max(0, Math.min(255, (z + 1) * 127.5)));
+    if (isV3) {
+      // v3: 4-byte smallest-three quaternion encoding
+      for (let i = 0; i < N; i++) {
+        const rOff = rotStart + i * 4;
+        const packed = encodeQuaternionV3(
+          data.rotations[i * 4],
+          data.rotations[i * 4 + 1],
+          data.rotations[i * 4 + 2],
+          data.rotations[i * 4 + 3],
+        );
+        out[rOff] = packed & 0xff;
+        out[rOff + 1] = (packed >>> 8) & 0xff;
+        out[rOff + 2] = (packed >>> 16) & 0xff;
+        out[rOff + 3] = (packed >>> 24) & 0xff;
+      }
+    } else {
+      // v2: 3-byte first-three quaternion encoding
+      for (let i = 0; i < N; i++) {
+        const rOff = rotStart + i * 3;
+        const x = data.rotations[i * 4];
+        const y = data.rotations[i * 4 + 1];
+        const z = data.rotations[i * 4 + 2];
+        out[rOff] = Math.round(Math.max(0, Math.min(255, (x + 1) * 127.5)));
+        out[rOff + 1] = Math.round(Math.max(0, Math.min(255, (y + 1) * 127.5)));
+        out[rOff + 2] = Math.round(Math.max(0, Math.min(255, (z + 1) * 127.5)));
+      }
     }
 
     // Encode SH coefficients (optional)
@@ -498,7 +519,7 @@ export class SpzCodec extends AbstractGaussianCodec {
     const compressed = await compressGzip(buffer);
 
     const metadata: CodecMetadata = {
-      version: 2,
+      version: encodingVersion,
       gaussianCount: N,
       shDegree,
       compressedSizeBytes: compressed.byteLength,
@@ -821,4 +842,82 @@ function decodeQuaternionV3(
 
   quat[iLargest] = Math.sqrt(Math.max(0, 1 - sumSquares));
   return quat;
+}
+
+/**
+ * Encode v3 quaternion: smallest-three-components encoding into 32-bit packed integer.
+ *
+ * Bit layout (little-endian uint32):
+ *   bits [0..9]   : component A (9-bit magnitude + 1-bit sign)
+ *   bits [10..19]  : component B (9-bit magnitude + 1-bit sign)
+ *   bits [20..29]  : component C (9-bit magnitude + 1-bit sign)
+ *   bits [30..31]  : index of the largest (omitted) component
+ *
+ * The three stored components are the ones with the smallest absolute
+ * values; the largest is reconstructed via the unit-quaternion constraint.
+ * Each stored component is in [-sqrt(1/2), +sqrt(1/2)] and quantized to
+ * 9-bit magnitude (0..511) plus a 1-bit sign.
+ *
+ * This is the exact inverse of decodeQuaternionV3().
+ */
+function encodeQuaternionV3(
+  x: number,
+  y: number,
+  z: number,
+  w: number,
+): number {
+  // Step 1: Normalize the quaternion to unit length
+  const len = Math.sqrt(x * x + y * y + z * z + w * w);
+  if (len > 0) {
+    const invLen = 1.0 / len;
+    x *= invLen;
+    y *= invLen;
+    z *= invLen;
+    w *= invLen;
+  } else {
+    // Degenerate zero quaternion: encode as identity
+    x = 0; y = 0; z = 0; w = 1;
+  }
+
+  // Step 2: Find the component with the largest absolute value
+  const abs = [Math.abs(x), Math.abs(y), Math.abs(z), Math.abs(w)];
+  let iLargest = 0;
+  if (abs[1] > abs[iLargest]) iLargest = 1;
+  if (abs[2] > abs[iLargest]) iLargest = 2;
+  if (abs[3] > abs[iLargest]) iLargest = 3;
+
+  // Step 3: Ensure the largest component is positive (negate all if negative).
+  // The decoder always reconstructs the largest component as positive via sqrt(),
+  // so we must ensure the sign is correct before dropping it.
+  const quat = [x, y, z, w];
+  if (quat[iLargest] < 0) {
+    quat[0] = -quat[0];
+    quat[1] = -quat[1];
+    quat[2] = -quat[2];
+    quat[3] = -quat[3];
+  }
+
+  // Step 4: Pack the three smallest components into 30 bits (3 x 10 bits)
+  const MASK_9 = (1 << 9) - 1; // 511
+  let packed = 0;
+  let bitPos = 0;
+
+  for (let i = 0; i < 4; i++) {
+    if (i === iLargest) continue;
+
+    const value = quat[i];
+    const negBit = value < 0 ? 1 : 0;
+    // Quantize: |value| is in [0, sqrt(1/2)], map to [0, 511]
+    const mag = Math.min(MASK_9, Math.round((Math.abs(value) / SQRT1_2) * MASK_9));
+
+    packed |= (mag << bitPos);
+    packed |= (negBit << (bitPos + 9));
+    bitPos += 10;
+  }
+
+  // Step 5: Pack the largest-component index into bits 30-31
+  packed |= (iLargest << 30);
+
+  // Return as unsigned 32-bit integer
+  return packed >>> 0;
 }

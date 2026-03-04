@@ -21,6 +21,12 @@ import {
 import type { AgentConfig } from '../AgentIdentity';
 import {
   generateAgentDID,
+  generateAgentDIDv2,
+  detectDIDVersion,
+  getDIDv2,
+  getCapabilities,
+  addDelegation,
+  migratePassportToV2,
   createDIDDocument,
   createAgentPassport,
   signPassport,
@@ -42,6 +48,8 @@ import {
   type WALEntry,
   WALOperation,
 } from '../AgentPassport';
+import type { CapabilityToken } from '../CapabilityToken';
+import { CapabilityActions, HOLOSCRIPT_RESOURCE_SCHEME, PERMISSION_TO_ACTION } from '../CapabilityToken';
 import {
   serializePassport,
   deserializePassport,
@@ -707,6 +715,723 @@ describe('AgentPassport - Utilities', () => {
 
       const size = estimatePassportSize(passport);
       expect(size).toBeGreaterThan(0);
+    });
+  });
+});
+
+// ============================================================================
+// TEST FIXTURE: UCAN Capability Token
+// ============================================================================
+
+function createTestCapabilityToken(
+  issuerDid: string,
+  audienceDid: string,
+  capabilities: Array<{ with: string; can: string }> = [
+    { with: `${HOLOSCRIPT_RESOURCE_SCHEME}packages/core/ast`, can: CapabilityActions.AST_READ },
+    { with: `${HOLOSCRIPT_RESOURCE_SCHEME}packages/core/ast`, can: CapabilityActions.AST_WRITE },
+  ]
+): CapabilityToken {
+  const now = Math.floor(Date.now() / 1000);
+  return {
+    header: {
+      alg: 'EdDSA',
+      typ: 'JWT',
+      ucv: '0.10.0',
+    },
+    payload: {
+      iss: issuerDid,
+      aud: audienceDid,
+      att: capabilities,
+      prf: [],
+      exp: now + 86400,
+      nnc: `nonce-${Date.now()}`,
+    },
+    signature: 'mock-signature-base64url',
+    raw: 'mock.jwt.token',
+  };
+}
+
+function createTestDelegationToken(
+  parentToken: CapabilityToken,
+  audienceDid: string,
+  capabilities: Array<{ with: string; can: string }>
+): CapabilityToken {
+  const now = Math.floor(Date.now() / 1000);
+  return {
+    header: {
+      alg: 'EdDSA',
+      typ: 'JWT',
+      ucv: '0.10.0',
+    },
+    payload: {
+      iss: parentToken.payload.aud,
+      aud: audienceDid,
+      att: capabilities,
+      prf: [parentToken.payload.nnc],
+      exp: now + 43200, // Shorter than parent
+      nnc: `nonce-delegated-${Date.now()}`,
+    },
+    signature: 'mock-delegated-signature',
+    raw: 'mock.delegated.jwt',
+  };
+}
+
+// ============================================================================
+// TESTS: DID v2 (ROLE-AGNOSTIC)
+// ============================================================================
+
+describe('AgentPassport - DID v2 (Role-Agnostic)', () => {
+  describe('generateAgentDIDv2', () => {
+    it('should generate a v2 DID without role', () => {
+      const did = generateAgentDIDv2('test-public-key');
+      expect(did).toMatch(/^did:holoscript:[0-9a-f]{32}$/);
+    });
+
+    it('should generate deterministic DIDs for the same input', () => {
+      const did1 = generateAgentDIDv2('same-key');
+      const did2 = generateAgentDIDv2('same-key');
+      expect(did1).toBe(did2);
+    });
+
+    it('should generate different DIDs for different keys', () => {
+      const did1 = generateAgentDIDv2('key-1');
+      const did2 = generateAgentDIDv2('key-2');
+      expect(did1).not.toBe(did2);
+    });
+
+    it('should NOT contain the role in the DID', () => {
+      const did = generateAgentDIDv2('test-public-key');
+      expect(did).not.toContain('syntax_analyzer');
+      expect(did).not.toContain('orchestrator');
+      // v2 DIDs should have exactly 3 colon-separated parts
+      expect(did.split(':')).toHaveLength(3);
+    });
+  });
+
+  describe('detectDIDVersion', () => {
+    it('should detect v1 DIDs', () => {
+      expect(detectDIDVersion('did:holoscript:syntax_analyzer:abc123')).toBe(1);
+      expect(detectDIDVersion('did:holoscript:orchestrator:def456')).toBe(1);
+    });
+
+    it('should detect v2 DIDs', () => {
+      expect(detectDIDVersion('did:holoscript:abc123def456789012345678')).toBe(2);
+    });
+
+    it('should return null for non-HoloScript DIDs', () => {
+      expect(detectDIDVersion('did:example:123')).toBeNull();
+      expect(detectDIDVersion('not-a-did')).toBeNull();
+    });
+  });
+
+  describe('createDIDDocument with v2', () => {
+    it('should create a v2 DID document with role-agnostic DID', async () => {
+      const config = createTestConfig();
+      const keyPair = await generateAgentKeyPair(AgentRole.SYNTAX_ANALYZER);
+      const didDoc = createDIDDocument(config, keyPair, undefined, 2);
+
+      // v2 DID should not contain role
+      expect(didDoc.id).toMatch(/^did:holoscript:[0-9a-f]{32}$/);
+      expect(didDoc.id.split(':')).toHaveLength(3);
+
+      // Should include v2 context
+      expect(didDoc.context).toContain('https://holoscript.dev/ns/agent/v2');
+
+      // Should include capability delegation/invocation
+      expect(didDoc.capabilityDelegation).toBeDefined();
+      expect(didDoc.capabilityDelegation).toHaveLength(1);
+      expect(didDoc.capabilityInvocation).toBeDefined();
+      expect(didDoc.capabilityInvocation).toHaveLength(1);
+
+      // Role still stored in agentRole field
+      expect(didDoc.agentRole).toBe(AgentRole.SYNTAX_ANALYZER);
+    });
+
+    it('should default to v1 when version not specified', async () => {
+      const config = createTestConfig();
+      const keyPair = await generateAgentKeyPair(AgentRole.SYNTAX_ANALYZER);
+      const didDoc = createDIDDocument(config, keyPair);
+
+      // v1 DID should contain role
+      expect(didDoc.id).toMatch(/^did:holoscript:syntax_analyzer:/);
+      expect(didDoc.id.split(':')).toHaveLength(4);
+
+      // Should NOT include v2 fields
+      expect(didDoc.capabilityDelegation).toBeUndefined();
+      expect(didDoc.capabilityInvocation).toBeUndefined();
+    });
+  });
+
+  describe('getDIDv2', () => {
+    it('should return v2 DID as-is for v2 passports', async () => {
+      const config = createTestConfig();
+      const keyPair = await generateAgentKeyPair(AgentRole.SYNTAX_ANALYZER);
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+        didVersion: 2,
+      });
+
+      const v2Did = getDIDv2(passport);
+      expect(v2Did).toBe(passport.did.id);
+      expect(v2Did.split(':')).toHaveLength(3);
+    });
+
+    it('should derive v2 DID from v1 passport', async () => {
+      const config = createTestConfig();
+      const keyPair = await generateAgentKeyPair(AgentRole.SYNTAX_ANALYZER);
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+      });
+
+      const v2Did = getDIDv2(passport);
+      expect(v2Did).toMatch(/^did:holoscript:[0-9a-f]{32}$/);
+      // v1 DID has role, v2 should not
+      expect(passport.did.id).toContain('syntax_analyzer');
+      expect(v2Did).not.toContain('syntax_analyzer');
+    });
+
+    it('should be deterministic for same key', async () => {
+      const config = createTestConfig();
+      const keyPair = await generateAgentKeyPair(AgentRole.SYNTAX_ANALYZER);
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+      });
+
+      const v2Did1 = getDIDv2(passport);
+      const v2Did2 = getDIDv2(passport);
+      expect(v2Did1).toBe(v2Did2);
+    });
+  });
+
+  describe('extractRoleFromDID with v2', () => {
+    it('should return null for v2 DIDs (role not embedded)', () => {
+      const v2Did = generateAgentDIDv2('test-key');
+      expect(extractRoleFromDID(v2Did)).toBeNull();
+    });
+
+    it('should still work for v1 DIDs', () => {
+      const v1Did = generateAgentDID(AgentRole.SYNTAX_ANALYZER, 'test-key');
+      expect(extractRoleFromDID(v1Did)).toBe(AgentRole.SYNTAX_ANALYZER);
+    });
+  });
+});
+
+// ============================================================================
+// TESTS: v1 → v2 MIGRATION
+// ============================================================================
+
+describe('AgentPassport - v1 to v2 Migration', () => {
+  let config: AgentConfig;
+  let keyPair: Awaited<ReturnType<typeof generateAgentKeyPair>>;
+
+  beforeEach(async () => {
+    config = createTestConfig();
+    keyPair = await generateAgentKeyPair(AgentRole.SYNTAX_ANALYZER);
+  });
+
+  describe('migratePassportToV2', () => {
+    it('should migrate v1 passport to v2', () => {
+      const v1Passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createTestStateSnapshot(),
+        memory: createTestMemory(),
+        permissions: [AgentPermission.READ_SOURCE, AgentPermission.WRITE_AST],
+        delegationChain: [AgentRole.ORCHESTRATOR],
+        workflowStep: WorkflowStep.BUILD_AST,
+      });
+
+      expect(v1Passport.did.id.split(':')).toHaveLength(4); // v1 format
+
+      const v2Passport = migratePassportToV2(v1Passport);
+
+      // DID should be v2 (role-agnostic)
+      expect(v2Passport.didVersion).toBe(2);
+      expect(v2Passport.did.id.split(':')).toHaveLength(3);
+      expect(v2Passport.did.id).not.toContain('syntax_analyzer');
+
+      // Should have capability delegation/invocation
+      expect(v2Passport.did.capabilityDelegation).toBeDefined();
+      expect(v2Passport.did.capabilityDelegation!.length).toBeGreaterThan(0);
+      expect(v2Passport.did.capabilityInvocation).toBeDefined();
+      expect(v2Passport.did.capabilityInvocation!.length).toBeGreaterThan(0);
+
+      // Legacy fields should be preserved
+      expect(v2Passport.permissions).toEqual(v1Passport.permissions);
+      expect(v2Passport.delegationChain).toEqual(v1Passport.delegationChain);
+
+      // Signature should be cleared (DID changed)
+      expect(v2Passport.signature).toBeUndefined();
+      expect(v2Passport.signingKeyId).toBeUndefined();
+
+      // Other fields preserved
+      expect(v2Passport.stateSnapshot).toEqual(v1Passport.stateSnapshot);
+      expect(v2Passport.memory).toEqual(v1Passport.memory);
+      expect(v2Passport.workflowStep).toBe(v1Passport.workflowStep);
+    });
+
+    it('should be idempotent for v2 passports', () => {
+      const v2Passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+        didVersion: 2,
+      });
+
+      const reMigrated = migratePassportToV2(v2Passport);
+      expect(reMigrated).toBe(v2Passport); // Same reference (no-op)
+    });
+
+    it('should include v2 context in migrated document', () => {
+      const v1Passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+      });
+
+      const v2Passport = migratePassportToV2(v1Passport);
+      expect(v2Passport.did.context).toContain('https://holoscript.dev/ns/agent/v2');
+    });
+
+    it('should update verification method references', () => {
+      const v1Passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+      });
+
+      const v2Passport = migratePassportToV2(v1Passport);
+
+      // All references should point to v2 DID
+      for (const vm of v2Passport.did.verificationMethod) {
+        expect(vm.id).toContain(v2Passport.did.id);
+        expect(vm.controller).toBe(v2Passport.did.id);
+      }
+      for (const auth of v2Passport.did.authentication) {
+        expect(auth).toContain(v2Passport.did.id);
+      }
+    });
+  });
+
+  describe('validatePassport with v2', () => {
+    it('should validate a v2 passport', () => {
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createTestStateSnapshot(),
+        memory: createTestMemory(),
+        permissions: [AgentPermission.READ_SOURCE],
+        workflowStep: WorkflowStep.BUILD_AST,
+        didVersion: 2,
+      });
+
+      const result = validatePassport(passport);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should detect mismatched DID version', () => {
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+        didVersion: 2,
+      });
+
+      // Force v1-style DID on a v2 passport
+      passport.did.id = 'did:holoscript:syntax_analyzer:abc123';
+
+      const result = validatePassport(passport);
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.includes('DID v2 format expected 3 parts'))).toBe(true);
+    });
+  });
+});
+
+// ============================================================================
+// TESTS: UCAN DELEGATION CHAIN
+// ============================================================================
+
+describe('AgentPassport - UCAN Delegation Chain', () => {
+  let config: AgentConfig;
+  let keyPair: Awaited<ReturnType<typeof generateAgentKeyPair>>;
+
+  beforeEach(async () => {
+    config = createTestConfig();
+    keyPair = await generateAgentKeyPair(AgentRole.SYNTAX_ANALYZER);
+  });
+
+  describe('createAgentPassport with capabilityDelegationChain', () => {
+    it('should create passport with UCAN delegation chain', () => {
+      const rootDid = 'did:holoscript:orchestrator:root123';
+      const agentDid = generateAgentDIDv2('test-key');
+      const token = createTestCapabilityToken(rootDid, agentDid);
+
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [], // Legacy field
+        capabilityDelegationChain: [token],
+        workflowStep: WorkflowStep.BUILD_AST,
+        didVersion: 2,
+      });
+
+      expect(passport.capabilityDelegationChain).toBeDefined();
+      expect(passport.capabilityDelegationChain).toHaveLength(1);
+      expect(passport.capabilityDelegationChain![0].payload.iss).toBe(rootDid);
+      expect(passport.capabilityDelegationChain![0].payload.aud).toBe(agentDid);
+    });
+
+    it('should omit capabilityDelegationChain when empty', () => {
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        capabilityDelegationChain: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+      });
+
+      expect(passport.capabilityDelegationChain).toBeUndefined();
+    });
+  });
+
+  describe('addDelegation', () => {
+    it('should append a token to the delegation chain', () => {
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+        didVersion: 2,
+      });
+
+      const rootDid = 'did:holoscript:root123';
+      const token = createTestCapabilityToken(rootDid, passport.did.id);
+
+      const updated = addDelegation(passport, token);
+
+      expect(updated.capabilityDelegationChain).toHaveLength(1);
+      expect(updated.capabilityDelegationChain![0]).toBe(token);
+      // Original should be unchanged
+      expect(passport.capabilityDelegationChain).toBeUndefined();
+    });
+
+    it('should build a multi-step delegation chain', () => {
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+        didVersion: 2,
+      });
+
+      const rootDid = 'did:holoscript:root000';
+      const midDid = 'did:holoscript:mid111';
+
+      const rootToken = createTestCapabilityToken(rootDid, midDid, [
+        { with: `${HOLOSCRIPT_RESOURCE_SCHEME}*`, can: CapabilityActions.ALL },
+      ]);
+      const delegatedToken = createTestDelegationToken(rootToken, passport.did.id, [
+        { with: `${HOLOSCRIPT_RESOURCE_SCHEME}packages/core/ast`, can: CapabilityActions.AST_READ },
+      ]);
+
+      let updated = addDelegation(passport, rootToken);
+      updated = addDelegation(updated, delegatedToken);
+
+      expect(updated.capabilityDelegationChain).toHaveLength(2);
+      expect(updated.capabilityDelegationChain![0].payload.iss).toBe(rootDid);
+      expect(updated.capabilityDelegationChain![1].payload.iss).toBe(midDid);
+      expect(updated.capabilityDelegationChain![1].payload.aud).toBe(passport.did.id);
+    });
+  });
+
+  describe('getCapabilities', () => {
+    it('should resolve capabilities from UCAN delegation chain', () => {
+      const rootDid = 'did:holoscript:root000';
+      const agentDid = generateAgentDIDv2('test-key');
+
+      const token = createTestCapabilityToken(rootDid, agentDid, [
+        { with: `${HOLOSCRIPT_RESOURCE_SCHEME}packages/core/ast`, can: CapabilityActions.AST_READ },
+        { with: `${HOLOSCRIPT_RESOURCE_SCHEME}packages/core/ast`, can: CapabilityActions.AST_WRITE },
+      ]);
+
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [AgentPermission.READ_SOURCE], // Legacy
+        capabilityDelegationChain: [token],
+        workflowStep: WorkflowStep.BUILD_AST,
+        didVersion: 2,
+      });
+
+      const caps = getCapabilities(passport);
+
+      // Should use UCAN chain, not legacy permissions
+      expect(caps).toHaveLength(2);
+      expect(caps[0].can).toBe(CapabilityActions.AST_READ);
+      expect(caps[1].can).toBe(CapabilityActions.AST_WRITE);
+    });
+
+    it('should resolve from last token in multi-step chain', () => {
+      const rootDid = 'did:holoscript:root000';
+      const midDid = 'did:holoscript:mid111';
+      const agentDid = generateAgentDIDv2('test-key');
+
+      const rootToken = createTestCapabilityToken(rootDid, midDid, [
+        { with: `${HOLOSCRIPT_RESOURCE_SCHEME}*`, can: CapabilityActions.ALL },
+      ]);
+      const leafToken = createTestDelegationToken(rootToken, agentDid, [
+        { with: `${HOLOSCRIPT_RESOURCE_SCHEME}packages/core/ast`, can: CapabilityActions.AST_READ },
+      ]);
+
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        capabilityDelegationChain: [rootToken, leafToken],
+        workflowStep: WorkflowStep.BUILD_AST,
+        didVersion: 2,
+      });
+
+      const caps = getCapabilities(passport);
+
+      // Should get capabilities from the LEAF token (last in chain), not root
+      expect(caps).toHaveLength(1);
+      expect(caps[0].can).toBe(CapabilityActions.AST_READ);
+    });
+
+    it('should fall back to legacy permissions when no UCAN chain', () => {
+      const passport = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [AgentPermission.READ_SOURCE, AgentPermission.WRITE_AST],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+      });
+
+      const caps = getCapabilities(passport);
+
+      expect(caps).toHaveLength(2);
+      expect(caps[0].can).toBe(PERMISSION_TO_ACTION[AgentPermission.READ_SOURCE]);
+      expect(caps[1].can).toBe(PERMISSION_TO_ACTION[AgentPermission.WRITE_AST]);
+      // Legacy fallback uses wildcard resource
+      expect(caps[0].with).toBe(`${HOLOSCRIPT_RESOURCE_SCHEME}*`);
+    });
+  });
+});
+
+// ============================================================================
+// TESTS: BINARY SERIALIZATION - v2 & UCAN FIELDS
+// ============================================================================
+
+describe('AgentPassport - Binary Serialization (v2 & UCAN)', () => {
+  let config: AgentConfig;
+  let keyPair: Awaited<ReturnType<typeof generateAgentKeyPair>>;
+
+  beforeEach(async () => {
+    config = createTestConfig();
+    keyPair = await generateAgentKeyPair(AgentRole.SYNTAX_ANALYZER);
+  });
+
+  describe('round-trip with v2 DID', () => {
+    it('should round-trip a v2 passport', () => {
+      const original = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        workflowStep: WorkflowStep.PARSE_TOKENS,
+        didVersion: 2,
+      });
+
+      const binary = serializePassport(original);
+      const restored = deserializePassport(binary);
+
+      expect(restored.didVersion).toBe(2);
+      expect(restored.did.id).toBe(original.did.id);
+      expect(restored.did.id.split(':')).toHaveLength(3); // v2 format
+      expect(restored.did.capabilityDelegation).toEqual(original.did.capabilityDelegation);
+      expect(restored.did.capabilityInvocation).toEqual(original.did.capabilityInvocation);
+      expect(restored.did.context).toContain('https://holoscript.dev/ns/agent/v2');
+    });
+
+    it('should round-trip a v1 passport (backward compatible)', () => {
+      const original = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createTestStateSnapshot(),
+        memory: createTestMemory(),
+        permissions: [AgentPermission.READ_SOURCE, AgentPermission.WRITE_AST],
+        delegationChain: [AgentRole.ORCHESTRATOR],
+        workflowStep: WorkflowStep.BUILD_AST,
+      });
+
+      const binary = serializePassport(original);
+      const restored = deserializePassport(binary);
+
+      expect(restored.didVersion).toBe(1);
+      expect(restored.did.id).toBe(original.did.id);
+      expect(restored.did.id.split(':')).toHaveLength(4); // v1 format
+      expect(restored.permissions).toEqual(original.permissions);
+      expect(restored.delegationChain).toEqual(original.delegationChain);
+      // v1 passports should not have capability fields
+      expect(restored.did.capabilityDelegation).toBeUndefined();
+      expect(restored.did.capabilityInvocation).toBeUndefined();
+      expect(restored.capabilityDelegationChain).toBeUndefined();
+    });
+  });
+
+  describe('round-trip with UCAN delegation chain', () => {
+    it('should round-trip passport with single UCAN token', () => {
+      const rootDid = 'did:holoscript:root000';
+      const agentDid = generateAgentDIDv2('test-key');
+      const token = createTestCapabilityToken(rootDid, agentDid);
+
+      const original = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        capabilityDelegationChain: [token],
+        workflowStep: WorkflowStep.BUILD_AST,
+        didVersion: 2,
+      });
+
+      const binary = serializePassport(original);
+      const restored = deserializePassport(binary);
+
+      expect(restored.capabilityDelegationChain).toBeDefined();
+      expect(restored.capabilityDelegationChain).toHaveLength(1);
+
+      const restoredToken = restored.capabilityDelegationChain![0];
+      expect(restoredToken.header.alg).toBe('EdDSA');
+      expect(restoredToken.header.ucv).toBe('0.10.0');
+      expect(restoredToken.payload.iss).toBe(rootDid);
+      expect(restoredToken.payload.aud).toBe(agentDid);
+      expect(restoredToken.payload.att).toHaveLength(2);
+      expect(restoredToken.payload.att[0].can).toBe(CapabilityActions.AST_READ);
+      expect(restoredToken.signature).toBe('mock-signature-base64url');
+    });
+
+    it('should round-trip passport with multi-step delegation chain', () => {
+      const rootDid = 'did:holoscript:root000';
+      const midDid = 'did:holoscript:mid111';
+      const agentDid = generateAgentDIDv2('test-key');
+
+      const rootToken = createTestCapabilityToken(rootDid, midDid, [
+        { with: `${HOLOSCRIPT_RESOURCE_SCHEME}*`, can: CapabilityActions.ALL },
+      ]);
+      const leafToken = createTestDelegationToken(rootToken, agentDid, [
+        { with: `${HOLOSCRIPT_RESOURCE_SCHEME}packages/core/ast`, can: CapabilityActions.AST_READ },
+      ]);
+
+      const original = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createEmptyStateSnapshot('test-agent'),
+        memory: createEmptyMemory(),
+        permissions: [],
+        capabilityDelegationChain: [rootToken, leafToken],
+        workflowStep: WorkflowStep.BUILD_AST,
+        didVersion: 2,
+      });
+
+      const binary = serializePassport(original);
+      const restored = deserializePassport(binary);
+
+      expect(restored.capabilityDelegationChain).toHaveLength(2);
+      expect(restored.capabilityDelegationChain![0].payload.iss).toBe(rootDid);
+      expect(restored.capabilityDelegationChain![0].payload.aud).toBe(midDid);
+      expect(restored.capabilityDelegationChain![1].payload.iss).toBe(midDid);
+      expect(restored.capabilityDelegationChain![1].payload.aud).toBe(agentDid);
+    });
+
+    it('should round-trip a full v2 passport with all features', () => {
+      const rootDid = 'did:holoscript:root000';
+      const agentDid = generateAgentDIDv2('test-key');
+      const token = createTestCapabilityToken(rootDid, agentDid);
+
+      const original = createAgentPassport({
+        agentConfig: config,
+        keyPair,
+        stateSnapshot: createTestStateSnapshot(),
+        memory: createTestMemory(),
+        permissions: [AgentPermission.READ_SOURCE], // Legacy
+        delegationChain: [AgentRole.ORCHESTRATOR], // Legacy
+        capabilityDelegationChain: [token], // New
+        workflowStep: WorkflowStep.BUILD_AST,
+        didVersion: 2,
+        services: [
+          {
+            id: '#comm',
+            type: 'AgentCommunication',
+            serviceEndpoint: 'wss://holoscript.dev/agents',
+          },
+        ],
+      });
+
+      const binary = serializePassport(original);
+      const restored = deserializePassport(binary);
+
+      // v2 fields
+      expect(restored.didVersion).toBe(2);
+      expect(restored.did.id.split(':')).toHaveLength(3);
+      expect(restored.did.capabilityDelegation).toBeDefined();
+      expect(restored.capabilityDelegationChain).toHaveLength(1);
+
+      // Legacy fields preserved
+      expect(restored.permissions).toEqual([AgentPermission.READ_SOURCE]);
+      expect(restored.delegationChain).toEqual([AgentRole.ORCHESTRATOR]);
+
+      // Memory preserved
+      expect(restored.memory.wisdom).toHaveLength(2);
+      expect(restored.memory.patterns).toHaveLength(1);
+      expect(restored.memory.gotchas).toHaveLength(1);
+
+      // Service endpoints preserved
+      expect(restored.did.service).toHaveLength(1);
     });
   });
 });

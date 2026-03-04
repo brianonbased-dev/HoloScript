@@ -45,6 +45,7 @@ import {
   type WALEntry,
   type DIDVerificationMethod,
   type DIDServiceEndpoint,
+  type DIDVersion,
   PASSPORT_MAGIC,
   PASSPORT_FORMAT_VERSION,
   MAX_PASSPORT_SIZE,
@@ -52,6 +53,7 @@ import {
   MemoryEntryType,
   WALOperation,
 } from './AgentPassport';
+import type { CapabilityToken } from './CapabilityToken';
 import { AgentRole, AgentPermission, WorkflowStep } from './AgentIdentity';
 
 // ============================================================================
@@ -274,8 +276,12 @@ export enum PassportFlags {
   MEMORY_COMPRESSED = 0x02,
   /** WAL entries included */
   HAS_WAL_ENTRIES = 0x04,
-  /** Delegation chain included */
+  /** Delegation chain included (legacy) */
   HAS_DELEGATION = 0x08,
+  /** UCAN capability delegation chain included */
+  HAS_CAPABILITY_DELEGATION = 0x10,
+  /** DID v2 format */
+  DID_V2 = 0x20,
 }
 
 // ============================================================================
@@ -297,6 +303,10 @@ export function serializePassport(passport: AgentPassport): Buffer {
   if (passport.signature) flags |= PassportFlags.SIGNED;
   if (passport.stateSnapshot.walEntries.length > 0) flags |= PassportFlags.HAS_WAL_ENTRIES;
   if (passport.delegationChain.length > 0) flags |= PassportFlags.HAS_DELEGATION;
+  if (passport.capabilityDelegationChain && passport.capabilityDelegationChain.length > 0) {
+    flags |= PassportFlags.HAS_CAPABILITY_DELEGATION;
+  }
+  if ((passport.didVersion || 1) === 2) flags |= PassportFlags.DID_V2;
 
   // Determine sections
   const sections: PassportSection[] = [
@@ -305,8 +315,15 @@ export function serializePassport(passport: AgentPassport): Buffer {
     PassportSection.COMPRESSED_MEMORY,
     PassportSection.PERMISSIONS,
   ];
+  // Always include DID_VERSION section for v2 passports (or when didVersion is explicitly set)
+  if (passport.didVersion !== undefined) {
+    sections.push(PassportSection.DID_VERSION);
+  }
   if (passport.delegationChain.length > 0) {
     sections.push(PassportSection.DELEGATION);
+  }
+  if (passport.capabilityDelegationChain && passport.capabilityDelegationChain.length > 0) {
+    sections.push(PassportSection.CAPABILITY_DELEGATION);
   }
   if (passport.signature) {
     sections.push(PassportSection.SIGNATURE);
@@ -377,7 +394,18 @@ export function serializePassport(passport: AgentPassport): Buffer {
     length: writer.getOffset() - permOffset,
   });
 
-  // Section: DELEGATION (optional)
+  // Section: DID_VERSION (optional, present for v2+ or when explicitly set)
+  if (passport.didVersion !== undefined) {
+    const dvOffset = writer.getOffset();
+    writer.writeUint8(passport.didVersion);
+    sectionData.push({
+      type: PassportSection.DID_VERSION,
+      offset: dvOffset,
+      length: writer.getOffset() - dvOffset,
+    });
+  }
+
+  // Section: DELEGATION (optional, legacy)
   if (passport.delegationChain.length > 0) {
     const delOffset = writer.getOffset();
     serializeDelegationChain(writer, passport.delegationChain);
@@ -385,6 +413,17 @@ export function serializePassport(passport: AgentPassport): Buffer {
       type: PassportSection.DELEGATION,
       offset: delOffset,
       length: writer.getOffset() - delOffset,
+    });
+  }
+
+  // Section: CAPABILITY_DELEGATION (optional, UCAN chain)
+  if (passport.capabilityDelegationChain && passport.capabilityDelegationChain.length > 0) {
+    const capDelOffset = writer.getOffset();
+    serializeCapabilityDelegationChain(writer, passport.capabilityDelegationChain);
+    sectionData.push({
+      type: PassportSection.CAPABILITY_DELEGATION,
+      offset: capDelOffset,
+      length: writer.getOffset() - capDelOffset,
     });
   }
 
@@ -468,6 +507,20 @@ function serializeDIDDocument(writer: BinaryWriter, did: AgentDIDDocument): void
     writer.writeString(svc.id);
     writer.writeString(svc.type);
     writer.writeString(svc.serviceEndpoint);
+  }
+
+  // Capability delegation references (v2)
+  const capDel = did.capabilityDelegation || [];
+  writer.writeUint16(capDel.length);
+  for (const ref of capDel) {
+    writer.writeString(ref);
+  }
+
+  // Capability invocation references (v2)
+  const capInv = did.capabilityInvocation || [];
+  writer.writeUint16(capInv.length);
+  for (const ref of capInv) {
+    writer.writeString(ref);
   }
 
   // Timestamps
@@ -561,6 +614,21 @@ function serializeDelegationChain(writer: BinaryWriter, chain: AgentRole[]): voi
   }
 }
 
+/**
+ * Serialize UCAN capability delegation chain.
+ *
+ * Each CapabilityToken is serialized as a JSON string since the token
+ * structure is complex and self-contained (header + payload + signature + raw).
+ * This avoids duplicating the UCAN wire format in our binary codec.
+ */
+function serializeCapabilityDelegationChain(writer: BinaryWriter, chain: CapabilityToken[]): void {
+  writer.writeUint16(chain.length);
+  for (const token of chain) {
+    // Serialize the full token as a JSON string
+    writer.writeString(JSON.stringify(token));
+  }
+}
+
 // ============================================================================
 // DESERIALIZER
 // ============================================================================
@@ -616,6 +684,8 @@ export function deserializePassport(data: Buffer | Uint8Array): AgentPassport {
   let memory: CompressedMemory | undefined;
   let permissions: AgentPermission[] = [];
   let delegationChain: AgentRole[] = [];
+  let capabilityDelegationChain: CapabilityToken[] | undefined;
+  let didVersion: DIDVersion | undefined;
   let signature: Uint8Array | undefined;
   let signingKeyId: string | undefined;
 
@@ -637,6 +707,12 @@ export function deserializePassport(data: Buffer | Uint8Array): AgentPassport {
         break;
       case PassportSection.DELEGATION:
         delegationChain = deserializeDelegationChain(reader);
+        break;
+      case PassportSection.CAPABILITY_DELEGATION:
+        capabilityDelegationChain = deserializeCapabilityDelegationChain(reader);
+        break;
+      case PassportSection.DID_VERSION:
+        didVersion = reader.readUint8() as DIDVersion;
         break;
       case PassportSection.SIGNATURE:
         signingKeyId = reader.readString();
@@ -663,6 +739,14 @@ export function deserializePassport(data: Buffer | Uint8Array): AgentPassport {
     issuedAt,
     expiresAt,
   };
+
+  if (didVersion !== undefined) {
+    passport.didVersion = didVersion;
+  }
+
+  if (capabilityDelegationChain && capabilityDelegationChain.length > 0) {
+    passport.capabilityDelegationChain = capabilityDelegationChain;
+  }
 
   if (signature) {
     passport.signature = signature;
@@ -728,6 +812,20 @@ function deserializeDIDDocument(reader: BinaryReader): AgentDIDDocument {
     });
   }
 
+  // Capability delegation references (v2)
+  const capDelCount = reader.readUint16();
+  const capabilityDelegation: string[] = [];
+  for (let i = 0; i < capDelCount; i++) {
+    capabilityDelegation.push(reader.readString());
+  }
+
+  // Capability invocation references (v2)
+  const capInvCount = reader.readUint16();
+  const capabilityInvocation: string[] = [];
+  for (let i = 0; i < capInvCount; i++) {
+    capabilityInvocation.push(reader.readString());
+  }
+
   // Timestamps
   const created = reader.readString();
   const updated = reader.readString();
@@ -750,6 +848,8 @@ function deserializeDIDDocument(reader: BinaryReader): AgentDIDDocument {
     verificationMethod,
     authentication,
     assertionMethod,
+    capabilityDelegation: capabilityDelegation.length > 0 ? capabilityDelegation : undefined,
+    capabilityInvocation: capabilityInvocation.length > 0 ? capabilityInvocation : undefined,
     service: service.length > 0 ? service : undefined,
     created,
     updated,
@@ -870,6 +970,16 @@ function deserializeDelegationChain(reader: BinaryReader): AgentRole[] {
   const chain: AgentRole[] = [];
   for (let i = 0; i < count; i++) {
     chain.push(reader.readString() as AgentRole);
+  }
+  return chain;
+}
+
+function deserializeCapabilityDelegationChain(reader: BinaryReader): CapabilityToken[] {
+  const count = reader.readUint16();
+  const chain: CapabilityToken[] = [];
+  for (let i = 0; i < count; i++) {
+    const jsonStr = reader.readString();
+    chain.push(JSON.parse(jsonStr) as CapabilityToken);
   }
   return chain;
 }

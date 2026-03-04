@@ -26,7 +26,7 @@ import { OpenXRCompiler } from '../OpenXRCompiler';
 import { WebGPUCompiler } from '../WebGPUCompiler';
 import { VRChatCompiler, type VRChatCompileResult } from '../VRChatCompiler';
 import { AndroidCompiler, type AndroidCompileResult } from '../AndroidCompiler';
-import { AndroidXRCompiler } from '../AndroidXRCompiler';
+import { AndroidXRCompiler, type AndroidXRCompileResult } from '../AndroidXRCompiler';
 import { URDFCompiler } from '../URDFCompiler';
 import { SDFCompiler } from '../SDFCompiler';
 import { WASMCompiler } from '../WASMCompiler';
@@ -536,70 +536,74 @@ describe('E2E Export: Android XR (Kotlin/Jetpack XR)', () => {
     compiler = new AndroidXRCompiler();
   });
 
-  it('compiles simple cube to valid Kotlin output', () => {
+  it('compiles simple cube to valid multi-file Kotlin output', () => {
     const composition = createSimpleCubeComposition();
-    const output = compiler.compile(composition, 'test-token');
+    const result = compiler.compile(composition, 'test-token');
 
-    expect(output).toBeTruthy();
-    expect(typeof output).toBe('string');
-    expect(output.length).toBeGreaterThan(100);
+    expect(result).toBeTruthy();
+    expect(result).toHaveProperty('activityFile');
+    expect(result).toHaveProperty('stateFile');
+    expect(result).toHaveProperty('nodeFactoryFile');
+    expect(result).toHaveProperty('manifestFile');
+    expect(result).toHaveProperty('buildGradle');
+    expect(result.activityFile.length).toBeGreaterThan(100);
   });
 
   it('includes Kotlin package declaration', () => {
-    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(output).toMatch(/^\/\/ Auto-generated.*\npackage|package\s+com\./m);
+    const result = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(result.activityFile).toMatch(/^\/\/ Auto-generated.*\npackage|package\s+com\./m);
   });
 
   it('includes AndroidXRCompiler source attribution comment', () => {
-    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(output).toContain('HoloScript AndroidXRCompiler');
-    expect(output).toContain('SimpleCubeScene');
+    const result = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(result.activityFile).toContain('HoloScript AndroidXRCompiler');
+    expect(result.activityFile).toContain('SimpleCubeScene');
   });
 
   it('includes Jetpack XR and SceneCore imports', () => {
-    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(output).toMatch(/import androidx\.xr\./);
-    expect(output).toContain('androidx.xr.scenecore.Entity');
+    const result = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(result.activityFile).toMatch(/import androidx\.xr\./);
+    expect(result.activityFile).toContain('androidx.xr.scenecore.Entity');
   });
 
   it('includes ComponentActivity class declaration', () => {
-    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(output).toContain('ComponentActivity');
-    expect(output).toContain('onCreate');
+    const result = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(result.activityFile).toContain('ComponentActivity');
+    expect(result.activityFile).toContain('onCreate');
   });
 
   it('includes Compose Subspace block for spatial content', () => {
-    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(output).toContain('Subspace {');
+    const result = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(result.activityFile).toContain('Subspace {');
   });
 
   it('emits XR session initialization', () => {
-    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(output).toContain('XRSession.create');
+    const result = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(result.activityFile).toContain('XRSession.create');
   });
 
   it('compiles empty composition without errors', () => {
-    const output = compiler.compile(createEmptyComposition(), 'test-token');
-    expect(output).toBeTruthy();
-    expect(output).toContain('ComponentActivity');
+    const result = compiler.compile(createEmptyComposition(), 'test-token');
+    expect(result).toBeTruthy();
+    expect(result.activityFile).toContain('ComponentActivity');
   });
 
   it('compiles physics demo with multiple objects', () => {
-    const output = compiler.compile(createPhysicsDemoComposition(), 'test-token');
-    expect(output).toBeTruthy();
-    expect(output.length).toBeGreaterThan(100);
+    const result = compiler.compile(createPhysicsDemoComposition(), 'test-token');
+    expect(result).toBeTruthy();
+    expect(result.activityFile.length).toBeGreaterThan(100);
   });
 
   it('respects custom packageName option', () => {
     const customCompiler = new AndroidXRCompiler({ packageName: 'com.myapp.xr' });
-    const output = customCompiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(output).toContain('package com.myapp.xr');
+    const result = customCompiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(result.activityFile).toContain('package com.myapp.xr');
   });
 
   it('respects custom activityName option', () => {
     const customCompiler = new AndroidXRCompiler({ activityName: 'MyXRActivity' });
-    const output = customCompiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(output).toContain('class MyXRActivity');
+    const result = customCompiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(result.activityFile).toContain('class MyXRActivity');
   });
 });
 
@@ -891,7 +895,6 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
       { name: 'PlayCanvas', compile: (c) => new PlayCanvasCompiler().compile(c, 'test-token') },
       { name: 'DTDL', compile: (c) => new DTDLCompiler().compile(c, 'test-token') },
       { name: 'VisionOS', compile: (c) => new VisionOSCompiler().compile(c, 'test-token') },
-      { name: 'AndroidXR', compile: (c) => new AndroidXRCompiler().compile(c, 'test-token') },
     ];
 
     for (const { name, compile } of stringCompilers) {
@@ -911,6 +914,13 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
     const androidResult = new AndroidCompiler().compile(composition, 'test-token');
     expect(androidResult.activityFile, 'Android activityFile should be non-empty').toBeTruthy();
 
+    const androidXRResult = new AndroidXRCompiler().compile(composition, 'test-token');
+    expect(androidXRResult.activityFile, 'AndroidXR activityFile should be non-empty').toBeTruthy();
+    expect(androidXRResult.stateFile, 'AndroidXR stateFile should be non-empty').toBeTruthy();
+    expect(androidXRResult.nodeFactoryFile, 'AndroidXR nodeFactoryFile should be non-empty').toBeTruthy();
+    expect(androidXRResult.manifestFile, 'AndroidXR manifestFile should be non-empty').toBeTruthy();
+    expect(androidXRResult.buildGradle, 'AndroidXR buildGradle should be non-empty').toBeTruthy();
+
     const iosResult = new IOSCompiler().compile(composition, 'test-token');
     expect(iosResult.viewFile, 'iOS viewFile should be non-empty').toBeTruthy();
 
@@ -927,7 +937,6 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
       { name: 'Godot', compile: () => new GodotCompiler().compile(composition, 'test-token') },
       { name: 'URDF', compile: () => new URDFCompiler().compile(composition, 'test-token') },
       { name: 'SDF', compile: () => new SDFCompiler().compile(composition, 'test-token') },
-      { name: 'AndroidXR', compile: () => new AndroidXRCompiler().compile(composition, 'test-token') },
     ];
 
     for (const { name, compile } of namePreservingCompilers) {
@@ -937,6 +946,13 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
         `${name} compiler should include composition name`
       ).toContain('UniqueSceneName123');
     }
+
+    // Object-output compilers also preserve composition name
+    const androidXRResult = new AndroidXRCompiler().compile(composition, 'test-token');
+    expect(
+      androidXRResult.activityFile,
+      'AndroidXR compiler should include composition name in activity file'
+    ).toContain('UniqueSceneName123');
   });
 
   it('all 16 compilers handle empty composition without throwing', () => {

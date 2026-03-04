@@ -598,8 +598,9 @@ describe('Gaussian Codec Abstraction Layer', () => {
       const registry = createDefaultCodecRegistry();
       try {
         expect(registry.hasCodec('khr.spz.v2')).toBe(true);
+        expect(registry.hasCodec('khr.gltf.gaussian')).toBe(true);
         expect(registry.hasCodec('mpeg.gsc.v1')).toBe(true);
-        expect(registry.getRegisteredIds().length).toBe(2);
+        expect(registry.getRegisteredIds().length).toBe(3);
       } finally {
         registry.disposeAll();
       }
@@ -733,6 +734,219 @@ describe('Gaussian Codec Abstraction Layer', () => {
       expect(y).toBeCloseTo(-1, 1);
       expect(z).toBeCloseTo(-1, 1);
       expect(w).toBe(0); // Clamped to 0 since sum > 1
+    });
+  });
+
+  // ─── SPZ v3 Quaternion Encoding (Smallest-Three) ─────────────────────
+
+  describe('SPZ v3 Quaternion Encoding (Smallest-Three)', () => {
+    const SQRT1_2 = Math.SQRT1_2;
+    const MASK_9 = 511;
+
+    /**
+     * CPU reference for SPZ v3 quaternion encode (smallest-three).
+     * This mirrors the encodeQuaternionV3 implementation in SpzCodec.ts
+     */
+    function encodeQuaternionV3(
+      x: number, y: number, z: number, w: number,
+    ): number {
+      // Normalize
+      const len = Math.sqrt(x * x + y * y + z * z + w * w);
+      if (len > 0) {
+        const invLen = 1.0 / len;
+        x *= invLen; y *= invLen; z *= invLen; w *= invLen;
+      } else {
+        x = 0; y = 0; z = 0; w = 1;
+      }
+
+      const abs = [Math.abs(x), Math.abs(y), Math.abs(z), Math.abs(w)];
+      let iLargest = 0;
+      if (abs[1] > abs[iLargest]) iLargest = 1;
+      if (abs[2] > abs[iLargest]) iLargest = 2;
+      if (abs[3] > abs[iLargest]) iLargest = 3;
+
+      const quat = [x, y, z, w];
+      if (quat[iLargest] < 0) {
+        quat[0] = -quat[0]; quat[1] = -quat[1];
+        quat[2] = -quat[2]; quat[3] = -quat[3];
+      }
+
+      let packed = 0;
+      let bitPos = 0;
+      for (let i = 0; i < 4; i++) {
+        if (i === iLargest) continue;
+        const value = quat[i];
+        const negBit = value < 0 ? 1 : 0;
+        const mag = Math.min(MASK_9, Math.round((Math.abs(value) / SQRT1_2) * MASK_9));
+        packed |= (mag << bitPos);
+        packed |= (negBit << (bitPos + 9));
+        bitPos += 10;
+      }
+      packed |= (iLargest << 30);
+      return packed >>> 0;
+    }
+
+    /**
+     * CPU reference for SPZ v3 quaternion decode (smallest-three).
+     * Same as decodeQuaternionV3 in SpzCodec.ts
+     */
+    function decodeQuaternionV3(packed: number): [number, number, number, number] {
+      const iLargest = (packed >>> 30) & 0x3;
+      const quat: [number, number, number, number] = [0, 0, 0, 0];
+      let sumSquares = 0;
+      let bitPos = 0;
+
+      for (let i = 0; i < 4; i++) {
+        if (i === iLargest) continue;
+        const mag = (packed >>> bitPos) & MASK_9;
+        const negBit = (packed >>> (bitPos + 9)) & 0x1;
+        bitPos += 10;
+        let value = SQRT1_2 * mag / MASK_9;
+        if (negBit === 1) value = -value;
+        quat[i] = value;
+        sumSquares += value * value;
+      }
+
+      quat[iLargest] = Math.sqrt(Math.max(0, 1 - sumSquares));
+      return quat;
+    }
+
+    function quatLength(q: [number, number, number, number]): number {
+      return Math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
+    }
+
+    function quatDot(
+      a: [number, number, number, number],
+      b: [number, number, number, number],
+    ): number {
+      return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    }
+
+    it('should round-trip identity quaternion (0,0,0,1)', () => {
+      const packed = encodeQuaternionV3(0, 0, 0, 1);
+      const decoded = decodeQuaternionV3(packed);
+      expect(decoded[0]).toBeCloseTo(0, 2);
+      expect(decoded[1]).toBeCloseTo(0, 2);
+      expect(decoded[2]).toBeCloseTo(0, 2);
+      expect(decoded[3]).toBeCloseTo(1, 2);
+    });
+
+    it('should round-trip 90-degree rotations around each axis', () => {
+      const halfSqrt2 = SQRT1_2;
+      const testQuats: [number, number, number, number][] = [
+        [halfSqrt2, 0, 0, halfSqrt2],  // 90 deg around X
+        [0, halfSqrt2, 0, halfSqrt2],  // 90 deg around Y
+        [0, 0, halfSqrt2, halfSqrt2],  // 90 deg around Z
+      ];
+
+      for (const q of testQuats) {
+        const packed = encodeQuaternionV3(q[0], q[1], q[2], q[3]);
+        const decoded = decodeQuaternionV3(packed);
+        const dot = Math.abs(quatDot(q, decoded));
+        // Dot product of 1.0 means identical (or negated) quaternion
+        expect(dot).toBeGreaterThan(0.99);
+        expect(quatLength(decoded)).toBeCloseTo(1.0, 2);
+      }
+    });
+
+    it('should round-trip arbitrary quaternions with high fidelity', () => {
+      const testQuats: [number, number, number, number][] = [
+        [0.1, 0.2, 0.3, 0.9274],     // small rotation
+        [-0.5, 0.5, -0.5, 0.5],      // 120 deg around (1,1,-1)
+        [0.3536, 0.3536, 0.1464, 0.8536], // mixed rotation
+        [0.0, 0.0, 0.0, -1.0],       // identity with negative w (should negate to positive)
+      ];
+
+      for (const q of testQuats) {
+        // Normalize the input
+        const len = quatLength(q);
+        const nq: [number, number, number, number] = [
+          q[0] / len, q[1] / len, q[2] / len, q[3] / len,
+        ];
+        const packed = encodeQuaternionV3(nq[0], nq[1], nq[2], nq[3]);
+        const decoded = decodeQuaternionV3(packed);
+        // quaternion and its negation represent the same rotation
+        const dot = Math.abs(quatDot(nq, decoded));
+        expect(dot).toBeGreaterThan(0.99);
+        expect(quatLength(decoded)).toBeCloseTo(1.0, 2);
+      }
+    });
+
+    it('should produce unit quaternions after decode', () => {
+      // Test many random-ish quaternions
+      const testQuats: [number, number, number, number][] = [
+        [1, 0, 0, 0],    // 180 deg around X
+        [0, 1, 0, 0],    // 180 deg around Y
+        [0, 0, 1, 0],    // 180 deg around Z
+        [0.5, 0.5, 0.5, 0.5], // 120 deg around (1,1,1)
+      ];
+
+      for (const q of testQuats) {
+        const packed = encodeQuaternionV3(q[0], q[1], q[2], q[3]);
+        const decoded = decodeQuaternionV3(packed);
+        expect(quatLength(decoded)).toBeCloseTo(1.0, 2);
+      }
+    });
+
+    it('should pack the iLargest index in the top 2 bits', () => {
+      // When w is largest (identity), iLargest should be 3
+      const packed = encodeQuaternionV3(0, 0, 0, 1);
+      const iLargest = (packed >>> 30) & 0x3;
+      expect(iLargest).toBe(3);
+
+      // When x is largest (180 deg around X: [1,0,0,0])
+      const packedX = encodeQuaternionV3(1, 0, 0, 0);
+      const iLargestX = (packedX >>> 30) & 0x3;
+      expect(iLargestX).toBe(0);
+    });
+
+    it('should handle zero quaternion gracefully (encode as identity)', () => {
+      const packed = encodeQuaternionV3(0, 0, 0, 0);
+      const decoded = decodeQuaternionV3(packed);
+      // Should decode to identity
+      expect(decoded[3]).toBeCloseTo(1.0, 2);
+      expect(quatLength(decoded)).toBeCloseTo(1.0, 2);
+    });
+
+    it('should handle un-normalized quaternions by normalizing first', () => {
+      // 2x scaled identity: should produce same result as identity
+      const packed = encodeQuaternionV3(0, 0, 0, 2);
+      const decoded = decodeQuaternionV3(packed);
+      expect(decoded[0]).toBeCloseTo(0, 2);
+      expect(decoded[1]).toBeCloseTo(0, 2);
+      expect(decoded[2]).toBeCloseTo(0, 2);
+      expect(decoded[3]).toBeCloseTo(1.0, 2);
+    });
+
+    it('should achieve better precision than v2 for general rotations', () => {
+      // v2 uses 8-bit per component (256 levels for range [-1, 1])
+      // v3 uses 9-bit per component (512 levels for range [0, sqrt(1/2)])
+      // v3 should have lower error for typical quaternions
+      const testQ: [number, number, number, number] = [0.271, 0.653, 0.271, 0.653];
+      const len = quatLength(testQ);
+      const nq: [number, number, number, number] = [
+        testQ[0] / len, testQ[1] / len, testQ[2] / len, testQ[3] / len,
+      ];
+
+      const packed = encodeQuaternionV3(nq[0], nq[1], nq[2], nq[3]);
+      const decoded = decodeQuaternionV3(packed);
+      const dot = Math.abs(quatDot(nq, decoded));
+
+      // v3 should achieve very high fidelity (dot > 0.999)
+      expect(dot).toBeGreaterThan(0.999);
+    });
+
+    it('should correctly encode then decode with negative components', () => {
+      const testQ: [number, number, number, number] = [-0.3, -0.4, 0.5, 0.7];
+      const len = quatLength(testQ);
+      const nq: [number, number, number, number] = [
+        testQ[0] / len, testQ[1] / len, testQ[2] / len, testQ[3] / len,
+      ];
+
+      const packed = encodeQuaternionV3(nq[0], nq[1], nq[2], nq[3]);
+      const decoded = decodeQuaternionV3(packed);
+      const dot = Math.abs(quatDot(nq, decoded));
+      expect(dot).toBeGreaterThan(0.99);
     });
   });
 

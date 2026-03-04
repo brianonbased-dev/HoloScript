@@ -30,6 +30,7 @@ import type {
   HoloEffects,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -55,6 +56,11 @@ export interface UnityCompilerOptions {
 
 export class UnityCompiler extends CompilerBase {
   protected readonly compilerName = 'UnityCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.UNITY;
+  }
+
   private options: Required<UnityCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

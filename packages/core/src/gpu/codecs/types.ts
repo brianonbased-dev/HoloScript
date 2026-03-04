@@ -218,6 +218,14 @@ export interface GaussianEncodeOptions {
   /** Number of fractional bits for fixed-point encoding (SPZ-specific) */
   fractionalBits?: number;
 
+  /**
+   * SPZ encoding version for quaternion rotation packing.
+   *   - 2: first-three encoding (3 bytes per quaternion, legacy)
+   *   - 3: smallest-three encoding (4 bytes per quaternion, higher precision)
+   * Default: 3
+   */
+  encodingVersion?: 2 | 3;
+
   /** Codec-specific extension options */
   extensions?: Record<string, unknown>;
 }

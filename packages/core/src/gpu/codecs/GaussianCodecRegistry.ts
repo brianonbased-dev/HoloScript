@@ -46,6 +46,7 @@ import type {
 } from './types.js';
 import { SpzCodec } from './SpzCodec.js';
 import { MpegGscCodec } from './MpegGscCodec.js';
+import { GltfGaussianSplatCodec } from './GltfGaussianSplatCodec.js';
 
 // =============================================================================
 // Registry Types
@@ -367,6 +368,7 @@ export class GaussianCodecRegistry {
  *
  * Built-in codecs:
  *   - SpzCodec (khr.spz.v2): Production, priority 100
+ *   - GltfGaussianSplatCodec (khr.gltf.gaussian): Beta, priority 50
  *   - MpegGscCodec (mpeg.gsc.v1): Stub, priority 0
  */
 export function createDefaultCodecRegistry(): GaussianCodecRegistry {
@@ -374,6 +376,9 @@ export function createDefaultCodecRegistry(): GaussianCodecRegistry {
 
   // Register SPZ codec with high priority (production-ready)
   registry.register(new SpzCodec(), 100);
+
+  // Register glTF Gaussian splatting codec (KHR_gaussian_splatting extension family)
+  registry.register(new GltfGaussianSplatCodec(), 50);
 
   // Register MPEG GSC stub with low priority (not yet usable)
   registry.register(new MpegGscCodec(), 0);
