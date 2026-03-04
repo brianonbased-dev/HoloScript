@@ -1,9 +1,9 @@
 /**
  * NetworkManager.ts
  *
- * Simulated network layer for HoloScript+ multiplayer.
+ * Network layer for HoloScript+ multiplayer.
  * Manages connections, message serialization, and latency simulation.
- * In production, this would wrap WebSocket/WebRTC connections.
+ * Supports optional real transport (WebSocket/WebRTC) via attachTransport().
  *
  * W.NET.02: Implements AOI-filtered broadcast via spatial hash grid.
  * P.NET.04: Supports Brain Server configuration for batched agent inference.
@@ -12,6 +12,7 @@
 
 import type { IVector3 } from './NetworkTypes';
 import { SpatialHashGrid, type EntityType } from './NetworkTypes';
+import type { NetworkTransport } from './NetworkTransport';
 
 export type MessageType = 'state_sync' | 'event' | 'rpc' | 'handshake' | 'heartbeat' | 'agent_state';
 
@@ -64,9 +65,47 @@ export class NetworkManager {
     /** P.NET.04: Brain Server configuration */
     private brainServerConfig: BrainServerConfig | null = null;
 
+    /** Real transport layer — when attached, outbox is routed through it */
+    private transport: NetworkTransport | null = null;
+
+    /** GC interval tracking for spatial grid cleanup */
+    private gcAccumulator: number = 0;
+    private static readonly GC_INTERVAL_MS = 5000;
+
     constructor(peerId: string) {
         this.peerId = peerId;
         this.spatialGrid = new SpatialHashGrid({ cellSize: 50 });
+    }
+
+    // =========================================================================
+    // TRANSPORT BRIDGE
+    // =========================================================================
+
+    /**
+     * Attach a real transport layer (e.g., SpatialWebSocketTransport).
+     * When attached, broadcast/sendTo/broadcastToAOI route through the transport
+     * instead of the simulated outbox.
+     */
+    attachTransport(transport: NetworkTransport): void {
+        this.transport = transport;
+        // Register existing peers with the transport
+        for (const peer of this.peers.values()) {
+            transport.connect(peer.id);
+        }
+    }
+
+    /**
+     * Detach the transport layer, reverting to simulated outbox.
+     */
+    detachTransport(): void {
+        this.transport = null;
+    }
+
+    /**
+     * Get the attached transport (if any).
+     */
+    getTransport(): NetworkTransport | null {
+        return this.transport;
     }
 
     /**
@@ -125,9 +164,15 @@ export class NetworkManager {
 
     /**
      * Send a message to all peers.
+     * Routes through transport when attached, otherwise uses outbox.
      */
     broadcast(type: MessageType, payload: any): void {
         if (!this.connected) return;
+
+        if (this.transport) {
+            this.transport.broadcast(type, payload as Record<string, unknown>);
+            return;
+        }
 
         const msg: NetworkMessage = {
             type,
@@ -159,9 +204,15 @@ export class NetworkManager {
 
     /**
      * Send a message to a specific peer.
+     * Routes through transport when attached, otherwise uses outbox.
      */
     sendTo(peerId: string, type: MessageType, payload: any): void {
         if (!this.connected || !this.peers.has(peerId)) return;
+
+        if (this.transport) {
+            this.transport.send(peerId, type, payload as Record<string, unknown>);
+            return;
+        }
 
         const msg: NetworkMessage = {
             type,
@@ -210,6 +261,29 @@ export class NetworkManager {
 
     getSimulatedLatency(): number {
         return this.simulatedLatency;
+    }
+
+    /**
+     * Per-frame update pump.
+     * Processes the transport (delivers delayed messages), processes inbox,
+     * and periodically garbage-collects empty spatial grid cells.
+     * @param dt Delta time in seconds
+     */
+    update(dt: number): void {
+        // Pump the transport if attached
+        if (this.transport) {
+            this.transport.update(dt);
+        }
+
+        // Process incoming messages
+        this.processInbox();
+
+        // Periodic spatial grid GC
+        this.gcAccumulator += dt * 1000;
+        if (this.gcAccumulator >= NetworkManager.GC_INTERVAL_MS) {
+            this.gcAccumulator = 0;
+            this.spatialGrid.gc();
+        }
     }
 
     // =========================================================================
