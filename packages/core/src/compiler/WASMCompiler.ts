@@ -16,6 +16,7 @@
 import type { HoloComposition, HoloObjectDecl, HoloState } from '../parser/HoloCompositionTypes';
 import type { HSPlusAST, HSPlusNode } from '../types/HoloScriptPlus';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -108,6 +109,11 @@ type WASMValueType = 'i32' | 'i64' | 'f32' | 'f64';
 
 export class WASMCompiler extends CompilerBase {
   protected readonly compilerName = 'WASMCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.WASM;
+  }
+
   private options: Required<WASMCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

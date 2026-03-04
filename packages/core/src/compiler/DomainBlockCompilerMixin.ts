@@ -14,6 +14,7 @@ import type {
   HoloDomainBlock,
   HoloDomainType,
 } from '../parser/HoloCompositionTypes';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 
 // =============================================================================
 // Material Compilation
@@ -1877,4 +1878,28 @@ function hexToRGBA(hex: string, alpha: number): number[] {
     parseInt(h.substring(4, 6), 16) / 255,
     alpha,
   ];
+}
+
+// =============================================================================
+// ANS Capability Path (P5 Compiler Fleet Migration)
+// =============================================================================
+
+/**
+ * ANS capability path for the DomainBlockCompilerMixin.
+ *
+ * Since DomainBlockCompilerMixin is a utility module (not a CompilerBase subclass),
+ * it exposes its required capability as an exported constant and helper function.
+ */
+export const DOMAIN_BLOCK_COMPILER_MIXIN_CAPABILITY: ANSCapabilityPathValue = ANSCapabilityPath.DOMAIN_BLOCK;
+
+/**
+ * Get the ANS capability namespace path for DomainBlockCompilerMixin.
+ *
+ * Mirrors the `getRequiredCapability()` pattern used by CompilerBase subclasses,
+ * adapted for a standalone utility module.
+ *
+ * @returns The ANS capability path "/compile/mixin/domain-block"
+ */
+export function getRequiredCapability(): ANSCapabilityPathValue {
+  return ANSCapabilityPath.DOMAIN_BLOCK;
 }

@@ -33,6 +33,7 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -73,6 +74,11 @@ const SHAPE_TO_MESH: Record<string, string> = {
 
 export class BabylonCompiler extends CompilerBase {
   protected readonly compilerName = 'BabylonCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.BABYLON;
+  }
+
   private options: Required<BabylonCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

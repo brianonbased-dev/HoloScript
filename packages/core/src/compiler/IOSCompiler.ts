@@ -16,6 +16,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -42,6 +43,11 @@ export interface IOSCompileResult {
 
 export class IOSCompiler extends CompilerBase {
   protected readonly compilerName = 'IOSCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.IOS;
+  }
+
   private options: Required<IOSCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

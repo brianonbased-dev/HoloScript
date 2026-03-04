@@ -8,6 +8,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -52,6 +53,11 @@ export interface SCMDAG {
 
 export class SCMCompiler extends CompilerBase {
   protected readonly compilerName = 'SCMCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.SCM;
+  }
+
   private options: Required<SCMCompilerOptions>;
   private nodes: SCMNode[] = [];
   private edges: SCMEdge[] = [];

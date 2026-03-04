@@ -16,6 +16,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -143,6 +144,11 @@ export interface DTDLObjectSchema {
 
 export class DTDLCompiler extends CompilerBase {
   protected readonly compilerName = 'DTDLCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.DTDL;
+  }
+
   private options: Required<DTDLCompilerOptions>;
   private generatedInterfaces: DTDLInterface[] = [];
 

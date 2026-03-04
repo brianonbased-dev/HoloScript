@@ -290,7 +290,7 @@ export {
   getANSSummary,
 } from './ANSNamespace';
 
-// Hybrid Crypto Provider (Post-Quantum Phase 1 — abstraction layer)
+// Hybrid Crypto Provider (Post-Quantum Phase 2 — real ML-DSA-65 support)
 export {
   // Types
   type SignatureAlgorithm,
@@ -304,8 +304,12 @@ export {
 
   // Classes
   Ed25519CryptoProvider,
+  MLDSACryptoProvider,
   HybridCryptoProvider,
 
   // Factory
   createCryptoProvider,
+
+  // Utilities
+  isPostQuantumAvailable,
 } from './HybridCryptoProvider';

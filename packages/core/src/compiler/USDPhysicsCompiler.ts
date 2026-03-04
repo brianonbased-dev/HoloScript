@@ -19,6 +19,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -178,6 +179,11 @@ export interface USDPhysicsScene {
 
 export class USDPhysicsCompiler extends CompilerBase {
   protected readonly compilerName = 'USDPhysicsCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.USD;
+  }
+
   private options: Required<USDPhysicsCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

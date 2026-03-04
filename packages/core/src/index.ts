@@ -177,6 +177,24 @@ export {
 
 export { flowFieldHandler, type FlowFieldConfig } from './traits/FlowFieldTrait';
 
+// RBAC Trait (Enterprise Multi-Tenant Capability-Based Access Control)
+export {
+  rbacHandler,
+  type RBACRole,
+  type PermissionCategory,
+  type PermissionAction,
+  type Permission,
+  type PermissionCondition,
+  type RoleDefinition,
+  type RoleAssignment,
+  type RBACConfig,
+  type AccessCheckEntry,
+  type CapabilityGrant,
+  type DelegationRecord,
+  type DelegationConstraints,
+  type CapabilityCheckResult,
+} from './traits/RBACTrait';
+
 // HoloScript+ Streaming (NEW - Phase 19)
 export {
   assetStreamerRegistry,
@@ -2350,3 +2368,61 @@ export {
   DegradedModeIndicator,
   type DegradedModeBannerProps
 } from './DegradedModeBanner';
+
+// =============================================================================
+// GPU Codecs - Gaussian Splat Codec Abstraction Layer (W.038)
+// =============================================================================
+// Codec-agnostic interface for encoding, decoding, and streaming Gaussian splats.
+// Supports KHR/SPZ (Niantic), glTF KHR_gaussian_splatting, and MPEG GSC (stub).
+
+export {
+  // Registry (primary entry point for consumers)
+  GaussianCodecRegistry,
+  createDefaultCodecRegistry,
+  getGlobalCodecRegistry,
+  resetGlobalCodecRegistry,
+
+  // Codec implementations
+  SpzCodec,
+  GltfGaussianSplatCodec,
+  MpegGscCodec,
+
+  // Abstract base class & errors
+  AbstractGaussianCodec,
+  GaussianCodecError,
+  CodecNotSupportedError,
+  CodecDecodeError,
+  CodecEncodeError,
+  CodecMemoryError,
+  CodecDecompressError,
+} from './gpu/codecs';
+
+export type {
+  // Core data types
+  GaussianSplatData,
+  EncodedGaussianData,
+  CodecMetadata,
+  CodecResult,
+
+  // Codec identification
+  GaussianCodecId,
+  GaussianFileExtension,
+  GaussianCodecCapabilities,
+
+  // Options
+  GaussianEncodeOptions,
+  GaussianDecodeOptions,
+  GaussianStreamDecodeOptions,
+
+  // Streaming
+  GaussianStreamChunk,
+  StreamProgress,
+  StreamProgressCallback,
+
+  // Interface
+  IGaussianCodec,
+
+  // Registry types
+  CodecDetectOptions,
+  RegisteredCodec,
+} from './gpu/codecs';

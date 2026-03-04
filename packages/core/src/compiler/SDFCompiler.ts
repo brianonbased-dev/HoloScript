@@ -17,6 +17,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -54,6 +55,11 @@ export interface SDFCompilerOptions {
 
 export class SDFCompiler extends CompilerBase {
   protected readonly compilerName = 'SDFCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.SDF;
+  }
+
   private options: Required<SDFCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

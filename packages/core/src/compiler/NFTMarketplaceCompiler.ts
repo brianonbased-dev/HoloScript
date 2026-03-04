@@ -17,6 +17,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import type {
   NFTMarketplaceAST,
   NFTContract,
@@ -45,6 +46,11 @@ export interface NFTMarketplaceCompilerOptions {
 
 export class NFTMarketplaceCompiler extends CompilerBase {
   protected readonly compilerName = 'NFTMarketplaceCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.NFT_MARKETPLACE;
+  }
+
   private options: Required<NFTMarketplaceCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

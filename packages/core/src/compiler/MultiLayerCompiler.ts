@@ -12,6 +12,7 @@ import { VRRCompiler, type VRRCompilationResult } from './VRRCompiler.js';
 import { ARCompiler, type ARCompilationResult } from './ARCompiler.js';
 import { BabylonCompiler } from './BabylonCompiler.js'; // Assuming standard VR target
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 
 export interface MultiLayerCompilerOptions {
   targets: Array<'vr' | 'vrr' | 'ar'>;
@@ -30,6 +31,11 @@ export interface MultiLayerCompilationResult {
 
 export class MultiLayerCompiler extends CompilerBase {
   protected readonly compilerName = 'MultiLayerCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.MULTI_LAYER;
+  }
+
   private options: MultiLayerCompilerOptions;
 
   constructor(options: MultiLayerCompilerOptions) {

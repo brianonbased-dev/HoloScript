@@ -34,6 +34,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -234,6 +235,11 @@ export interface URDFROS2Control {
 
 export class URDFCompiler extends CompilerBase {
   protected readonly compilerName = 'URDFCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.URDF;
+  }
+
   private options: Required<URDFCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

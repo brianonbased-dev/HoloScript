@@ -33,6 +33,7 @@ import type {
   HoloLight,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -452,6 +453,11 @@ const TRAIT_SHADER_MAP: Record<string, TraitShaderMapping> = {
 
 export class TSLCompiler extends CompilerBase {
   protected readonly compilerName = 'TSLCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.TSL;
+  }
+
   private options: Required<TSLCompilerOptions>;
   private warnings: string[] = [];
   private bindingCounter: number = 0;

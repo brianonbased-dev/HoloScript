@@ -4,9 +4,11 @@
  * Post-quantum cryptography abstraction layer for dual-signing with
  * Ed25519 (classical) + ML-DSA-65 / Dilithium (post-quantum).
  *
- * Phase 1: Abstraction layer only — no actual @noble/post-quantum dependency.
- * This module defines the interfaces, types, and provider pattern that will
- * be wired to real PQ implementations in Phase 2.
+ * Phase 1: Abstraction layer (Ed25519 + mock PQ).
+ * Phase 2 (current): Real ML-DSA-65 support via dynamic import of @noble/post-quantum.
+ *   - MLDSACryptoProvider: Real PQ signing using @noble/post-quantum/ml-dsa
+ *   - createCryptoProvider('ml-dsa-65') returns MLDSACryptoProvider
+ *   - isPostQuantumAvailable() checks runtime availability of @noble/post-quantum
  *
  * Architecture:
  * - ICryptoProvider: Abstract interface for any signing algorithm
@@ -251,6 +253,117 @@ export class Ed25519CryptoProvider implements ICryptoProvider {
 }
 
 // ---------------------------------------------------------------------------
+// MLDSACryptoProvider
+// ---------------------------------------------------------------------------
+
+/**
+ * ML-DSA-65 (Dilithium) cryptographic provider using @noble/post-quantum.
+ *
+ * Uses dynamic import so the @noble/post-quantum package is optional:
+ * - If installed: Full ML-DSA-65 key generation, signing, and verification
+ * - If not installed: Operations throw a clear error with install instructions
+ *
+ * Key format: base64-encoded raw byte arrays
+ * Signature format: base64-encoded raw ML-DSA-65 signature
+ *
+ * @see https://csrc.nist.gov/pubs/fips/204/final (FIPS 204 — ML-DSA)
+ */
+export class MLDSACryptoProvider implements ICryptoProvider {
+  /**
+   * Lazily load the @noble/post-quantum ML-DSA module.
+   *
+   * Caches the module after first successful import to avoid repeated dynamic imports.
+   */
+  private mlDsaModule: any = null;
+
+  private async getModule(): Promise<any> {
+    if (this.mlDsaModule) {
+      return this.mlDsaModule;
+    }
+
+    const noble = await import('@noble/post-quantum/ml-dsa').catch(() => null);
+    if (!noble) {
+      throw new Error(
+        'ML-DSA-65 requires @noble/post-quantum. ' +
+        'Install it with: npm install @noble/post-quantum',
+      );
+    }
+
+    this.mlDsaModule = noble;
+    return noble;
+  }
+
+  /**
+   * Generate a new ML-DSA-65 key pair.
+   *
+   * ML-DSA-65 (FIPS 204, security level 3):
+   * - Public key: 1952 bytes
+   * - Private key: 4032 bytes
+   * - Signature: 3309 bytes
+   *
+   * @param kid - Optional key identifier. Defaults to "ml-dsa-65#<timestamp>"
+   */
+  async generateKeyPair(kid?: string): Promise<CryptoKeyPair> {
+    const noble = await this.getModule();
+    const keyPair = noble.ml_dsa65.keygen();
+
+    return {
+      publicKey: Buffer.from(keyPair.publicKey).toString('base64'),
+      privateKey: Buffer.from(keyPair.secretKey).toString('base64'),
+      kid: kid || `ml-dsa-65#${Date.now()}`,
+      algorithm: 'ml-dsa-65',
+    };
+  }
+
+  /**
+   * Sign a message with ML-DSA-65.
+   *
+   * ML-DSA-65 uses the message directly (no pre-hashing).
+   */
+  async sign(message: Uint8Array, privateKey: string): Promise<string> {
+    const noble = await this.getModule();
+    const secretKey = new Uint8Array(Buffer.from(privateKey, 'base64'));
+    const signature = noble.ml_dsa65.sign(secretKey, message);
+    return Buffer.from(signature).toString('base64');
+  }
+
+  /**
+   * Verify an ML-DSA-65 signature.
+   */
+  async verify(message: Uint8Array, signature: string, publicKey: string): Promise<boolean> {
+    try {
+      const noble = await this.getModule();
+      const pubKeyBytes = new Uint8Array(Buffer.from(publicKey, 'base64'));
+      const sigBytes = new Uint8Array(Buffer.from(signature, 'base64'));
+      return noble.ml_dsa65.verify(pubKeyBytes, message, sigBytes);
+    } catch {
+      return false;
+    }
+  }
+
+  getAlgorithm(): SignatureAlgorithm {
+    return 'ml-dsa-65';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Post-Quantum Availability Check
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether the @noble/post-quantum package is available at runtime.
+ *
+ * This is a lightweight probe that attempts to dynamically import the module
+ * without caching, useful for feature detection before constructing providers.
+ *
+ * @returns Promise<boolean> — true if @noble/post-quantum/ml-dsa is importable
+ */
+export async function isPostQuantumAvailable(): Promise<boolean> {
+  const noble = await import('@noble/post-quantum/ml-dsa').catch(() => null);
+  return noble !== null;
+}
+
+// ---------------------------------------------------------------------------
 // HybridCryptoProvider
 // ---------------------------------------------------------------------------
 
@@ -473,13 +586,13 @@ export class HybridCryptoProvider implements ICryptoProvider {
  * Create a crypto provider for the specified algorithm.
  *
  * - 'ed25519': Returns an Ed25519CryptoProvider (production-ready)
- * - 'ml-dsa-65': Throws — no real PQ implementation in Phase 1
+ * - 'ml-dsa-65': Returns an MLDSACryptoProvider (requires @noble/post-quantum at runtime)
  * - 'hybrid-ed25519-ml-dsa-65': Returns a HybridCryptoProvider with Ed25519
- *   classical provider and no PQ provider (PQ operations will be skipped).
- *   Pass an optional pqProvider to enable dual-signing.
+ *   classical provider and an MLDSACryptoProvider as the PQ provider.
+ *   Pass an optional pqProvider to override the default MLDSACryptoProvider.
  *
  * @param algorithm - The signature algorithm to use
- * @param pqProvider - Optional PQ provider for hybrid mode
+ * @param pqProvider - Optional PQ provider for hybrid mode (overrides default MLDSACryptoProvider)
  * @returns ICryptoProvider implementation
  */
 export function createCryptoProvider(
@@ -491,15 +604,12 @@ export function createCryptoProvider(
       return new Ed25519CryptoProvider();
 
     case 'ml-dsa-65':
-      throw new Error(
-        'ML-DSA-65 provider not available in Phase 1. ' +
-        'Install @noble/post-quantum and implement MlDsa65CryptoProvider in Phase 2.',
-      );
+      return new MLDSACryptoProvider();
 
     case 'hybrid-ed25519-ml-dsa-65':
       return new HybridCryptoProvider(
         new Ed25519CryptoProvider(),
-        pqProvider,
+        pqProvider ?? new MLDSACryptoProvider(),
       );
 
     default: {

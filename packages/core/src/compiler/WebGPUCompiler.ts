@@ -24,6 +24,7 @@ import type {
   HoloValue,
 } from '../parser/HoloCompositionTypes';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -39,6 +40,11 @@ export interface WebGPUCompilerOptions {
 
 export class WebGPUCompiler extends CompilerBase {
   protected readonly compilerName = 'WebGPUCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.WEBGPU;
+  }
+
   private options: Required<WebGPUCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;

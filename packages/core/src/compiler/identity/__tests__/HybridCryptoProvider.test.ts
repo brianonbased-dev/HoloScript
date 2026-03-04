@@ -3,9 +3,11 @@
  *
  * Covers:
  * - Ed25519CryptoProvider: key generation, signing, verification
+ * - MLDSACryptoProvider: ML-DSA-65 with dynamic @noble/post-quantum import
  * - HybridCryptoProvider: composite signing/verification with mock PQ provider
  * - Composite verification logic (defense in depth: EITHER signature validates)
  * - Factory function: createCryptoProvider()
+ * - isPostQuantumAvailable() utility
  * - Edge cases: invalid keys, tampered messages, missing PQ provider
  */
 
@@ -17,8 +19,10 @@ import {
   type HybridKeyPair,
   type CompositeSignature,
   Ed25519CryptoProvider,
+  MLDSACryptoProvider,
   HybridCryptoProvider,
   createCryptoProvider,
+  isPostQuantumAvailable,
 } from '../HybridCryptoProvider';
 
 // ---------------------------------------------------------------------------
@@ -442,10 +446,11 @@ describe('createCryptoProvider', () => {
     expect(provider.getAlgorithm()).toBe('ed25519');
   });
 
-  it('should throw for ml-dsa-65 in Phase 1', () => {
-    expect(() => createCryptoProvider('ml-dsa-65')).toThrow(
-      'ML-DSA-65 provider not available in Phase 1',
-    );
+  it('should create MLDSACryptoProvider for ml-dsa-65', () => {
+    const provider = createCryptoProvider('ml-dsa-65');
+
+    expect(provider).toBeInstanceOf(MLDSACryptoProvider);
+    expect(provider.getAlgorithm()).toBe('ml-dsa-65');
   });
 
   it('should create HybridCryptoProvider for hybrid algorithm', () => {
@@ -463,10 +468,11 @@ describe('createCryptoProvider', () => {
     expect((provider as HybridCryptoProvider).hasPQProvider()).toBe(true);
   });
 
-  it('should create HybridCryptoProvider without PQ provider', () => {
+  it('should auto-create MLDSACryptoProvider for hybrid when no PQ provider given', () => {
     const provider = createCryptoProvider('hybrid-ed25519-ml-dsa-65');
 
-    expect((provider as HybridCryptoProvider).hasPQProvider()).toBe(false);
+    // Phase 2: factory auto-creates MLDSACryptoProvider as PQ provider
+    expect((provider as HybridCryptoProvider).hasPQProvider()).toBe(true);
   });
 
   it('should produce working sign/verify cycle via factory', async () => {
@@ -546,5 +552,237 @@ describe('Type safety', () => {
     expect(sig).toHaveProperty('algorithm');
     expect(sig).toHaveProperty('signedAt');
     expect(sig).toHaveProperty('kid');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MLDSACryptoProvider Tests
+// ---------------------------------------------------------------------------
+
+describe('MLDSACryptoProvider', () => {
+  describe('when @noble/post-quantum is NOT available', () => {
+    it('should throw a clear error when module import fails', async () => {
+      const provider = new MLDSACryptoProvider();
+
+      // Simulate missing module by injecting a getModule override that rejects
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).mlDsaModule = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).getModule = async () => {
+        throw new Error(
+          'ML-DSA-65 requires @noble/post-quantum. ' +
+          'Install it with: npm install @noble/post-quantum',
+        );
+      };
+
+      await expect(provider.generateKeyPair()).rejects.toThrow(
+        'ML-DSA-65 requires @noble/post-quantum',
+      );
+    });
+
+    it('should throw clear error on sign when module unavailable', async () => {
+      const provider = new MLDSACryptoProvider();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).mlDsaModule = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).getModule = async () => {
+        throw new Error(
+          'ML-DSA-65 requires @noble/post-quantum. ' +
+          'Install it with: npm install @noble/post-quantum',
+        );
+      };
+
+      const message = new TextEncoder().encode('test');
+      await expect(provider.sign(message, 'key')).rejects.toThrow(
+        'ML-DSA-65 requires @noble/post-quantum',
+      );
+    });
+
+    it('should throw clear error on verify when module unavailable', async () => {
+      const provider = new MLDSACryptoProvider();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).mlDsaModule = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).getModule = async () => {
+        throw new Error(
+          'ML-DSA-65 requires @noble/post-quantum. ' +
+          'Install it with: npm install @noble/post-quantum',
+        );
+      };
+
+      const message = new TextEncoder().encode('test');
+      // verify catches errors and returns false
+      const result = await provider.verify(message, 'sig', 'key');
+      expect(result).toBe(false);
+    });
+
+    it('should return ml-dsa-65 from getAlgorithm without needing module', () => {
+      const provider = new MLDSACryptoProvider();
+      expect(provider.getAlgorithm()).toBe('ml-dsa-65');
+    });
+  });
+
+  describe('with mocked @noble/post-quantum module', () => {
+    // Create a mock that simulates the @noble/post-quantum/ml-dsa API
+    function createMockMLDSA() {
+      const mockKeyPair = {
+        publicKey: new Uint8Array(1952).fill(1),
+        secretKey: new Uint8Array(4032).fill(2),
+      };
+      const mockSignature = new Uint8Array(3309).fill(3);
+
+      return {
+        ml_dsa65: {
+          keygen: vi.fn().mockReturnValue(mockKeyPair),
+          sign: vi.fn().mockReturnValue(mockSignature),
+          verify: vi.fn().mockReturnValue(true),
+        },
+      };
+    }
+
+    it('should generate key pair using noble ml_dsa65.keygen', async () => {
+      const provider = new MLDSACryptoProvider();
+      const mockNoble = createMockMLDSA();
+
+      // Inject mock module directly into provider cache
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).mlDsaModule = mockNoble;
+
+      const keyPair = await provider.generateKeyPair('test-pq-kid');
+
+      expect(mockNoble.ml_dsa65.keygen).toHaveBeenCalledOnce();
+      expect(keyPair.kid).toBe('test-pq-kid');
+      expect(keyPair.algorithm).toBe('ml-dsa-65');
+      expect(keyPair.publicKey).toBeTruthy();
+      expect(keyPair.privateKey).toBeTruthy();
+      // Verify base64 encoding
+      expect(() => Buffer.from(keyPair.publicKey, 'base64')).not.toThrow();
+      expect(() => Buffer.from(keyPair.privateKey, 'base64')).not.toThrow();
+    });
+
+    it('should generate default kid when none provided', async () => {
+      const provider = new MLDSACryptoProvider();
+      const mockNoble = createMockMLDSA();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).mlDsaModule = mockNoble;
+
+      const keyPair = await provider.generateKeyPair();
+
+      expect(keyPair.kid).toContain('ml-dsa-65#');
+    });
+
+    it('should sign a message using noble ml_dsa65.sign', async () => {
+      const provider = new MLDSACryptoProvider();
+      const mockNoble = createMockMLDSA();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).mlDsaModule = mockNoble;
+
+      const message = new TextEncoder().encode('sign this PQ message');
+      const privateKey = Buffer.from(new Uint8Array(32).fill(99)).toString('base64');
+
+      const signature = await provider.sign(message, privateKey);
+
+      expect(mockNoble.ml_dsa65.sign).toHaveBeenCalledOnce();
+      // First arg: secretKey bytes, second arg: message
+      const callArgs = mockNoble.ml_dsa65.sign.mock.calls[0];
+      expect(callArgs[0]).toBeInstanceOf(Uint8Array);
+      expect(callArgs[1]).toEqual(message);
+      // Signature is base64 encoded
+      expect(typeof signature).toBe('string');
+      expect(() => Buffer.from(signature, 'base64')).not.toThrow();
+    });
+
+    it('should verify a signature using noble ml_dsa65.verify', async () => {
+      const provider = new MLDSACryptoProvider();
+      const mockNoble = createMockMLDSA();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).mlDsaModule = mockNoble;
+
+      const message = new TextEncoder().encode('verify this PQ message');
+      const publicKey = Buffer.from(new Uint8Array(1952).fill(1)).toString('base64');
+      const signature = Buffer.from(new Uint8Array(3309).fill(3)).toString('base64');
+
+      const valid = await provider.verify(message, signature, publicKey);
+
+      expect(mockNoble.ml_dsa65.verify).toHaveBeenCalledOnce();
+      expect(valid).toBe(true);
+    });
+
+    it('should return false when verify throws', async () => {
+      const provider = new MLDSACryptoProvider();
+      const mockNoble = createMockMLDSA();
+      mockNoble.ml_dsa65.verify.mockImplementation(() => {
+        throw new Error('Invalid signature format');
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).mlDsaModule = mockNoble;
+
+      const message = new TextEncoder().encode('bad verify');
+      const valid = await provider.verify(message, 'bad-sig', 'bad-key');
+
+      expect(valid).toBe(false);
+    });
+
+    it('should return false when verify returns false', async () => {
+      const provider = new MLDSACryptoProvider();
+      const mockNoble = createMockMLDSA();
+      mockNoble.ml_dsa65.verify.mockReturnValue(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).mlDsaModule = mockNoble;
+
+      const message = new TextEncoder().encode('tampered');
+      const valid = await provider.verify(message, 'some-sig', 'some-key');
+
+      expect(valid).toBe(false);
+    });
+
+    it('should cache the module after first getModule call', async () => {
+      const provider = new MLDSACryptoProvider();
+      const mockNoble = createMockMLDSA();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (provider as any).mlDsaModule = mockNoble;
+
+      // Call generateKeyPair twice — keygen should be called twice but module stays cached
+      await provider.generateKeyPair();
+      await provider.generateKeyPair();
+
+      expect(mockNoble.ml_dsa65.keygen).toHaveBeenCalledTimes(2);
+      // Module reference should still be the same object
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((provider as any).mlDsaModule).toBe(mockNoble);
+    });
+  });
+
+  describe('integration with HybridCryptoProvider', () => {
+    it('should work as PQ provider in HybridCryptoProvider', () => {
+      const classical = new Ed25519CryptoProvider();
+      const pq = new MLDSACryptoProvider();
+      const hybrid = new HybridCryptoProvider(classical, pq);
+
+      expect(hybrid.hasPQProvider()).toBe(true);
+      expect(hybrid.getAlgorithm()).toBe('hybrid-ed25519-ml-dsa-65');
+    });
+
+    it('should be created automatically by createCryptoProvider hybrid', () => {
+      const provider = createCryptoProvider('hybrid-ed25519-ml-dsa-65');
+
+      expect(provider).toBeInstanceOf(HybridCryptoProvider);
+      expect((provider as HybridCryptoProvider).hasPQProvider()).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isPostQuantumAvailable Tests
+// ---------------------------------------------------------------------------
+
+describe('isPostQuantumAvailable', () => {
+  it('should return a boolean', async () => {
+    // This test works regardless of whether @noble/post-quantum is installed:
+    // - If installed: returns true
+    // - If not installed: returns false
+    // Either way, it should not throw.
+    const result = await isPostQuantumAvailable();
+    expect(typeof result).toBe('boolean');
   });
 });

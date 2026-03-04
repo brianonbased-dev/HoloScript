@@ -34,6 +34,7 @@ import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { MATERIAL_PRESETS } from './R3FCompiler';
 import type { R3FMaterialProps } from '../traits/visual/types';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -409,6 +410,11 @@ function generatePlaneGeometry(scale: [number, number, number]): GeometryData {
 
 export class GLTFPipeline extends CompilerBase {
   protected readonly compilerName = 'GLTFPipeline';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.GLTF;
+  }
+
   private options: Required<GLTFPipelineOptions>;
   private compositor: TraitCompositor;
   private bufferData: number[] = [];

@@ -26,6 +26,7 @@
  */
 
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -237,6 +238,11 @@ export interface A2AAgentCardCompilerOptions {
  */
 export class A2AAgentCardCompiler extends CompilerBase {
   protected readonly compilerName = 'A2AAgentCardCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.A2A_AGENT_CARD;
+  }
+
   private options: Required<A2AAgentCardCompilerOptions>;
 
   constructor(options: A2AAgentCardCompilerOptions = {}) {

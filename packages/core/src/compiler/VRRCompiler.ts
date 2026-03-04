@@ -148,6 +148,7 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -187,6 +188,11 @@ export interface VRRCompilationResult {
 // Removed duplicate imports
 export class VRRCompiler extends CompilerBase {
   protected readonly compilerName = 'VRRCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.VRR;
+  }
+
   private options: VRRCompilerOptions;
   private errors: string[] = [];
   private warnings: string[] = [];

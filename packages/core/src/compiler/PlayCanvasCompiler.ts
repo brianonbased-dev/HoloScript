@@ -34,6 +34,7 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { CompilerBase } from './CompilerBase';
+import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
 import {
   compileDomainBlocks,
   compileMaterialBlock,
@@ -73,6 +74,11 @@ const SHAPE_TO_PRIMITIVE: Record<string, string> = {
 
 export class PlayCanvasCompiler extends CompilerBase {
   protected readonly compilerName = 'PlayCanvasCompiler';
+
+  protected override getRequiredCapability(): ANSCapabilityPathValue {
+    return ANSCapabilityPath.PLAYCANVAS;
+  }
+
   private options: Required<PlayCanvasCompilerOptions>;
   private lines: string[] = [];
   private indentLevel: number = 0;
