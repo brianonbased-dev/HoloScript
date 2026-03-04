@@ -4,6 +4,23 @@
  * Simulated network layer for HoloScript+ multiplayer.
  * Manages connections, message serialization, and latency simulation.
  * In production, this would wrap WebSocket/WebRTC connections.
+ *
+ * TODO(W.NET.02): Add spatial hash grid interest management.
+ *   broadcast() sends to ALL peers. For 100+ players, this is O(n²).
+ *   Need: broadcastToAOI(position, radius, type, payload) that only
+ *   sends to peers within the entity's Area of Interest.
+ *   Expected: 95% bandwidth reduction (200 entities → 20-40 per player).
+ *
+ * TODO(P.NET.04): Brain Server integration.
+ *   AI agent inference runs on a dedicated GPU server (RTX 4090),
+ *   not on game server or headset. Manager needs a separate channel
+ *   for brainServer: { url, batchSize, maxConcurrent } configuration.
+ *   100 agents × 5-10 tok/s each via vLLM batched inference.
+ *
+ * TODO(W.NET.01): Replace simulated networking with production transport.
+ *   Current implementation is in-memory only. Production needs:
+ *   WebSocket for reliable + WebRTC DataChannel for unreliable.
+ *   Server-authority model (not P2P) for 100+ player scale.
  */
 
 export type MessageType = 'state_sync' | 'event' | 'rpc' | 'handshake' | 'heartbeat';

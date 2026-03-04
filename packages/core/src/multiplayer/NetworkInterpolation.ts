@@ -4,6 +4,21 @@
  * Smooth interpolation/extrapolation for networked entity states.
  * Implements jitter buffer, dead reckoning, and snapshot interpolation.
  *
+ * TODO(W.NET.04): Enforce async ring buffer pattern for VR.
+ *   Network state must arrive into ring buffers, render thread samples
+ *   via interpolation. 90fps render loop NEVER blocks on network I/O.
+ *   Current pushSnapshot → getInterpolatedState pattern is correct but
+ *   must be formalized as lock-free producer/consumer for VR targets.
+ *
+ * TODO(G.NET.03): bufferTimeMs MUST NOT exceed 100ms for VR.
+ *   Default 100ms is the absolute maximum for VR hand/head tracking.
+ *   >100ms = perceptible lag. Below 60ms is ideal.
+ *   Add VR-aware config preset: { bufferTimeMs: 60, maxExtrapolationMs: 150 }.
+ *
+ * TODO(P.NET.03): Foveated interpolation priority.
+ *   Entities gazed at via eye-tracking get higher interpolation quality
+ *   (hermite instead of linear). Peripheral entities use cheaper lerp.
+ *
  * @module multiplayer
  */
 

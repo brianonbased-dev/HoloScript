@@ -4,6 +4,27 @@
  * Type definitions for networked state synchronization in HoloScript.
  * Provides peer-to-peer and client-server networking primitives.
  *
+ * TODO(P.NET.01): Implement tiered consistency architecture.
+ *   Add 'syncTier' to ISyncConfig: 'physics' | 'movement' | 'ai_agent' | 'cosmetic'.
+ *   Physics = server-authoritative 60Hz reliable. Movement = client-predicted 20Hz.
+ *   AI agent = CRDT 1-5Hz eventual. Cosmetic = LWW <1Hz fire-and-forget.
+ *   Reduces bandwidth 60-80% for 100+ player scenarios.
+ *
+ * TODO(W.NET.02): Implement spatial hash grid interest management.
+ *   Only send state for entities in a player's Area of Interest (AOI).
+ *   95% bandwidth reduction. 200 entities → each player sees 20-40.
+ *   Requires ISpatialHashGrid + IInterestManager interfaces here.
+ *
+ * TODO(P.NET.02): Add CRDT types for AI agent state sync.
+ *   LWW-Register for agent state, G-Counter for shared resources,
+ *   OR-Set for agent group membership. SyncMode already has 'crdt' —
+ *   need concrete implementations. Scope to AOI cells, max 15 replicas (G.NET.05).
+ *
+ * TODO(W.NET.05): Define AI agent as a distinct entity class.
+ *   AI agents: 50-200 bytes at 1-5Hz (not 20 bytes × 60Hz like players).
+ *   Add 'agent' to entity types. Separate sync channel with its own
+ *   consistency model. Don't treat AI state like player state (G.NET.04).
+ *
  * @module network
  */
 
@@ -155,6 +176,8 @@ export interface ISyncConfig {
   interpolationDelay?: number;
   maxHistorySize?: number;
   ownership?: 'host' | 'creator' | 'anyone';
+  // TODO(P.NET.01): Add syncTier: 'physics' | 'movement' | 'ai_agent' | 'cosmetic'
+  //   Each tier maps to different frequency, delivery mode, and consistency model.
 }
 
 // ============================================================================
@@ -549,7 +572,7 @@ export const CONNECTION_DEFAULTS: Required<IConnectionConfig> = {
   roomId: 'default',
   peerId: '',
   topology: 'client-server',
-  maxPeers: 16,
+  maxPeers: 16, // TODO(W.NET.01): Increase to 100+ once tiered consistency is in place
   timeout: 10000,
   reconnectAttempts: 5,
   reconnectDelay: 1000,

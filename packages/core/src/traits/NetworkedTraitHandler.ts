@@ -21,6 +21,21 @@
  * The handler emits events that platform runtimes (e.g. Hololand's
  * NetworkedRuntime) listen to for actual network transport.
  *
+ * TODO(P.NET.01): Add syncTier to config to support tiered consistency.
+ *   Default syncRate=20 is fine for player movement (Tier 1).
+ *   AI agents need Tier 2: syncRate=1-5, mode='crdt', channel='reliable'.
+ *   Physics entities need Tier 0: syncRate=60, mode='server', channel='ordered'.
+ *   syncTier should auto-configure these defaults.
+ *
+ * TODO(P.NET.03): Priority accumulator for bandwidth allocation.
+ *   syncToNetwork() sends at a fixed rate. Instead, priority-weighted:
+ *   entities near player get higher effective syncRate.
+ *   Foveated networking: eye-tracking data boosts priority for gazed entities.
+ *
+ * TODO(W.NET.05): Separate AI agent sync from player sync.
+ *   AI agents emit 50-200 bytes at 1-5Hz, not 20 bytes at 60Hz.
+ *   Create a `networked:agent_state` event distinct from `networked:remote_state`.
+ *
  * @version 1.0.0
  */
 
