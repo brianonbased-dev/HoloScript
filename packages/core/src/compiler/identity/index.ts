@@ -138,3 +138,54 @@ export {
   getCommitSigner,
   resetCommitSigner,
 } from './AgentCommitSigner';
+
+// Agent Passport (W3C DID + WAL + W/P/G memory)
+export {
+  // Constants
+  PASSPORT_MAGIC,
+  PASSPORT_FORMAT_VERSION,
+  MAX_PASSPORT_SIZE,
+
+  // Enums
+  PassportSection,
+  MemoryEntryType,
+  WALOperation,
+
+  // Types
+  type AgentDIDDocument,
+  type DIDVerificationMethod,
+  type DIDServiceEndpoint,
+  type WALEntry,
+  type AgentStateSnapshot,
+  type CompressedWisdom,
+  type CompressedPattern,
+  type CompressedGotcha,
+  type CompressedMemory,
+  type AgentPassport,
+  type CreatePassportOptions,
+
+  // Functions
+  generateAgentDID,
+  createDIDDocument,
+  createAgentPassport,
+  signPassport,
+  verifyPassportSignature,
+  isPassportExpired,
+  validatePassport,
+  createEmptyStateSnapshot,
+  createEmptyMemory,
+  extractRoleFromDID,
+  estimatePassportSize,
+} from './AgentPassport';
+
+// Agent Passport Binary Serializer
+export {
+  // Enums
+  PassportFlags,
+
+  // Functions
+  serializePassport,
+  deserializePassport,
+  calculateSizeReduction,
+  isPassportBinary,
+} from './AgentPassportSerializer';

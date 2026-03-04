@@ -56,6 +56,7 @@ import { IncrementalCompiler } from './IncrementalCompiler';
 import { StateCompiler } from './StateCompiler';
 import { TraitCompositionCompiler } from './TraitCompositionCompiler';
 import { TSLCompiler } from './TSLCompiler';
+import { A2AAgentCardCompiler } from './A2AAgentCardCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -188,6 +189,8 @@ class CompilerFactory {
         return new TraitCompositionCompiler(options);
       case 'tsl':
         return new TSLCompiler(options);
+      case 'a2a-agent-card':
+        return new A2AAgentCardCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
@@ -437,6 +440,7 @@ export class ExportManager {
       'state',
       'trait-composition',
       'tsl',
+      'a2a-agent-card',
     ];
   }
 

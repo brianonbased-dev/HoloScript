@@ -84,6 +84,11 @@ import { CreatorLayout } from '@/components/layouts/CreatorLayout';
 import { FilmmakerLayout } from '@/components/layouts/FilmmakerLayout';
 import { CharacterLayout } from '@/components/character/layout/CharacterLayout';
 
+const ScenarioLauncher = dynamic(
+  () => import('@/components/scenarios/ScenarioLauncher').then((m) => ({ default: m.ScenarioLauncher })),
+  { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">Loading scenarios...</div> }
+);
+
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
   { ssr: false, loading: () => <ViewportSkeleton /> }
@@ -781,6 +786,10 @@ export default function CreatePage() {
       ) : studioMode === 'character' ? (
         <div className="flex flex-1 overflow-hidden">
           <CharacterLayout />
+        </div>
+      ) : studioMode === 'scenarios' ? (
+        <div className="flex flex-1 overflow-hidden">
+          <ScenarioLauncher />
         </div>
       ) : (
       <div className="flex flex-1 overflow-hidden">

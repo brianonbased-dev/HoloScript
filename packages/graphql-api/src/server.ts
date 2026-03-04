@@ -17,6 +17,7 @@ import {
   type GraphQLContext,
 } from './resolvers/BatchCompilerResolver.js';
 import { SubscriptionResolver } from './resolvers/SubscriptionResolver.js';
+import { MarketplaceBridgeResolver } from './resolvers/MarketplaceBridgeResolver.js';
 import { createComplexityPlugin } from './plugins/complexityPlugin.js';
 import { createCachePlugin } from './plugins/cachePlugin.js';
 import { createRateLimitPlugin, OPERATION_RATE_LIMITS } from './plugins/rateLimitPlugin.js';
@@ -35,6 +36,7 @@ export async function startServer() {
       CompilerResolver,
       BatchCompilerResolver,
       SubscriptionResolver,
+      MarketplaceBridgeResolver,
     ],
     validate: true,
     pubSub: pubsub, // Required for subscriptions
@@ -137,7 +139,9 @@ export async function startServer() {
   );
 
   // Start HTTP server
-  const PORT = process.env.PORT || 4000;
+  // Prefer GRAPHQL_PORT to avoid Railway deployment conflicts where
+  // both graphql-api and marketplace-api would receive the same PORT.
+  const PORT = parseInt(process.env.GRAPHQL_PORT || process.env.PORT || '4000', 10);
   await new Promise<void>((resolve) => httpServer.listen({ port: PORT }, resolve));
 
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -159,6 +163,7 @@ export async function startServer() {
   console.log('   - compile: Single file compilation');
   console.log('   - batchCompile: Batch compilation with DataLoader');
   console.log('   - validateCode: Real-time code validation');
+  console.log('   - compileTraitById: Fetch trait from Marketplace & compile (Bridge)');
   console.log('');
   console.log('✅ Subscriptions (NEW - Week 3):');
   console.log('   - compilationProgress: Real-time compilation updates');

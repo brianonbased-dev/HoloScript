@@ -1246,6 +1246,164 @@ export type {
   Transform,
   Vector3Tuple,
 } from './types/HoloScriptPlus';
+
+// ============================================================================
+// Scene Graph Types (First-Class)
+// ============================================================================
+
+/**
+ * Spatial relationship types between scene nodes.
+ * Describes how two nodes relate to each other in 3D space.
+ */
+export type SpatialRelationType =
+  | 'parent_of'
+  | 'child_of'
+  | 'sibling_of'
+  | 'above'
+  | 'below'
+  | 'left_of'
+  | 'right_of'
+  | 'in_front_of'
+  | 'behind'
+  | 'inside'
+  | 'contains'
+  | 'adjacent'
+  | 'overlapping'
+  | 'attached_to'
+  | 'aligned_with'
+  | 'facing'
+  | 'orbiting';
+
+/**
+ * A spatial relation between two scene nodes, with optional
+ * constraint parameters and metadata.
+ */
+export interface SpatialRelation {
+  /** Unique identifier for this relation */
+  id: string;
+  /** The type of spatial relationship */
+  type: SpatialRelationType;
+  /** Source node ID */
+  sourceNodeId: string;
+  /** Target node ID */
+  targetNodeId: string;
+  /** Offset vector from source to target (local space) */
+  offset?: SpatialVector3;
+  /** Whether this relation is enforced as a constraint */
+  isConstraint: boolean;
+  /** Constraint stiffness (0 = soft suggestion, 1 = rigid) */
+  stiffness?: number;
+  /** Priority for conflict resolution when multiple relations exist */
+  priority?: number;
+  /** Custom metadata for platform-specific extensions */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Edge types for scene graph connections.
+ * Extends beyond simple parent-child to support spatial computing use cases.
+ */
+export type SceneEdgeType =
+  | 'hierarchy'
+  | 'spatial'
+  | 'dependency'
+  | 'dataflow'
+  | 'physics_joint'
+  | 'audio_link'
+  | 'animation_link'
+  | 'network_sync'
+  | 'reference';
+
+/**
+ * A typed, weighted edge between two scene graph nodes.
+ * Supports directionality, spatial relations, and custom payloads.
+ */
+export interface SceneEdge {
+  /** Unique edge identifier */
+  id: string;
+  /** Edge type classification */
+  type: SceneEdgeType;
+  /** Source node ID */
+  from: string;
+  /** Target node ID */
+  to: string;
+  /** Whether the edge is bidirectional */
+  bidirectional: boolean;
+  /** Edge weight (0-1, used for traversal priority and rendering) */
+  weight: number;
+  /** Associated spatial relation, if any */
+  spatialRelation?: SpatialRelation;
+  /** Whether this edge is currently active */
+  active: boolean;
+  /** Custom properties for platform-specific data */
+  properties?: Record<string, unknown>;
+}
+
+/**
+ * Descriptor for a scene graph node at the type level.
+ * Complements the runtime SceneNode class in scene/SceneNode.ts
+ * and the export IR ISceneNode in export/SceneGraph.ts.
+ */
+export interface SceneNodeDescriptor {
+  /** Unique node identifier */
+  id: string;
+  /** Human-readable name */
+  name: string;
+  /** Node type classification */
+  nodeType: 'object' | 'group' | 'light' | 'camera' | 'empty' | 'agent' | 'zone' | 'anchor' | 'prefab';
+  /** Local transform relative to parent */
+  transform: ASTTransform;
+  /** Parent node ID (null for root) */
+  parentId: string | null;
+  /** Ordered list of child node IDs */
+  childIds: string[];
+  /** Tags for querying and filtering */
+  tags: string[];
+  /** Visibility layer (bitmask) */
+  layer: number;
+  /** Whether this node is visible */
+  visible: boolean;
+  /** Whether this node is active/enabled */
+  active: boolean;
+  /** Attached trait names */
+  traits: string[];
+  /** Custom properties (shape, color, etc.) */
+  properties: Record<string, HoloScriptValue>;
+  /** Custom metadata for extensions */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Complete scene graph type containing nodes, edges, and spatial relations.
+ * This is the first-class scene graph representation in the HoloScript type system.
+ */
+export interface SceneGraphDescriptor {
+  /** Scene graph format version */
+  version: string;
+  /** Scene name */
+  name: string;
+  /** Scene description */
+  description?: string;
+  /** All nodes in the graph, keyed by ID */
+  nodes: Map<string, SceneNodeDescriptor>;
+  /** All edges connecting nodes */
+  edges: SceneEdge[];
+  /** All spatial relations between nodes */
+  spatialRelations: SpatialRelation[];
+  /** Root node ID */
+  rootId: string;
+  /** Coordinate system convention */
+  coordinateSystem: 'y_up' | 'z_up';
+  /** Units per meter (1.0 = meters) */
+  unitScale: number;
+  /** Scene-level metadata */
+  metadata: Record<string, unknown>;
+  /** Creation timestamp (ISO 8601) */
+  createdAt: string;
+  /** Last modification timestamp (ISO 8601) */
+  modifiedAt: string;
+}
+
 export interface AnyTraitAnnotation {
   type: string;
   config: any;

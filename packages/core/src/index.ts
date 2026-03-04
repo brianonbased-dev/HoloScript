@@ -1362,6 +1362,14 @@ export type {
   // Config
   SecurityConfig,
   RuntimeSecurityLimits,
+
+  // Scene Graph Types (First-Class)
+  SpatialRelationType,
+  SpatialRelation,
+  SceneEdgeType,
+  SceneEdge,
+  SceneNodeDescriptor,
+  SceneGraphDescriptor,
 } from './types';
 
 // Version

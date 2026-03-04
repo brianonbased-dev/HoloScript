@@ -5,8 +5,16 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import { AuthService } from '@holoscript/auth';
 import type { MarketplaceService } from './MarketplaceService.js';
 import type { SearchQuery, TraitCategory } from './types.js';
+
+/**
+ * Shared auth service instance used by marketplace route middleware.
+ * Uses the same @holoscript/auth package as graphql-api for consistent
+ * JWT verification across both APIs.
+ */
+const sharedAuth = new AuthService();
 
 // =============================================================================
 // VALIDATION SCHEMAS
@@ -133,14 +141,10 @@ const dependencyResolveSchema = z.object({
 // =============================================================================
 
 /**
- * Extract auth token from request
+ * Extract auth token from request using @holoscript/auth shared logic.
  */
 function getToken(req: Request): string | undefined {
-  const auth = req.headers.authorization;
-  if (auth?.startsWith('Bearer ')) {
-    return auth.slice(7);
-  }
-  return undefined;
+  return sharedAuth.extractToken(req.headers.authorization as string | undefined) ?? undefined;
 }
 
 /**

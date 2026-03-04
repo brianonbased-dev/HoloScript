@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Blocks, Paintbrush, Clapperboard, Settings2, Bone, ChevronDown } from 'lucide-react';
+import { Blocks, Paintbrush, Clapperboard, Settings2, Bone, FlaskConical, ChevronDown } from 'lucide-react';
 import { useEditorStore } from '@/lib/store';
 import type { StudioMode } from '@/lib/store';
 
@@ -60,6 +60,15 @@ const MODES: ModeInfo[] = [
     description: 'Rig, animate, and test 3D characters',
     features: ['Skeleton view', 'Motion capture', 'Animation clips', 'GLB import'],
     level: 'advanced',
+  },
+  {
+    id: 'scenarios',
+    label: 'Scenarios',
+    icon: <FlaskConical className="h-4 w-4" />,
+    color: 'text-teal-400',
+    description: 'Browse and launch 26 interactive scenario engines',
+    features: ['Scenario gallery', 'Category filters', 'Search', 'Panel launcher'],
+    level: 'beginner',
   },
 ];
 

@@ -252,3 +252,46 @@ export class ValidationInput {
   @Field(() => Boolean, { nullable: true, defaultValue: true })
   realTime?: boolean;
 }
+
+// ============================================================================
+// Marketplace Bridge Types
+// ============================================================================
+
+@InputType({ description: 'Input for compiling a trait fetched from the Marketplace' })
+export class CompileTraitByIdInput {
+  @Field(() => String, { description: 'Trait ID in the Marketplace' })
+  traitId!: string;
+
+  @Field(() => CompilerTarget, { description: 'Target platform to compile for' })
+  target!: CompilerTarget;
+
+  @Field(() => String, { nullable: true, description: 'Semver version constraint (e.g. "1.2.0"). Omit for latest.' })
+  version?: string;
+
+  @Field(() => CompilerOptionsInput, { nullable: true })
+  options?: CompilerOptionsInput;
+}
+
+@ObjectType({ description: 'Result of compiling a marketplace trait' })
+export class CompileTraitPayload {
+  @Field(() => Boolean)
+  success!: boolean;
+
+  @Field(() => String, { nullable: true, description: 'Compiled output code' })
+  output?: string;
+
+  @Field(() => [CompileError], { defaultValue: [] })
+  errors!: CompileError[];
+
+  @Field(() => [Warning], { defaultValue: [] })
+  warnings!: Warning[];
+
+  @Field(() => CompilationMetadata, { nullable: true })
+  metadata?: CompilationMetadata;
+
+  @Field(() => String, { nullable: true, description: 'Trait name from the marketplace' })
+  traitName?: string;
+
+  @Field(() => String, { nullable: true, description: 'Trait version that was compiled' })
+  traitVersion?: string;
+}

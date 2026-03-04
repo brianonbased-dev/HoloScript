@@ -1,6 +1,12 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { fetchCreatorContent } from '@/lib/marketplaceApi';
+import type { MarketplaceCreatorData } from '@/lib/marketplaceApi';
+
+// ---------------------------------------------------------------------------
+// Public interfaces (unchanged -- consumed by dashboard components)
+// ---------------------------------------------------------------------------
 
 export interface NFTData {
   id: string;
@@ -65,10 +71,22 @@ export interface CreatorStats {
   totalPublished: number;
   totalDownloads: number;
   totalContentRevenue: number;  // across all content types (USD cents)
+
+  /** True when the data was generated from the local mock fallback. */
+  isMockData?: boolean;
 }
 
-// Mock data generator for development
-const generateMockStats = (address: string): CreatorStats => {
+// ---------------------------------------------------------------------------
+// Mock data generator (fallback when API is unreachable)
+// ---------------------------------------------------------------------------
+
+/**
+ * Generates deterministic mock data for the creator dashboard.
+ *
+ * Used as a fallback during local development when the marketplace-api
+ * is not running, or when the API returns an error.
+ */
+export const generateMockStats = (address: string): CreatorStats => {
   const mockNFTs: NFTData[] = Array.from({ length: 12 }, (_, i) => ({
     id: `nft-${i + 1}`,
     name: `Film3D Scene #${i + 1}`,
@@ -121,7 +139,7 @@ const generateMockStats = (address: string): CreatorStats => {
     totalViews: Math.floor(Math.random() * 10000) + 1000,
     revenueOverTime: revenueData,
     mintedNFTs: mockNFTs,
-    topPerforming: mockNFTs.sort((a, b) => b.salesCount - a.salesCount).slice(0, 5),
+    topPerforming: [...mockNFTs].sort((a, b) => b.salesCount - a.salesCount).slice(0, 5),
     revenueBreakdown: {
       artist: totalSales * 0.8,
       platform: totalSales * 0.1,
@@ -137,30 +155,141 @@ const generateMockStats = (address: string): CreatorStats => {
     totalPublished,
     totalDownloads,
     totalContentRevenue,
+    isMockData: true,
   };
 };
 
-export interface UseCreatorStatsOptions {
-  address?: string;
-  refetchInterval?: number;
+// ---------------------------------------------------------------------------
+// Transform marketplace API data into CreatorStats shape
+// ---------------------------------------------------------------------------
+
+/**
+ * Merges live marketplace data with NFT data.
+ *
+ * NFT data (Zora on-chain stats) is not yet available from the marketplace
+ * API and will continue to use mock values until the CreatorMonetization
+ * service endpoints are deployed. The multi-content stats (traits, plugins,
+ * skills) come from the real API.
+ */
+function transformToCreatorStats(
+  apiData: MarketplaceCreatorData,
+  address: string,
+): CreatorStats {
+  // NFT stats are still mocked until CreatorMonetization API is live.
+  // We generate mock NFT data but use real multi-content stats from the API.
+  const mockBase = generateMockStats(address);
+
+  // Map API content types to the ContentTypeStats interface
+  const contentByType: ContentTypeStats[] = apiData.contentByType.map((ct) => ({
+    type: ct.type,
+    label: ct.label,
+    count: ct.count,
+    published: ct.published,
+    downloads: ct.downloads,
+    revenue: ct.revenue,
+    rating: Math.round(ct.rating * 10) / 10,
+    ratingCount: ct.ratingCount,
+  }));
+
+  return {
+    // NFT stats from mock (pending CreatorMonetization API)
+    totalSales: mockBase.totalSales,
+    royaltiesEarned: mockBase.royaltiesEarned,
+    nftsMinted: mockBase.nftsMinted,
+    floorPrice: mockBase.floorPrice,
+    averageSalePrice: mockBase.averageSalePrice,
+    collectors: mockBase.collectors,
+    totalViews: mockBase.totalViews,
+    revenueOverTime: mockBase.revenueOverTime,
+    mintedNFTs: mockBase.mintedNFTs,
+    topPerforming: mockBase.topPerforming,
+    revenueBreakdown: mockBase.revenueBreakdown,
+    floorPriceTrend: mockBase.floorPriceTrend,
+
+    // Multi-content stats from real API
+    contentByType,
+    totalContent: apiData.totalContent,
+    totalPublished: apiData.totalPublished,
+    totalDownloads: apiData.totalDownloads,
+    totalContentRevenue: apiData.totalContentRevenue,
+
+    isMockData: false,
+  };
 }
 
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
+
+export interface UseCreatorStatsOptions {
+  /** Creator wallet address or username to fetch stats for. */
+  address?: string;
+  /** How often to refetch in ms (default: 30 000 = 30s). */
+  refetchInterval?: number;
+  /** Force mock data even when the API is available (useful for Storybook). */
+  forceMock?: boolean;
+}
+
+/**
+ * React hook that fetches creator analytics from the marketplace API.
+ *
+ * Features:
+ * - Uses React Query (`@tanstack/react-query`) for caching, deduplication,
+ *   and background refetching.
+ * - Calls the marketplace-api REST endpoints for traits, plugins, and skills
+ *   filtered by author.
+ * - Falls back to deterministic mock data when the API is unreachable.
+ * - NFT / Zora stats remain mocked until the CreatorMonetization endpoints
+ *   are deployed.
+ *
+ * @example
+ * ```tsx
+ * const { stats, loading, error, isMock, refetch } = useCreatorStats({
+ *   address: '0xCreator123',
+ *   refetchInterval: 60_000,
+ * });
+ *
+ * if (loading) return <Spinner />;
+ * if (stats?.isMockData) return <Banner>Using demo data</Banner>;
+ * ```
+ */
 export function useCreatorStats(options: UseCreatorStatsOptions = {}) {
-  const { address = '0x1234567890abcdef', refetchInterval = 30000 } = options;
+  const {
+    address = '0x1234567890abcdef',
+    refetchInterval = 30000,
+    forceMock = false,
+  } = options;
 
   const { data, isLoading, error, refetch } = useQuery<CreatorStats>({
     queryKey: ['creatorStats', address],
     queryFn: async () => {
-      // TODO: Replace with actual CreatorMonetization service call
-      // const monetization = new CreatorMonetization({ ... });
-      // return await monetization.getCreatorStats(address);
+      // If forced to mock, skip the API call entirely
+      if (forceMock) {
+        return generateMockStats(address);
+      }
 
-      // Mock delay to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return generateMockStats(address);
+      try {
+        const apiData = await fetchCreatorContent(address);
+        return transformToCreatorStats(apiData, address);
+      } catch {
+        // API is unreachable -- fall back to mock data.
+        // This is expected during local development when marketplace-api
+        // is not running. We log a warning rather than throwing so the
+        // dashboard remains usable.
+        if (typeof console !== 'undefined') {
+          console.warn(
+            '[useCreatorStats] Marketplace API unreachable, using mock data. ' +
+            'Start the marketplace-api dev server or set NEXT_PUBLIC_MARKETPLACE_URL.',
+          );
+        }
+        return generateMockStats(address);
+      }
     },
     refetchInterval,
     staleTime: 10000,
+    // Don't retry aggressively when the API is down
+    retry: 1,
+    retryDelay: 2000,
   });
 
   return {
@@ -168,5 +297,7 @@ export function useCreatorStats(options: UseCreatorStatsOptions = {}) {
     loading: isLoading,
     error,
     refetch,
+    /** True when the returned data came from the mock fallback. */
+    isMock: data?.isMockData ?? false,
   };
 }

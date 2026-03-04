@@ -53,6 +53,8 @@ export class WGSLTranslator {
   private emittedNodes: Set<string> = new Set();
   /** Collects body-level statements emitted inside main(). */
   private bodyLines: string[] = [];
+  /** Whether the graph references a time uniform (uTime). */
+  private needsTimeUniform: boolean = false;
 
   constructor(nodes: GNode[], edges: GEdge[]) {
     nodes.forEach(n => this.nodes.set(n.id, n));
@@ -69,6 +71,7 @@ export class WGSLTranslator {
       this.variables.clear();
       this.emittedNodes.clear();
       this.bodyLines = [];
+      this.needsTimeUniform = false;
 
       this.addHeader();
 
@@ -78,6 +81,7 @@ export class WGSLTranslator {
       }
 
       this.resolveNodeChain(outputNode);
+      this.addUniformBindings();
       this.addEntryPoint(outputNode);
 
       return {
@@ -109,6 +113,49 @@ export class WGSLTranslator {
     // Add common noise functions early
     if (Array.from(this.nodes.values()).some(n => n.type === 'NoiseNode')) {
       this.addSimplexNoiseFunction();
+    }
+  }
+
+  /**
+   * Emit @group/@binding declarations for all tracked uniforms.
+   * Called after resolveNodeChain() so that `this.uniforms` and
+   * `this.needsTimeUniform` are fully populated.
+   *
+   * Layout convention:
+   *   @group(0) @binding(0)  — uniform buffer (time, etc.)
+   *   @group(0) @binding(1+) — texture/sampler pairs
+   */
+  private addUniformBindings() {
+    let bindingIndex = 0;
+    const lines: string[] = [];
+
+    // ── Uniform buffer (time, future: resolution, mouse, etc.) ──
+    if (this.needsTimeUniform) {
+      lines.push(`// Uniform buffer`);
+      lines.push(`struct Uniforms {`);
+      lines.push(`  time: f32,`);
+      lines.push(`};`);
+      lines.push(`@group(0) @binding(${bindingIndex}) var<uniform> uniforms: Uniforms;`);
+      // Alias so existing body code can reference uTime directly
+      // (alias emitted as a let inside main, but we keep the global binding clean)
+      bindingIndex++;
+      lines.push(``);
+    }
+
+    // ── Texture + sampler pairs ──
+    if (this.uniforms.size > 0) {
+      lines.push(`// Texture bindings`);
+      for (const samplerName of this.uniforms) {
+        lines.push(`@group(0) @binding(${bindingIndex}) var ${samplerName}: texture_2d<f32>;`);
+        bindingIndex++;
+        lines.push(`@group(0) @binding(${bindingIndex}) var ${samplerName}_sampler: sampler;`);
+        bindingIndex++;
+      }
+      lines.push(``);
+    }
+
+    if (lines.length > 0) {
+      this.generatedCode.push(...lines);
     }
   }
 
@@ -166,8 +213,8 @@ export class WGSLTranslator {
     const safeName = `var_${nodeId.replace(/[^a-zA-Z0-9_]/g, '_')}`;
     this.variables.set(nodeId, safeName);
 
-    // Determine WGSL type from node type
-    const wgslType = this.inferWGSLType(node);
+    // Determine WGSL type from node type (with upstream type propagation)
+    const wgslType = this.inferWGSLType(node, upstreamVars);
     this.bodyLines.push(`  let ${safeName}: ${wgslType} = ${expr};`);
 
     return safeName;
@@ -219,6 +266,7 @@ export class WGSLTranslator {
       case 'TimeInput':
       case 'timeNode':
       case 'time':
+        this.needsTimeUniform = true;
         return 'uTime';
 
       case 'PositionInput':
@@ -373,8 +421,10 @@ export class WGSLTranslator {
 
   /**
    * Infer the WGSL type for a node's output based on its type.
+   * For math/vector operations (AddNode, MultiplyNode, mathNode, Normalize),
+   * propagates type from upstream inputs — e.g. vec3 + vec3 = vec3f, not f32.
    */
-  private inferWGSLType(node: GNode): string {
+  private inferWGSLType(node: GNode, upstreamVars?: Map<string, string>): string {
     const nodeType = node.type ?? (node.data as any)?.type ?? '';
 
     switch (nodeType) {
@@ -420,12 +470,74 @@ export class WGSLTranslator {
       case 'mathNode':
       case 'math':
       case 'Normalize':
-        // Math/vector ops inherit type from inputs; default to f32
-        return 'f32';
+        // Math/vector ops inherit type from upstream inputs.
+        // Use the widest upstream type (vec4 > vec3 > vec2 > f32).
+        return this.inferMathOutputType(node.id, nodeType, upstreamVars);
+
+      // Custom GLSL passthrough inherits from upstream
+      case 'CustomGLSL':
+        return this.inferMathOutputType(node.id, nodeType, upstreamVars);
 
       default:
         return 'f32';
     }
+  }
+
+  /**
+   * Determine output type for math/vector operations by inspecting upstream
+   * node types. Uses "widest type wins" promotion: vec4f > vec3f > vec2f > f32.
+   *
+   * Special cases:
+   * - DotProduct always returns f32 (scalar) regardless of input vectors
+   * - Normalize preserves the vector dimension of its input
+   * - Some mathNode operations (dot, length, fract, smoothstep) collapse to f32
+   */
+  private inferMathOutputType(
+    nodeId: string,
+    nodeType: string,
+    upstreamVars?: Map<string, string>,
+  ): string {
+    // For mathNode with scalar-output operations, always return f32
+    if (nodeType === 'mathNode' || nodeType === 'math') {
+      const node = this.nodes.get(nodeId);
+      const op = (node?.data as any)?.op;
+      if (op === 'dot' || op === 'length') {
+        return 'f32';
+      }
+    }
+
+    // Collect types from all upstream nodes connected to this node
+    const incomingEdges = this.edges.filter(e => e.target === nodeId);
+    if (incomingEdges.length === 0) {
+      return 'f32';
+    }
+
+    const TYPE_RANK: Record<string, number> = {
+      'f32': 0,
+      'vec2f': 1,
+      'vec3f': 2,
+      'vec4f': 3,
+    };
+
+    let widestType = 'f32';
+    let widestRank = 0;
+
+    for (const edge of incomingEdges) {
+      const sourceNode = this.nodes.get(edge.source);
+      if (!sourceNode) continue;
+
+      // Recursively infer the type of the upstream node (without upstreamVars
+      // to avoid infinite recursion — upstream nodes should already be resolved
+      // or have intrinsic types)
+      const sourceType = this.inferWGSLType(sourceNode);
+      const rank = TYPE_RANK[sourceType] ?? 0;
+      if (rank > widestRank) {
+        widestRank = rank;
+        widestType = sourceType;
+      }
+    }
+
+    return widestType;
   }
 
   /**
@@ -458,6 +570,11 @@ export class WGSLTranslator {
   private addEntryPoint(outputNode: GNode) {
     this.generatedCode.push(`@fragment`);
     this.generatedCode.push(`fn main(in: VertexOutput) -> @location(0) vec4f {`);
+
+    // Alias uniform buffer fields for convenient access in body code
+    if (this.needsTimeUniform) {
+      this.generatedCode.push(`  let uTime = uniforms.time;`);
+    }
 
     // Emit all resolved upstream variable declarations
     for (const line of this.bodyLines) {

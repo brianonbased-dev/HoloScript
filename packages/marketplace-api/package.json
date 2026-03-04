@@ -14,6 +14,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@holoscript/auth": "workspace:*",
     "@holoscript/core": "workspace:*",
     "@holoscript/registry": "workspace:*",
     "@zoralabs/protocol-sdk": "^0.13.18",

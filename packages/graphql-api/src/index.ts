@@ -28,6 +28,7 @@ export {
   type GraphQLContext,
 } from './resolvers/BatchCompilerResolver.js';
 export { SubscriptionResolver } from './resolvers/SubscriptionResolver.js';
+export { MarketplaceBridgeResolver } from './resolvers/MarketplaceBridgeResolver.js';
 
 // Export PubSub utilities
 export {
@@ -38,10 +39,11 @@ export {
   publishCompilationComplete,
 } from './services/pubsub.js';
 
-// Export authentication (Week 4)
+// Export authentication (Week 4) - now from shared @holoscript/auth
 export {
   authService,
   AuthService,
+  AuthError,
   type UserPayload,
   type AuthContext,
   type AuthConfig,

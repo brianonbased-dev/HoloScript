@@ -7,5 +7,5 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ['@holoscript/core'],
+  external: ['@holoscript/core', '@holoscript/auth'],
 });

@@ -66,7 +66,8 @@ export type ExportTarget =
   | 'incremental' // Incremental compilation
   | 'state'       // State machine compilation
   | 'trait-composition' // Trait composition
-  | 'tsl';        // Trait Shader Language (trait-to-shader)
+  | 'tsl'             // Trait Shader Language (trait-to-shader)
+  | 'a2a-agent-card'; // A2A Protocol Agent Card manifests
 
 /**
  * Circuit configuration per target

@@ -13,6 +13,7 @@ export default defineConfig({
         'packages/mcp-server/src/**/*.ts',
         'packages/marketplace-web/src/**/*.ts',
         'packages/marketplace-api/src/**/*.ts',
+        'packages/auth/src/**/*.ts',
         'packages/llm-provider/src/**/*.ts',
         'packages/studio/src/**/*.ts',
         'packages/cli/src/**/*.ts',
@@ -78,6 +79,7 @@ export default defineConfig({
       'packages/preview-component/vitest.config.ts',
       'packages/marketplace-web/vitest.config.ts',
       'packages/marketplace-api/vitest.config.ts',
+      'packages/auth/vitest.config.ts',
 
       // ── Packages without a vitest.config.ts (inline) ─────────────────
       {

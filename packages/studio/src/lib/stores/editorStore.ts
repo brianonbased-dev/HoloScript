@@ -8,7 +8,7 @@ import { devtools } from 'zustand/middleware';
 type EditorPanel = 'prompt' | 'code' | 'tree';
 export type GizmoMode = 'translate' | 'rotate' | 'scale';
 export type ArtMode = 'none' | 'sketch' | 'paint' | 'generative';
-export type StudioMode = 'creator' | 'artist' | 'filmmaker' | 'expert' | 'character';
+export type StudioMode = 'creator' | 'artist' | 'filmmaker' | 'expert' | 'character' | 'scenarios';
 
 interface EditorState {
   activePanel: EditorPanel;
@@ -34,7 +34,7 @@ interface EditorState {
 const getInitialStudioMode = (): StudioMode => {
   if (typeof window === 'undefined') return 'creator';
   const saved = window.localStorage.getItem('studio-mode') as StudioMode | null;
-  return (saved && ['creator', 'artist', 'filmmaker', 'expert', 'character'].includes(saved)) ? saved : 'creator';
+  return (saved && ['creator', 'artist', 'filmmaker', 'expert', 'character', 'scenarios'].includes(saved)) ? saved : 'creator';
 };
 
 export const useEditorStore = create<EditorState>()(
