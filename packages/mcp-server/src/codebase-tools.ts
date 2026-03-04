@@ -200,6 +200,7 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const layout = (args.layout as string) ?? 'force';
   const languages = args.languages as string[] | undefined;
   const maxFiles = args.maxFiles as number | undefined;
+  const interactive = (args.interactive as boolean) ?? false;
 
   const scanner = new CodebaseScanner();
   const scanResult = await scanner.scan({
@@ -258,6 +259,26 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     name: rootDir.split(/[/\\]/).pop() ?? 'codebase',
     layout: layout as 'force' | 'layered',
   });
+
+  // When interactive mode requested, compile an interactive 3D scene
+  if (interactive) {
+    try {
+      const { CodebaseSceneCompiler } = mod;
+      const sceneCompiler = new CodebaseSceneCompiler();
+      const scene = sceneCompiler.compile(graph, {
+        layout: layout as 'force' | 'layered',
+        interactive: true,
+      });
+      return {
+        stats,
+        holoSource,
+        interactiveScene: scene,
+        communities: communityList,
+      };
+    } catch {
+      // Fall through to non-interactive output
+    }
+  }
 
   return {
     stats,
