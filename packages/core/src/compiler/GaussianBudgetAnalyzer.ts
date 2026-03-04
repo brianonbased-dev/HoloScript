@@ -188,6 +188,11 @@ const DEFAULT_MAX_SPLATS = 1_000_000;
 // =============================================================================
 // ANALYZER
 // =============================================================================
+// TODO(P.XR.07): Wire to dynamic memory budget manager.
+//   GaussianBudgetAnalyzer must account for KV cache memory from @llm_agent.
+//   On Quest 3 (8GB): agent KV cache competes with GS headroom.
+//   Add getAvailableGaussianBudget(kvCacheSize_MB): per platform.
+//   G.XR.05: 200K+ splats @ 67 GB/s → <15 GB/s left for model weight streaming.
 
 /**
  * Options for configuring the Gaussian budget analysis.

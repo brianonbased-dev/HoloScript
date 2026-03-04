@@ -4,6 +4,26 @@
  * Run HoloScript agents on local LLMs: Ollama, LM Studio, llama.cpp.
  * No API key. Privacy-first. Full SSE streaming.
  *
+ * TODO(P.XR.02): Add 'executorch' backend for on-device XR inference.
+ *   ExecuTorch + QNN Delegate: 50KB footprint, native Hexagon NPU support.
+ *   Llama 3.2 1B/3B at 4-bit groupwise quantization, 25-40 tok/s on NPU.
+ *   New LLMBackend type: 'executorch'. No HTTP — direct native bridge.
+ *
+ * TODO(W.032): Add 'bitnet' backend for ultra-low-power inference.
+ *   BitNet 2B at 1.58-bit: 400MB, 20-35 tok/s, 55-70% energy reduction.
+ *   Ternary weights ({-1, 0, 1}) — all multiply → add/subtract.
+ *   Mathematical convergence with SNN perception layer.
+ *
+ * TODO(P.XR.07): Dynamic memory budget manager integration.
+ *   GS primitives vs KV cache is zero-sum on 8GB Quest 3.
+ *   LocalLLMTrait must communicate memory pressure to GaussianBudgetAnalyzer.
+ *   Expose getKVCacheSize_MB(): number for the budget manager to monitor.
+ *
+ * TODO(P.XR.03): Speculative decoding with cloud verifier.
+ *   When WiFi available, use on-device model as draft + cloud 70B as verifier.
+ *   SLED framework pattern: 2.2x throughput, 3.5x with cost reduction.
+ *   Add speculativeConfig: { cloudEndpoint, verifierModel, batchSize } to config.
+ *
  * Events:
  *  llm_model_loaded  { node, model, backend, availableModels }
  *  llm_models_listed { node, models }
