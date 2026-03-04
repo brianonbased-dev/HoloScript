@@ -16,6 +16,17 @@
  * Output format: JSONL (one JSON object per line), compatible with
  * standard fine-tuning pipelines (OpenAI, Hugging Face, Axolotl, etc.).
  *
+ * TODO(P.PROCGEN.03): Self-bootstrapping LLM training pipeline.
+ *   This generator should feed INTO the SemanticExpander compiler pass.
+ *   Flow: SpatialDataGenerator → JSONL → fine-tune VLM → SemanticExpander uses VLM
+ *   → generates compositions → SpatialDataGenerator labels them → loop.
+ *   See: ZoneWorldConstraints.ts for zone/world-level constraint validation.
+ *
+ * TODO(P.PROCGEN.01): Add zone-aware spatial relationships.
+ *   Current relationships (adjacent, contains, reachable) are object-level.
+ *   Need zone-level: "zone_adjacent", "zone_contains", "biome_transition".
+ *   Use ZoneMetadata from ZoneWorldConstraints.ts for context.
+ *
  * @module spatial/SpatialDataGenerator
  * @version 1.0.0
  */

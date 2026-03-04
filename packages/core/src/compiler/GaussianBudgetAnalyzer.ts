@@ -15,6 +15,22 @@
  *   W.034 — VR Gaussian budget (~180K total on Quest 3, 60K per avatar via SqueezeMe)
  *   W.035 — Radix sort outperforms bitonic sort for N > 64K splats
  *
+ * TODO(G.SIG25.02): Add overdraw estimator — raw splat count is insufficient.
+ *   CDRIN (SIGGRAPH 2025) confirmed overdraw is the #1 mobile VR GS killer.
+ *   Quest 3 can't handle >200K effective splats with overdraw factors >3x.
+ *   Need: estimated_overdraw = sum(per_pixel_splat_overlap) / pixel_count.
+ *
+ * TODO(W.SIG25.04): Abstract @gaussian_splat behind format-agnostic interface.
+ *   GS standardization workshop at SIGGRAPH 2025 means format wars are coming.
+ *   Support PLY import but store internally in our own representation.
+ *   If we commit to one format and standardization picks another → expensive migration.
+ *
+ * TODO(P.043): Add shared-sort multi-user cost model.
+ *   C_shared(N) = S + N*R where S=sort, R=rasterize.
+ *   Savings σ(N) = S(N-1)/N(S+R), asymptotic ceiling = S/(S+R) ≈ 60%.
+ *   Practical ceiling: N≈8-12 (memory bandwidth, frustum divergence, coordination).
+ *   See docs/P043_MULTIVIEW_FOVEATED_GS_PAPER.md for full derivation.
+ *
  * @version 1.0.0
  */
 
@@ -84,6 +100,8 @@ export interface GaussianBudgetWarning {
   overage: number;
   /** Actionable suggestion for resolving the issue */
   suggestion: string;
+  // TODO(G.SIG25.02): Add overdrawFactor field (estimated avg splats-per-pixel)
+  // TODO(P.043): Add multiUserCostMultiplier field for N-user shared-sort estimates
 }
 
 /**

@@ -3,6 +3,17 @@
  *
  * Enables advanced material and shader properties for photorealistic rendering
  * Supports PBR (Physically Based Rendering) workflows
+ *
+ * TODO(W.SIG25.06): Add neural shading evaluation path.
+ *   SIGGRAPH 2025 promoted neural shading as a technique for real-time reproduction
+ *   of complex materials WITHOUT extensive physical calculations.
+ *   Could replace PBR for subsurface scattering, iridescence at <1ms.
+ *   Add MaterialType 'neural' + NeuralMaterialConfig with model_path, input_features.
+ *
+ * TODO(P.SIG25.01): Support GS-editable materials (VR-Doh pattern).
+ *   VR-Doh demo showed real-time sculpting of Gaussian Splatting scenes.
+ *   Materials on GS objects need mutable splat-level properties.
+ *   Add @gs_editable trait that exposes per-splat material editing in VR.
  */
 
 export type MaterialType = 'pbr' | 'standard' | 'unlit' | 'transparent' | 'volumetric' | 'custom';

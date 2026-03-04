@@ -19,6 +19,17 @@
  * - tenant.manage / tenant.billing / tenant.members
  * - export.* : Export to specific platforms
  *
+ * TODO(W.TRUST.01): Integrate 5-phase VR Trust Handshake.
+ *   Agent Passport cross-scene state transfer needs RBAC context.
+ *   When an agent with a passport joins a scene, map passport capabilities
+ *   to tenant-scoped RBAC permissions via the CapabilityGrant system.
+ *   See: holoscript_agent_intelligence_and_trust KI for Agent Passport spec.
+ *
+ * TODO(P.SIG25.04): AI co-streaming permissions.
+ *   Streamlabs AI co-streamer pattern needs spectator-level RBAC.
+ *   Add 'spectator' role with read-only + commentary permissions.
+ *   Map to @llm_agent + @spectator traits in VRTraitSystem.
+ *
  * @version 1.0.0
  * @category enterprise
  */

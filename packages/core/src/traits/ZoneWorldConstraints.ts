@@ -17,6 +17,16 @@
  * - P.PROCGEN.01: SemanticExpander Compiler Pass
  * - G.PROCGEN.01: Infinite-but-Meaningless vs Meaningful-but-Bounded
  *
+ * TODO(P.PROCGEN.01): Build SemanticExpander compiler pass on top of this.
+ *   This module provides the CONSTRAINT layer. SemanticExpander uses these
+ *   constraints as generation schema: expand zones → validate against
+ *   ZONE_CONSTRAINTS → expand world → validate WORLD_CONSTRAINTS → emit.
+ *
+ * TODO(W.SIG25.01): AVBD physics-aware population caps.
+ *   SIGGRAPH 2025 Audience Choice: Augmented Vertex Block Descent solves
+ *   millions of objects. Population constraints should scale to AVBD budgets.
+ *   Current O(n²) AABB limits (G.PHYSICS.01) inform conservative caps.
+ *
  * @version 1.0.0
  * @category procgen
  */
