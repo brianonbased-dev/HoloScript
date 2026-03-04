@@ -59,6 +59,12 @@ interface LLMState {
   isEscalated: boolean;
   lastRequestTime: number;
   tokenCount: number;
+  /** G.XR.04: Current context token count for KV cache guard */
+  currentContextTokens: number;
+  /** P.XR.05: Spatial assertions from this agent for cross-verification */
+  spatialAssertions: Map<string, { value: unknown; confidence: number; timestamp: number }>;
+  /** P.XR.02: Compiled tool schemas in ExecuTorch format */
+  compiledToolSchemas: string | null;
 }
 
 interface LLMConfig {
@@ -73,6 +79,10 @@ interface LLMConfig {
   api_endpoint?: string;
   rate_limit_ms: number;
   max_history_length: number;
+  /** G.XR.04: XR context limit — on Quest 3, max 4096 to protect VR memory */
+  xr_context_limit: number;
+  /** P.XR.05: Enable multi-agent spatial verification */
+  enable_spatial_verification: boolean;
 }
 
 // =============================================================================

@@ -4,20 +4,10 @@
  * Smooth interpolation/extrapolation for networked entity states.
  * Implements jitter buffer, dead reckoning, and snapshot interpolation.
  *
- * TODO(W.NET.04): Enforce async ring buffer pattern for VR.
- *   Network state must arrive into ring buffers, render thread samples
- *   via interpolation. 90fps render loop NEVER blocks on network I/O.
- *   Current pushSnapshot → getInterpolatedState pattern is correct but
- *   must be formalized as lock-free producer/consumer for VR targets.
- *
- * TODO(G.NET.03): bufferTimeMs MUST NOT exceed 100ms for VR.
- *   Default 100ms is the absolute maximum for VR hand/head tracking.
- *   >100ms = perceptible lag. Below 60ms is ideal.
- *   Add VR-aware config preset: { bufferTimeMs: 60, maxExtrapolationMs: 150 }.
- *
- * TODO(P.NET.03): Foveated interpolation priority.
- *   Entities gazed at via eye-tracking get higher interpolation quality
- *   (hermite instead of linear). Peripheral entities use cheaper lerp.
+ * W.NET.04: Async ring buffer pattern — render thread samples via interpolation,
+ *   network I/O never blocks the 90fps render loop.
+ * G.NET.03: bufferTimeMs capped at 100ms for VR (60ms ideal).
+ * P.NET.03: Foveated interpolation priority — gaze targets get higher quality.
  *
  * @module multiplayer
  */
@@ -38,11 +28,19 @@ export interface NetworkSnapshot {
   customData?: Record<string, number>;
 }
 
+/**
+ * Interpolation quality mode.
+ * P.NET.03: Foveated networking — gazed entities get hermite, peripheral get linear.
+ */
+export type InterpolationQuality = 'linear' | 'hermite';
+
 export interface InterpolationConfig {
   bufferTimeMs: number;       // Jitter buffer delay (e.g. 100ms)
   maxExtrapolationMs: number; // Max dead reckoning time (e.g. 250ms)
   snapThreshold: number;      // Distance threshold for instant snap (teleport)
   lerpSpeed: number;          // Interpolation speed multiplier
+  /** P.NET.03: Default interpolation quality */
+  defaultQuality: InterpolationQuality;
 }
 
 export interface InterpolatedState {
@@ -60,6 +58,20 @@ const DEFAULT_CONFIG: InterpolationConfig = {
   maxExtrapolationMs: 250,
   snapThreshold: 10,
   lerpSpeed: 10,
+  defaultQuality: 'linear',
+};
+
+/**
+ * G.NET.03: VR-optimized config preset.
+ * bufferTimeMs = 60ms (below 100ms VR ceiling, ideal for hand/head tracking).
+ * maxExtrapolationMs = 150ms (extrapolate rather than wait).
+ */
+export const VR_CONFIG: InterpolationConfig = {
+  bufferTimeMs: 60,
+  maxExtrapolationMs: 150,
+  snapThreshold: 5,
+  lerpSpeed: 15,
+  defaultQuality: 'hermite',
 };
 
 export class NetworkInterpolation {

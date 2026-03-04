@@ -4,19 +4,11 @@
  * Enables advanced material and shader properties for photorealistic rendering
  * Supports PBR (Physically Based Rendering) workflows
  *
- * TODO(W.SIG25.06): Add neural shading evaluation path.
- *   SIGGRAPH 2025 promoted neural shading as a technique for real-time reproduction
- *   of complex materials WITHOUT extensive physical calculations.
- *   Could replace PBR for subsurface scattering, iridescence at <1ms.
- *   Add MaterialType 'neural' + NeuralMaterialConfig with model_path, input_features.
- *
- * TODO(P.SIG25.01): Support GS-editable materials (VR-Doh pattern).
- *   VR-Doh demo showed real-time sculpting of Gaussian Splatting scenes.
- *   Materials on GS objects need mutable splat-level properties.
- *   Add @gs_editable trait that exposes per-splat material editing in VR.
+ * W.SIG25.06: Neural shading evaluation path for complex material reproduction.
+ * P.SIG25.01: GS-editable materials for VR-Doh sculpting pattern.
  */
 
-export type MaterialType = 'pbr' | 'standard' | 'unlit' | 'transparent' | 'volumetric' | 'custom';
+export type MaterialType = 'pbr' | 'standard' | 'unlit' | 'transparent' | 'volumetric' | 'custom' | 'neural';
 export type TextureChannel =
   | 'baseColor'
   | 'normalMap'
@@ -359,6 +351,58 @@ export interface MaterialConfig {
     /** LOD bias for texture streaming */
     lodBias?: number;
   };
+
+  /** W.SIG25.06: Neural material configuration (for type 'neural') */
+  neural?: NeuralMaterialConfig;
+
+  /** P.SIG25.01: GS-editable configuration for VR sculpting */
+  gsEditable?: GSEditableConfig;
+}
+
+/**
+ * W.SIG25.06: Neural Material Configuration.
+ * Uses a trained neural network to evaluate material appearance,
+ * replacing expensive PBR calculations for complex phenomena
+ * (subsurface scattering, iridescence, caustics) at <1ms.
+ */
+export interface NeuralMaterialConfig {
+  /** Path to the trained model weights (ONNX or TFLite) */
+  modelPath: string;
+  /** Input features the model expects */
+  inputFeatures: NeuralInputFeature[];
+  /** Inference device */
+  device: 'gpu' | 'cpu' | 'npu';
+  /** Maximum inference time budget in ms (default: 1.0) */
+  maxInferenceMs: number;
+  /** Fallback material type if inference fails */
+  fallbackType: MaterialType;
+}
+
+/** Input features for neural material evaluation */
+export type NeuralInputFeature =
+  | 'view_direction'
+  | 'light_direction'
+  | 'surface_normal'
+  | 'uv_coordinates'
+  | 'world_position'
+  | 'time';
+
+/**
+ * P.SIG25.01: GS-Editable Configuration.
+ * Exposes per-splat material editing for VR sculpting workflows.
+ * Based on VR-Doh real-time GS scene sculpting (SIGGRAPH 2025).
+ */
+export interface GSEditableConfig {
+  /** Whether per-splat editing is enabled */
+  enabled: boolean;
+  /** Maximum edit radius in world units */
+  maxEditRadius: number;
+  /** Edit brush type */
+  brushType: 'paint' | 'sculpt' | 'erase' | 'clone';
+  /** Undo buffer size (number of steps) */
+  undoSteps: number;
+  /** Whether edits are synced in multiplayer */
+  networkSync: boolean;
 }
 
 /**

@@ -136,6 +136,12 @@ export type MessageHandler<T = unknown> = (message: INetworkMessage<T>) => void;
 export type SyncMode = 'authoritative' | 'last-write-wins' | 'crdt';
 
 /**
+ * Sync tier — maps to a specific consistency model, frequency, and delivery.
+ * P.NET.01: Tiered Consistency Architecture.
+ */
+export type SyncTier = 'physics' | 'movement' | 'ai_agent' | 'cosmetic';
+
+/**
  * Sync frequency
  */
 export type SyncFrequency = 'immediate' | 'tick' | 'manual';
@@ -144,6 +150,12 @@ export type SyncFrequency = 'immediate' | 'tick' | 'manual';
  * State change origin
  */
 export type StateOrigin = 'local' | 'remote' | 'reconciled';
+
+/**
+ * Entity type classification for bandwidth profiling.
+ * W.NET.05: AI agents are a distinct entity class.
+ */
+export type EntityType = 'player' | 'agent' | 'physics_object' | 'cosmetic';
 
 /**
  * Synchronized state entry
@@ -176,8 +188,10 @@ export interface ISyncConfig {
   interpolationDelay?: number;
   maxHistorySize?: number;
   ownership?: 'host' | 'creator' | 'anyone';
-  // TODO(P.NET.01): Add syncTier: 'physics' | 'movement' | 'ai_agent' | 'cosmetic'
-  //   Each tier maps to different frequency, delivery mode, and consistency model.
+  /** P.NET.01: Sync tier auto-configures mode, frequency, and delivery */
+  syncTier?: SyncTier;
+  /** W.NET.05: Entity type for bandwidth profiling */
+  entityType?: EntityType;
 }
 
 // ============================================================================
@@ -908,4 +922,406 @@ export function validateConnectionConfig(config: IConnectionConfig): {
   }
 
   return { valid: errors.length === 0, errors };
+}
+
+// ============================================================================
+// SYNC TIER CONFIGURATION (P.NET.01)
+// ============================================================================
+
+/**
+ * Tier-specific defaults for sync configuration.
+ * P.NET.01: Each tier maps to a specific consistency model.
+ */
+export const SYNC_TIER_DEFAULTS: Record<SyncTier, Required<Pick<ISyncConfig, 'mode' | 'frequency' | 'interpolate' | 'interpolationDelay' | 'maxHistorySize' | 'ownership'>>> = {
+  physics: {
+    mode: 'authoritative',
+    frequency: 'tick',       // 60Hz server-authoritative
+    interpolate: true,
+    interpolationDelay: 50,
+    maxHistorySize: 256,
+    ownership: 'host',
+  },
+  movement: {
+    mode: 'authoritative',
+    frequency: 'tick',       // 20Hz client-predicted
+    interpolate: true,
+    interpolationDelay: 100,
+    maxHistorySize: 128,
+    ownership: 'creator',
+  },
+  ai_agent: {
+    mode: 'crdt',
+    frequency: 'manual',     // 1-5Hz eventual consistency
+    interpolate: false,
+    interpolationDelay: 200,
+    maxHistorySize: 32,
+    ownership: 'host',
+  },
+  cosmetic: {
+    mode: 'last-write-wins',
+    frequency: 'manual',     // <1Hz fire-and-forget
+    interpolate: false,
+    interpolationDelay: 0,
+    maxHistorySize: 8,
+    ownership: 'anyone',
+  },
+};
+
+/**
+ * The delivery mode for each sync tier.
+ */
+export const SYNC_TIER_DELIVERY: Record<SyncTier, DeliveryMode> = {
+  physics: 'ordered',
+  movement: 'unreliable',
+  ai_agent: 'reliable',
+  cosmetic: 'unreliable',
+};
+
+/**
+ * Target update rates (Hz) for each sync tier.
+ */
+export const SYNC_TIER_RATES: Record<SyncTier, number> = {
+  physics: 60,
+  movement: 20,
+  ai_agent: 5,
+  cosmetic: 1,
+};
+
+/**
+ * Resolve a SyncConfig by applying tier defaults.
+ * If syncTier is set, it fills in missing fields from SYNC_TIER_DEFAULTS.
+ */
+export function resolveSyncConfig(config: ISyncConfig): Required<Pick<ISyncConfig, 'mode' | 'frequency' | 'interpolate' | 'interpolationDelay' | 'maxHistorySize' | 'ownership'>> & ISyncConfig {
+  const tierDefaults = config.syncTier ? SYNC_TIER_DEFAULTS[config.syncTier] : SYNC_DEFAULTS;
+  return {
+    ...tierDefaults,
+    ...config,
+  } as Required<Pick<ISyncConfig, 'mode' | 'frequency' | 'interpolate' | 'interpolationDelay' | 'maxHistorySize' | 'ownership'>> & ISyncConfig;
+}
+
+// ============================================================================
+// CRDT TYPES (P.NET.02)
+// ============================================================================
+
+/**
+ * Last-Writer-Wins Register — stores a single value with timestamp.
+ * Used for agent state fields (e.g., current goal, emotion, action).
+ * P.NET.02: CRDT for AI agent consensus.
+ */
+export interface ILWWRegister<T> {
+  value: T;
+  timestamp: number;
+  peerId: string;
+}
+
+/**
+ * G-Counter — grow-only counter, one entry per node.
+ * Used for shared resource tracking (e.g., items collected, enemies defeated).
+ */
+export interface IGCounter {
+  counts: Record<string, number>; // peerId → count
+}
+
+/**
+ * OR-Set (Observed-Remove Set) — add/remove with unique tags.
+ * Used for agent group membership (e.g., patrol group, quest party).
+ */
+export interface IORSet<T> {
+  elements: Map<string, { value: T; addedBy: string; timestamp: number }>;
+  tombstones: Set<string>;
+}
+
+/**
+ * CRDT operations for network sync.
+ */
+export type CRDTOperation =
+  | { type: 'lww_set'; key: string; value: unknown; timestamp: number; peerId: string }
+  | { type: 'gcounter_inc'; key: string; peerId: string; delta: number }
+  | { type: 'orset_add'; key: string; tag: string; value: unknown; peerId: string }
+  | { type: 'orset_remove'; key: string; tag: string };
+
+/** Merge two LWW-Registers — highest timestamp wins */
+export function mergeLWW<T>(a: ILWWRegister<T>, b: ILWWRegister<T>): ILWWRegister<T> {
+  return a.timestamp >= b.timestamp ? a : b;
+}
+
+/** Merge two G-Counters — take max per peer */
+export function mergeGCounter(a: IGCounter, b: IGCounter): IGCounter {
+  const merged: Record<string, number> = { ...a.counts };
+  for (const [peer, count] of Object.entries(b.counts)) {
+    merged[peer] = Math.max(merged[peer] ?? 0, count);
+  }
+  return { counts: merged };
+}
+
+/** Get the total value of a G-Counter */
+export function gcounterValue(counter: IGCounter): number {
+  return Object.values(counter.counts).reduce((sum, v) => sum + v, 0);
+}
+
+/** Create a new LWW-Register */
+export function createLWWRegister<T>(value: T, peerId: string): ILWWRegister<T> {
+  return { value, timestamp: Date.now(), peerId };
+}
+
+/** Create a new G-Counter */
+export function createGCounter(): IGCounter {
+  return { counts: {} };
+}
+
+/** Increment a G-Counter for a peer */
+export function incrementGCounter(counter: IGCounter, peerId: string, delta: number = 1): IGCounter {
+  return {
+    counts: {
+      ...counter.counts,
+      [peerId]: (counter.counts[peerId] ?? 0) + delta,
+    },
+  };
+}
+
+// ============================================================================
+// SPATIAL HASH GRID & INTEREST MANAGEMENT (W.NET.02)
+// ============================================================================
+
+/**
+ * Spatial hash grid cell for Area of Interest (AOI) management.
+ * Each cell tracks entities within a region of 3D space.
+ */
+export interface ISpatialCell {
+  /** Cell coordinates in grid space */
+  x: number;
+  y: number;
+  z: number;
+  /** Entity IDs in this cell */
+  entities: Set<string>;
+  /** Peer IDs observing this cell */
+  observers: Set<string>;
+}
+
+/**
+ * Spatial hash grid configuration.
+ */
+export interface ISpatialGridConfig {
+  /** Cell size in world units (default 50) */
+  cellSize: number;
+  /** Max entities per cell before subdivision warning */
+  maxEntitiesPerCell: number;
+  /** Max cells to track (memory budget) */
+  maxCells: number;
+}
+
+/**
+ * Interest management interface — filters network state by spatial relevance.
+ * W.NET.02: 95% bandwidth reduction via AOI filtering.
+ */
+export interface IInterestManager {
+  /** Update the position/AOI of a peer */
+  updatePeerPosition(peerId: string, position: IVector3, aoiRadius: number): void;
+  /** Update the position of an entity */
+  updateEntityPosition(entityId: string, position: IVector3, entityType: EntityType): void;
+  /** Remove a peer from interest tracking */
+  removePeer(peerId: string): void;
+  /** Remove an entity from interest tracking */
+  removeEntity(entityId: string): void;
+  /** Get all entity IDs within a peer's AOI */
+  getEntitiesInAOI(peerId: string): string[];
+  /** Get all peer IDs that should receive updates for an entity */
+  getPeersInterestedIn(entityId: string): string[];
+  /** Get the number of tracked entities */
+  getEntityCount(): number;
+  /** Get the number of active cells */
+  getCellCount(): number;
+}
+
+/**
+ * Spatial hash grid implementation for AOI interest management.
+ * W.NET.02: Expected 95% bandwidth reduction for 200 entities.
+ */
+export class SpatialHashGrid implements IInterestManager {
+  private cellSize: number;
+  private cells: Map<string, ISpatialCell> = new Map();
+  private entityPositions: Map<string, IVector3> = new Map();
+  private entityTypes: Map<string, EntityType> = new Map();
+  private entityCells: Map<string, string> = new Map();
+  private peerPositions: Map<string, { position: IVector3; aoiRadius: number }> = new Map();
+
+  constructor(config: Partial<ISpatialGridConfig> = {}) {
+    this.cellSize = config.cellSize ?? 50;
+  }
+
+  private cellKey(x: number, y: number, z: number): string {
+    return `${x},${y},${z}`;
+  }
+
+  private worldToCell(position: IVector3): { x: number; y: number; z: number } {
+    return {
+      x: Math.floor(position.x / this.cellSize),
+      y: Math.floor(position.y / this.cellSize),
+      z: Math.floor(position.z / this.cellSize),
+    };
+  }
+
+  private getOrCreateCell(cx: number, cy: number, cz: number): ISpatialCell {
+    const key = this.cellKey(cx, cy, cz);
+    let cell = this.cells.get(key);
+    if (!cell) {
+      cell = { x: cx, y: cy, z: cz, entities: new Set(), observers: new Set() };
+      this.cells.set(key, cell);
+    }
+    return cell;
+  }
+
+  updatePeerPosition(peerId: string, position: IVector3, aoiRadius: number): void {
+    this.peerPositions.set(peerId, { position, aoiRadius });
+    // Clear old observer status
+    for (const cell of this.cells.values()) {
+      cell.observers.delete(peerId);
+    }
+    // Mark cells within AOI as observed
+    const cellRadius = Math.ceil(aoiRadius / this.cellSize);
+    const center = this.worldToCell(position);
+    for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+      for (let dy = -cellRadius; dy <= cellRadius; dy++) {
+        for (let dz = -cellRadius; dz <= cellRadius; dz++) {
+          const cell = this.getOrCreateCell(center.x + dx, center.y + dy, center.z + dz);
+          cell.observers.add(peerId);
+        }
+      }
+    }
+  }
+
+  updateEntityPosition(entityId: string, position: IVector3, entityType: EntityType): void {
+    this.entityPositions.set(entityId, position);
+    this.entityTypes.set(entityId, entityType);
+    // Remove from old cell
+    const oldCellKey = this.entityCells.get(entityId);
+    if (oldCellKey) {
+      const oldCell = this.cells.get(oldCellKey);
+      oldCell?.entities.delete(entityId);
+    }
+    // Add to new cell
+    const cellCoords = this.worldToCell(position);
+    const cell = this.getOrCreateCell(cellCoords.x, cellCoords.y, cellCoords.z);
+    cell.entities.add(entityId);
+    this.entityCells.set(entityId, this.cellKey(cellCoords.x, cellCoords.y, cellCoords.z));
+  }
+
+  removePeer(peerId: string): void {
+    this.peerPositions.delete(peerId);
+    for (const cell of this.cells.values()) {
+      cell.observers.delete(peerId);
+    }
+  }
+
+  removeEntity(entityId: string): void {
+    this.entityPositions.delete(entityId);
+    this.entityTypes.delete(entityId);
+    const cellKey = this.entityCells.get(entityId);
+    if (cellKey) {
+      const cell = this.cells.get(cellKey);
+      cell?.entities.delete(entityId);
+      this.entityCells.delete(entityId);
+    }
+  }
+
+  getEntitiesInAOI(peerId: string): string[] {
+    const entities: string[] = [];
+    for (const cell of this.cells.values()) {
+      if (cell.observers.has(peerId)) {
+        for (const entityId of cell.entities) {
+          entities.push(entityId);
+        }
+      }
+    }
+    return entities;
+  }
+
+  getPeersInterestedIn(entityId: string): string[] {
+    const cellKey = this.entityCells.get(entityId);
+    if (!cellKey) return [];
+    const cell = this.cells.get(cellKey);
+    return cell ? Array.from(cell.observers) : [];
+  }
+
+  getEntityCount(): number {
+    return this.entityPositions.size;
+  }
+
+  getCellCount(): number {
+    return this.cells.size;
+  }
+
+  /** Clean up empty cells to prevent memory leak */
+  gc(): void {
+    for (const [key, cell] of this.cells) {
+      if (cell.entities.size === 0 && cell.observers.size === 0) {
+        this.cells.delete(key);
+      }
+    }
+  }
+}
+
+// ============================================================================
+// ENTITY BANDWIDTH PROFILES (W.NET.05)
+// ============================================================================
+
+/**
+ * Bandwidth profile per entity type.
+ * W.NET.05: AI agents have fundamentally different bandwidth needs than players.
+ * G.NET.04: Don't overestimate AI agent bandwidth.
+ */
+export const ENTITY_BANDWIDTH_PROFILES: Record<EntityType, {
+  bytesPerUpdate: number;
+  updatesPerSecond: number;
+  delivery: DeliveryMode;
+  syncTier: SyncTier;
+}> = {
+  player: {
+    bytesPerUpdate: 20,
+    updatesPerSecond: 20,
+    delivery: 'unreliable',
+    syncTier: 'movement',
+  },
+  agent: {
+    bytesPerUpdate: 150,       // 50-200 bytes of decision state
+    updatesPerSecond: 3,       // 1-5 Hz
+    delivery: 'reliable',
+    syncTier: 'ai_agent',
+  },
+  physics_object: {
+    bytesPerUpdate: 32,
+    updatesPerSecond: 60,
+    delivery: 'ordered',
+    syncTier: 'physics',
+  },
+  cosmetic: {
+    bytesPerUpdate: 8,
+    updatesPerSecond: 1,
+    delivery: 'unreliable',
+    syncTier: 'cosmetic',
+  },
+};
+
+/**
+ * Estimate bandwidth for a set of entities within a player's AOI.
+ * Uses proper per-entity-type profiles (G.NET.04: don't treat AI like players).
+ */
+export function estimateAOIBandwidth(
+  entityTypes: EntityType[]
+): { totalBytesPerSecond: number; totalKbps: number; breakdown: Record<EntityType, number> } {
+  const breakdown: Record<EntityType, number> = { player: 0, agent: 0, physics_object: 0, cosmetic: 0 };
+  let totalBytesPerSecond = 0;
+
+  for (const type of entityTypes) {
+    const profile = ENTITY_BANDWIDTH_PROFILES[type];
+    const bps = profile.bytesPerUpdate * profile.updatesPerSecond;
+    breakdown[type] += bps;
+    totalBytesPerSecond += bps;
+  }
+
+  return {
+    totalBytesPerSecond,
+    totalKbps: (totalBytesPerSecond * 8) / 1000,
+    breakdown,
+  };
 }

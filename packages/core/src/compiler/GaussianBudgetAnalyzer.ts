@@ -14,24 +14,12 @@
  * Research references:
  *   W.034 — VR Gaussian budget (~180K total on Quest 3, 60K per avatar via SqueezeMe)
  *   W.035 — Radix sort outperforms bitonic sort for N > 64K splats
+ *   G.SIG25.02 — Overdraw estimator (CDRIN SIGGRAPH 2025)
+ *   W.SIG25.04 — Format-agnostic GS interface
+ *   P.043 — Multi-user shared-sort cost model
+ *   P.XR.07 — Dynamic GS↔KV memory budget manager
  *
- * TODO(G.SIG25.02): Add overdraw estimator — raw splat count is insufficient.
- *   CDRIN (SIGGRAPH 2025) confirmed overdraw is the #1 mobile VR GS killer.
- *   Quest 3 can't handle >200K effective splats with overdraw factors >3x.
- *   Need: estimated_overdraw = sum(per_pixel_splat_overlap) / pixel_count.
- *
- * TODO(W.SIG25.04): Abstract @gaussian_splat behind format-agnostic interface.
- *   GS standardization workshop at SIGGRAPH 2025 means format wars are coming.
- *   Support PLY import but store internally in our own representation.
- *   If we commit to one format and standardization picks another → expensive migration.
- *
- * TODO(P.043): Add shared-sort multi-user cost model.
- *   C_shared(N) = S + N*R where S=sort, R=rasterize.
- *   Savings σ(N) = S(N-1)/N(S+R), asymptotic ceiling = S/(S+R) ≈ 60%.
- *   Practical ceiling: N≈8-12 (memory bandwidth, frustum divergence, coordination).
- *   See docs/P043_MULTIVIEW_FOVEATED_GS_PAPER.md for full derivation.
- *
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import type {
@@ -100,8 +88,10 @@ export interface GaussianBudgetWarning {
   overage: number;
   /** Actionable suggestion for resolving the issue */
   suggestion: string;
-  // TODO(G.SIG25.02): Add overdrawFactor field (estimated avg splats-per-pixel)
-  // TODO(P.043): Add multiUserCostMultiplier field for N-user shared-sort estimates
+  /** G.SIG25.02: Estimated average overdraw factor (splats-per-pixel) */
+  overdrawFactor: number;
+  /** P.043: Estimated savings percentage for multi-user shared sort */
+  multiUserSavings: MultiUserCostEstimate | null;
 }
 
 /**
@@ -188,11 +178,194 @@ const DEFAULT_MAX_SPLATS = 1_000_000;
 // =============================================================================
 // ANALYZER
 // =============================================================================
-// TODO(P.XR.07): Wire to dynamic memory budget manager.
-//   GaussianBudgetAnalyzer must account for KV cache memory from @llm_agent.
-//   On Quest 3 (8GB): agent KV cache competes with GS headroom.
-//   Add getAvailableGaussianBudget(kvCacheSize_MB): per platform.
-//   G.XR.05: 200K+ splats @ 67 GB/s → <15 GB/s left for model weight streaming.
+
+// =============================================================================
+// FORMAT-AGNOSTIC GS INTERFACE (W.SIG25.04)
+// =============================================================================
+
+/**
+ * Supported Gaussian splat formats.
+ * W.SIG25.04: Abstraction layer to survive format standardization wars.
+ */
+export type GaussianFormat = 'ply' | 'splat' | 'spz' | 'holoscript_native';
+
+/**
+ * Format-agnostic Gaussian data interface.
+ * W.SIG25.04: Internal representation is format-independent.
+ */
+export interface IGaussianData {
+  /** Source format the data was imported from */
+  sourceFormat: GaussianFormat;
+  /** Number of Gaussian primitives */
+  splatCount: number;
+  /** Spherical harmonics degree (0-3) */
+  shDegree: number;
+  /** Whether opacity pruning has been applied */
+  pruned: boolean;
+  /** Compression method applied */
+  compression: 'none' | 'spz_v2' | 'quantized';
+  /** Estimated memory footprint in bytes */
+  memorySizeBytes: number;
+}
+
+/**
+ * Detect the GS format from a file extension or magic bytes.
+ */
+export function detectGaussianFormat(filename: string): GaussianFormat {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'ply': return 'ply';
+    case 'splat': return 'splat';
+    case 'spz': return 'spz';
+    default: return 'holoscript_native';
+  }
+}
+
+// =============================================================================
+// OVERDRAW ESTIMATOR (G.SIG25.02)
+// =============================================================================
+
+/**
+ * G.SIG25.02: Estimate overdraw factor from splat count and viewport.
+ * CDRIN (SIGGRAPH 2025) confirmed overdraw is the #1 mobile VR GS performance killer.
+ *
+ * Effective splats = splatCount × overdrawFactor.
+ * Quest 3 can't handle >200K effective splats with overdraw >3x.
+ *
+ * @param splatCount - Total number of Gaussian primitives
+ * @param viewportPixels - Viewport resolution in total pixels (width × height)
+ * @param avgSplatRadiusPx - Average splat radius in pixels (default: 4px for typical scenes)
+ * @returns Estimated overdraw factor (>1.0 means overlapping splats per pixel)
+ */
+export function estimateOverdraw(
+  splatCount: number,
+  viewportPixels: number = 1832 * 1920, // Quest 3 per-eye
+  avgSplatRadiusPx: number = 4,
+): number {
+  if (splatCount === 0 || viewportPixels === 0) return 0;
+
+  // Each splat covers a circular area of π × r² pixels
+  const avgSplatArea = Math.PI * avgSplatRadiusPx * avgSplatRadiusPx;
+  // Total covered pixel-area (assumes uniform distribution)
+  const totalCoverage = splatCount * avgSplatArea;
+  // Overdraw = total coverage / viewport pixels
+  return totalCoverage / viewportPixels;
+}
+
+// =============================================================================
+// MULTI-USER COST MODEL (P.043)
+// =============================================================================
+
+/**
+ * P.043: Multi-user shared-sort cost estimate.
+ */
+export interface MultiUserCostEstimate {
+  /** Number of simultaneous users/viewpoints */
+  userCount: number;
+  /** Savings percentage vs independent renders (0-100) */
+  savingsPercent: number;
+  /** Cost multiplier (1.0 = independent, lower = savings) */
+  costMultiplier: number;
+  /** Whether this exceeds the practical ceiling */
+  exceedsPracticalCeiling: boolean;
+}
+
+/**
+ * P.043: Calculate shared-sort multi-user rendering savings.
+ *
+ * C_shared(N) = S + N×R   where S = sort cost, R = rasterize cost.
+ * Savings σ(N) = S(N-1) / N(S+R)
+ * Asymptotic ceiling = S/(S+R) ≈ 60% (for typical radix sort).
+ * Practical ceiling: N ≈ 8-12 (memory bandwidth, frustum divergence).
+ *
+ * @param userCount - Number of simultaneous users/viewpoints
+ * @param sortFraction - Fraction of total render cost from sorting (default: 0.6)
+ * @returns Multi-user cost estimate
+ */
+export function estimateMultiUserCost(
+  userCount: number,
+  sortFraction: number = 0.6,
+): MultiUserCostEstimate {
+  const PRACTICAL_CEILING = 12;
+  const rasterFraction = 1 - sortFraction;
+
+  if (userCount <= 1) {
+    return { userCount, savingsPercent: 0, costMultiplier: 1.0, exceedsPracticalCeiling: false };
+  }
+
+  // Per-user cost with shared sort: (S + N×R) / N = S/N + R
+  const perUserCost = (sortFraction / userCount) + rasterFraction;
+  const savingsPercent = (1 - perUserCost) * 100;
+  const costMultiplier = perUserCost;
+
+  return {
+    userCount,
+    savingsPercent: Math.max(0, Math.round(savingsPercent * 10) / 10),
+    costMultiplier: Math.round(costMultiplier * 1000) / 1000,
+    exceedsPracticalCeiling: userCount > PRACTICAL_CEILING,
+  };
+}
+
+// =============================================================================
+// DYNAMIC GS↔KV MEMORY BUDGET (P.XR.07)
+// =============================================================================
+
+/**
+ * P.XR.07: Calculate available Gaussian budget after accounting for KV cache.
+ * GS primitives vs KV cache is zero-sum on constrained devices.
+ *
+ * @param platform - Target platform
+ * @param kvCacheSizeMB - Current KV cache size from @llm_agent (in MB)
+ * @param totalDeviceMemoryMB - Total device memory (default: per-platform)
+ * @param renderReservedMB - Memory reserved for VR rendering pipeline
+ * @returns Adjusted max Gaussians after accounting for KV cache
+ */
+export function getAvailableGaussianBudget(
+  platform: GaussianPlatform,
+  kvCacheSizeMB: number = 0,
+  totalDeviceMemoryMB?: number,
+  renderReservedMB?: number,
+): { maxGaussians: number; memoryAvailableMB: number; kvCacheImpact: string } {
+  const DEVICE_MEMORY: Record<GaussianPlatform, number> = {
+    quest3: 8192,        // 8 GB LPDDR5
+    desktop_vr: 16384,   // 16 GB typical
+    webgpu: 4096,        // Browser memory budget
+    mobile_ar: 4096,     // Mobile RAM budget
+    visionos: 16384,     // M2 unified memory
+  };
+
+  const RENDER_RESERVED: Record<GaussianPlatform, number> = {
+    quest3: 3072,        // 3 GB for VR rendering
+    desktop_vr: 4096,    // 4 GB for VR rendering
+    webgpu: 1024,        // 1 GB browser overhead
+    mobile_ar: 1536,     // 1.5 GB for AR
+    visionos: 4096,      // 4 GB for visionOS
+  };
+
+  // Bytes per Gaussian primitive (SH degree 2, compressed)
+  const BYTES_PER_GAUSSIAN = 64;
+
+  const totalMem = totalDeviceMemoryMB ?? DEVICE_MEMORY[platform];
+  const reserved = renderReservedMB ?? RENDER_RESERVED[platform];
+  const availableMB = Math.max(0, totalMem - reserved - kvCacheSizeMB);
+  const maxGaussians = Math.floor((availableMB * 1024 * 1024) / BYTES_PER_GAUSSIAN);
+
+  // Cap to platform's inherent GPU throughput limit
+  const gpuLimit = GAUSSIAN_PLATFORM_BUDGETS[platform].maxGaussians;
+  const effectiveMax = Math.min(maxGaussians, gpuLimit);
+
+  let impact = 'none';
+  if (kvCacheSizeMB > 0) {
+    const reduction = gpuLimit > 0 ? Math.round(((gpuLimit - effectiveMax) / gpuLimit) * 100) : 0;
+    impact = `KV cache (${kvCacheSizeMB}MB) reduces GS budget by ${reduction}%`;
+  }
+
+  return {
+    maxGaussians: effectiveMax,
+    memoryAvailableMB: availableMB,
+    kvCacheImpact: impact,
+  };
+}
 
 /**
  * Options for configuring the Gaussian budget analysis.

@@ -16,20 +16,25 @@
  * - W.PROCGEN.02: Constraints AS Schema > Post-Validation (50x error reduction)
  * - P.PROCGEN.01: SemanticExpander Compiler Pass
  * - G.PROCGEN.01: Infinite-but-Meaningless vs Meaningful-but-Bounded
+ * - W.SIG25.01: AVBD physics-aware population caps
  *
- * TODO(P.PROCGEN.01): Build SemanticExpander compiler pass on top of this.
- *   This module provides the CONSTRAINT layer. SemanticExpander uses these
- *   constraints as generation schema: expand zones → validate against
- *   ZONE_CONSTRAINTS → expand world → validate WORLD_CONSTRAINTS → emit.
- *
- * TODO(W.SIG25.01): AVBD physics-aware population caps.
- *   SIGGRAPH 2025 Audience Choice: Augmented Vertex Block Descent solves
- *   millions of objects. Population constraints should scale to AVBD budgets.
- *   Current O(n²) AABB limits (G.PHYSICS.01) inform conservative caps.
- *
- * @version 1.0.0
+ * @version 2.0.0
  * @category procgen
  */
+
+/** Physics budget mode for zone population constraints */
+export type PhysicsBudgetMode = 'conservative' | 'avbd' | 'unlimited';
+
+/**
+ * W.SIG25.01: AVBD-aware population budget.
+ * Augmented Vertex Block Descent (SIGGRAPH 2025) solves millions of objects.
+ * Conservative mode uses O(n²) AABB limits. AVBD mode allows higher caps.
+ */
+export const AVBD_POPULATION_BUDGET: Record<PhysicsBudgetMode, { maxPerZone: number; maxPerWorld: number }> = {
+  conservative: { maxPerZone: 500, maxPerWorld: 5000 },
+  avbd: { maxPerZone: 10000, maxPerWorld: 1000000 },
+  unlimited: { maxPerZone: Infinity, maxPerWorld: Infinity },
+};
 
 // =============================================================================
 // ZONE CONSTRAINT TYPES

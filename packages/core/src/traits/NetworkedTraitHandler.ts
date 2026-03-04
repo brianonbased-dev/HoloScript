@@ -21,27 +21,18 @@
  * The handler emits events that platform runtimes (e.g. Hololand's
  * NetworkedRuntime) listen to for actual network transport.
  *
- * TODO(P.NET.01): Add syncTier to config to support tiered consistency.
- *   Default syncRate=20 is fine for player movement (Tier 1).
- *   AI agents need Tier 2: syncRate=1-5, mode='crdt', channel='reliable'.
- *   Physics entities need Tier 0: syncRate=60, mode='server', channel='ordered'.
- *   syncTier should auto-configure these defaults.
+ * P.NET.01: syncTier auto-configures mode, frequency, and delivery.
+ * P.NET.03: Priority accumulator for proximity-weighted sync rates.
+ * W.NET.05: Separate agent_state event for AI agent sync.
  *
- * TODO(P.NET.03): Priority accumulator for bandwidth allocation.
- *   syncToNetwork() sends at a fixed rate. Instead, priority-weighted:
- *   entities near player get higher effective syncRate.
- *   Foveated networking: eye-tracking data boosts priority for gazed entities.
- *
- * TODO(W.NET.05): Separate AI agent sync from player sync.
- *   AI agents emit 50-200 bytes at 1-5Hz, not 20 bytes at 60Hz.
- *   Create a `networked:agent_state` event distinct from `networked:remote_state`.
- *
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode, Vector3 } from '../types/HoloScriptPlus';
 import { NetworkedTrait, type NetworkedConfig } from './NetworkedTrait';
+import type { SyncTier } from '../network/NetworkTypes';
+import { SYNC_TIER_RATES } from '../network/NetworkTypes';
 
 // =============================================================================
 // TYPES
@@ -52,6 +43,10 @@ interface HandlerState {
   trait: NetworkedTrait;
   syncAccumulator: number;
   registered: boolean;
+  /** P.NET.03: Priority weight (0-1) based on proximity to nearest player */
+  priorityWeight: number;
+  /** W.NET.05: Whether this is an AI agent entity */
+  isAgent: boolean;
 }
 
 // Internal state map
@@ -102,6 +97,10 @@ interface NetworkedHandlerConfig {
   room: string;
   /** Persistence */
   persistence: boolean;
+  /** P.NET.01: Sync tier — auto-configures defaults */
+  syncTier: SyncTier;
+  /** W.NET.05: Whether this entity is an AI agent */
+  isAgent: boolean;
 }
 
 // =============================================================================
@@ -122,6 +121,8 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
     auto_claim_on_interact: true,
     room: 'default',
     persistence: false,
+    syncTier: 'movement',
+    isAgent: false,
   },
 
   // ===========================================================================
@@ -159,6 +160,8 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
       trait,
       syncAccumulator: 0,
       registered: true,
+      priorityWeight: 1.0,
+      isAgent: config.isAgent,
     };
 
     handlerStates.set(key, state);
@@ -222,6 +225,12 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
 
     const trait = state.trait;
 
+    // P.NET.01: Use tier-based sync rate if syncTier is set
+    const baseSyncRate = SYNC_TIER_RATES[config.syncTier] ?? config.syncRate;
+    // P.NET.03: Priority-weighted effective sync rate
+    const effectiveRate = baseSyncRate * state.priorityWeight;
+    const syncIntervalMs = effectiveRate > 0 ? 1000 / effectiveRate : Infinity;
+
     // If local owner, push current position/rotation into the trait
     if (trait.isLocalOwner()) {
       const pos = nodePosition(node);
@@ -240,8 +249,12 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
         }
       }
 
-      // Let trait do rate-limited sync
-      trait.syncToNetwork();
+      // Rate-limited sync with priority-weighted interval
+      state.syncAccumulator += delta * 1000;
+      if (state.syncAccumulator >= syncIntervalMs) {
+        state.syncAccumulator = 0;
+        trait.syncToNetwork();
+      }
     } else {
       // Remote object: apply interpolated state
       const interpolated = trait.getInterpolatedState(config.interpolation_delay);
@@ -302,7 +315,9 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
       }
 
       // Remote state received from platform runtime
-      case 'networked:remote_state': {
+      // W.NET.05: Separate event type for AI agent state
+      case 'networked:remote_state':
+      case 'networked:agent_state': {
         const data = (event as any).data || (event as any);
         if (!trait.isLocalOwner()) {
           trait.applyState(data);

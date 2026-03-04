@@ -9,28 +9,12 @@
  * - admin: Full control over scenes, traits, and user management
  * - editor: Create, modify, and delete scenes and trait configurations
  * - viewer: Read-only access to scenes, can view but not modify
+ * - spectator: Read-only with AI commentary permissions (P.SIG25.04)
  *
- * Permissions are granular at the trait level:
- * - trait.attach: Can attach this trait to nodes
- * - trait.detach: Can remove this trait from nodes
- * - trait.configure: Can modify trait configuration
- * - trait.view: Can view trait configuration
- * - scene.create / scene.edit / scene.delete / scene.publish
- * - tenant.manage / tenant.billing / tenant.members
- * - export.* : Export to specific platforms
+ * W.TRUST.01: Agent Passport capabilities map to RBAC via CapabilityGrant.
+ * P.SIG25.04: Spectator role for AI co-streaming.
  *
- * TODO(W.TRUST.01): Integrate 5-phase VR Trust Handshake.
- *   Agent Passport cross-scene state transfer needs RBAC context.
- *   When an agent with a passport joins a scene, map passport capabilities
- *   to tenant-scoped RBAC permissions via the CapabilityGrant system.
- *   See: holoscript_agent_intelligence_and_trust KI for Agent Passport spec.
- *
- * TODO(P.SIG25.04): AI co-streaming permissions.
- *   Streamlabs AI co-streamer pattern needs spectator-level RBAC.
- *   Add 'spectator' role with read-only + commentary permissions.
- *   Map to @llm_agent + @spectator traits in VRTraitSystem.
- *
- * @version 1.0.0
+ * @version 2.0.0
  * @category enterprise
  */
 
@@ -45,7 +29,7 @@ import type {
 // =============================================================================
 
 /** Built-in role types */
-export type RBACRole = 'owner' | 'admin' | 'editor' | 'viewer';
+export type RBACRole = 'owner' | 'admin' | 'editor' | 'viewer' | 'spectator';
 
 /** Permission scope categories */
 export type PermissionCategory =
@@ -334,6 +318,22 @@ const DEFAULT_ROLES: RoleDefinition[] = [
       { category: 'billing', action: '*' },
       { category: 'user', action: '*' },
       { category: 'audit', action: '*' },
+    ],
+  },
+  {
+    role: 'spectator',
+    label: 'Spectator',
+    description: 'P.SIG25.04: Read-only with AI commentary permissions for co-streaming',
+    isBuiltIn: true,
+    inheritsFrom: 'viewer',
+    maxAssignees: 0,
+    permissions: [
+      { category: 'scene', action: 'read' },
+      { category: 'trait', action: 'view' },
+      { category: 'asset', action: 'read' },
+      // AI commentary permissions
+      { category: 'trait', action: 'view', resource: 'llm_agent' },
+      { category: 'trait', action: 'view', resource: 'spectator' },
     ],
   },
 ];

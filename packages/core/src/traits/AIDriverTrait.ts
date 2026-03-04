@@ -25,6 +25,12 @@ export type BehaviorState = 'idle' | 'moving' | 'acting' | 'talking' | 'reacting
 export type DecisionMode = 'reactive' | 'goal-driven' | 'learning' | 'hybrid';
 
 /**
+ * P.XR.01: Inference tier for XR agent architecture.
+ * Maps agent processing to hardware: CPU for reactive, NPU for reasoning, cloud for strategic.
+ */
+export type InferenceTier = 'cpu_reactive' | 'npu_reasoning' | 'cloud_strategic';
+
+/**
  * Behavior tree node
  */
 export interface BehaviorNode {
@@ -111,6 +117,12 @@ export interface AIDriverConfig {
 
   /** Infinity Assistant integration */
   agentId?: string;
+
+  /** P.XR.01: Inference tier for XR agent deployment */
+  inferenceTier?: InferenceTier;
+
+  /** P.XR.04: Async NPU loop interval (ms) — decoupled from GPU render */
+  npuLoopIntervalMs?: number;
 }
 
 /**

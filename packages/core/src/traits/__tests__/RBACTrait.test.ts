@@ -36,18 +36,19 @@ describe('RBACTrait', () => {
   it('initializes with built-in roles', () => {
     const state = (node as any).__rbacState;
     expect(state).toBeDefined();
-    expect(state.roles.size).toBe(4);
+    expect(state.roles.size).toBe(5);
     expect(state.roles.has('owner')).toBe(true);
     expect(state.roles.has('admin')).toBe(true);
     expect(state.roles.has('editor')).toBe(true);
     expect(state.roles.has('viewer')).toBe(true);
+    expect(state.roles.has('spectator')).toBe(true);
   });
 
   it('emits rbac_initialized on attach', () => {
     expect(getEventCount(ctx, 'rbac_initialized')).toBe(1);
     const event = getLastEvent(ctx, 'rbac_initialized') as any;
     expect(event.tenantId).toBe('acme-corp-001');
-    expect(event.rolesCount).toBe(4);
+    expect(event.rolesCount).toBe(5);
   });
 
   it('rejects RBAC without tenantId', () => {

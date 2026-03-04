@@ -34,7 +34,7 @@
  *  llm_cancelled     { node, requestId }
  */
 
-export type LLMBackend = 'ollama' | 'lmstudio' | 'llamacpp' | 'openai';
+export type LLMBackend = 'ollama' | 'lmstudio' | 'llamacpp' | 'openai' | 'executorch' | 'bitnet';
 
 export interface LLMMessage {
   role: 'system' | 'user' | 'assistant';
@@ -54,6 +54,26 @@ export interface LocalLLMConfig {
   fallback_api_key: string;
   fallback_model: string;
   timeout_ms: number;
+  /** P.XR.03: Speculative decoding config for cloud-verifier pattern */
+  speculative?: SpeculativeConfig;
+  /** P.XR.07: Maximum KV cache size in MB (for GS budget integration) */
+  max_kv_cache_mb: number;
+}
+
+/**
+ * P.XR.03: Speculative decoding configuration.
+ * On-device model as draft + cloud 70B as verifier.
+ * SLED framework: 2.2x throughput, 3.5x with cost reduction.
+ */
+export interface SpeculativeConfig {
+  /** Cloud endpoint for verifier model */
+  cloudEndpoint: string;
+  /** Verifier model name (e.g., 'llama-3.1-70b') */
+  verifierModel: string;
+  /** Number of draft tokens before verification */
+  batchSize: number;
+  /** Maximum acceptable rejection rate (0-1) */
+  maxRejectionRate: number;
 }
 
 export interface LocalLLMState {
@@ -65,6 +85,10 @@ export interface LocalLLMState {
   usingFallback: boolean;
   totalRequests: number;
   totalTokens: number;
+  /** P.XR.07: Current KV cache memory usage in MB */
+  kvCacheSizeMB: number;
+  /** P.XR.03: Whether speculative decoding is active */
+  speculativeActive: boolean;
 }
 
 const DEFAULT_CONFIG: LocalLLMConfig = {

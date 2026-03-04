@@ -10,25 +10,16 @@
  *   - **contains**: One entity's bounding volume encloses another
  *   - **reachable**: An unobstructed path exists between entities
  *
- * Each sample includes positions, orientations, distances, bounding volumes,
- * and a natural-language description suitable for VLM training.
+ * Zone-level relationships (P.PROCGEN.01):
+ *   - **zone_adjacent**: Two zones share a boundary
+ *   - **zone_contains**: A zone contains a set of objects
+ *   - **biome_transition**: Two zones have a biome transition boundary
  *
- * Output format: JSONL (one JSON object per line), compatible with
- * standard fine-tuning pipelines (OpenAI, Hugging Face, Axolotl, etc.).
- *
- * TODO(P.PROCGEN.03): Self-bootstrapping LLM training pipeline.
- *   This generator should feed INTO the SemanticExpander compiler pass.
- *   Flow: SpatialDataGenerator → JSONL → fine-tune VLM → SemanticExpander uses VLM
- *   → generates compositions → SpatialDataGenerator labels them → loop.
- *   See: ZoneWorldConstraints.ts for zone/world-level constraint validation.
- *
- * TODO(P.PROCGEN.01): Add zone-aware spatial relationships.
- *   Current relationships (adjacent, contains, reachable) are object-level.
- *   Need zone-level: "zone_adjacent", "zone_contains", "biome_transition".
- *   Use ZoneMetadata from ZoneWorldConstraints.ts for context.
+ * P.PROCGEN.03: Self-bootstrapping LLM training pipeline.
+ *   Flow: SpatialDataGenerator → JSONL → fine-tune VLM → SemanticExpander.
  *
  * @module spatial/SpatialDataGenerator
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import type {
@@ -116,9 +107,34 @@ export interface SpatialComposition {
 // =============================================================================
 
 /**
- * The three core spatial relationship types this generator labels.
+ * The spatial relationship types this generator labels.
+ * P.PROCGEN.01: Expanded with zone-level relationship types.
  */
-export type SpatialRelationshipType = 'adjacent' | 'contains' | 'reachable';
+export type SpatialRelationshipType =
+  | 'adjacent'
+  | 'contains'
+  | 'reachable'
+  | 'zone_adjacent'
+  | 'zone_contains'
+  | 'biome_transition';
+
+/**
+ * P.PROCGEN.01: Zone metadata for zone-level spatial relationships.
+ */
+export interface ZoneMetadata {
+  /** Zone identifier */
+  zoneId: string;
+  /** Zone biome type (e.g., 'forest', 'desert', 'urban') */
+  biome: string;
+  /** Zone bounding box in world space */
+  bounds: BoundingBox;
+  /** Objects contained in this zone */
+  objectIds: string[];
+  /** Adjacent zone IDs */
+  adjacentZones: string[];
+  /** Level/floor number (for multi-level worlds) */
+  level?: number;
+}
 
 /**
  * Directional qualifier for spatial relationships.

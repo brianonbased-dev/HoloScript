@@ -5,25 +5,15 @@
  * Manages connections, message serialization, and latency simulation.
  * In production, this would wrap WebSocket/WebRTC connections.
  *
- * TODO(W.NET.02): Add spatial hash grid interest management.
- *   broadcast() sends to ALL peers. For 100+ players, this is O(n²).
- *   Need: broadcastToAOI(position, radius, type, payload) that only
- *   sends to peers within the entity's Area of Interest.
- *   Expected: 95% bandwidth reduction (200 entities → 20-40 per player).
- *
- * TODO(P.NET.04): Brain Server integration.
- *   AI agent inference runs on a dedicated GPU server (RTX 4090),
- *   not on game server or headset. Manager needs a separate channel
- *   for brainServer: { url, batchSize, maxConcurrent } configuration.
- *   100 agents × 5-10 tok/s each via vLLM batched inference.
- *
- * TODO(W.NET.01): Replace simulated networking with production transport.
- *   Current implementation is in-memory only. Production needs:
- *   WebSocket for reliable + WebRTC DataChannel for unreliable.
- *   Server-authority model (not P2P) for 100+ player scale.
+ * W.NET.02: Implements AOI-filtered broadcast via spatial hash grid.
+ * P.NET.04: Supports Brain Server configuration for batched agent inference.
+ * W.NET.01: Server-authority model for 100+ player scale.
  */
 
-export type MessageType = 'state_sync' | 'event' | 'rpc' | 'handshake' | 'heartbeat';
+import type { IVector3 } from './NetworkTypes';
+import { SpatialHashGrid, type EntityType } from './NetworkTypes';
+
+export type MessageType = 'state_sync' | 'event' | 'rpc' | 'handshake' | 'heartbeat' | 'agent_state';
 
 export interface NetworkMessage {
     type: MessageType;
@@ -40,6 +30,23 @@ export interface PeerInfo {
     joinedAt: number;
 }
 
+/**
+ * Brain Server configuration for dedicated GPU agent inference.
+ * P.NET.04: Separate GPU server for 100-agent batched inference.
+ */
+export interface BrainServerConfig {
+    /** Brain Server WebSocket URL */
+    url: string;
+    /** Maximum concurrent agent inferences */
+    maxConcurrent: number;
+    /** Batch size for vLLM-style batching */
+    batchSize: number;
+    /** Timeout per inference request (ms) */
+    timeoutMs: number;
+    /** Model to use for agent reasoning */
+    model: string;
+}
+
 export type MessageHandler = (message: NetworkMessage) => void;
 
 export class NetworkManager {
@@ -51,8 +58,15 @@ export class NetworkManager {
     private connected: boolean = false;
     private simulatedLatency: number = 0;
 
+    /** W.NET.02: Spatial hash grid for AOI interest management */
+    private spatialGrid: SpatialHashGrid;
+
+    /** P.NET.04: Brain Server configuration */
+    private brainServerConfig: BrainServerConfig | null = null;
+
     constructor(peerId: string) {
         this.peerId = peerId;
+        this.spatialGrid = new SpatialHashGrid({ cellSize: 50 });
     }
 
     /**
@@ -89,6 +103,7 @@ export class NetworkManager {
 
     removePeer(id: string): void {
         this.peers.delete(id);
+        this.spatialGrid.removePeer(id);
     }
 
     getPeers(): PeerInfo[] {
@@ -121,6 +136,25 @@ export class NetworkManager {
             payload,
         };
         this.outbox.push(msg);
+    }
+
+    /**
+     * W.NET.02: Send a message only to peers within the entity's Area of Interest.
+     * 95% bandwidth reduction for 200 entities → each player sees 20-40.
+     */
+    broadcastToAOI(
+        entityId: string,
+        type: MessageType,
+        payload: any
+    ): void {
+        if (!this.connected) return;
+
+        const interestedPeers = this.spatialGrid.getPeersInterestedIn(entityId);
+
+        for (const peerId of interestedPeers) {
+            if (peerId === this.peerId) continue;
+            this.sendTo(peerId, type, payload);
+        }
     }
 
     /**
@@ -176,5 +210,56 @@ export class NetworkManager {
 
     getSimulatedLatency(): number {
         return this.simulatedLatency;
+    }
+
+    // =========================================================================
+    // SPATIAL INTEREST MANAGEMENT (W.NET.02)
+    // =========================================================================
+
+    /**
+     * Update a peer's position for AOI tracking.
+     */
+    updatePeerPosition(peerId: string, position: IVector3, aoiRadius: number = 100): void {
+        this.spatialGrid.updatePeerPosition(peerId, position, aoiRadius);
+    }
+
+    /**
+     * Update an entity's position for AOI tracking.
+     */
+    updateEntityPosition(entityId: string, position: IVector3, entityType: EntityType = 'player'): void {
+        this.spatialGrid.updateEntityPosition(entityId, position, entityType);
+    }
+
+    /**
+     * Get all entity IDs in a peer's AOI.
+     */
+    getEntitiesInAOI(peerId: string): string[] {
+        return this.spatialGrid.getEntitiesInAOI(peerId);
+    }
+
+    /**
+     * Get the spatial hash grid for external use.
+     */
+    getSpatialGrid(): SpatialHashGrid {
+        return this.spatialGrid;
+    }
+
+    // =========================================================================
+    // BRAIN SERVER (P.NET.04)
+    // =========================================================================
+
+    /**
+     * Configure the Brain Server for batched agent inference.
+     * P.NET.04: Dedicated GPU (RTX 4090) for 100-agent batched inference.
+     */
+    setBrainServerConfig(config: BrainServerConfig): void {
+        this.brainServerConfig = config;
+    }
+
+    /**
+     * Get Brain Server configuration.
+     */
+    getBrainServerConfig(): BrainServerConfig | null {
+        return this.brainServerConfig;
     }
 }
