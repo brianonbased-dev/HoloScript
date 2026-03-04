@@ -273,3 +273,23 @@ export {
   buildANSPath,
   getANSSummary,
 } from './ANSNamespace';
+
+// Hybrid Crypto Provider (Post-Quantum Phase 1 — abstraction layer)
+export {
+  // Types
+  type SignatureAlgorithm,
+  type CryptoKeyPair,
+  type HybridKeyPair,
+  type CompositeSignature,
+  type CompositeVerificationResult,
+
+  // Interfaces
+  type ICryptoProvider,
+
+  // Classes
+  Ed25519CryptoProvider,
+  HybridCryptoProvider,
+
+  // Factory
+  createCryptoProvider,
+} from './HybridCryptoProvider';
