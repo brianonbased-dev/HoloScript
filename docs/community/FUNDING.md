@@ -1,6 +1,6 @@
 # Funding HoloScript
 
-HoloScript is a **commons-based meta-framework** for spatial computing, governed by the HoloScript Foundation. We need your support to sustain development, maintain 18+ compiler backends, and build the future of spatial computing infrastructure.
+HoloScript is a **commons-based meta-framework** for spatial computing, governed by the HoloScript Foundation. We need your support to sustain development, maintain 25+ compiler backends, and build the future of spatial computing infrastructure.
 
 ---
 

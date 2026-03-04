@@ -1,6 +1,6 @@
 # Multi-Platform Export
 
-Compile a single HoloScript scene to 18+ platforms — game engines, web, robotics, IoT, and spatial computing.
+Compile a single HoloScript scene to 25+ platforms — game engines, web, robotics, IoT, and spatial computing.
 
 ## The Same Source, Everywhere
 

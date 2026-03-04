@@ -1,8 +1,8 @@
-# HoloScript v4.2.0
+# HoloScript v5.0.0
 
 ## The Commons-Based Meta-Framework for Spatial Computing
 
-> **Three languages. One platform. 18 compile targets. 8 industry domains.** Write spatial experiences with a complete stack: scene graph + core language + TypeScript for XR.
+> **Three languages. One platform. 25+ compile targets. 8 industry domains.** Write spatial experiences with a complete stack: scene graph + core language + TypeScript for XR.
 
 HoloScript is a complete spatial computing stack: **three specialized file formats + runtime execution + multi-target compiler**. We built [Hololand](https://github.com/brianonbased-dev/Hololand) (our VR social platform) to prove it works—now you can build your own.
 
@@ -10,7 +10,7 @@ HoloScript is a complete spatial computing stack: **three specialized file forma
 
 Perfect for VR/AR platforms, corporate training, robotics, games, digital twins, and more.
 
-![version-badge](https://img.shields.io/badge/version-v4.2.0-green?style=for-the-badge)
+![version-badge](https://img.shields.io/badge/version-v5.0.0-green?style=for-the-badge)
 ![Quickstart Badge](https://img.shields.io/badge/Quickstart-5_min-blue?style=for-the-badge)
 ![Traits Badge](https://img.shields.io/badge/traits-1800+-orange?style=for-the-badge)
 [![codecov](https://codecov.io/gh/brianonbased-dev/HoloScript/branch/main/graph/badge.svg?style=for-the-badge)](https://codecov.io/gh/brianonbased-dev/HoloScript)
@@ -223,10 +223,10 @@ my-vr-game/
 
 | vs | HoloScript Advantage |
 |----|---------------------|
-| **C# (Unity)** | Built-in spatial primitives, 18+ targets vs 1, agent SDK with spatial awareness |
+| **C# (Unity)** | Built-in spatial primitives, 25+ targets vs 1, agent SDK with spatial awareness |
 | **Blueprints (Unreal)** | Text-based (version control friendly), three formats for different domains, cross-platform |
 | **GDScript (Godot)** | Strong typing in `.hsplus`, module system, spatial query API, LSP tooling |
-| **Swift (visionOS)** | Not locked to Apple, 18+ targets, agent choreography, IoT/robotics export |
+| **Swift (visionOS)** | Not locked to Apple, 25+ targets, agent choreography, IoT/robotics export |
 
 ---
 
@@ -240,7 +240,7 @@ HoloScript provides **three specialized languages** that work together:
 - **`.hs` (Core Language)**: Templates, agent behaviors, spatial awareness, IoT streams, gates, utility functions
 - **`.hsplus` (TypeScript for XR)**: Full programming language — modules, types, physics, joints, state machines, async/await
 
-**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 18 platforms.
+**Plus**: Runtime execution (ThreeJSRenderer, 120K particles, PBR materials, post-processing, weather systems) and multi-target compilation to 25+ platforms.
 
 **Workflow**: Prototype in HoloScript runtime → compile to production platform
 
@@ -273,7 +273,7 @@ Write **one** HoloScript file. Compile to:
 
 ---
 
-## 🏗️ 18 Compile Targets
+## 🏗️ 25+ Compile Targets
 
 | Platform         | Target                                        | Support   |
 | ---------------- | --------------------------------------------- | --------- |
@@ -303,7 +303,7 @@ Write **one** HoloScript file. Compile to:
 
 - 📘 **[Traits Reference](./docs/TRAITS_REFERENCE.md)** - Explore the massive library of 1,800+ VR traits.
 - 📙 **[Academy](./docs/academy/README.md)** - Master HoloScript through interactive lessons.
-- 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 18+ compile targets.
+- 🎮 **[Game Engine Versioning](./docs/GAME_ENGINE_VERSIONING.md)** - Unity/Godot/Unreal version compatibility matrix for all 25+ compile targets.
 - 📕 **[Troubleshooting](./docs/guides/troubleshooting.md)** - Solutions to common issues.
 - 🔘 **[Architecture](./docs/architecture/README.md)** - Deep dive into the engine and compiler.
 
@@ -352,9 +352,9 @@ narrative "Tutorial" {
 
 ---
 
-## 🧠 New in v4.2: Simulation Layer & Full Domain Coverage
+## 🧠 Latest: v5.0 Autonomous Ecosystems + Simulation Layer
 
-HoloScript v4.2.0 ships the complete **Perception & Simulation Layer** and **multi-domain expansion**:
+HoloScript v5.0.0 ships **Autonomous Agent Networks**, **Economic Primitives**, and the complete **Simulation Layer**:
 
 ### v4.2 — Simulation Layer
 - **PBR Materials**: `pbr_material`, `glass_material`, `toon_material`, `subsurface_material` with texture maps and shader connections

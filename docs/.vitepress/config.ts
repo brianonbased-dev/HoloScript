@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   title: 'HoloScript',
   description:
-    'Open-source programming language compiling to 18+ targets — Unity, Unreal, Godot, visionOS, robotics, IoT, and more',
+    'Open-source programming language compiling to 25+ targets — Unity, Unreal, Godot, visionOS, robotics, IoT, and more',
 
   // Ignore dead links in excluded dev notes and cross-repo references
   ignoreDeadLinks: true,
@@ -64,7 +64,7 @@ export default defineConfig({
       {
         property: 'og:description',
         content:
-          'Open-source programming language for VR, AR, robotics, IoT, and digital twins. 1,525+ semantic trait annotations. 25+ compilation targets. One source, every platform.',
+          'Open-source programming language for VR, AR, robotics, IoT, and digital twins. 1,800+ semantic trait annotations. 25+ compilation targets. One source, every platform.',
       },
     ],
     ['meta', { property: 'og:image', content: 'https://holoscript.net/og-image.png' }],
@@ -76,7 +76,7 @@ export default defineConfig({
       {
         name: 'twitter:description',
         content:
-          'Open-source programming language for VR, AR, robotics, IoT, and digital twins. 1,525+ semantic traits. 25+ compilation targets.',
+          'Open-source programming language for VR, AR, robotics, IoT, and digital twins. 1,800+ semantic traits. 25+ compilation targets.',
       },
     ],
     ['meta', { name: 'twitter:image', content: 'https://holoscript.net/og-image.png' }],
@@ -108,8 +108,8 @@ export default defineConfig({
       {
         text: 'Reference',
         items: [
-          { text: 'Traits (1,525+)', link: '/traits/' },
-          { text: 'Compilers (18 targets)', link: '/compilers/' },
+          { text: 'Traits (1,800+)', link: '/traits/' },
+          { text: 'Compilers (25+ targets)', link: '/compilers/' },
           { text: 'API Reference', link: '/api/' },
           { text: 'Language Spec', link: '/language/holoscript-language-spec' },
         ],
@@ -279,7 +279,7 @@ export default defineConfig({
         {
           text: 'Overview',
           items: [
-            { text: 'All 18+ Targets', link: '/compilers/' },
+            { text: 'All 25+ Targets', link: '/compilers/' },
           ],
         },
         {

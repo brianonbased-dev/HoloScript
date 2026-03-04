@@ -15,7 +15,7 @@
 
 > [SCREEN: HoloScript logo + tagline "Write once. Run everywhere."]
 
-"Welcome to HoloScript — the AI-native spatial computing language that compiles your code to 18 platforms, from WebXR to Unity to robotics simulations.
+"Welcome to HoloScript — the AI-native spatial computing language that compiles your code to 25+ platforms, from WebXR to Unity to robotics simulations.
 
 In the next 5 minutes, you'll install HoloScript, write your first VR scene, and compile it to a live WebXR experience. Let's go."
 
@@ -162,7 +162,7 @@ holoscript compile hello.holo --target gltf    # 3D interchange
 holoscript compile hello.holo --target godot   # Godot engine
 ```
 
-"One source, 18 targets. That's HoloScript."
+"One source, 25+ targets. That's HoloScript."
 
 ---
 

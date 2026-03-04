@@ -1,6 +1,6 @@
 # @holoscript/mcp-server
 
-Model Context Protocol (MCP) server for HoloScript AI assistance. **43+ tools** across 5 categories, including **18+ compilation targets**. Free and open-source.
+Model Context Protocol (MCP) server for HoloScript AI assistance. **43+ tools** across 5 categories, including **25+ compilation targets**. Free and open-source.
 
 ## Installation
 
@@ -37,10 +37,10 @@ Add to your MCP configuration (Claude Code, Cursor, Copilot, etc.):
 | `compile_to_webgpu`           | Compile to WebGPU with WGSL shaders               |
 | `compile_to_r3f`              | Compile to React Three Fiber JSX                  |
 | `get_compilation_status`      | Track compilation job progress                    |
-| `list_export_targets`         | List all 18+ export targets with categories       |
+| `list_export_targets`         | List all 25+ export targets with categories       |
 | `get_circuit_breaker_status`  | Check circuit breaker health per target           |
 
-**Supported Export Targets (18+):**
+**Supported Export Targets (25+):**
 
 - **Game Engines**: Unity, Unreal, Godot
 - **VR Platforms**: VRChat, OpenXR
