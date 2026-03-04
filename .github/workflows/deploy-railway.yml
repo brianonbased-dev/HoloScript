@@ -85,7 +85,6 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
           railway up --service studio --detach
 
       - name: Wait for deployment
@@ -122,7 +121,6 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
           railway up --service marketplace-web --detach
 
       - name: Wait for deployment
@@ -153,7 +151,6 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
           railway up --service marketplace-api --detach
 
       - name: Run database migrations
@@ -189,7 +186,6 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
           railway up --service render-service --detach
 
       - name: Wait for deployment
@@ -215,7 +211,6 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
           railway up --service llm-service --detach
 
       - name: Wait for deployment
