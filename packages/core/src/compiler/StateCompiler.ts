@@ -15,6 +15,8 @@
  */
 
 import type { HSPlusNode, HSPlusAST } from '../types/HoloScriptPlus';
+import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
+import { WorkflowStep } from './identity/AgentIdentity';
 
 // =============================================================================
 // TYPES
@@ -60,12 +62,39 @@ export class StateCompiler {
    * Walk an entire HSPlusAST and extract all per-node stateBlocks.
    *
    * @param ast - The parse result returned by HoloScriptPlusParser.
+   * @param agentToken - JWT token proving agent identity (optional for backwards compatibility).
    * @returns A StateShapeMap keyed by node.name (or a generated id).
+   * @throws UnauthorizedStateCompilerAccessError if token is provided but invalid.
    */
-  compile(ast: HSPlusAST): StateShapeMap {
+  compile(ast: HSPlusAST, agentToken?: string): StateShapeMap {
+    this.validateAccess(agentToken);
     const shapes: StateShapeMap = new Map();
     this.walkNode(ast.root, shapes);
     return shapes;
+  }
+
+  // ---------------------------------------------------------------------------
+  // RBAC enforcement
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Validate agent has permission to compile state blocks.
+   * Skips validation when no token is provided (backwards compatibility / testing).
+   */
+  private validateAccess(agentToken?: string): void {
+    if (!agentToken) return;
+
+    const rbac = getRBAC();
+    const decision = rbac.checkAccess({
+      token: agentToken,
+      resourceType: ResourceType.AST,
+      operation: 'read',
+      expectedWorkflowStep: WorkflowStep.GENERATE_ASSEMBLY,
+    });
+
+    if (!decision.allowed) {
+      throw new UnauthorizedStateCompilerAccessError(decision, 'StateCompiler');
+    }
   }
 
   /**
@@ -129,5 +158,26 @@ export class StateCompiler {
     const loc = node.loc;
     if (loc) return `${node.type}@${loc.start.line}:${loc.start.column}`;
     return `${node.type}_${Math.random().toString(36).slice(2, 7)}`;
+  }
+}
+
+// =============================================================================
+// ERRORS
+// =============================================================================
+
+/**
+ * Error thrown when agent lacks required permissions for state compilation.
+ */
+export class UnauthorizedStateCompilerAccessError extends Error {
+  constructor(
+    public readonly decision: AccessDecision,
+    public readonly compilerName: string,
+  ) {
+    super(
+      `[${compilerName}] Unauthorized access: ${decision.reason || 'Access denied'}\n` +
+      `Agent Role: ${decision.agentRole || 'unknown'}\n` +
+      `Required Permission: ${decision.requiredPermission || 'unknown'}`,
+    );
+    this.name = 'UnauthorizedStateCompilerAccessError';
   }
 }

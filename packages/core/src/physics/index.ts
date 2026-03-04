@@ -131,3 +131,21 @@ export {
   type ISpatialHashGrid,
   SOFT_BODY_PRESETS,
 } from './PhysicsTypes';
+
+// PID Controller (generic cascade controller for robotics/VR)
+export {
+  PIDController,
+  VelocityRingBuffer,
+  ScalarArithmetic,
+  Vector3Arithmetic,
+  defaultPIDConfig,
+  createScalarPIDController,
+  createVector3PIDController,
+  createPIDControllerTrait,
+  type PIDArithmetic,
+  type PIDGains,
+  type LoopTimingConfig,
+  type PIDControllerConfig,
+  type PIDControllerState,
+  type PIDControllerTraitConfig,
+} from './PIDController';

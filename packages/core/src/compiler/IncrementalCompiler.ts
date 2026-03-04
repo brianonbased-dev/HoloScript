@@ -33,6 +33,8 @@ import {
   hashASTSubtree,
   type SemanticCacheStats,
 } from './SemanticCache';
+import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
+import { WorkflowStep } from './identity/AgentIdentity';
 
 /**
  * Types of changes detected during AST diff
@@ -129,6 +131,13 @@ export interface IncrementalCompileOptions {
    * @default 604800 (7 days)
    */
   cacheTTL?: number;
+  // ── Agent Identity ────────────────────────────────────────────────────────
+  /**
+   * JWT token proving agent identity.
+   * When provided, RBAC validation is enforced before compilation.
+   * Omit for backwards compatibility / testing without authentication.
+   */
+  agentToken?: string;
 }
 
 /**
@@ -760,6 +769,30 @@ export class IncrementalCompiler {
     return resolution;
   }
 
+  // ===========================================================================
+  // RBAC ENFORCEMENT
+  // ===========================================================================
+
+  /**
+   * Validate agent has permission for incremental compilation.
+   * Skips validation when no token is provided (backwards compatibility / testing).
+   */
+  private validateAccess(agentToken?: string): void {
+    if (!agentToken) return;
+
+    const rbac = getRBAC();
+    const decision = rbac.checkAccess({
+      token: agentToken,
+      resourceType: ResourceType.AST,
+      operation: 'read',
+      expectedWorkflowStep: WorkflowStep.GENERATE_ASSEMBLY,
+    });
+
+    if (!decision.allowed) {
+      throw new UnauthorizedIncrementalCompilerAccessError(decision, 'IncrementalCompiler');
+    }
+  }
+
   /**
    * Perform incremental compilation
    */
@@ -768,7 +801,11 @@ export class IncrementalCompiler {
     compileObject: (obj: HoloObjectDecl) => string,
     options: IncrementalCompileOptions = {}
   ): Promise<IncrementalCompileResult> {
-    const { preserveState = true, forceRecompile = [], skipUnchanged = true } = options;
+    const { preserveState = true, forceRecompile = [], skipUnchanged = true, agentToken } = options;
+
+    // ─── Agent Identity Verification ───────────────────────────────────────
+    this.validateAccess(agentToken);
+    // ───────────────────────────────────────────────────────────────────────
 
     // Diff with previous AST
     const diffResult = this.diff(this.previousAST, newAST);
@@ -1060,4 +1097,25 @@ export function deserializeCache(json: string): IncrementalCompiler {
   }
 
   return compiler;
+}
+
+// =============================================================================
+// ERRORS
+// =============================================================================
+
+/**
+ * Error thrown when agent lacks required permissions for incremental compilation.
+ */
+export class UnauthorizedIncrementalCompilerAccessError extends Error {
+  constructor(
+    public readonly decision: AccessDecision,
+    public readonly compilerName: string,
+  ) {
+    super(
+      `[${compilerName}] Unauthorized access: ${decision.reason || 'Access denied'}\n` +
+      `Agent Role: ${decision.agentRole || 'unknown'}\n` +
+      `Required Permission: ${decision.requiredPermission || 'unknown'}`,
+    );
+    this.name = 'UnauthorizedIncrementalCompilerAccessError';
+  }
 }

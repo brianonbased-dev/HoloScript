@@ -17,6 +17,9 @@ import {
   audioSourceToR3F,
   weatherToR3F,
 } from './DomainBlockCompilerMixin';
+import { getRBAC, ResourceType } from './identity/AgentRBAC';
+import { UnauthorizedCompilerAccessError } from './CompilerBase';
+import { WorkflowStep } from './identity/AgentIdentity';
 
 export interface R3FNode {
   type: string;
@@ -1794,6 +1797,64 @@ export const UI_COMPONENT_PRESETS: Record<
  * (from HoloCompositionParser/.holo files).
  */
 export class R3FCompiler {
+  // ─── RBAC Enforcement ─────────────────────────────────────────────────
+
+  private readonly compilerName = 'R3FCompiler';
+  private rbac = getRBAC();
+
+  /**
+   * Validate agent permissions before compilation.
+   * Skips validation when no token is provided (backwards compatibility).
+   *
+   * Checks:
+   * 1. AST read access (can the agent read AST?)
+   * 2. Code generation access (can the agent generate code?)
+   * 3. Output path scope (if outputPath provided)
+   *
+   * @param agentToken - Agent JWT token (optional for backwards compat)
+   * @param outputPath - Optional output file path for scope validation
+   * @throws UnauthorizedCompilerAccessError if token is provided but invalid/unauthorized
+   */
+  private validateCompilerAccess(agentToken?: string, outputPath?: string): void {
+    if (!agentToken) return; // Skip validation when no token provided
+
+    // Validate AST read access
+    const astDecision = this.rbac.checkAccess({
+      token: agentToken,
+      resourceType: ResourceType.AST,
+      operation: 'read',
+      expectedWorkflowStep: WorkflowStep.GENERATE_ASSEMBLY,
+    });
+    if (!astDecision.allowed) {
+      throw new UnauthorizedCompilerAccessError(astDecision, 'AST access', this.compilerName);
+    }
+
+    // Validate code generation access
+    const codeDecision = this.rbac.checkAccess({
+      token: agentToken,
+      resourceType: ResourceType.CODE,
+      operation: 'write',
+      expectedWorkflowStep: WorkflowStep.GENERATE_ASSEMBLY,
+    });
+    if (!codeDecision.allowed) {
+      throw new UnauthorizedCompilerAccessError(codeDecision, 'code generation', this.compilerName);
+    }
+
+    // Validate output path scope (if provided)
+    if (outputPath) {
+      const outputDecision = this.rbac.checkAccess({
+        token: agentToken,
+        resourceType: ResourceType.OUTPUT,
+        operation: 'write',
+        resourcePath: outputPath,
+        expectedWorkflowStep: WorkflowStep.SERIALIZE,
+      });
+      if (!outputDecision.allowed) {
+        throw new UnauthorizedCompilerAccessError(outputDecision, `output write to '${outputPath}'`, this.compilerName);
+      }
+    }
+  }
+
   // ─── Spread Expansion Utility ─────────────────────────────────────────
 
   /**
@@ -1977,7 +2038,9 @@ export class R3FCompiler {
 
   // ─── HSPlusAST Compilation ────────────────────────────────────────────
 
-  public compile(ast: HSPlusAST): R3FNode {
+  public compile(ast: HSPlusAST, agentToken?: string, outputPath?: string): R3FNode {
+    this.validateCompilerAccess(agentToken, outputPath);
+
     const root = this.compileNode(ast.root);
 
     if (this.hasPostProcessing(root)) {
@@ -2071,7 +2134,9 @@ export class R3FCompiler {
 
   // ─── HoloComposition Compilation (.holo files) ────────────────────────
 
-  public compileComposition(composition: any): R3FNode {
+  public compileComposition(composition: any, agentToken?: string, outputPath?: string): R3FNode {
+    this.validateCompilerAccess(agentToken, outputPath);
+
     const root: R3FNode = {
       type: 'group',
       id: composition.name,

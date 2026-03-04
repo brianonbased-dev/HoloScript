@@ -189,3 +189,87 @@ export {
   calculateSizeReduction,
   isPassportBinary,
 } from './AgentPassportSerializer';
+
+// UCAN Capability Token interfaces and constants
+export {
+  // Interfaces
+  type Capability,
+  type CapabilitySemantics,
+  type CapabilityTokenHeader,
+  type CapabilityTokenPayload,
+  type CapabilityToken,
+  type DelegationLink,
+  type AttenuationChain,
+  type CapabilityVerificationResult,
+  type RootTokenOptions,
+  type DelegationOptions,
+
+  // Constants
+  HOLOSCRIPT_RESOURCE_SCHEME,
+  HOLOSCRIPT_RESOURCE_ALL,
+  CapabilityActions,
+  PERMISSION_TO_ACTION,
+  ACTION_TO_PERMISSION,
+
+  // Type
+  type CapabilityAction,
+} from './CapabilityToken';
+
+// UCAN Capability Token Issuer
+export {
+  type CapabilityTokenIssuerConfig,
+  HoloScriptCapabilitySemantics,
+  CapabilityTokenIssuer,
+  getCapabilityTokenIssuer,
+  resetCapabilityTokenIssuer,
+} from './CapabilityTokenIssuer';
+
+// Capability-Aware RBAC Adapter (dual-mode: JWT RBAC + UCAN)
+export {
+  type CapabilityAccessDecision,
+  type CapabilityAccessRequest,
+  type CapabilityRBACConfig,
+  CapabilityRBAC,
+  getCapabilityRBAC,
+  resetCapabilityRBAC,
+} from './CapabilityRBAC';
+
+// Agent Namespace Schema (ANS) — capability namespace constants for all compilers
+export {
+  // Domain constants
+  ANSDomain,
+  type ANSDomainValue,
+
+  // Risk tier constants
+  RiskTier,
+  type RiskTierValue,
+  DOMAIN_RISK_TIERS,
+
+  // Compiler name union type
+  type CompilerName,
+
+  // ANS capability paths
+  ANS_PREFIX,
+  ANSCapabilityPath,
+  type ANSCapabilityPathValue,
+
+  // Mapping tables
+  COMPILER_DOMAIN_MAP,
+  COMPILER_ANS_MAP,
+  ALL_COMPILER_NAMES,
+  ALL_DOMAINS,
+
+  // Helper functions
+  getNamespaceForCompiler,
+  getDomainForCompiler,
+  getRiskTierForDomain,
+  getRiskTierForCompiler,
+  getAllCompilersInDomain,
+  getAllCompilersWithRiskTier,
+  getAllDomainsWithRiskTier,
+  isValidCompilerName,
+  isValidDomain,
+  parseANSPath,
+  buildANSPath,
+  getANSSummary,
+} from './ANSNamespace';

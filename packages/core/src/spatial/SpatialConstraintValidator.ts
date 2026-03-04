@@ -12,6 +12,9 @@
  *   HSP033 — spatial constraint target not found
  *   HSP034 — spatial constraint circular reference
  *   HSP035 — spatial constraint incompatible configuration
+ *   HSP036 — spatial_temporal_adjacent violation
+ *   HSP037 — spatial_temporal_reachable violation
+ *   HSP038 — spatial_trajectory violation
  *
  * @module spatial/SpatialConstraintValidator
  */
@@ -43,6 +46,9 @@ import type {
   SpatialAdjacentConstraint,
   SpatialContainsConstraint,
   SpatialReachableConstraint,
+  SpatialTemporalAdjacentConstraint,
+  SpatialTemporalReachableConstraint,
+  SpatialTrajectoryConstraint,
   SpatialAxis,
 } from './SpatialConstraintTypes';
 
@@ -107,6 +113,15 @@ export class SpatialConstraintValidator {
           case 'spatial_reachable':
             this.validateReachable(decl, constraint);
             break;
+          case 'spatial_temporal_adjacent':
+            this.validateTemporalAdjacent(decl, constraint);
+            break;
+          case 'spatial_temporal_reachable':
+            this.validateTemporalReachable(decl, constraint);
+            break;
+          case 'spatial_trajectory':
+            this.validateTrajectory(decl, constraint);
+            break;
         }
       }
     }
@@ -129,6 +144,9 @@ export class SpatialConstraintValidator {
         adjacentCount: allConstraints.filter((c) => c.kind === 'spatial_adjacent').length,
         containsCount: allConstraints.filter((c) => c.kind === 'spatial_contains').length,
         reachableCount: allConstraints.filter((c) => c.kind === 'spatial_reachable').length,
+        temporalAdjacentCount: allConstraints.filter((c) => c.kind === 'spatial_temporal_adjacent').length,
+        temporalReachableCount: allConstraints.filter((c) => c.kind === 'spatial_temporal_reachable').length,
+        trajectoryCount: allConstraints.filter((c) => c.kind === 'spatial_trajectory').length,
         errorsCount: errors.length,
         warningsCount: warnings.length,
       },
@@ -157,6 +175,15 @@ export class SpatialConstraintValidator {
         break;
       case 'spatial_reachable':
         this.validateReachable(source, constraint);
+        break;
+      case 'spatial_temporal_adjacent':
+        this.validateTemporalAdjacent(source, constraint);
+        break;
+      case 'spatial_temporal_reachable':
+        this.validateTemporalReachable(source, constraint);
+        break;
+      case 'spatial_trajectory':
+        this.validateTrajectory(source, constraint);
         break;
     }
 
@@ -775,6 +802,12 @@ export class SpatialConstraintValidator {
         return constraint.containedId;
       case 'spatial_reachable':
         return constraint.targetId;
+      case 'spatial_temporal_adjacent':
+        return constraint.targetId;
+      case 'spatial_temporal_reachable':
+        return constraint.targetId;
+      case 'spatial_trajectory':
+        return constraint.regionId ?? constraint.sourceId;
     }
   }
 

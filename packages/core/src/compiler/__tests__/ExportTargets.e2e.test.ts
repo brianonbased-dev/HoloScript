@@ -1,12 +1,12 @@
 /**
  * End-to-End Export Target Tests
  *
- * Comprehensive end-to-end tests for all 18 HoloScript export targets.
+ * Comprehensive end-to-end tests for all 19 HoloScript export targets.
  * Each test verifies that a canonical HoloComposition compiles to valid output
  * that contains the required structural elements for its target platform.
  *
  * Covered targets:
- *   XR/VR: Unity, Unreal, Godot, Babylon.js, OpenXR, WebGPU, VRChat, Android
+ *   XR/VR: Unity, Unreal, Godot, Babylon.js, OpenXR, WebGPU, VRChat, Android, Android XR
  *   Robotics: URDF, SDF
  *   3D Interchange: glTF (pipeline), WASM
  *   Web: R3F (React Three Fiber)
@@ -26,6 +26,7 @@ import { OpenXRCompiler } from '../OpenXRCompiler';
 import { WebGPUCompiler } from '../WebGPUCompiler';
 import { VRChatCompiler, type VRChatCompileResult } from '../VRChatCompiler';
 import { AndroidCompiler, type AndroidCompileResult } from '../AndroidCompiler';
+import { AndroidXRCompiler } from '../AndroidXRCompiler';
 import { URDFCompiler } from '../URDFCompiler';
 import { SDFCompiler } from '../SDFCompiler';
 import { WASMCompiler } from '../WASMCompiler';
@@ -525,6 +526,84 @@ describe('E2E Export: Android', () => {
 });
 
 // =============================================================================
+// Android XR Export (Kotlin - Jetpack XR / SceneCore)
+// =============================================================================
+
+describe('E2E Export: Android XR (Kotlin/Jetpack XR)', () => {
+  let compiler: AndroidXRCompiler;
+
+  beforeEach(() => {
+    compiler = new AndroidXRCompiler();
+  });
+
+  it('compiles simple cube to valid Kotlin output', () => {
+    const composition = createSimpleCubeComposition();
+    const output = compiler.compile(composition, 'test-token');
+
+    expect(output).toBeTruthy();
+    expect(typeof output).toBe('string');
+    expect(output.length).toBeGreaterThan(100);
+  });
+
+  it('includes Kotlin package declaration', () => {
+    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(output).toMatch(/^\/\/ Auto-generated.*\npackage|package\s+com\./m);
+  });
+
+  it('includes AndroidXRCompiler source attribution comment', () => {
+    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(output).toContain('HoloScript AndroidXRCompiler');
+    expect(output).toContain('SimpleCubeScene');
+  });
+
+  it('includes Jetpack XR and SceneCore imports', () => {
+    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(output).toMatch(/import androidx\.xr\./);
+    expect(output).toContain('androidx.xr.scenecore.Entity');
+  });
+
+  it('includes ComponentActivity class declaration', () => {
+    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(output).toContain('ComponentActivity');
+    expect(output).toContain('onCreate');
+  });
+
+  it('includes Compose Subspace block for spatial content', () => {
+    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(output).toContain('Subspace {');
+  });
+
+  it('emits XR session initialization', () => {
+    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(output).toContain('XRSession.create');
+  });
+
+  it('compiles empty composition without errors', () => {
+    const output = compiler.compile(createEmptyComposition(), 'test-token');
+    expect(output).toBeTruthy();
+    expect(output).toContain('ComponentActivity');
+  });
+
+  it('compiles physics demo with multiple objects', () => {
+    const output = compiler.compile(createPhysicsDemoComposition(), 'test-token');
+    expect(output).toBeTruthy();
+    expect(output.length).toBeGreaterThan(100);
+  });
+
+  it('respects custom packageName option', () => {
+    const customCompiler = new AndroidXRCompiler({ packageName: 'com.myapp.xr' });
+    const output = customCompiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(output).toContain('package com.myapp.xr');
+  });
+
+  it('respects custom activityName option', () => {
+    const customCompiler = new AndroidXRCompiler({ activityName: 'MyXRActivity' });
+    const output = customCompiler.compile(createSimpleCubeComposition(), 'test-token');
+    expect(output).toContain('class MyXRActivity');
+  });
+});
+
+// =============================================================================
 // URDF Export (XML - ROS/Gazebo)
 // =============================================================================
 
@@ -812,6 +891,7 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
       { name: 'PlayCanvas', compile: (c) => new PlayCanvasCompiler().compile(c, 'test-token') },
       { name: 'DTDL', compile: (c) => new DTDLCompiler().compile(c, 'test-token') },
       { name: 'VisionOS', compile: (c) => new VisionOSCompiler().compile(c, 'test-token') },
+      { name: 'AndroidXR', compile: (c) => new AndroidXRCompiler().compile(c, 'test-token') },
     ];
 
     for (const { name, compile } of stringCompilers) {
@@ -847,6 +927,7 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
       { name: 'Godot', compile: () => new GodotCompiler().compile(composition, 'test-token') },
       { name: 'URDF', compile: () => new URDFCompiler().compile(composition, 'test-token') },
       { name: 'SDF', compile: () => new SDFCompiler().compile(composition, 'test-token') },
+      { name: 'AndroidXR', compile: () => new AndroidXRCompiler().compile(composition, 'test-token') },
     ];
 
     for (const { name, compile } of namePreservingCompilers) {
@@ -858,7 +939,7 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
     }
   });
 
-  it('all 15 compilers handle empty composition without throwing', () => {
+  it('all 16 compilers handle empty composition without throwing', () => {
     const empty = createEmptyComposition();
 
     // String-output compilers
@@ -872,6 +953,7 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
     expect(() => new PlayCanvasCompiler().compile(empty, 'test-token')).not.toThrow();
     expect(() => new DTDLCompiler().compile(empty, 'test-token')).not.toThrow();
     expect(() => new VisionOSCompiler().compile(empty, 'test-token')).not.toThrow();
+    expect(() => new AndroidXRCompiler().compile(empty, 'test-token')).not.toThrow();
 
     // Object-output compilers
     expect(() => new UnrealCompiler().compile(empty, 'test-token')).not.toThrow();

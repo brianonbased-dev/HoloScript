@@ -33,6 +33,21 @@ import type {
   HoloValue,
   HoloEffects,
 } from '../parser/HoloCompositionTypes';
+import {
+  compileDomainBlocks,
+  compileMaterialBlock,
+  compilePhysicsBlock,
+  compileParticleBlock,
+  compilePostProcessingBlock,
+  compileAudioSourceBlock,
+  compileWeatherBlock,
+  materialToAndroidXR,
+  physicsToAndroidXR,
+  particlesToAndroidXR,
+  audioSourceToAndroidXR,
+  weatherToAndroidXR,
+} from './DomainBlockCompilerMixin';
+import type { CompiledPostProcessing } from './DomainBlockCompilerMixin';
 
 export interface AndroidXRCompilerOptions {
   packageName?: string;
@@ -73,6 +88,9 @@ export class AndroidXRCompiler extends CompilerBase {
     this.emitImports(composition);
     this.emit('');
     this.emitActivityClass(composition);
+
+    // v4.2: Domain Blocks (materials, physics, particles, post-processing, audio, weather)
+    this.compileAndroidXRDomainBlocks(composition);
 
     return this.lines.join('\n');
   }
@@ -521,6 +539,52 @@ export class AndroidXRCompiler extends CompilerBase {
     this.emit('// Post-processing (Filament Renderer)');
     for (const fx of effects.effects)
       this.emit(`// ${fx.effectType}: ${JSON.stringify(fx.properties)}`);
+  }
+
+  // ─── Domain Blocks (v4.2) ──────────────────────────────────────────
+
+  private compileAndroidXRDomainBlocks(composition: HoloComposition): void {
+    const domainBlocks = (composition as any).domainBlocks ?? [];
+    if (domainBlocks.length === 0) return;
+
+    this.emit('');
+    this.emit('// === v4.2 Domain Blocks ===');
+
+    let blockIdx = 0;
+    const compiled = compileDomainBlocks(domainBlocks, {
+      material: (block) => {
+        const mat = compileMaterialBlock(block);
+        return materialToAndroidXR(mat, `db${blockIdx++}`);
+      },
+      physics: (block) => {
+        const phys = compilePhysicsBlock(block);
+        return physicsToAndroidXR(phys, `db${blockIdx++}`);
+      },
+      vfx: (block) => {
+        const ps = compileParticleBlock(block);
+        return particlesToAndroidXR(ps, `db${blockIdx++}`);
+      },
+      postfx: (block) => {
+        const pp = compilePostProcessingBlock(block);
+        const postfx = pp as CompiledPostProcessing;
+        const effects = postfx.effects.map(e => `// Effect: ${e.type} — ${JSON.stringify(e.properties)}`).join('\n');
+        return `// Post-Processing: ${postfx.keyword} — configure via Filament Renderer post-processing\n${effects}`;
+      },
+      audio: (block) => {
+        const audio = compileAudioSourceBlock(block);
+        return audioSourceToAndroidXR(audio, `db${blockIdx++}`);
+      },
+      weather: (block) => {
+        const weather = compileWeatherBlock(block);
+        return weatherToAndroidXR(weather);
+      },
+    }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
+
+    for (const line of compiled) {
+      for (const l of line.split('\n')) {
+        this.emit(l);
+      }
+    }
   }
 
   // ─── Transitions ─────────────────────────────────────────────────────

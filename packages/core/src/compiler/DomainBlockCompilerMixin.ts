@@ -1125,6 +1125,213 @@ export function audioSourceToVisionOS(audio: CompiledAudioSource, varPrefix: str
 }
 
 // =============================================================================
+// Android XR (Kotlin / SceneCore + Filament) Target Helpers
+// =============================================================================
+
+/** Generate Android XR Kotlin/Filament material setup code */
+export function materialToAndroidXR(mat: CompiledMaterial, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Material: ${mat.name}`);
+  if (mat.type === 'unlit') {
+    lines.push(`val ${varPrefix}MatBuilder = MaterialInstance.Builder()`);
+    lines.push(`    .setParameter("baseColor", ${mat.baseColor ? hexToFilamentColor(mat.baseColor) : 'Float4(1f, 1f, 1f, 1f)'})`);
+    if (mat.opacity !== undefined) lines.push(`    .setParameter("alpha", ${mat.opacity}f)`);
+    lines.push(`val ${varPrefix}Mat = ${varPrefix}MatBuilder.build(engine)`);
+  } else {
+    lines.push(`val ${varPrefix}MatBuilder = MaterialInstance.Builder()`);
+    if (mat.baseColor) {
+      lines.push(`    .setParameter("baseColor", ${hexToFilamentColor(mat.baseColor)})`);
+    }
+    if (mat.roughness !== undefined) lines.push(`    .setParameter("roughness", ${mat.roughness}f)`);
+    if (mat.metallic !== undefined) lines.push(`    .setParameter("metallic", ${mat.metallic}f)`);
+    if (mat.opacity !== undefined && mat.opacity < 1) {
+      lines.push(`    .setParameter("alpha", ${mat.opacity}f)`);
+    }
+    if (mat.emissiveColor) {
+      const [er, eg, eb] = hexToRGBTuple(mat.emissiveColor);
+      const intensity = mat.emissiveIntensity ?? 1;
+      lines.push(`    .setParameter("emissive", Float4(${er * intensity}f, ${eg * intensity}f, ${eb * intensity}f, 1f))`);
+    }
+    lines.push(`val ${varPrefix}Mat = ${varPrefix}MatBuilder.build(engine)`);
+  }
+  for (const [mapType, path] of Object.entries(mat.textureMaps)) {
+    const paramName = mapType === 'albedo_map' ? 'baseColorMap'
+      : mapType === 'normal_map' ? 'normalMap'
+      : mapType === 'metallic_map' ? 'metallicMap'
+      : mapType === 'roughness_map' ? 'roughnessMap'
+      : mapType === 'emission_map' ? 'emissiveMap'
+      : mapType === 'occlusion_map' ? 'aoMap'
+      : mapType.replace(/_map$/, 'Map');
+    lines.push(`// Texture: ${paramName} -> "${path}"`);
+    lines.push(`val ${varPrefix}Tex_${paramName} = Texture.Builder().build(engine) // load from "${path}"`);
+    lines.push(`${varPrefix}Mat.setParameter("${paramName}", ${varPrefix}Tex_${paramName}, TextureSampler())`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate Android XR Kotlin/SceneCore physics setup code */
+export function physicsToAndroidXR(physics: CompiledPhysics, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Physics: ${physics.keyword} "${physics.name || ''}"`);
+
+  if (physics.colliders) {
+    for (let i = 0; i < physics.colliders.length; i++) {
+      const c = physics.colliders[i];
+      const shape = c.shape || 'box';
+      const colVar = `${varPrefix}Col${i}`;
+      if (shape === 'sphere') {
+        lines.push(`val ${colVar} = SphereCollider(engine, ${c.properties.radius || 0.5}f)`);
+      } else if (shape === 'capsule') {
+        lines.push(`val ${colVar} = CapsuleCollider(engine, ${c.properties.radius || 0.25}f, ${c.properties.height || 1.0}f)`);
+      } else {
+        const size = c.properties.size && Array.isArray(c.properties.size)
+          ? c.properties.size : [1, 1, 1];
+        lines.push(`val ${colVar} = BoxCollider(engine, Float3(${size[0]}f, ${size[1]}f, ${size[2]}f))`);
+      }
+      if (c.type === 'trigger') lines.push(`${colVar}.isTrigger = true`);
+      lines.push(`${varPrefix}Entity.addComponent(${colVar})`);
+    }
+  }
+
+  if (physics.rigidbody) {
+    const rb = physics.rigidbody.properties;
+    lines.push(`val ${varPrefix}RB = RigidBodyComponent()`);
+    if (rb.mass !== undefined) lines.push(`${varPrefix}RB.mass = ${rb.mass}f`);
+    if (rb.drag !== undefined) lines.push(`${varPrefix}RB.linearDamping = ${rb.drag}f`);
+    if (rb.angular_damping !== undefined) lines.push(`${varPrefix}RB.angularDamping = ${rb.angular_damping}f`);
+    if (rb.use_gravity === false) lines.push(`${varPrefix}RB.isGravityEnabled = false`);
+    lines.push(`${varPrefix}Entity.addComponent(${varPrefix}RB)`);
+  }
+
+  if (physics.forceFields) {
+    for (const ff of physics.forceFields) {
+      if (ff.keyword === 'wind_zone') {
+        lines.push(`// Wind zone: "${ff.name || ''}" strength=${ff.properties.strength || 0}`);
+        lines.push(`// Implement via custom force application in physics update loop`);
+      } else {
+        lines.push(`// Force field: ${ff.keyword} "${ff.name || ''}" — ${JSON.stringify(ff.properties)}`);
+      }
+    }
+  }
+
+  if (physics.joints) {
+    for (const j of physics.joints) {
+      lines.push(`// Joint: ${j.keyword} "${j.name || ''}" — configure via PhysicsConstraint`);
+      if (j.properties.axis) {
+        const axis = Array.isArray(j.properties.axis) ? j.properties.axis : [0, 0, 1];
+        lines.push(`// Axis: Float3(${axis[0]}f, ${axis[1]}f, ${axis[2]}f)`);
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/** Generate Android XR Kotlin particle system code (SceneCore + Filament) */
+export function particlesToAndroidXR(ps: CompiledParticleSystem, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Particles: ${ps.name}`);
+  lines.push(`val ${varPrefix}ParticleEntity = xrSession.scene.createEntity("${ps.name}")`);
+  lines.push(`// Configure particle system via Filament ParticleSystem or custom emitter`);
+
+  if (ps.properties.rate) lines.push(`val ${varPrefix}EmitRate = ${ps.properties.rate}f`);
+  if (ps.properties.max_particles) lines.push(`val ${varPrefix}MaxParticles = ${ps.properties.max_particles}`);
+  if (ps.properties.start_lifetime) {
+    const lt = Array.isArray(ps.properties.start_lifetime) ? ps.properties.start_lifetime[0] : ps.properties.start_lifetime;
+    lines.push(`val ${varPrefix}Lifetime = ${lt}f`);
+  }
+  if (ps.properties.start_speed) {
+    const sp = Array.isArray(ps.properties.start_speed) ? ps.properties.start_speed[0] : ps.properties.start_speed;
+    lines.push(`val ${varPrefix}Speed = ${sp}f`);
+  }
+  if (ps.properties.gravity_modifier !== undefined) {
+    lines.push(`val ${varPrefix}GravityMod = ${ps.properties.gravity_modifier}f`);
+  }
+  if (ps.traits.includes('looping')) lines.push(`val ${varPrefix}Looping = true`);
+  if (ps.traits.includes('gpu')) lines.push(`// GPU particles: use compute shader pipeline`);
+
+  for (const m of ps.modules) {
+    lines.push(`// Module: ${m.type} — ${JSON.stringify(m.properties)}`);
+  }
+  return lines.join('\n');
+}
+
+/** Generate Android XR Kotlin spatial audio code (Oboe / SceneCore SpatialAudioTrack) */
+export function audioSourceToAndroidXR(audio: CompiledAudioSource, varPrefix: string): string {
+  const lines: string[] = [];
+  lines.push(`// Audio: ${audio.name} (${audio.keyword})`);
+  const isSpatial = audio.traits.includes('spatial') || audio.traits.includes('hrtf') || audio.properties.spatial_blend > 0;
+
+  if (audio.keyword === 'reverb_zone') {
+    lines.push(`// Reverb zone: "${audio.name}" — implement via AudioEffect.EFFECT_TYPE_REVERB`);
+    if (audio.properties.min_distance) lines.push(`// minDistance = ${audio.properties.min_distance}`);
+    if (audio.properties.max_distance) lines.push(`// maxDistance = ${audio.properties.max_distance}`);
+    return lines.join('\n');
+  }
+
+  lines.push(`val ${varPrefix}AudioEntity = xrSession.scene.createEntity("${audio.name}")`);
+
+  if (isSpatial) {
+    lines.push(`val ${varPrefix}SpatialTrack = SpatialAudioTrack(xrSession, ${varPrefix}AudioEntity)`);
+    if (audio.properties.max_distance) {
+      lines.push(`// Spatial falloff distance: ${audio.properties.max_distance}`);
+    }
+  }
+
+  if (audio.properties.clip) {
+    lines.push(`val ${varPrefix}SoundId = soundPool.load(context, R.raw.${audio.properties.clip.toString().replace(/[^a-zA-Z0-9_]/g, '_')}, 1)`);
+  }
+  if (audio.properties.volume !== undefined) lines.push(`val ${varPrefix}Volume = ${audio.properties.volume}f`);
+  if (audio.properties.loop !== undefined) lines.push(`val ${varPrefix}Loop = ${audio.properties.loop ? '1' : '0'} // -1 = loop, 0 = once`);
+
+  if (audio.properties.play_on_awake || audio.properties.clip) {
+    lines.push(`soundPool.setOnLoadCompleteListener { pool, id, _ ->`);
+    lines.push(`    if (id == ${varPrefix}SoundId) pool.play(id, ${audio.properties.volume ?? 1}f, ${audio.properties.volume ?? 1}f, 1, ${audio.properties.loop ? '-1' : '0'}, 1.0f)`);
+    lines.push(`}`);
+  }
+
+  return lines.join('\n');
+}
+
+/** Generate Android XR Kotlin weather/atmosphere code */
+export function weatherToAndroidXR(weather: CompiledWeather): string {
+  const lines: string[] = [];
+  lines.push(`// Weather: ${weather.keyword} "${weather.name || ''}"`);
+  lines.push('// Implement weather via Filament IndirectLight + custom particle emitters');
+
+  for (const [key, value] of Object.entries(weather.properties)) {
+    lines.push(`// ${key} = ${JSON.stringify(value)}`);
+  }
+
+  for (const layer of weather.layers) {
+    lines.push(`// Layer: ${layer.type}`);
+    if (layer.type === 'rain' || layer.type === 'snow') {
+      lines.push(`// Use GPU particle emitter for ${layer.type} — rate=${layer.properties.rate || 'default'}, intensity=${layer.properties.intensity || 'default'}`);
+    } else if (layer.type === 'wind') {
+      lines.push(`// Apply force to particle systems: strength=${layer.properties.strength || 'default'}, direction=${JSON.stringify(layer.properties.direction) || 'default'}`);
+    } else if (layer.type === 'fog' || layer.type === 'fog_layer') {
+      lines.push(`// Configure Filament fog: density=${layer.properties.density || 'default'}, color=${layer.properties.color || 'default'}`);
+    } else if (layer.type === 'lightning') {
+      lines.push(`// Lightning flash: frequency=${layer.properties.frequency || 'default'}`);
+    } else if (layer.type === 'clouds') {
+      lines.push(`// Volumetric clouds: coverage=${layer.properties.coverage || 'default'}`);
+    } else {
+      for (const [k, v] of Object.entries(layer.properties)) {
+        lines.push(`//   ${k} = ${JSON.stringify(v)}`);
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/** Convert hex color to Filament Float4 */
+function hexToFilamentColor(hex: string): string {
+  const [r, g, b] = hexToRGBTuple(hex);
+  return `Float4(${r}f, ${g}f, ${b}f, 1f)`;
+}
+
+// =============================================================================
 // Babylon.js Target Helpers
 // =============================================================================
 

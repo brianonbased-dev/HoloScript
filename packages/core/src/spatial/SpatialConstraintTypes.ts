@@ -2,9 +2,12 @@
  * Spatial Constraint Types for HoloScript Type System
  *
  * Defines compile-time spatial constraint trait extensions:
- * - spatial_adjacent:  Two entities must be within a given distance threshold
- * - spatial_contains:  One entity's bounds must fully enclose another
- * - spatial_reachable: An unobstructed path must exist between entities
+ * - spatial_adjacent:            Two entities must be within a given distance threshold
+ * - spatial_contains:            One entity's bounds must fully enclose another
+ * - spatial_reachable:           An unobstructed path must exist between entities
+ * - spatial_temporal_adjacent:   Adjacency that must hold for N seconds (duration constraint)
+ * - spatial_temporal_reachable:  Reachability with moving obstacle velocity prediction
+ * - spatial_trajectory:          Path-based constraints over predicted entity motion
  *
  * These constraints are verified at compile time (static analysis of spatial
  * declarations) and optionally enforced at runtime via the trait handlers.
@@ -25,12 +28,20 @@ import type {
 // =============================================================================
 
 /**
- * Discriminant for the three spatial constraint families.
+ * Discriminant for the spatial constraint families.
+ *
+ * Includes the original three plus the spatiotemporal extensions:
+ * - spatial_temporal_adjacent: adjacency that must hold for a duration
+ * - spatial_temporal_reachable: reachability accounting for moving obstacles
+ * - spatial_trajectory: path-based constraints over predicted motion
  */
 export type SpatialConstraintKind =
   | 'spatial_adjacent'
   | 'spatial_contains'
-  | 'spatial_reachable';
+  | 'spatial_reachable'
+  | 'spatial_temporal_adjacent'
+  | 'spatial_temporal_reachable'
+  | 'spatial_trajectory';
 
 // =============================================================================
 // SPATIAL_ADJACENT
@@ -227,6 +238,292 @@ export interface SpatialReachableConfig {
 }
 
 // =============================================================================
+// SPATIAL_TEMPORAL_ADJACENT (duration-constrained adjacency)
+// =============================================================================
+
+/**
+ * Temporal adjacency constraint: entities A and B must remain within
+ * `maxDistance` for at least `minDuration` seconds. Optionally, the
+ * constraint only triggers a violation after the condition has been
+ * broken for `gracePeriod` seconds (hysteresis).
+ *
+ * HoloScript syntax:
+ * ```holoscript
+ * orb#guard {
+ *   @spatial_temporal_adjacent(
+ *     target: "prisoner",
+ *     maxDistance: 3m,
+ *     minDuration: 5s,
+ *     gracePeriod: 1s,
+ *     axis: "xz"
+ *   )
+ * }
+ * ```
+ */
+export interface SpatialTemporalAdjacentConstraint {
+  kind: 'spatial_temporal_adjacent';
+
+  /** Source entity that declares the constraint */
+  sourceId: string;
+
+  /** Target entity or entity type that must be adjacent */
+  targetId: string;
+
+  /** Maximum allowable distance (meters). Required. */
+  maxDistance: number;
+
+  /** Minimum allowable distance (meters). Defaults to 0. */
+  minDistance?: number;
+
+  /**
+   * Minimum duration (seconds) the adjacency condition must hold
+   * continuously before the constraint is considered satisfied.
+   */
+  minDuration: number;
+
+  /**
+   * Grace period (seconds). After the adjacency condition breaks,
+   * wait this long before emitting a violation. Provides hysteresis
+   * to prevent flickering. Defaults to 0.
+   */
+  gracePeriod?: number;
+
+  /** Axis restriction for distance calculation. */
+  axis?: SpatialAxis;
+
+  /** Whether the constraint is bidirectional (default true) */
+  bidirectional?: boolean;
+
+  /** Human-readable label for error messages */
+  label?: string;
+}
+
+/**
+ * Configuration for the spatial_temporal_adjacent trait (parsed from HoloScript).
+ */
+export interface SpatialTemporalAdjacentConfig {
+  target: string;
+  maxDistance: number;
+  minDistance?: number;
+  minDuration: number;
+  gracePeriod?: number;
+  axis?: SpatialAxis;
+  bidirectional?: boolean;
+  /** When true, emit warnings instead of errors at compile time */
+  soft?: boolean;
+  /** Runtime enforcement mode */
+  enforcement?: SpatialEnforcementMode;
+}
+
+// =============================================================================
+// SPATIAL_TEMPORAL_REACHABLE (velocity-predicted reachability)
+// =============================================================================
+
+/**
+ * Velocity-aware reachability constraint: checks whether a path exists
+ * from entity A to entity B, accounting for moving obstacles by predicting
+ * their positions `predictionHorizon` seconds into the future based on
+ * their current velocity vectors.
+ *
+ * HoloScript syntax:
+ * ```holoscript
+ * orb#drone {
+ *   @spatial_temporal_reachable(
+ *     target: "landing_pad",
+ *     maxPathLength: 100m,
+ *     predictionHorizon: 3s,
+ *     movingObstacles: ["vehicle", "drone"],
+ *     safetyMargin: 1.5m
+ *   )
+ * }
+ * ```
+ */
+export interface SpatialTemporalReachableConstraint {
+  kind: 'spatial_temporal_reachable';
+
+  /** The starting entity */
+  sourceId: string;
+
+  /** The destination entity */
+  targetId: string;
+
+  /** Maximum allowable path length in meters. */
+  maxPathLength?: number;
+
+  /**
+   * How far into the future (seconds) to predict obstacle positions.
+   * Obstacle positions are extrapolated via position + velocity * t.
+   */
+  predictionHorizon: number;
+
+  /**
+   * Entity types (or specific IDs) treated as moving obstacles.
+   * Their velocity vectors are read from the spatial context.
+   */
+  movingObstacles?: string[];
+
+  /**
+   * Static obstacle types (no velocity prediction applied).
+   */
+  staticObstacles?: string[];
+
+  /**
+   * Safety margin (meters) to add around predicted obstacle positions.
+   * Accounts for velocity uncertainty. Defaults to 0.5.
+   */
+  safetyMargin?: number;
+
+  /** Pathfinding algorithm hint. */
+  algorithm?: SpatialReachableAlgorithm;
+
+  /** Agent radius for path clearance (meters). Defaults to 0.5 */
+  agentRadius?: number;
+
+  /** Whether the constraint is bidirectional (default true) */
+  bidirectional?: boolean;
+
+  /** Human-readable label for error messages */
+  label?: string;
+}
+
+/**
+ * Configuration for the spatial_temporal_reachable trait.
+ */
+export interface SpatialTemporalReachableConfig {
+  target: string;
+  maxPathLength?: number;
+  predictionHorizon: number;
+  movingObstacles?: string[];
+  staticObstacles?: string[];
+  safetyMargin?: number;
+  algorithm?: SpatialReachableAlgorithm;
+  agentRadius?: number;
+  bidirectional?: boolean;
+  /** When true, emit warnings instead of errors at compile time */
+  soft?: boolean;
+  /** Runtime enforcement mode */
+  enforcement?: SpatialEnforcementMode;
+}
+
+// =============================================================================
+// SPATIAL_TRAJECTORY (path-based constraints)
+// =============================================================================
+
+/**
+ * Trajectory constraint: verifies that the predicted motion path of an
+ * entity satisfies spatial constraints. The trajectory is computed from
+ * position + velocity (and optional acceleration) over a time horizon,
+ * and can be checked against keep-in zones, keep-out zones, waypoints,
+ * and maximum deviation from a reference path.
+ *
+ * HoloScript syntax:
+ * ```holoscript
+ * orb#missile {
+ *   @spatial_trajectory(
+ *     mode: "keep_in",
+ *     region: "safe_corridor",
+ *     horizon: 5s,
+ *     sampleCount: 20,
+ *     maxDeviation: 2m
+ *   )
+ * }
+ * ```
+ */
+export interface SpatialTrajectoryConstraint {
+  kind: 'spatial_trajectory';
+
+  /** The entity whose trajectory is being constrained */
+  sourceId: string;
+
+  /**
+   * Constraint mode:
+   * - 'keep_in':  trajectory must stay inside the region
+   * - 'keep_out': trajectory must avoid the region
+   * - 'follow':   trajectory must stay within maxDeviation of a reference path
+   * - 'waypoint': trajectory must pass through specified waypoints
+   */
+  mode: SpatialTrajectoryMode;
+
+  /**
+   * Region ID or entity ID that defines the spatial boundary
+   * (for keep_in and keep_out modes).
+   */
+  regionId?: string;
+
+  /**
+   * Time horizon (seconds) over which to predict the trajectory.
+   */
+  horizon: number;
+
+  /**
+   * Number of sample points along the trajectory to check.
+   * Higher values increase accuracy but cost more. Defaults to 10.
+   */
+  sampleCount?: number;
+
+  /**
+   * Maximum allowed deviation (meters) from a reference path
+   * (for 'follow' mode).
+   */
+  maxDeviation?: number;
+
+  /**
+   * Waypoints the trajectory must pass through (for 'waypoint' mode).
+   * Each waypoint has a position and an acceptance radius.
+   */
+  waypoints?: TrajectoryWaypoint[];
+
+  /**
+   * Reference path for 'follow' mode. An ordered list of points
+   * defining the ideal trajectory.
+   */
+  referencePath?: Vector3[];
+
+  /**
+   * Whether to account for acceleration (quadratic prediction)
+   * instead of linear velocity extrapolation. Defaults to false.
+   */
+  useAcceleration?: boolean;
+
+  /** Human-readable label for error messages */
+  label?: string;
+}
+
+/**
+ * A waypoint along a trajectory, with an acceptance radius.
+ */
+export interface TrajectoryWaypoint {
+  position: Vector3;
+  /** Radius (meters) within which the trajectory is considered to pass through */
+  radius: number;
+  /** Optional label for diagnostics */
+  label?: string;
+}
+
+/**
+ * Trajectory constraint mode.
+ */
+export type SpatialTrajectoryMode = 'keep_in' | 'keep_out' | 'follow' | 'waypoint';
+
+/**
+ * Configuration for the spatial_trajectory trait.
+ */
+export interface SpatialTrajectoryConfig {
+  mode: SpatialTrajectoryMode;
+  regionId?: string;
+  horizon: number;
+  sampleCount?: number;
+  maxDeviation?: number;
+  waypoints?: TrajectoryWaypoint[];
+  referencePath?: Vector3[];
+  useAcceleration?: boolean;
+  /** When true, emit warnings instead of errors at compile time */
+  soft?: boolean;
+  /** Runtime enforcement mode */
+  enforcement?: SpatialEnforcementMode;
+}
+
+// =============================================================================
 // SHARED TYPES
 // =============================================================================
 
@@ -250,12 +547,15 @@ export type SpatialReachableAlgorithm = 'line_of_sight' | 'navmesh' | 'astar';
 export type SpatialEnforcementMode = 'prevent' | 'correct' | 'warn' | 'none';
 
 /**
- * Union of all spatial constraints.
+ * Union of all spatial constraints (including spatiotemporal extensions).
  */
 export type SpatialConstraint =
   | SpatialAdjacentConstraint
   | SpatialContainsConstraint
-  | SpatialReachableConstraint;
+  | SpatialReachableConstraint
+  | SpatialTemporalAdjacentConstraint
+  | SpatialTemporalReachableConstraint
+  | SpatialTrajectoryConstraint;
 
 // =============================================================================
 // COMPILE-TIME VERIFICATION TYPES
@@ -317,6 +617,9 @@ export interface SpatialConstraintCheckResult {
     adjacentCount: number;
     containsCount: number;
     reachableCount: number;
+    temporalAdjacentCount: number;
+    temporalReachableCount: number;
+    trajectoryCount: number;
     errorsCount: number;
     warningsCount: number;
   };

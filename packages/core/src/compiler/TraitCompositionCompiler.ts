@@ -20,6 +20,8 @@
 
 import type { TraitDependencyGraph } from './TraitDependencyGraph';
 import type { TraitInheritanceResolver } from './TraitInheritanceResolver';
+import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
+import { WorkflowStep } from './identity/AgentIdentity';
 
 // =============================================================================
 // TYPES
@@ -112,14 +114,42 @@ export class TraitCompositionCompiler {
    * @param getHandler    - Lookup a component handler by name.
    * @param traitGraph    - Optional TraitDependencyGraph; if supplied, new
    *                        composed traits are registered there.
+   * @param agentToken    - JWT token proving agent identity (optional for backwards compatibility).
    * @returns Compiled ComposedTraitDef[], in declaration order.
+   * @throws UnauthorizedTraitCompositionAccessError if token is provided but invalid.
    */
   compile(
     decls: TraitCompositionDecl[],
     getHandler: (name: string) => ComponentTraitHandler | undefined,
     traitGraph?: TraitDependencyGraph,
+    agentToken?: string,
   ): ComposedTraitDef[] {
+    this.validateAccess(agentToken);
     return decls.map((decl) => this.compileOne(decl, getHandler, traitGraph));
+  }
+
+  // ---------------------------------------------------------------------------
+  // RBAC enforcement
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Validate agent has permission to compile trait compositions.
+   * Skips validation when no token is provided (backwards compatibility / testing).
+   */
+  private validateAccess(agentToken?: string): void {
+    if (!agentToken) return;
+
+    const rbac = getRBAC();
+    const decision = rbac.checkAccess({
+      token: agentToken,
+      resourceType: ResourceType.AST,
+      operation: 'read',
+      expectedWorkflowStep: WorkflowStep.GENERATE_ASSEMBLY,
+    });
+
+    if (!decision.allowed) {
+      throw new UnauthorizedTraitCompositionAccessError(decision, 'TraitCompositionCompiler');
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -200,5 +230,26 @@ export class TraitCompositionCompiler {
         }
       }
     }
+  }
+}
+
+// =============================================================================
+// ERRORS
+// =============================================================================
+
+/**
+ * Error thrown when agent lacks required permissions for trait composition.
+ */
+export class UnauthorizedTraitCompositionAccessError extends Error {
+  constructor(
+    public readonly decision: AccessDecision,
+    public readonly compilerName: string,
+  ) {
+    super(
+      `[${compilerName}] Unauthorized access: ${decision.reason || 'Access denied'}\n` +
+      `Agent Role: ${decision.agentRole || 'unknown'}\n` +
+      `Required Permission: ${decision.requiredPermission || 'unknown'}`,
+    );
+    this.name = 'UnauthorizedTraitCompositionAccessError';
   }
 }
