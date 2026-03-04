@@ -3,8 +3,9 @@
  *
  * Ingests any codebase, builds a knowledge graph, and auto-generates
  * navigable .holo compositions for spatial code visualization.
+ * Supports Graph RAG queries and interactive 3D exploration.
  *
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 // Core types
@@ -73,3 +74,24 @@ export { CodebaseTheme } from './visualization/CodebaseTheme';
 export type { ThemeOptions, VisualStyle } from './visualization/CodebaseTheme';
 export { EdgeRenderer } from './visualization/EdgeRenderer';
 export type { RenderedEdge, EdgeRenderOptions } from './visualization/EdgeRenderer';
+
+// Graph RAG
+export { EmbeddingIndex } from './EmbeddingIndex';
+export type { EmbeddingIndexOptions, IndexedSymbol, SearchResult } from './EmbeddingIndex';
+export { GraphRAGEngine } from './GraphRAGEngine';
+export type { GraphRAGOptions, GraphRAGResult, EnrichedResult, LLMAnswer } from './GraphRAGEngine';
+
+// Interactive Visualization
+export { InteractiveSceneEnricher } from './visualization/InteractiveSceneEnricher';
+export type {
+  InteractionEvent,
+  InteractionAction,
+  InteractiveSceneComposition,
+  EnricherOptions,
+} from './visualization/InteractiveSceneEnricher';
+export { GraphSelectionManager } from './visualization/GraphSelectionManager';
+export type { SelectionSubgraph, SelectionContext } from './visualization/GraphSelectionManager';
+export { GraphRAGVisualizer } from './visualization/GraphRAGVisualizer';
+export type { RAGSearchResult, ImpactNode } from './visualization/GraphRAGVisualizer';
+export { GraphTooltipGenerator } from './visualization/GraphTooltipGenerator';
+export type { TooltipData, TooltipLine, RAGAnnotation } from './visualization/GraphTooltipGenerator';

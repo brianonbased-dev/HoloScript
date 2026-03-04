@@ -287,6 +287,9 @@ type TokenType =
   | 'MODULE_MAP'
   | 'DEPENDENCY_GRAPH'
   | 'CALL_GRAPH'
+  // Graph RAG (v4.4)
+  | 'SEMANTIC_SEARCH'
+  | 'GRAPH_QUERY'
   | 'ANNOTATION'
   // Spatial primitives
   | 'SPAWN_GROUP'
@@ -532,6 +535,9 @@ const KEYWORDS: Record<string, TokenType> = {
   module_map: 'MODULE_MAP',
   dependency_graph: 'DEPENDENCY_GRAPH',
   call_graph: 'CALL_GRAPH',
+  // Graph RAG (v4.4)
+  semantic_search: 'SEMANTIC_SEARCH',
+  graph_query: 'GRAPH_QUERY',
   true: 'BOOLEAN',
   false: 'BOOLEAN',
   null: 'NULL',
@@ -4816,6 +4822,8 @@ export class HoloCompositionParser {
     'INPUT_BLOCK', 'INTERACTION',
     // Codebase absorption (v4.3)
     'CODEBASE', 'MODULE_MAP', 'DEPENDENCY_GRAPH', 'CALL_GRAPH',
+    // Graph RAG (v4.4)
+    'SEMANTIC_SEARCH', 'GRAPH_QUERY',
   ]);
 
   /** Token → domain type mapping */
@@ -4850,6 +4858,8 @@ export class HoloCompositionParser {
     // Codebase absorption (v4.3)
     CODEBASE: 'codebase', MODULE_MAP: 'codebase',
     DEPENDENCY_GRAPH: 'codebase', CALL_GRAPH: 'codebase',
+    // Graph RAG (v4.4)
+    SEMANTIC_SEARCH: 'codebase', GRAPH_QUERY: 'codebase',
   };
 
   /** Check if current token is a domain block token */

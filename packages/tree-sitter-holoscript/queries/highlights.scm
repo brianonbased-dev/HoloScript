@@ -618,7 +618,7 @@
 ; CODEBASE ABSORPTION (v4.3)
 ; =============================================================================
 
-["codebase" "module_map" "dependency_graph" "call_graph"] @keyword.type
+["codebase" "module_map" "dependency_graph" "call_graph" "semantic_search" "graph_query"] @keyword.type
 
 (codebase_block
   name: (string) @type.definition)

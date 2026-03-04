@@ -207,6 +207,10 @@ export function parseArgs(args: string[]): CLIOptions {
           'export',
           'import',
           'visualize',
+          'absorb',
+          'screenshot',
+          'pdf',
+          'prerender',
           'help',
           'version',
         ].includes(arg)

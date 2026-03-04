@@ -11,6 +11,7 @@ import { ideTools } from './ide-tools';
 import { brittneyLiteTools } from './brittney-lite';
 import { PluginManager } from './PluginManager';
 import { codebaseTools } from './codebase-tools';
+import { graphRagTools } from './graph-rag-tools';
 import {
   BrowserLaunchSchema,
   BrowserExecuteSchema,
@@ -527,6 +528,7 @@ export const tools: Tool[] = [
   ...browserControlTools,
   ...hololandTrainingTools,
   ...codebaseTools,
+  ...graphRagTools,
   ...PluginManager.getTools(),
 ];
 

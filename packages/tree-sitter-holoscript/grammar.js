@@ -617,7 +617,7 @@ module.exports = grammar({
 
     codebase_block: ($) =>
       seq(
-        choice('codebase', 'module_map', 'dependency_graph', 'call_graph'),
+        choice('codebase', 'module_map', 'dependency_graph', 'call_graph', 'semantic_search', 'graph_query'),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
         '{', repeat(choice(seq($.property, optional(',')), $.event_handler, $.object, $.spatial_group)), '}'

@@ -14,47 +14,47 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "require": "./dist/index.cjs"
     },
     "./parser": {
       "types": "./dist/parser.d.ts",
       "import": "./dist/parser.js",
-      "require": "./dist/parser.js"
+      "require": "./dist/parser.cjs"
     },
     "./runtime": {
       "types": "./dist/runtime.d.ts",
       "import": "./dist/runtime.js",
-      "require": "./dist/runtime.js"
+      "require": "./dist/runtime.cjs"
     },
     "./type-checker": {
       "types": "./dist/type-checker.d.ts",
       "import": "./dist/type-checker.js",
-      "require": "./dist/type-checker.js"
+      "require": "./dist/type-checker.cjs"
     },
     "./debugger": {
       "types": "./dist/debugger.d.ts",
       "import": "./dist/debugger.js",
-      "require": "./dist/debugger.js"
+      "require": "./dist/debugger.cjs"
     },
     "./storage": {
       "types": "./dist/storage/index.d.ts",
       "import": "./dist/storage/index.js",
-      "require": "./dist/storage/index.js"
+      "require": "./dist/storage/index.cjs"
     },
     "./wot": {
       "types": "./dist/wot/index.d.ts",
       "import": "./dist/wot/index.js",
-      "require": "./dist/wot/index.js"
+      "require": "./dist/wot/index.cjs"
     },
     "./codebase": {
       "types": "./dist/codebase/index.d.ts",
       "import": "./dist/codebase/index.js",
-      "require": "./dist/codebase/index.js"
+      "require": "./dist/codebase/index.cjs"
     },
     "./compiler/*": {
       "types": "./dist/compiler/*.d.ts",
       "import": "./dist/compiler/*.js",
-      "require": "./dist/compiler/*.js"
+      "require": "./dist/compiler/*.cjs"
     }
   },
   "scripts": {
@@ -96,6 +96,15 @@
     "viem": "^2.45.3",
     "ws": "^8.16.0",
     "zod": "^3.24.0"
+  },
+  "optionalDependencies": {
+    "tree-sitter": "0.21.1",
+    "tree-sitter-typescript": "^0.23.2",
+    "tree-sitter-python": "^0.25.0",
+    "tree-sitter-rust": "^0.24.0",
+    "tree-sitter-go": "^0.25.0",
+    "tree-sitter-javascript": "^0.25.0",
+    "web-tree-sitter": "^0.24.0"
   },
   "peerDependencies": {
     "@pixiv/three-vrm": "^2.0.0",

@@ -25,6 +25,7 @@ import { snapshotTools, handleSnapshotTool } from './snapshot-tools';
 import { monitoringTools, handleMonitoringTool } from './monitoring-tools';
 import { compilerTools, handleCompilerTool } from './compiler-tools';
 import { handleCodebaseTool } from './codebase-tools';
+import { handleGraphRagTool } from './graph-rag-tools';
 
 // Create MCP server
 const server = new Server(
@@ -96,6 +97,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (codebaseResult !== null) {
       return {
         content: [{ type: 'text', text: JSON.stringify(codebaseResult, null, 2) }],
+      };
+    }
+
+    // Check Graph RAG tools (semantic search, ask codebase)
+    const graphRagResult = await handleGraphRagTool(name, args || {});
+    if (graphRagResult !== null) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify(graphRagResult, null, 2) }],
       };
     }
 

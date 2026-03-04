@@ -12,6 +12,7 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { setGraphRAGState } from './graph-rag-tools';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -50,6 +51,11 @@ export const codebaseTools: Tool[] = [
         maxFiles: {
           type: 'number',
           description: 'Maximum number of files to process. Defaults to 10000.',
+        },
+        interactive: {
+          type: 'boolean',
+          description:
+            'When true, generates an interactive 3D scene with hover, click, selection, and edge highlighting. Only applies when outputFormat is "holo". Defaults to false.',
         },
       },
       required: ['rootDir'],
@@ -208,6 +214,17 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // Cache for subsequent queries
   cachedGraph = graph;
   cachedRootDir = rootDir;
+
+  // Build embedding index for Graph RAG (async, best-effort)
+  try {
+    const { EmbeddingIndex, GraphRAGEngine } = mod;
+    const embeddingIndex = new EmbeddingIndex();
+    await embeddingIndex.buildIndex(graph);
+    const ragEngine = new GraphRAGEngine(graph, embeddingIndex);
+    setGraphRAGState(embeddingIndex, ragEngine);
+  } catch {
+    // Ollama may not be available; Graph RAG tools will return helpful errors
+  }
 
   const stats = graph.getStats();
   const communities: Map<string, string[]> = graph.detectCommunities();

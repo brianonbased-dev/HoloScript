@@ -45,6 +45,9 @@ export default defineConfig({
     'compiler/state': 'src/compiler/StateCompiler.ts',
     'compiler/trait-composition': 'src/compiler/TraitCompositionCompiler.ts',
     'compiler/incremental': 'src/compiler/IncrementalCompiler.ts',
+
+    // Codebase Absorption Engine (dynamically loaded)
+    'codebase/index': 'src/codebase/index.ts',
   },
   format: ['cjs', 'esm'],
   dts: false, // Temporarily disable for v3.0 - type mismatches to resolve in v3.1
@@ -58,6 +61,18 @@ export default defineConfig({
     '@coinbase/agentkit',
     'viem',
     'viem/accounts',
+    // Externalize Node.js CJS packages that break in ESM bundles
+    'jsonwebtoken',
+    'jws',
+    'safe-buffer',
+    // Externalize tree-sitter (native bindings, loaded at runtime)
+    'tree-sitter',
+    'tree-sitter-typescript',
+    'tree-sitter-python',
+    'tree-sitter-rust',
+    'tree-sitter-go',
+    'tree-sitter-javascript',
+    'web-tree-sitter',
   ],
   // Rollup-specific options for advanced code splitting
   esbuildOptions(options) {

@@ -4,10 +4,16 @@
  * Manages tree-sitter parser instances for multiple languages.
  * Lazy-loads grammars on demand with native → WASM → graceful degradation
  * fallback (mirrors TreeSitterManager pattern from packages/lsp/).
+ *
+ * Uses dynamic import() instead of require() so it works in both
+ * CJS and ESM contexts (esbuild's __require polyfill breaks in ESM).
  */
 
 import type { ParseTree, SupportedLanguage } from './types';
 import { getAdapterForLanguage } from './adapters';
+import { createRequire } from 'module';
+import path from 'path';
+import fs from 'fs';
 
 /** Minimal tree-sitter Parser interface */
 interface TSParser {
@@ -92,9 +98,10 @@ export class AdapterManager {
       const adapter = getAdapterForLanguage(language);
       if (!adapter) return null;
 
-      // Dynamic require for native tree-sitter
-      const TreeSitter = require('tree-sitter');
-      const grammar = this.requireNativeGrammar(adapter.grammarPackage, language);
+      // Use dynamic import() for tree-sitter (works in both ESM and CJS)
+      const treeSitterModule = await import('tree-sitter');
+      const TreeSitter = treeSitterModule.default || treeSitterModule;
+      const grammar = await this.importNativeGrammar(adapter.grammarPackage, language);
       if (!grammar) return null;
 
       const parser = new TreeSitter() as TSParser;
@@ -106,22 +113,26 @@ export class AdapterManager {
     }
   }
 
-  private requireNativeGrammar(packageName: string, language: SupportedLanguage): unknown {
+  private async importNativeGrammar(packageName: string, language: SupportedLanguage): Promise<unknown> {
     try {
       // tree-sitter-typescript exports { typescript, tsx }
       if (language === 'typescript') {
-        const pkg = require(packageName);
-        return pkg.typescript || pkg;
+        const pkg = await import(packageName);
+        const mod = pkg.default || pkg;
+        return mod.typescript || mod;
       }
       if (language === 'javascript') {
         try {
-          return require('tree-sitter-javascript');
+          const pkg = await import('tree-sitter-javascript');
+          return pkg.default || pkg;
         } catch {
-          const pkg = require(packageName);
-          return pkg.javascript || pkg;
+          const pkg = await import(packageName);
+          const mod = pkg.default || pkg;
+          return mod.javascript || mod;
         }
       }
-      return require(packageName);
+      const pkg = await import(packageName);
+      return pkg.default || pkg;
     } catch {
       return null;
     }
@@ -130,7 +141,8 @@ export class AdapterManager {
   private async loadWasm(language: SupportedLanguage): Promise<LanguageState | null> {
     try {
       if (!this.wasmInitialized) {
-        const WebTreeSitter = require('web-tree-sitter');
+        const webTsModule = await import('web-tree-sitter');
+        const WebTreeSitter = webTsModule.default || webTsModule;
         await WebTreeSitter.init();
         this.TreeSitterWasm = WebTreeSitter;
         this.wasmInitialized = true;
@@ -155,8 +167,9 @@ export class AdapterManager {
 
   private resolveWasmPath(packageName: string, language: SupportedLanguage): string | null {
     try {
-      const path = require('path');
-      const packagePath = require.resolve(`${packageName}/package.json`);
+      // Use createRequire for .resolve() which has no import() equivalent
+      const esmRequire = createRequire(import.meta.url);
+      const packagePath = esmRequire.resolve(`${packageName}/package.json`);
       const packageDir = path.dirname(packagePath);
 
       // Common WASM file locations
@@ -166,7 +179,6 @@ export class AdapterManager {
         path.join(packageDir, `${language}.wasm`),
       ];
 
-      const fs = require('fs');
       for (const candidate of candidates) {
         if (fs.existsSync(candidate)) return candidate;
       }
