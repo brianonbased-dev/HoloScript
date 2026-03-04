@@ -69,9 +69,10 @@ onMounted(() => {
         </div>
         <h1>One Language, Every Platform</h1>
         <p class="hero-sub">
-          HoloScript is an open-source programming language that compiles to 25+ targets including
-          Unity, Unreal, Godot, visionOS, Android XR, WebGPU, and robotics/IoT formats.
-          <strong>1,525+ semantic traits. One source, every platform.</strong>
+          HoloScript is an open spatial computing platform &mdash; 3 languages, 25+ compile targets,
+          AI agent runtime, and visual studio. Describe a dragon in 200 primitives. Compile it to
+          Unity, Unreal, VRChat, WebGPU, ROS 2, or visionOS &mdash; from the same source.
+          <strong>1,800+ semantic traits. 48 packages. 709K lines of pure TypeScript in the core alone.</strong>
         </p>
         <div class="hero-buttons">
           <a href="https://studio.holoscript.net" class="btn btn-studio">Try Studio</a>
@@ -153,12 +154,31 @@ onMounted(() => {
           </div>
           <div class="card card--glow solution-card">
             <span class="solution-icon">&#x1F680;</span>
-            <h3 class="card-title card-title--cyan">Share It</h3>
+            <h3 class="card-title card-title--cyan">Ship It</h3>
             <p>
-              One-click share links that run everywhere. Your VR world works in any modern browser
-              on any device. True write-once, deploy-anywhere.
+              Compile to 25+ targets: Unity, Unreal, Godot, VRChat, WebGPU, visionOS, ROS 2, and more.
+              Or share a link that runs in any browser. True write-once, deploy-anywhere.
             </p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLATFORM STACK -->
+    <section class="section" id="platform">
+      <div class="container">
+        <h2 class="section-title">More Than a Language</h2>
+        <p class="section-sub">
+          HoloScript is a 6-layer open platform. <code>holoscript absorb</code> reveals 99 module
+          communities, 68K symbols, and 298K call edges &mdash; in the core package alone.
+        </p>
+        <div class="platform-stack">
+          <div class="stack-layer stack-6"><span class="stack-num">6</span><strong>Marketplace</strong><span class="stack-detail">Traits + Plugins + Skills &middot; Ed25519 signatures &middot; x402 payments</span></div>
+          <div class="stack-layer stack-5"><span class="stack-num">5</span><strong>Studio</strong><span class="stack-detail">AI scene builder &middot; 50+ app scenarios &middot; Node graph editor</span></div>
+          <div class="stack-layer stack-4"><span class="stack-num">4</span><strong>Agents</strong><span class="stack-detail">Swarm intelligence &middot; 3-layer MCP comms &middot; Economy primitives</span></div>
+          <div class="stack-layer stack-3"><span class="stack-num">3</span><strong>Compiler</strong><span class="stack-detail">16 named backends &middot; 25+ targets &middot; Circuit breaker &middot; Incremental</span></div>
+          <div class="stack-layer stack-2"><span class="stack-num">2</span><strong>Runtime</strong><span class="stack-detail">Three.js browser &middot; Rust spatial engine &middot; WebGPU rendering</span></div>
+          <div class="stack-layer stack-1"><span class="stack-num">1</span><strong>Language</strong><span class="stack-detail">3 formats (.holo, .hs, .hsplus) &middot; 1,800+ traits &middot; 200+ trait types</span></div>
         </div>
       </div>
     </section>
@@ -298,10 +318,11 @@ animate();</code></pre>
     <!-- TRAITS -->
     <section class="section section--alt" id="traits">
       <div class="container">
-        <h2 class="section-title">1,525+ Semantic Traits</h2>
+        <h2 class="section-title">1,800+ Semantic Traits</h2>
         <p class="section-sub">
-          74 specialized categories covering VR, robotics (213 traits), IoT, AI/XR (23 traits), scientific computing (28 traits), and more. Add
-          powerful behaviors with simple decorators.
+          99 module communities covering VR, robotics, IoT, AI agents, swarm intelligence,
+          economy, physics, rendering, multiplayer, and more. Add powerful behaviors with
+          simple decorators.
         </p>
         <div class="traits-grid">
           <div class="trait" v-for="t in traits" :key="t.name">
@@ -315,7 +336,7 @@ animate();</code></pre>
             href="/api/traits"
             class="btn btn-outline"
             style="padding: 0.75rem 2rem; font-size: 1rem"
-            >See All 1,525 Traits &rarr;</a
+            >See All 1,800+ Traits &rarr;</a
           >
         </p>
       </div>
@@ -352,11 +373,11 @@ animate();</code></pre>
           </div>
           <div class="use-card">
             <div class="use-icon">&#x1F3AD;</div>
-            <h3>AI Choreography</h3>
+            <h3>Autonomous Intelligence</h3>
             <p>
-              Multi-agent orchestration with 34 MCP tools, a choreography engine for multi-step
-              workflows, spatial-aware agent negotiation, and Brittney &mdash; a fine-tuned model
-              that writes native HoloScript. AI agents collaborate to build your world.
+              43+ MCP tools, swarm intelligence (ant colony, particle swarm, flocking), 3-layer agent
+              comms (RealTime/A2A/MCP), economy primitives, and Brittney &mdash; a fine-tuned model
+              that writes native HoloScript. Your agents think, trade, and evolve.
             </p>
           </div>
           <div class="use-card">
@@ -473,40 +494,40 @@ animate();</code></pre>
         <h2 class="section-title">Everything You Need</h2>
         <div class="grid-3">
           <div class="card card--glow" style="text-align: center">
-            <div class="feature-number">1,525</div>
-            <h3 class="card-title card-title--cyan">Built-in Traits</h3>
-            <p>61 categories: VR, physics, AI, networking, robotics, IoT, and more</p>
-          </div>
-          <div class="card card--glow" style="text-align: center">
-            <div class="card-icon">&#x26A1;</div>
-            <h3 class="card-title card-title--cyan">Instant Preview</h3>
-            <p>See changes live in the browser. No build step required</p>
-          </div>
-          <div class="card card--glow" style="text-align: center">
-            <div class="card-icon">&#x1F48E;</div>
-            <h3 class="card-title card-title--cyan">Open Source</h3>
-            <p>MIT licensed. Free forever. Community-driven</p>
-          </div>
-          <div class="card card--glow" style="text-align: center">
-            <div class="card-icon">&#x1F97D;</div>
-            <h3 class="card-title card-title--cyan">WebXR Native</h3>
-            <p>Works on any VR headset through the browser</p>
-          </div>
-          <div class="card card--glow" style="text-align: center">
-            <div class="card-icon">&#x1F916;</div>
-            <h3 class="card-title card-title--cyan">AI Choreography</h3>
-            <p>
-              34 MCP tools, multi-agent orchestration, spatial negotiation, and Brittney fine-tuned
-              model
-            </p>
+            <div class="feature-number">1,800+</div>
+            <h3 class="card-title card-title--cyan">Semantic Traits</h3>
+            <p>99 communities: VR, physics, AI, swarm, economy, robotics, IoT, and more</p>
           </div>
           <div class="card card--glow" style="text-align: center">
             <div class="card-icon">&#x1F504;</div>
-            <h3 class="card-title card-title--cyan">18+ Compilation Targets</h3>
+            <h3 class="card-title card-title--cyan">25+ Compile Targets</h3>
             <p>
-              Unity, Unreal, Godot, VRChat, Babylon, WebGPU, visionOS, Android XR, URDF, SDF, DTDL,
+              Unity, Unreal, Godot, VRChat, WebGPU, visionOS, Android XR, URDF, SDF, DTDL,
               OpenUSD, and more
             </p>
+          </div>
+          <div class="card card--glow" style="text-align: center">
+            <div class="card-icon">&#x1F916;</div>
+            <h3 class="card-title card-title--cyan">43+ AI Tools</h3>
+            <p>
+              MCP server for Claude, Cursor, Copilot. Brittney fine-tuned model. Swarm intelligence.
+              3-layer agent comms
+            </p>
+          </div>
+          <div class="card card--glow" style="text-align: center">
+            <div class="card-icon">&#x1F50D;</div>
+            <h3 class="card-title card-title--cyan">holoscript absorb</h3>
+            <p>Scan any codebase. Build a knowledge graph. Query with Graph RAG. Visualize in 3D</p>
+          </div>
+          <div class="card card--glow" style="text-align: center">
+            <div class="card-icon">&#x1F6D2;</div>
+            <h3 class="card-title card-title--cyan">Triple Marketplace</h3>
+            <p>Traits + Plugins + Skills. Ed25519 signatures. x402 payments. Dependency resolution</p>
+          </div>
+          <div class="card card--glow" style="text-align: center">
+            <div class="card-icon">&#x1F4BB;</div>
+            <h3 class="card-title card-title--cyan">4 IDE Integrations</h3>
+            <p>VS Code (debugger, DAP, collab), IntelliJ, Neovim, Tree-sitter. Plus CLI and Studio</p>
           </div>
         </div>
       </div>
@@ -1749,5 +1770,68 @@ export default {
   .nav-studio {
     display: none;
   }
+}
+
+/* ========= PLATFORM STACK ========= */
+.platform-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 700px;
+  margin: 2.5rem auto 0;
+}
+.stack-layer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.stack-layer:hover {
+  transform: translateX(6px);
+  box-shadow: var(--glow);
+}
+.stack-num {
+  font-size: 0.75rem;
+  font-weight: 700;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--gradient);
+  color: #000;
+}
+.stack-layer strong {
+  min-width: 100px;
+  color: var(--cyan);
+}
+.stack-detail {
+  color: var(--text2);
+  font-size: 0.85rem;
+}
+.stack-6 { background: rgba(139, 92, 246, 0.15); }
+.stack-5 { background: rgba(99, 102, 241, 0.15); }
+.stack-4 { background: rgba(59, 130, 246, 0.15); }
+.stack-3 { background: rgba(6, 182, 212, 0.15); }
+.stack-2 { background: rgba(16, 185, 129, 0.15); }
+.stack-1 { background: rgba(0, 255, 255, 0.12); }
+
+#platform code {
+  background: rgba(0, 255, 255, 0.1);
+  color: var(--cyan);
+  padding: 0.15em 0.5em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+@media (max-width: 600px) {
+  .stack-detail { display: none; }
+  .stack-layer strong { min-width: auto; }
 }
 </style>
