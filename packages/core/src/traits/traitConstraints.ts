@@ -187,4 +187,64 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     targets: ['ui_floating', 'ui_anchored', 'ui_docked', 'ui_hand_menu'],
     message: 'UI element can only have one positioning mode.',
   },
+
+  // =============================================================================
+  // SPATIAL CONSTRAINT TRAIT REQUIREMENTS
+  // =============================================================================
+
+  // spatial_adjacent requires collidable bounds for distance measurement
+  {
+    type: 'requires',
+    source: 'spatial_adjacent',
+    targets: ['collidable'],
+    message:
+      'spatial_adjacent requires collidable bounds to measure distance between entities.',
+    suggestion:
+      'Add @collidable to provide bounds for spatial adjacency checking.',
+  },
+
+  // spatial_contains requires collidable bounds to define the container volume
+  {
+    type: 'requires',
+    source: 'spatial_contains',
+    targets: ['collidable'],
+    message:
+      'spatial_contains requires collidable bounds to define the container volume.',
+    suggestion:
+      'Add @collidable to define the bounding volume for containment checking.',
+  },
+
+  // spatial_reachable requires spatial_awareness for runtime path validation
+  {
+    type: 'requires',
+    source: 'spatial_reachable',
+    targets: ['spatial_awareness'],
+    message:
+      'spatial_reachable requires spatial_awareness for runtime path and obstacle detection.',
+    suggestion:
+      'Add @spatial_awareness to enable spatial context for reachability checks.',
+  },
+
+  // spatial_contains conflicts with static (containers may need dynamic bounds)
+  {
+    type: 'conflicts',
+    source: 'spatial_contains',
+    targets: ['invisible'],
+    message:
+      'spatial_contains containers cannot be invisible; contained entities need visible boundary reference.',
+    suggestion:
+      'Remove @invisible or use @spatial_adjacent instead for invisible reference points.',
+  },
+
+  // Only one spatial constraint enforcement mode per entity
+  {
+    type: 'oneof',
+    source: 'spatial_constraint_mode',
+    targets: ['spatial_adjacent', 'spatial_contains'],
+    message:
+      'An entity should declare either spatial_adjacent or spatial_contains, not both. ' +
+      'Use spatial_adjacent for proximity or spatial_contains for enclosure.',
+    suggestion:
+      'Choose the most appropriate spatial relationship: @spatial_adjacent for "near" or @spatial_contains for "inside".',
+  },
 ];

@@ -61,6 +61,31 @@ export {
 // Context provider
 export { SpatialContextProvider, SpatialContextProviderEvents } from './SpatialContextProvider';
 
+// Spatial constraint types
+export type {
+  SpatialConstraintKind,
+  SpatialAdjacentConstraint,
+  SpatialAdjacentConfig,
+  SpatialContainsConstraint,
+  SpatialContainsConfig,
+  SpatialReachableConstraint,
+  SpatialReachableConfig,
+  SpatialAxis,
+  SpatialReachableAlgorithm,
+  SpatialEnforcementMode,
+  SpatialConstraint,
+  SpatialDiagnosticSeverity,
+  SpatialConstraintDiagnostic,
+  SpatialConstraintCheckResult,
+  SpatialDeclaration,
+  SpatialConstraintViolationEvent,
+  SpatialConstraintResolvedEvent,
+  SpatialConstraintEvent,
+} from './SpatialConstraintTypes';
+
+// Spatial constraint validator
+export { SpatialConstraintValidator } from './SpatialConstraintValidator';
+
 // Octree systems
 export { OctreeSystem, OctreeEntry } from './OctreeSystem';
 export {

@@ -25,6 +25,14 @@
     "./time": {
       "types": "./dist/time.d.ts",
       "import": "./dist/time.js"
+    },
+    "./economic": {
+      "types": "./dist/traits/EconomicPrimitives.d.ts",
+      "import": "./dist/traits/EconomicPrimitives.js"
+    },
+    "./economic-traits": {
+      "types": "./dist/traits/EconomicTraits.d.ts",
+      "import": "./dist/traits/EconomicTraits.js"
     }
   },
   "scripts": {
@@ -38,7 +46,10 @@
     "std",
     "standard-library",
     "3d",
-    "spatial"
+    "spatial",
+    "economic",
+    "bonding-curve",
+    "pid-controller"
   ],
   "author": "Brian X Base Team",
   "license": "MIT",

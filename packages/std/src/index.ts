@@ -148,6 +148,71 @@ export {
   similarity,
 } from './string.js';
 
+// Economic primitives (v4.3)
+export {
+  // Tradeable
+  generateTxHash,
+  executeTrade,
+  // Depreciation
+  calculateDepreciation,
+  depreciatedValue,
+  isDestroyed,
+  calculateRepairCost,
+  DEFAULT_DEPRECIATION,
+  // Bonding curves
+  bondingCurvePrice,
+  bondingCurveBuyCost,
+  bondingCurveSellRefund,
+  spatialPrice,
+  DEFAULT_BONDING_CURVE,
+  // Wealth taxation
+  calculateTaxRate,
+  calculateTaxAmount,
+  calculateRedistribution,
+  DEFAULT_WEALTH_TAX,
+  // PID control
+  createPIDState,
+  updatePID,
+  createDualLoopPIDState,
+  updateDualLoopPID,
+  DEFAULT_PID,
+  // Faucet-sink tracking
+  createFaucetSinkMetrics,
+  recordFaucet,
+  recordSink,
+  resetMetricsPeriod,
+} from './traits/EconomicPrimitives.js';
+export type {
+  Currency,
+  AgentID,
+  EconomicResult,
+  EconomicError,
+  EconomicPermission,
+  OwnershipRecord,
+  TransferRecord,
+  DepreciationConfig,
+  BondingCurveType,
+  BondingCurveConfig,
+  WealthTaxConfig,
+  PIDConfig,
+  PIDState,
+  DualLoopPIDConfig,
+  DualLoopPIDState,
+  FaucetSinkMetrics,
+} from './traits/EconomicPrimitives.js';
+
+// Economic traits (v4.3)
+export {
+  EconomicTraits,
+  getEconomicTraitNames,
+  getEconomicTrait,
+  validateTraitComposition,
+  getRequiredPermissions,
+} from './traits/EconomicTraits.js';
+export type {
+  EconomicTraitDefinition,
+} from './traits/EconomicTraits.js';
+
 // Time utilities
 export {
   now,

@@ -11,8 +11,9 @@
  * - Event emission for monitoring systems
  * - Batch export support
  * - AgentIdentity RBAC integration ready
+ * - Gaussian primitive budget warnings per platform (W.034)
  *
- * @version 1.0.0
+ * @version 1.1.0
  * @package @holoscript/core/compiler
  */
 
@@ -64,6 +65,12 @@ import {
   type MemoryStats,
   type CompilerStateMonitorOptions,
 } from './CompilerStateMonitor';
+import {
+  GaussianBudgetAnalyzer,
+  type GaussianPlatform,
+  type GaussianBudgetAnalysis,
+  type GaussianBudgetWarning,
+} from './GaussianBudgetAnalyzer';
 
 // =============================================================================
 // TYPES
@@ -84,6 +91,17 @@ export interface ExportOptions {
   useMemoryMonitoring?: boolean;
   /** Custom memory monitor config */
   memoryMonitorConfig?: CompilerStateMonitorOptions;
+  /**
+   * Enable Gaussian primitive budget analysis (default: true).
+   * When enabled, compositions containing gaussian_splat traits are checked
+   * against platform-specific budgets and warnings are emitted.
+   */
+  enableGaussianBudgetWarnings?: boolean;
+  /**
+   * Custom Gaussian budget overrides per platform.
+   * Allows callers to set stricter or looser budgets than the defaults.
+   */
+  gaussianBudgetOverrides?: Partial<Record<GaussianPlatform, number>>;
 }
 
 export interface ExportResult {
@@ -98,6 +116,8 @@ export interface ExportResult {
   executionTime: number;
   /** Memory stats at completion (if memory monitoring enabled) */
   memoryStats?: MemoryStats;
+  /** Gaussian primitive budget analysis (if budget warnings enabled and composition has gaussian_splat traits) */
+  gaussianBudgetAnalysis?: GaussianBudgetAnalysis;
 }
 
 export interface BatchExportResult {
@@ -198,11 +218,54 @@ class CompilerFactory {
 }
 
 // =============================================================================
+// GAUSSIAN BUDGET: TARGET-TO-PLATFORM MAPPING
+// =============================================================================
+
+/**
+ * Maps export targets to the Gaussian platform(s) they should be validated against.
+ *
+ * Some targets map to a single platform (e.g., 'visionos' -> ['visionos']),
+ * while others map to multiple platforms when the output could run on
+ * different hardware (e.g., 'openxr' runs on both Quest 3 and Desktop VR).
+ *
+ * Targets that have no Gaussian rendering concern (e.g., 'urdf', 'sdf', 'dtdl')
+ * are not listed and will skip budget analysis.
+ */
+const EXPORT_TARGET_TO_GAUSSIAN_PLATFORMS: Partial<Record<ExportTarget, GaussianPlatform[]>> = {
+  // VR targets
+  vrchat: ['quest3', 'desktop_vr'],
+  openxr: ['quest3', 'desktop_vr'],
+  vrr: ['quest3', 'desktop_vr'],
+
+  // Mobile VR
+  'android-xr': ['quest3'],
+
+  // Desktop/Browser rendering
+  webgpu: ['webgpu'],
+  babylon: ['webgpu', 'desktop_vr'],
+  r3f: ['webgpu'],
+  playcanvas: ['webgpu'],
+  wasm: ['webgpu'],
+
+  // Native VR/AR platforms
+  visionos: ['visionos'],
+  unity: ['quest3', 'desktop_vr', 'visionos'],
+  unreal: ['quest3', 'desktop_vr'],
+  godot: ['quest3', 'desktop_vr'],
+
+  // Mobile AR
+  ar: ['mobile_ar'],
+  android: ['mobile_ar'],
+  ios: ['mobile_ar', 'visionos'],
+};
+
+// =============================================================================
 // EXPORT MANAGER
 // =============================================================================
 
 /**
- * Main export manager with circuit breaker integration and memory monitoring
+ * Main export manager with circuit breaker integration, memory monitoring,
+ * and Gaussian primitive budget warnings (W.034).
  */
 export class ExportManager {
   private circuitRegistry: CircuitBreakerRegistry;
@@ -221,6 +284,8 @@ export class ExportManager {
       compilerOptions: options.compilerOptions ?? {},
       useMemoryMonitoring: options.useMemoryMonitoring ?? true,
       memoryMonitorConfig: options.memoryMonitorConfig ?? {},
+      enableGaussianBudgetWarnings: options.enableGaussianBudgetWarnings ?? true,
+      gaussianBudgetOverrides: options.gaussianBudgetOverrides ?? {},
     };
 
     this.circuitRegistry = new CircuitBreakerRegistry({
@@ -502,6 +567,9 @@ export class ExportManager {
     // Capture memory stats after compilation
     const memoryStats = this.memoryMonitor?.captureMemoryStats();
 
+    // Run Gaussian budget analysis (W.034)
+    const budgetResult = this.analyzeGaussianBudget(target, composition, options);
+
     const result: ExportResult = {
       target,
       success: circuitResult.success,
@@ -509,10 +577,11 @@ export class ExportManager {
       error: circuitResult.error,
       usedFallback: circuitResult.usedFallback,
       circuitState: circuitResult.state,
-      warnings: [],
+      warnings: budgetResult?.warningMessages ?? [],
       metrics: circuitResult.metrics,
       executionTime: Date.now() - startTime,
       memoryStats,
+      gaussianBudgetAnalysis: budgetResult?.analysis,
     };
 
     if (circuitResult.success) {
@@ -552,16 +621,20 @@ export class ExportManager {
       // Capture memory stats after compilation
       const memoryStats = this.memoryMonitor?.captureMemoryStats();
 
+      // Run Gaussian budget analysis (W.034)
+      const budgetResult = this.analyzeGaussianBudget(target, composition, options);
+
       const result: ExportResult = {
         target,
         success: true,
         output,
         usedFallback: false,
         circuitState: CircuitState.CLOSED,
-        warnings: [],
+        warnings: budgetResult?.warningMessages ?? [],
         metrics: this.circuitRegistry.getBreaker(target).getMetrics(),
         executionTime: Date.now() - startTime,
         memoryStats,
+        gaussianBudgetAnalysis: budgetResult?.analysis,
       };
 
       this.emitEvent({
@@ -584,22 +657,71 @@ export class ExportManager {
 
           const memoryStats = this.memoryMonitor?.captureMemoryStats();
 
+          // Run Gaussian budget analysis even on fallback path (W.034)
+          const budgetResult = this.analyzeGaussianBudget(target, composition, options);
+
           return {
             target,
             success: true,
             output: refResult.output,
             usedFallback: true,
             circuitState: CircuitState.CLOSED,
-            warnings: refResult.warnings,
+            warnings: [...refResult.warnings, ...(budgetResult?.warningMessages ?? [])],
             metrics: this.circuitRegistry.getBreaker(target).getMetrics(),
             executionTime: Date.now() - startTime,
             memoryStats,
+            gaussianBudgetAnalysis: budgetResult?.analysis,
           };
         }
       }
 
       throw error;
     }
+  }
+
+  /**
+   * Run Gaussian primitive budget analysis for the given target and composition.
+   *
+   * Determines the relevant platform(s) for the export target, runs the
+   * GaussianBudgetAnalyzer, and returns the analysis result along with
+   * formatted warning strings suitable for the ExportResult.warnings array.
+   *
+   * Returns null if:
+   * - Gaussian budget warnings are disabled
+   * - The target has no Gaussian-relevant platforms
+   * - The composition has no gaussian_splat traits
+   */
+  private analyzeGaussianBudget(
+    target: ExportTarget,
+    composition: HoloComposition,
+    options: Required<ExportOptions>,
+  ): { analysis: GaussianBudgetAnalysis; warningMessages: string[] } | null {
+    if (!options.enableGaussianBudgetWarnings) return null;
+
+    // Determine which platforms this target should be validated against
+    const platforms = EXPORT_TARGET_TO_GAUSSIAN_PLATFORMS[target];
+    if (!platforms || platforms.length === 0) return null;
+
+    const analyzer = new GaussianBudgetAnalyzer({
+      platforms,
+      budgetOverrides: options.gaussianBudgetOverrides as Partial<Record<GaussianPlatform, number>> | undefined,
+      includeInfoMessages: false,
+    });
+
+    const analysis = analyzer.analyze(composition);
+
+    // No gaussian_splat traits found — skip
+    if (analysis.totalGaussians === 0) return null;
+
+    // Format warnings as strings for the warnings array
+    const warningMessages = analysis.warnings
+      .filter(w => w.severity === 'warning' || w.severity === 'critical')
+      .map(w => {
+        const prefix = w.severity === 'critical' ? '[GAUSSIAN BUDGET EXCEEDED]' : '[GAUSSIAN BUDGET WARNING]';
+        return `${prefix} ${w.message}${w.suggestion ? ' Suggestion: ' + w.suggestion : ''}`;
+      });
+
+    return { analysis, warningMessages };
   }
 
   private emitEvent(event: ExportEvent): void {

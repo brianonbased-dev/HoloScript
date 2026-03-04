@@ -350,6 +350,18 @@ export {
 } from './compiler/ExportManager';
 
 export {
+  GaussianBudgetAnalyzer,
+  analyzeGaussianBudget,
+  GAUSSIAN_PLATFORM_BUDGETS,
+  type GaussianPlatform,
+  type GaussianBudgetAnalysis,
+  type GaussianBudgetWarning,
+  type GaussianBudgetAnalyzerOptions,
+  type GaussianSource,
+  type BudgetSeverity,
+} from './compiler/GaussianBudgetAnalyzer';
+
+export {
   CircuitBreakerMonitor,
   formatHealthReport,
   type HealthStatus,
