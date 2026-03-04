@@ -43,7 +43,7 @@
   "author": "Brian X Base Team",
   "license": "MIT",
   "dependencies": {
-    "node-addon-api": "^7.1.0",
+    "node-addon-api": "^8.6.0",
     "node-gyp-build": "^4.8.0"
   },
   "peerDependencies": {

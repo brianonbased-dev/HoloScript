@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@coinbase/agentkit':
         specifier: ^0.10.4
-        version: 0.10.4(@tanstack/react-query@5.90.21)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.3)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.13.0)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)
+        version: 0.10.4(@tanstack/react-query@5.90.21)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.3)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.13.1)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)
       tree-sitter-go:
         specifier: ^0.25.0
         version: 0.25.0(tree-sitter@0.21.1)
@@ -71,7 +71,7 @@ importers:
         version: 14.0.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typedoc:
         specifier: ^0.28.16
         version: 0.28.16(typescript@5.9.3)
@@ -127,7 +127,7 @@ importers:
         version: 4.0.18(vitest@4.0.18)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -149,7 +149,7 @@ importers:
         version: 22.19.12
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -223,7 +223,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -273,7 +273,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -376,7 +376,7 @@ importers:
         version: 0.1.69
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typedoc:
         specifier: ^0.28.16
         version: 0.28.16(typescript@5.9.3)
@@ -504,7 +504,7 @@ importers:
         version: 22.19.12
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -523,7 +523,7 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -579,7 +579,7 @@ importers:
         version: 24.10.13
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -875,7 +875,7 @@ importers:
         version: 14.3.1(@types/react@18.3.28)(react-dom@18.3.1)(react@18.3.1)
       '@testing-library/user-event':
         specifier: ^14.5.0
-        version: 14.6.1(@testing-library/dom@9.3.4)
+        version: 14.6.1(@testing-library/dom@10.4.1)
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.28
@@ -902,7 +902,7 @@ importers:
         version: 0.170.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -948,7 +948,7 @@ importers:
         version: 8.0.1(@types/react@18.3.28)(react-dom@18.3.1)(react@18.3.1)
       '@testing-library/user-event':
         specifier: ^14.5.0
-        version: 14.6.1(@testing-library/dom@9.3.4)
+        version: 14.6.1(@testing-library/dom@10.4.1)
       '@types/node':
         specifier: ^24.10.1
         version: 24.10.13
@@ -975,7 +975,7 @@ importers:
         version: 7.6.23
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1052,7 +1052,7 @@ importers:
         version: 0.170.0
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1077,7 +1077,7 @@ importers:
         version: 4.0.18(vitest@4.0.18)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1300,7 +1300,7 @@ importers:
         version: 23.11.1(typescript@5.9.3)
       tsup:
         specifier: ^8.0.1
-        version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -1311,8 +1311,8 @@ importers:
   packages/tree-sitter-holoscript:
     dependencies:
       node-addon-api:
-        specifier: ^7.1.0
-        version: 7.1.1
+        specifier: ^8.6.0
+        version: 8.6.0
       node-gyp-build:
         specifier: ^4.8.0
         version: 4.8.4
@@ -3358,7 +3358,7 @@ packages:
       '@chainsafe/is-ip': 2.1.0
     dev: false
 
-  /@coinbase/agentkit@0.10.4(@tanstack/react-query@5.90.21)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.3)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.13.0)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0):
+  /@coinbase/agentkit@0.10.4(@tanstack/react-query@5.90.21)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.3)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.13.1)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0):
     resolution: {integrity: sha512-1ZnjY6ohuBXqseZDUhrkFnlU+UjNBr9TeZjpa4wjR8pGQq2RhhVKXQSe5UOFpitgtK3z8ytsQXTHwKRohkExKw==}
     dependencies:
       '@across-protocol/app-sdk': 0.2.3(viem@2.38.3)
@@ -3388,7 +3388,7 @@ packages:
       clanker-sdk: 4.2.10(@types/node@24.10.13)(typescript@5.9.3)(viem@2.38.3)
       decimal.js: 10.6.0
       ethers: 6.16.0
-      graphql-request: 7.4.0(graphql@16.13.0)
+      graphql-request: 7.4.0(graphql@16.13.1)
       md5: 2.3.0
       opensea-js: 7.4.0
       reflect-metadata: 0.2.2
@@ -5832,6 +5832,14 @@ packages:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
     dependencies:
       graphql: 16.13.0
+    dev: false
+
+  /@graphql-typed-document-node/core@3.2.0(graphql@16.13.1):
+    resolution: {integrity: sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==}
+    peerDependencies:
+      graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
+    dependencies:
+      graphql: 16.13.1
     dev: false
 
   /@graphql-yoga/subscription@5.0.5:
@@ -11927,6 +11935,20 @@ packages:
       '@tauri-apps/api': 2.10.1
     dev: false
 
+  /@testing-library/dom@10.4.1:
+    resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
+    engines: {node: '>=18'}
+    dependencies:
+      '@babel/code-frame': 7.29.0
+      '@babel/runtime': 7.28.6
+      '@types/aria-query': 5.0.4
+      aria-query: 5.3.0
+      dom-accessibility-api: 0.5.16
+      lz-string: 1.5.0
+      picocolors: 1.1.1
+      pretty-format: 27.5.1
+    dev: true
+
   /@testing-library/dom@9.3.4:
     resolution: {integrity: sha512-FlS4ZWlp97iiNWig0Muq8p+3rVDjRiYE+YKGbAqXOu9nwJFFOdL00kFpz42M+4huzYi86vAK1sOOfyOG45muIQ==}
     engines: {node: '>=14'}
@@ -12006,6 +12028,15 @@ packages:
       react-dom: 19.2.4(react@19.2.4)
     transitivePeerDependencies:
       - '@types/react'
+    dev: true
+
+  /@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1):
+    resolution: {integrity: sha512-vq7fv0rnt+QTXgPxr5Hjc210p6YKq2kmdziLgnsZGgLJ9e6VAShx1pACLuRjd/AS/sr7phAR58OIIpf0LlmQNw==}
+    engines: {node: '>=12', npm: '>=6'}
+    peerDependencies:
+      '@testing-library/dom': '>=7.21.4'
+    dependencies:
+      '@testing-library/dom': 10.4.1
     dev: true
 
   /@testing-library/user-event@14.6.1(@testing-library/dom@9.3.4):
@@ -15208,6 +15239,12 @@ packages:
       deep-equal: 2.2.3
     dev: true
 
+  /aria-query@5.3.0:
+    resolution: {integrity: sha512-b0P0sZPKtyu8HkeRAfCq0IfURZK+SuwMjY1UXGBU27wpAiTwQAIlq56IbIO+ytk/JjS1fMR14ee5WBBfKi5J6A==}
+    dependencies:
+      dequal: 2.0.3
+    dev: true
+
   /aria-query@5.3.2:
     resolution: {integrity: sha512-COROpnaoap1E2F000S62r6A60uHZnmlvomhfyT2DlTcrY1OrBKn2UhH7qn5wTC9zMvD0AY7csdPSNwKP+7WiQw==}
     engines: {node: '>= 0.4'}
@@ -15981,16 +16018,6 @@ packages:
       esbuild: '>=0.18'
     dependencies:
       esbuild: 0.27.2
-      load-tsconfig: 0.2.5
-    dev: true
-
-  /bundle-require@5.1.0(esbuild@0.27.3):
-    resolution: {integrity: sha512-3WrrOuZiyaaZPWiEt4G3+IffISVC9HYlWueJEBWED4ZH4aIAC2PnkdnuRrR94M+w6yGWn4AglWtJtBI8YqvgoA==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
-    peerDependencies:
-      esbuild: '>=0.18'
-    dependencies:
-      esbuild: 0.27.3
       load-tsconfig: 0.2.5
     dev: true
 
@@ -19755,13 +19782,13 @@ packages:
       - graphql-middleware
     dev: false
 
-  /graphql-request@7.4.0(graphql@16.13.0):
+  /graphql-request@7.4.0(graphql@16.13.1):
     resolution: {integrity: sha512-xfr+zFb/QYbs4l4ty0dltqiXIp07U6sl+tOKAb0t50/EnQek6CVVBLjETXi+FghElytvgaAWtIOt3EV7zLzIAQ==}
     peerDependencies:
       graphql: 14 - 16
     dependencies:
-      '@graphql-typed-document-node/core': 3.2.0(graphql@16.13.0)
-      graphql: 16.13.0
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.13.1)
+      graphql: 16.13.1
     dev: false
 
   /graphql-scalars@1.25.0(graphql@16.13.0):
@@ -19818,6 +19845,11 @@ packages:
 
   /graphql@16.13.0:
     resolution: {integrity: sha512-uSisMYERbaB9bkA9M4/4dnqyktaEkf1kMHNKq/7DHyxVeWqHQ2mBmVqm5u6/FVHwF3iCNalKcg82Zfl+tffWoA==}
+    engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
+    dev: false
+
+  /graphql@16.13.1:
+    resolution: {integrity: sha512-gGgrVCoDKlIZ8fIqXBBb0pPKqDgki0Z/FSKNiQzSGj2uEYHr1tq5wmBegGwJx6QB5S5cM0khSBpi/JFHMCvsmQ==}
     engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
     dev: false
 
@@ -22680,12 +22712,8 @@ packages:
     resolution: {integrity: sha512-+eawOlIgy680F0kBzPUNFhMZGtJ1YmqM6l4+Crf4IkImjYrO/mqPwRMh352g23uIaQKFItcQ64I7KMaJxHgAVA==}
     dev: false
 
-  /node-addon-api@7.1.1:
-    resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
-    dev: false
-
-  /node-addon-api@8.5.0:
-    resolution: {integrity: sha512-/bRZty2mXUIFY/xU5HLvveNHlswNJej+RnxBjOMkidWfwZzgTbPG1E3K5TOxRLOR+5hX7bSofy8yf1hZevMS8A==}
+  /node-addon-api@8.6.0:
+    resolution: {integrity: sha512-gBVjCaqDlRUk0EwoPNKzIr9KkS9041G/q31IBShPs1Xz6UTA+EXdZADbzqAJQrpDRq71CIMnOP5VMut3SL0z5Q==}
     engines: {node: ^18 || ^20 || >= 21}
     dev: false
 
@@ -23945,6 +23973,15 @@ packages:
       nanoid: 3.3.11
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  /postcss@8.5.8:
+    resolution: {integrity: sha512-OW/rX8O/jXnm82Ey1k44pObPtdblfiuWnrd8X7GJ7emImCOstunGbXUpp7HdBrFQX6rJzn3sPT397Wp5aCwCHg==}
+    engines: {node: ^10 || ^12 || >=14}
+    dependencies:
+      nanoid: 3.3.11
+      picocolors: 1.1.1
+      source-map-js: 1.2.1
+    dev: true
 
   /postgres-array@2.0.0:
     resolution: {integrity: sha512-VpZrUqU5A69eQyW2c5CA1jtLecCsN2U/bD6VilrFDWq5+5UIEVO7nazS3TEcHf1zuPYO/sqGvUvW62g86RXZuA==}
@@ -26837,7 +26874,7 @@ packages:
       tree-sitter:
         optional: true
     dependencies:
-      node-addon-api: 8.5.0
+      node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
       tree-sitter: 0.21.1
     dev: false
@@ -26851,7 +26888,7 @@ packages:
       tree-sitter:
         optional: true
     dependencies:
-      node-addon-api: 8.5.0
+      node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
       tree-sitter: 0.21.1
     dev: false
@@ -26865,7 +26902,7 @@ packages:
       tree-sitter:
         optional: true
     dependencies:
-      node-addon-api: 8.5.0
+      node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
       tree-sitter: 0.21.1
     dev: false
@@ -26879,7 +26916,7 @@ packages:
       tree-sitter:
         optional: true
     dependencies:
-      node-addon-api: 8.5.0
+      node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
       tree-sitter: 0.21.1
     dev: false
@@ -26893,7 +26930,7 @@ packages:
       tree-sitter:
         optional: true
     dependencies:
-      node-addon-api: 8.5.0
+      node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
       tree-sitter: 0.21.1
     dev: false
@@ -26907,7 +26944,7 @@ packages:
       tree-sitter:
         optional: true
     dependencies:
-      node-addon-api: 8.5.0
+      node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
       tree-sitter: 0.21.1
       tree-sitter-javascript: 0.23.1(tree-sitter@0.21.1)
@@ -26917,7 +26954,7 @@ packages:
     resolution: {integrity: sha512-7dxoA6kYvtgWw80265MyqJlkRl4yawIjO7S5MigytjELkX43fV2WsAXzsNfO7sBpPPCF5Gp0+XzHk0DwLCq3xQ==}
     requiresBuild: true
     dependencies:
-      node-addon-api: 8.5.0
+      node-addon-api: 8.6.0
       node-gyp-build: 4.8.4
     dev: false
 
@@ -27060,51 +27097,6 @@ packages:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
   /tsup@8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3):
-    resolution: {integrity: sha512-xtgkqwdhpKWr3tKPmCkvYmS9xnQK3m3XgxZHwSUjvfTjp7YfXe5tT3GgWi0F2N+ZSMsOeWeZFh7ZZFg5iPhing==}
-    engines: {node: '>=18'}
-    hasBin: true
-    peerDependencies:
-      '@microsoft/api-extractor': ^7.36.0
-      '@swc/core': ^1
-      postcss: ^8.4.12
-      typescript: '>=4.5.0'
-    peerDependenciesMeta:
-      '@microsoft/api-extractor':
-        optional: true
-      '@swc/core':
-        optional: true
-      postcss:
-        optional: true
-      typescript:
-        optional: true
-    dependencies:
-      bundle-require: 5.1.0(esbuild@0.27.3)
-      cac: 6.7.14
-      chokidar: 4.0.3
-      consola: 3.4.2
-      debug: 4.4.3
-      esbuild: 0.27.3
-      fix-dts-default-cjs-exports: 1.0.1
-      joycon: 3.1.1
-      picocolors: 1.1.1
-      postcss: 8.5.6
-      postcss-load-config: 6.0.1(postcss@8.5.6)(tsx@4.21.0)
-      resolve-from: 5.0.0
-      rollup: 4.55.1
-      source-map: 0.7.6
-      sucrase: 3.35.1
-      tinyexec: 0.3.2
-      tinyglobby: 0.2.15
-      tree-kill: 1.2.2
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - jiti
-      - supports-color
-      - tsx
-      - yaml
-    dev: true
-
-  /tsup@8.5.1(postcss@8.5.6)(typescript@5.9.3):
     resolution: {integrity: sha512-xtgkqwdhpKWr3tKPmCkvYmS9xnQK3m3XgxZHwSUjvfTjp7YfXe5tT3GgWi0F2N+ZSMsOeWeZFh7ZZFg5iPhing==}
     engines: {node: '>=18'}
     hasBin: true
@@ -28150,7 +28142,7 @@ packages:
     dependencies:
       '@types/node': 24.10.13
       esbuild: 0.18.20
-      postcss: 8.5.6
+      postcss: 8.5.8
       rollup: 3.30.0
     optionalDependencies:
       fsevents: 2.3.3
@@ -28876,6 +28868,7 @@ packages:
 
   /web-tree-sitter@0.24.7:
     resolution: {integrity: sha512-CdC/TqVFbXqR+C51v38hv6wOPatKEUGxa39scAeFSm98wIhZxAYonhRQPSMmfZ2w7JDI0zQDdzdmgtNk06/krQ==}
+    requiresBuild: true
     dev: false
 
   /web3-utils@1.10.4:
