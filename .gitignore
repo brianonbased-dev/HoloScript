@@ -209,4 +209,11 @@ packages/video-tutorials/public/narration/*.mp3
 packages/video-tutorials/public/captures/*.webm
 packages/video-tutorials/public/captures/*.mp4
 .secrets/
+
+# GitNexus (external tool artifacts — not source code)
 .gitnexus
+AGENTS.md
+.claude/skills/gitnexus/
+
+# Benchmark scripts (temporary, not part of the project)
+benchmark-absorb.ts
