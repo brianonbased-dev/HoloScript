@@ -44,7 +44,10 @@
     "docs:api:json": "typedoc --json docs/api/api.json",
     "test:mutate": "npx stryker run",
     "audit:security": "pnpm audit --audit-level=moderate",
-    "analyze:bundle": "pnpm --filter @holoscript/core build && npx rollup-plugin-visualizer dist/stats.html"
+    "analyze:bundle": "pnpm --filter @holoscript/core build && npx rollup-plugin-visualizer dist/stats.html",
+    "self-improve": "tsx scripts/self-improve.ts --verbose",
+    "self-improve:daemon": "tsx scripts/self-improve.ts --daemon --verbose",
+    "self-improve:commit": "tsx scripts/self-improve.ts --daemon --commit --verbose"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
