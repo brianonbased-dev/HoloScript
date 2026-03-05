@@ -58,25 +58,25 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#00ffff' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:url', content: 'https://holoscript.net' }],
-    ['meta', { property: 'og:title', content: 'HoloScript - One Language, Every Platform' }],
+    ['meta', { property: 'og:title', content: 'HoloScript - The Open Platform for Spatial Worlds' }],
     [
       'meta',
       {
         property: 'og:description',
         content:
-          'Open spatial computing platform — 3 languages, 25+ compile targets, AI agent runtime, 1,800+ semantic traits. Write once, deploy to Unity, Unreal, WebXR, robotics, and IoT.',
+          'Create with AI. Own what you build. Ship everywhere. Open platform for spatial worlds — interactive 3D, AI agents, open marketplace. Works with Unity, Unreal, WebGPU, and 20+ more.',
       },
     ],
     ['meta', { property: 'og:image', content: 'https://holoscript.net/og-image.png' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:site', content: '@holoscript' }],
-    ['meta', { name: 'twitter:title', content: 'HoloScript - One Language, Every Platform' }],
+    ['meta', { name: 'twitter:title', content: 'HoloScript - The Open Platform for Spatial Worlds' }],
     [
       'meta',
       {
         name: 'twitter:description',
         content:
-          'Open spatial computing platform — 3 languages, 25+ compile targets, AI agents, 1,800+ traits. Write once, run everywhere.',
+          'Create with AI. Own what you build. Ship everywhere. Open platform for spatial worlds — AI agents, marketplace, 25+ compile targets.',
       },
     ],
     ['meta', { name: 'twitter:image', content: 'https://holoscript.net/og-image.png' }],

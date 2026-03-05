@@ -1,6 +1,6 @@
 # HoloScript for Unity
 
-Official Unity integration for the HoloScript VR scene description language.
+Official Unity integration for [HoloScript](https://holoscript.net) — the open platform for spatial worlds.
 
 ## Features
 

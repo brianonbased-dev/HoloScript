@@ -1,7 +1,7 @@
 {
   "name": "tree-sitter-holoscript",
   "version": "2.1.0",
-  "description": "Tree-sitter grammar for HoloScript - VR scene description language (native + WASM)",
+  "description": "Tree-sitter grammar for HoloScript — open spatial computing platform (native + WASM)",
   "main": "bindings/node",
   "types": "bindings/node/index.d.ts",
   "browser": "bindings/web/index.js",

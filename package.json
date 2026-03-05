@@ -1,8 +1,8 @@
 {
   "name": "holoscript",
-  "version": "3.42.0",
+  "version": "5.0.0",
   "private": true,
-  "description": "HoloScript - Open source VR scene description language",
+  "description": "HoloScript - The open platform for spatial worlds",
   "license": "MIT",
   "workspaces": [
     "packages/*"

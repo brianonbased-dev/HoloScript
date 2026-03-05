@@ -1,7 +1,7 @@
 ---
 layout: page
-title: HoloScript - One Language, Every Platform
-description: Open spatial computing platform — 3 languages, 25+ compile targets, AI agent runtime, and visual studio. Write once, deploy to Unity, Unreal, WebXR, robotics, and IoT.
+title: HoloScript - The Open Platform for Spatial Worlds
+description: Create with AI. Own what you build. Ship everywhere. HoloScript lets anyone create interactive 3D worlds, sell them on an open marketplace, and deploy autonomous agents. Open source and free forever.
 ---
 
 <LandingPage />

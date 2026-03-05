@@ -1,6 +1,6 @@
 # tree-sitter-holoscript
 
-Tree-sitter grammar for [HoloScript](https://holoscript.net) - the VR scene description language.
+Tree-sitter grammar for [HoloScript](https://holoscript.net) — the open platform for spatial worlds.
 
 ## Features
 
@@ -189,7 +189,7 @@ npm run build:wasm
 
 ## Related
 
-- [HoloScript](https://holoscript.net) - VR scene description language
+- [HoloScript](https://holoscript.net) — The open platform for spatial worlds
 - [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=holoscript.holoscript) - Full IDE support
 - [@holoscript/lsp](../lsp) - Language Server Protocol implementation
 
