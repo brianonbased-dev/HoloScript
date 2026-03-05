@@ -235,6 +235,7 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
     const { stdout, stderr } = await execAsync('npx tsc --noEmit 2>&1', {
       cwd: rootDir,
       timeout: 120_000,
+      maxBuffer: 50 * 1024 * 1024, // 50MB — large monorepo output
     });
     const output = stdout + stderr;
     const errorCount = (output.match(/error TS\d+/g) ?? []).length;
@@ -257,7 +258,7 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
     try {
       const { stdout } = await execAsync(
         'npx vitest run --reporter=json 2>&1',
-        { cwd: rootDir, timeout: 300_000 },
+        { cwd: rootDir, timeout: 300_000, maxBuffer: 50 * 1024 * 1024 },
       );
       try {
         const jsonMatch = stdout.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
@@ -291,6 +292,7 @@ async function handleValidateQuality(args: Record<string, unknown>): Promise<unk
       await execAsync('npx eslint . --max-warnings 0 2>&1', {
         cwd: rootDir,
         timeout: 120_000,
+        maxBuffer: 50 * 1024 * 1024,
       });
       scores.lint = { pass: true, score: 1.0, details: 'No lint errors' };
     } catch (err: any) {

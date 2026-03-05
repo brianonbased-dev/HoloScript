@@ -2,13 +2,13 @@
 /**
  * HoloScript Self-Improvement Runner
  *
- * Autonomous self-improvement loop powered by Claude API + HoloScript MCP Server.
+ * Autonomous self-improvement loop powered by Claude API + HoloScript tools.
  *
  * Architecture:
- *   1. Spawns holoscript-mcp as a child process (stdio transport)
+ *   1. Directly imports HoloScript MCP tool handlers (no server process needed)
  *   2. Creates a Claude API client with tool_use
- *   3. Sends a system prompt directing the 6-step improvement cycle
- *   4. Claude calls MCP tools, this script proxies tool calls to the MCP server
+ *   3. Injects the /holoscript skill as strategic context
+ *   4. Claude calls tools, this script proxies to handler functions
  *   5. After each cycle, logs results and optionally continues
  *
  * Usage:
@@ -33,17 +33,18 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-const REPO_ROOT = process.env.HOLOSCRIPT_ROOT ?? path.resolve(import.meta.dirname, '..');
+const __scriptDir = typeof __dirname !== 'undefined'
+  ? __dirname
+  : path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = process.env.HOLOSCRIPT_ROOT ?? path.resolve(__scriptDir, '..');
 const MODEL = 'claude-sonnet-4-20250514';
-const MAX_TOOL_CALLS = 25; // Safety limit per cycle
+const MAX_TOOL_CALLS = 25;
 
 interface Config {
   commit: boolean;
@@ -81,82 +82,112 @@ function parseArgs(): Config {
   return config;
 }
 
-// ─── MCP Client ──────────────────────────────────────────────────────────────
+// ─── Direct Tool Imports ─────────────────────────────────────────────────────
+// We import tool handlers directly instead of spawning the MCP server process.
+// This avoids broken imports in networking-tools.ts and is faster.
 
-async function createMCPClient(): Promise<Client> {
-  const serverPath = path.join(REPO_ROOT, 'packages', 'mcp-server', 'src', 'index.ts');
+async function loadToolHandlers() {
+  const mcpDir = path.join(REPO_ROOT, 'packages', 'mcp-server', 'src');
 
-  const transport = new StdioClientTransport({
-    command: 'npx',
-    args: ['tsx', serverPath],
-    env: { ...process.env, NODE_ENV: 'development' },
-  });
+  // Convert to file:// URLs for ESM compatibility on Windows
+  const toURL = (p: string) => pathToFileURL(p).href;
 
-  const client = new Client({ name: 'self-improve-runner', version: '1.0.0' }, {});
-  await client.connect(transport);
-  return client;
+  const codebaseTools = await import(toURL(path.join(mcpDir, 'codebase-tools.ts')));
+  const graphRagTools = await import(toURL(path.join(mcpDir, 'graph-rag-tools.ts')));
+  const selfImproveTools = await import(toURL(path.join(mcpDir, 'self-improve-tools.ts')));
+
+  return {
+    handlers: {
+      ...wrapHandler('codebase', codebaseTools.handleCodebaseTool),
+      ...wrapHandler('graphRag', graphRagTools.handleGraphRagTool),
+      ...wrapHandler('selfImprove', selfImproveTools.handleSelfImproveTool),
+    },
+    toolDefs: [
+      ...codebaseTools.codebaseTools,
+      ...graphRagTools.graphRagTools,
+      ...selfImproveTools.selfImproveTools,
+    ],
+  };
 }
 
-// ─── Tool Bridge ─────────────────────────────────────────────────────────────
-
-async function getMCPTools(client: Client): Promise<Anthropic.Tool[]> {
-  const { tools } = await client.listTools();
-  return tools.map((tool) => ({
-    name: tool.name,
-    description: tool.description ?? '',
-    input_schema: tool.inputSchema as Anthropic.Tool['input_schema'],
-  }));
+function wrapHandler(prefix: string, handler: (name: string, args: Record<string, unknown>) => Promise<unknown | null>) {
+  return { [prefix]: handler };
 }
 
-async function callMCPTool(
-  client: Client,
+async function callTool(
+  handlers: Record<string, (name: string, args: Record<string, unknown>) => Promise<unknown | null>>,
   name: string,
   args: Record<string, unknown>,
 ): Promise<string> {
   try {
-    const result = await client.callTool({ name, arguments: args });
-    const text = result.content
-      ?.filter((c: any) => c.type === 'text')
-      .map((c: any) => c.text)
-      .join('\n');
-    return text ?? JSON.stringify(result);
+    // Try each handler until one returns non-null
+    for (const handler of Object.values(handlers)) {
+      const result = await handler(name, args);
+      if (result !== null) {
+        return JSON.stringify(result, null, 2);
+      }
+    }
+    return JSON.stringify({ error: `Unknown tool: ${name}` });
   } catch (err: any) {
     return JSON.stringify({ error: err.message });
   }
+}
+
+// ─── Skill Loader ────────────────────────────────────────────────────────────
+
+function loadSkill(): string {
+  const skillPaths = [
+    path.join(process.env.USERPROFILE || process.env.HOME || '', '.claude', 'skills', 'holoscript', 'SKILL.md'),
+    path.join(REPO_ROOT, '.claude', 'skills', 'holoscript', 'SKILL.md'),
+  ];
+
+  for (const p of skillPaths) {
+    try {
+      if (fs.existsSync(p)) {
+        const content = fs.readFileSync(p, 'utf-8');
+        // Strip YAML frontmatter
+        const stripped = content.replace(/^---[\s\S]*?---\s*/, '');
+        return stripped.slice(0, 3000); // Keep first 3K chars of skill context
+      }
+    } catch { /* skip */ }
+  }
+  return '';
 }
 
 // ─── Claude Agent Loop ──────────────────────────────────────────────────────
 
 async function runImprovementCycle(
   anthropic: Anthropic,
-  mcpClient: Client,
+  handlers: Record<string, (name: string, args: Record<string, unknown>) => Promise<unknown | null>>,
+  toolDefs: any[],
   config: Config,
   cycleNumber: number,
+  skillContext: string,
 ): Promise<{ improved: boolean; summary: string }> {
-  const tools = await getMCPTools(mcpClient);
+  // Convert MCP tool defs to Anthropic format
+  const tools: Anthropic.Tool[] = toolDefs.map((t: any) => ({
+    name: t.name,
+    description: t.description ?? '',
+    input_schema: t.inputSchema as Anthropic.Tool['input_schema'],
+  }));
 
-  // Filter to relevant tools for self-improvement
-  const relevantTools = tools.filter((t) =>
-    t.name.startsWith('holo_') ||
-    t.name === 'validate_holoscript' ||
-    t.name === 'parse_hs' ||
-    t.name === 'parse_holo'
-  );
+  const systemPrompt = `You are HoloScript's autonomous self-improvement agent powered by the /holoscript skill.
 
-  const systemPrompt = `You are HoloScript's autonomous self-improvement agent. Your job is to make ONE concrete improvement to the HoloScript codebase per cycle.
+## /holoscript Skill Context
+${skillContext}
 
 ## Current Cycle: ${cycleNumber}
 ## Root Directory: ${config.rootDir}
 ## Focus Area: ${config.focus}
-## Auto-Commit: ${config.commit ? 'YES — commit if quality improves' : 'NO — dry run only'}
+## Auto-Commit: ${config.commit ? 'YES' : 'NO (dry run)'}
 
-## Your 6-Step Protocol
+## Your 6-Step Self-Improvement Protocol
 
 1. **ABSORB**: Call holo_graph_status first. If no graph is loaded, call holo_absorb_repo with rootDir="${config.rootDir}" and outputFormat="stats".
 
 2. **DIAGNOSE**: Call holo_self_diagnose with focus="${config.focus}" to get prioritized improvement candidates.
 
-3. **ANALYZE**: Pick the #1 candidate. Use holo_query_codebase or holo_semantic_search to understand the code deeply before making changes.
+3. **ANALYZE**: Pick the #1 candidate. Use holo_query_codebase or holo_semantic_search to understand the code deeply.
 
 4. **REPORT**: Summarize what you found:
    - What the improvement candidate is
@@ -166,17 +197,19 @@ async function runImprovementCycle(
 
 5. **VALIDATE**: Call holo_validate_quality with rootDir="${config.rootDir}" to establish the current baseline quality score.
 
-6. **CONCLUDE**: Report the cycle results clearly. Include:
+6. **CONCLUDE**: Report the cycle results. Include:
    - Diagnosis summary
    - Top improvement candidate with file + line
    - Current quality score
-   - Recommended action
+   - W/P/G wisdom entries extracted (uAA2++ format)
+   - Recommended next action
 
 ## Rules
-- Do NOT generate or modify code files directly. You are the diagnosis + validation engine.
-- Focus on actionable, specific improvements — not vague suggestions.
+- You are the diagnosis + validation + reporting engine, not a code editor.
+- Focus on actionable, specific improvements.
 - Always check graph status before querying.
-- Be concise in your analysis.`;
+- Extract W/P/G wisdom from every cycle (intelligence compounding).
+- Be concise.`;
 
   let messages: Anthropic.MessageParam[] = [
     { role: 'user', content: 'Run the self-improvement cycle now. Start with step 1.' },
@@ -190,25 +223,21 @@ async function runImprovementCycle(
       model: MODEL,
       max_tokens: 4096,
       system: systemPrompt,
-      tools: relevantTools,
+      tools,
       messages,
     });
 
-    // Collect the assistant response
     messages.push({ role: 'assistant', content: response.content });
 
-    // Check for text content (final answer)
     const textBlocks = response.content.filter((b) => b.type === 'text');
     if (textBlocks.length > 0) {
       finalSummary = textBlocks.map((b: any) => b.text).join('\n');
     }
 
-    // If no tool use, we're done
     if (response.stop_reason === 'end_turn' || response.stop_reason !== 'tool_use') {
       break;
     }
 
-    // Process tool calls
     const toolUseBlocks = response.content.filter(
       (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
     );
@@ -220,13 +249,13 @@ async function runImprovementCycle(
       const input = toolUse.input as Record<string, unknown>;
 
       if (config.verbose) {
-        console.log(`  🔧 [${toolCallCount}/${MAX_TOOL_CALLS}] ${toolUse.name}(${JSON.stringify(input).slice(0, 100)}...)`);
+        console.log(`  🔧 [${toolCallCount}/${MAX_TOOL_CALLS}] ${toolUse.name}(${JSON.stringify(input).slice(0, 120)}...)`);
       }
 
-      const result = await callMCPTool(mcpClient, toolUse.name, input);
+      const result = await callTool(handlers, toolUse.name, input);
 
       if (config.verbose) {
-        console.log(`  📦 Result: ${result.slice(0, 200)}${result.length > 200 ? '...' : ''}`);
+        console.log(`  📦 ${result.slice(0, 300)}${result.length > 300 ? '...' : ''}`);
       }
 
       toolResults.push({
@@ -250,13 +279,12 @@ async function runImprovementCycle(
 interface QualityEntry {
   timestamp: string;
   cycle: number;
-  composite: number;
-  grade: string;
   summary: string;
 }
 
 function appendQualityHistory(entry: QualityEntry): void {
-  const historyFile = path.join(REPO_ROOT, '.holoscript', 'quality-history.json');
+  const dir = path.join(REPO_ROOT, '.holoscript');
+  const historyFile = path.join(dir, 'quality-history.json');
   let history: QualityEntry[] = [];
   try {
     if (fs.existsSync(historyFile)) {
@@ -266,7 +294,6 @@ function appendQualityHistory(entry: QualityEntry): void {
 
   history.push(entry);
 
-  const dir = path.dirname(historyFile);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(historyFile, JSON.stringify(history, null, 2), 'utf-8');
 }
@@ -276,10 +303,9 @@ function appendQualityHistory(entry: QualityEntry): void {
 async function main() {
   const config = parseArgs();
 
-  // Check API key
   if (!process.env.ANTHROPIC_API_KEY) {
     console.error('❌ ANTHROPIC_API_KEY environment variable is required.');
-    console.error('   Set it with: set ANTHROPIC_API_KEY=sk-ant-...');
+    console.error('   Set it with: $env:ANTHROPIC_API_KEY = "sk-ant-..."');
     process.exit(1);
   }
 
@@ -293,16 +319,24 @@ async function main() {
   console.log(`  Model:   ${MODEL}`);
   console.log('');
 
-  // Create clients
-  console.log('⏳ Starting MCP server...');
-  let mcpClient: Client;
+  // Load tools directly (bypasses broken MCP server modules)
+  console.log('⏳ Loading HoloScript tools...');
+  let handlers: Record<string, any>;
+  let toolDefs: any[];
   try {
-    mcpClient = await createMCPClient();
-    console.log('✅ MCP server connected');
+    const loaded = await loadToolHandlers();
+    handlers = loaded.handlers;
+    toolDefs = loaded.toolDefs;
+    console.log(`✅ Loaded ${toolDefs.length} tools`);
   } catch (err: any) {
-    console.error(`❌ Failed to start MCP server: ${err.message}`);
+    console.error(`❌ Failed to load tools: ${err.message}`);
+    if (config.verbose) console.error(err.stack);
     process.exit(1);
   }
+
+  // Load /holoscript skill
+  const skillContext = loadSkill();
+  console.log(`✅ /holoscript skill: ${skillContext ? 'loaded' : 'not found (running without strategic context)'}`);
 
   const anthropic = new Anthropic();
   console.log('✅ Claude API connected');
@@ -314,32 +348,24 @@ async function main() {
     const startTime = Date.now();
 
     try {
-      const result = await runImprovementCycle(anthropic, mcpClient, config, i);
+      const result = await runImprovementCycle(anthropic, handlers, toolDefs, config, i, skillContext);
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
 
       console.log(`\n📋 Cycle ${i} Summary (${durationSec}s):`);
       console.log(result.summary);
 
-      // Log to quality history
       appendQualityHistory({
         timestamp: new Date().toISOString(),
         cycle: i,
-        composite: 0, // Will be populated when holo_validate_quality runs
-        grade: 'N/A',
-        summary: result.summary.slice(0, 200),
+        summary: result.summary.slice(0, 500),
       });
 
-      console.log(`✅ Cycle ${i} complete\n`);
+      console.log(`\n✅ Cycle ${i} complete\n`);
     } catch (err: any) {
       console.error(`❌ Cycle ${i} failed: ${err.message}`);
       if (config.verbose) console.error(err.stack);
     }
   }
-
-  // Cleanup
-  try {
-    await mcpClient.close();
-  } catch { /* best effort */ }
 
   console.log('🏁 Self-improvement session complete.');
 }
