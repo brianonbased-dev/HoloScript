@@ -73,7 +73,7 @@ onMounted(() => {
           Imagine it. Build it. Own it. HoloScript lets anyone create interactive 3D worlds
           with AI, sell them on an open marketplace, and deploy autonomous agents &mdash;
           all from one platform. No engine lock-in. No code required.
-          <strong>Welcome to Hololand.</strong>
+          <strong>Open source and free forever.</strong>
         </p>
         <div class="hero-buttons">
           <a href="https://studio.holoscript.net" class="btn btn-studio">Try Studio</a>
