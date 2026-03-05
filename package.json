@@ -47,7 +47,7 @@
     "analyze:bundle": "pnpm --filter @holoscript/core build && npx rollup-plugin-visualizer dist/stats.html"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "^0.36.0",
+    "@anthropic-ai/sdk": "^0.78.0",
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.56.1",
