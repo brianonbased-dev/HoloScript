@@ -11,8 +11,74 @@
  * - holo_detect_changes: Diff two graph snapshots
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { setGraphRAGState } from './graph-rag-tools';
+
+// =============================================================================
+// GRAPH PERSISTENCE
+// =============================================================================
+
+const CACHE_DIR = path.join(os.homedir(), '.holoscript');
+const CACHE_FILE = path.join(CACHE_DIR, 'graph-cache.json');
+const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+interface GraphCacheEnvelope {
+  version: 1;
+  rootDir: string;
+  timestamp: number;
+  stats: Record<string, unknown>;
+  graphJson: string;
+}
+
+function saveGraphCache(graph: any, rootDir: string, stats: Record<string, unknown>): void {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) {
+      fs.mkdirSync(CACHE_DIR, { recursive: true });
+    }
+    const envelope: GraphCacheEnvelope = {
+      version: 1,
+      rootDir,
+      timestamp: Date.now(),
+      stats,
+      graphJson: graph.serialize(),
+    };
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(envelope), 'utf-8');
+  } catch {
+    // Best-effort — don't break absorb if persistence fails
+  }
+}
+
+function loadGraphCache(): GraphCacheEnvelope | null {
+  try {
+    if (!fs.existsSync(CACHE_FILE)) return null;
+    const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
+    const envelope: GraphCacheEnvelope = JSON.parse(raw);
+    if (envelope.version !== 1) return null;
+    if (Date.now() - envelope.timestamp > CACHE_MAX_AGE_MS) return null;
+    return envelope;
+  } catch {
+    return null;
+  }
+}
+
+function getCacheAge(): { exists: boolean; ageMs?: number; rootDir?: string; stats?: Record<string, unknown> } {
+  try {
+    if (!fs.existsSync(CACHE_FILE)) return { exists: false };
+    const raw = fs.readFileSync(CACHE_FILE, 'utf-8');
+    const envelope: GraphCacheEnvelope = JSON.parse(raw);
+    return {
+      exists: true,
+      ageMs: Date.now() - envelope.timestamp,
+      rootDir: envelope.rootDir,
+      stats: envelope.stats,
+    };
+  } catch {
+    return { exists: false };
+  }
+}
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -148,6 +214,15 @@ export const codebaseTools: Tool[] = [
       required: ['previousGraphJson', 'rootDir'],
     },
   },
+  {
+    name: 'holo_graph_status',
+    description:
+      'Check the status of the codebase knowledge graph: whether it is loaded in memory, whether a disk cache exists, cache age, and scan statistics. Use this before running queries to confirm the graph is ready.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
 ];
 
 // =============================================================================
@@ -158,6 +233,7 @@ export const codebaseTools: Tool[] = [
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let cachedGraph: any = null;
 let cachedRootDir = '';
+let cacheAutoLoaded = false;
 
 /**
  * Lazy-load the codebase module.
@@ -175,6 +251,27 @@ export async function handleCodebaseTool(
   name: string,
   args: Record<string, unknown>,
 ): Promise<unknown | null> {
+  // Auto-load cached graph from disk on first tool call (if no graph in memory)
+  if (!cachedGraph && !cacheAutoLoaded) {
+    cacheAutoLoaded = true;
+    const envelope = loadGraphCache();
+    if (envelope) {
+      try {
+        const mod = await loadCodebaseModule();
+        const { CodebaseGraph } = mod;
+        cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
+        cachedRootDir = envelope.rootDir;
+        // Rebuild GraphRAG from cached graph (best-effort)
+        try {
+          const { EmbeddingIndex, GraphRAGEngine } = mod;
+          const idx = new EmbeddingIndex();
+          await idx.buildIndex(cachedGraph);
+          setGraphRAGState(idx, new GraphRAGEngine(cachedGraph, idx));
+        } catch { /* Ollama may not be running */ }
+      } catch { /* Deserialization failed — stale cache */ }
+    }
+  }
+
   switch (name) {
     case 'holo_absorb_repo':
       return handleAbsorb(args);
@@ -184,6 +281,8 @@ export async function handleCodebaseTool(
       return handleImpact(args);
     case 'holo_detect_changes':
       return handleDetectChanges(args);
+    case 'holo_graph_status':
+      return handleGraphStatus();
     default:
       return null;
   }
@@ -215,6 +314,10 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
   // Cache for subsequent queries
   cachedGraph = graph;
   cachedRootDir = rootDir;
+
+  // Persist graph to disk for cross-session reuse
+  const graphStats = graph.getStats();
+  saveGraphCache(graph, rootDir, graphStats);
 
   // Build embedding index for Graph RAG (async, best-effort)
   try {
@@ -491,6 +594,28 @@ async function handleDetectChanges(args: Record<string, unknown>): Promise<unkno
       modifiedFileCount: modifiedFiles.length,
     },
     summary: `${addedFiles.length} added, ${removedFiles.length} removed, ${modifiedFiles.length} modified`,
+  };
+}
+
+// ── Graph Status ─────────────────────────────────────────────────────────────
+
+async function handleGraphStatus(): Promise<unknown> {
+  const cache = getCacheAge();
+  const { isGraphRAGReady } = await import('./graph-rag-tools');
+  return {
+    inMemory: cachedGraph !== null,
+    rootDir: cachedRootDir || null,
+    graphRAGReady: isGraphRAGReady(),
+    diskCache: cache.exists
+      ? {
+          ageMs: cache.ageMs,
+          ageHuman: cache.ageMs! < 3600000
+            ? `${Math.round(cache.ageMs! / 60000)}m ago`
+            : `${Math.round(cache.ageMs! / 3600000)}h ago`,
+          rootDir: cache.rootDir,
+          stats: cache.stats,
+        }
+      : null,
   };
 }
 

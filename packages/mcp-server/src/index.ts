@@ -26,12 +26,13 @@ import { monitoringTools, handleMonitoringTool } from './monitoring-tools';
 import { compilerTools, handleCompilerTool } from './compiler-tools';
 import { handleCodebaseTool } from './codebase-tools';
 import { handleGraphRagTool } from './graph-rag-tools';
+import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
 
 // Create MCP server
 const server = new Server(
   {
     name: 'holoscript-mcp',
-    version: '3.0.0',
+    version: '5.0.0',
   },
   {
     capabilities: {
@@ -43,7 +44,7 @@ const server = new Server(
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: [...tools, ...compilerTools, ...networkingTools, ...snapshotTools, ...monitoringTools, ...PluginManager.getTools()],
+    tools: [...tools, ...compilerTools, ...networkingTools, ...snapshotTools, ...monitoringTools, ...selfImproveTools, ...PluginManager.getTools()],
   };
 });
 
@@ -105,6 +106,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (graphRagResult !== null) {
       return {
         content: [{ type: 'text', text: JSON.stringify(graphRagResult, null, 2) }],
+      };
+    }
+
+    // Check Self-Improve tools (diagnose, validate quality)
+    const selfImproveResult = await handleSelfImproveTool(name, args || {});
+    if (selfImproveResult !== null) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify(selfImproveResult, null, 2) }],
       };
     }
 

@@ -12,6 +12,7 @@ import { brittneyLiteTools } from './brittney-lite';
 import { PluginManager } from './PluginManager';
 import { codebaseTools } from './codebase-tools';
 import { graphRagTools } from './graph-rag-tools';
+import { selfImproveTools } from './self-improve-tools';
 import {
   BrowserLaunchSchema,
   BrowserExecuteSchema,
@@ -529,6 +530,7 @@ export const tools: Tool[] = [
   ...hololandTrainingTools,
   ...codebaseTools,
   ...graphRagTools,
+  ...selfImproveTools,
   ...PluginManager.getTools(),
 ];
 
