@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "chokidar": "^3.5.3",
-    "glob": "^10.3.10"
+    "glob": "^13.0.6"
   },
   "devDependencies": {
     "typescript": "~5.9.3",
