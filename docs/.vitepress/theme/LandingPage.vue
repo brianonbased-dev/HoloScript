@@ -67,12 +67,13 @@ onMounted(() => {
             <img src="/base-logo.svg" alt="Base" class="hero-logo hero-logo--base" />
           </a>
         </div>
-        <h1>One Language, Every Platform</h1>
+        <h1>The Open Platform for Spatial Worlds</h1>
+        <p class="hero-tag">Create with AI. Own what you build. Ship everywhere.</p>
         <p class="hero-sub">
-          HoloScript is an open spatial computing platform &mdash; 3 languages, 25+ compile targets,
-          AI agent runtime, and visual studio. Describe a dragon in 200 primitives. Compile it to
-          Unity, Unreal, VRChat, WebGPU, ROS 2, or visionOS &mdash; from the same source.
-          <strong>1,800+ semantic traits. 48 packages. 709K lines of pure TypeScript in the core alone.</strong>
+          Imagine it. Build it. Own it. HoloScript lets anyone create interactive 3D worlds
+          with AI, sell them on an open marketplace, and deploy autonomous agents &mdash;
+          all from one platform. No engine lock-in. No code required.
+          <strong>Welcome to Hololand.</strong>
         </p>
         <div class="hero-buttons">
           <a href="https://studio.holoscript.net" class="btn btn-studio">Try Studio</a>
@@ -81,15 +82,17 @@ onMounted(() => {
             >View on GitHub</a
           >
         </div>
-        <div class="code-preview">
-          <div class="code-tab">example.holo</div>
-          <pre><code><span class="code-line" style="animation-delay: 0.1s"><span class="kw">composition</span> <span class="st">"My World"</span> {</span>
-<span class="code-line" style="animation-delay: 0.3s">  <span class="kw">object</span> <span class="st">"Crystal"</span> <span class="tr">@spinning</span> <span class="tr">@glowing</span> {</span>
-<span class="code-line" style="animation-delay: 0.5s">    <span class="pr">geometry:</span> <span class="st">"sphere"</span></span>
-<span class="code-line" style="animation-delay: 0.7s">    <span class="pr">color:</span> <span class="st">"#00ffff"</span></span>
-<span class="code-line" style="animation-delay: 0.9s">    <span class="pr">position:</span> [<span class="nm">0</span>, <span class="nm">2</span>, <span class="nm">-3</span>]</span>
-<span class="code-line" style="animation-delay: 1.1s">  }</span>
-<span class="code-line" style="animation-delay: 1.3s">}</span></code></pre>
+        <div class="hero-platforms">
+          <span class="platform-label">Works with</span>
+          <span class="platform-badge">Unity</span>
+          <span class="platform-badge">Unreal</span>
+          <span class="platform-badge">Godot</span>
+          <span class="platform-badge">VRChat</span>
+          <span class="platform-badge">visionOS</span>
+          <span class="platform-badge">WebGPU</span>
+          <span class="platform-badge">ROS 2</span>
+          <span class="platform-badge">Android XR</span>
+          <span class="platform-more">+17 more</span>
         </div>
       </div>
       <div class="scroll-indicator">
@@ -1147,6 +1150,50 @@ export default {
 }
 .hero-sub strong {
   color: var(--text);
+}
+.hero-tag {
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  margin: 0 auto 1rem !important;
+  text-align: center !important;
+  letter-spacing: 0.02em !important;
+}
+.hero-platforms {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  opacity: 0.6;
+  transition: opacity 0.3s;
+}
+.hero-platforms:hover {
+  opacity: 1;
+}
+.platform-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text2);
+  margin-right: 0.25rem;
+}
+.platform-badge {
+  font-size: 0.7rem;
+  padding: 0.2em 0.6em;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  background: rgba(255, 255, 255, 0.03);
+}
+.platform-more {
+  font-size: 0.7rem;
+  color: var(--cyan);
+  opacity: 0.8;
 }
 .hero-buttons {
   display: flex;
