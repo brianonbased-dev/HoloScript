@@ -101,7 +101,7 @@ jobs:
 
       # ── Upload artifacts ─────────────────────────────────────────────────────
       - name: Upload rendered videos as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: tutorial-videos-${{ github.sha }}
