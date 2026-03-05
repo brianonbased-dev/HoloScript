@@ -22,7 +22,7 @@
     "@remotion/renderer": "^4.0.0",
     "elevenlabs": "^1.59.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react-dom": "^19.2.4",
     "remotion": "^4.0.0",
     "shiki": "^1.22.0"
   },
