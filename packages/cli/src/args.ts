@@ -50,6 +50,7 @@ export interface CLIOptions {
     | 'prerender'
     | 'pdf'
     | 'absorb'
+    | 'self-improve'
     | 'help'
     | 'version';
   input?: string;
@@ -61,6 +62,16 @@ export interface CLIOptions {
   showAST: boolean;
   packages: string[];
   dev: boolean;
+  /** Number of self-improvement cycles (default: 5) */
+  cycles?: number;
+  /** Enable JSONL training data capture for self-improve */
+  harvest?: boolean;
+  /** Auto-commit passing tests during self-improve */
+  autoCommit?: boolean;
+  /** Continuous daemon mode for self-improve */
+  daemonMode?: boolean;
+  /** Maximum consecutive failures before aborting self-improve (default: 3) */
+  maxFailures?: number;
   description?: string;
   brittneyUrl?: string;
   target?: string;
@@ -208,6 +219,7 @@ export function parseArgs(args: string[]): CLIOptions {
           'import',
           'visualize',
           'absorb',
+          'self-improve',
           'screenshot',
           'pdf',
           'prerender',
@@ -392,6 +404,22 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--landscape':
         options.landscape = true;
         break;
+      // Self-improve flags
+      case '--cycles':
+        options.cycles = parseInt(args[++i], 10) || 5;
+        break;
+      case '--harvest':
+        options.harvest = true;
+        break;
+      case '--commit':
+        options.autoCommit = true;
+        break;
+      case '--daemon':
+        options.daemonMode = true;
+        break;
+      case '--max-failures':
+        options.maxFailures = parseInt(args[++i], 10) || 3;
+        break;
     }
     i++;
   }
@@ -472,6 +500,16 @@ Usage: holoscript <command> [options] [input]
   prerender <file>  Pre-render HTML for SEO/social sharing
                     Outputs fully rendered HTML with meta tags
 
+  \x1b[33mSelf-Improvement:\x1b[0m
+  self-improve      Run autonomous self-improvement pipeline
+                    Absorbs codebase, finds untested code via GraphRAG,
+                    generates tests, validates, and optionally commits
+                    Use --cycles N to set iteration count (default: 5)
+                    Use --harvest to capture JSONL training data
+                    Use --commit to auto-commit passing tests
+                    Use --daemon for continuous mode
+                    Use --max-failures N to set failure threshold
+
   help              Show this help message
   version           Show version information
 
@@ -527,6 +565,13 @@ Usage: holoscript <command> [options] [input]
   --wait-for <ms>     Wait time for scene to stabilize (default: 2000)
   --page-format       PDF page format: A4, Letter, Legal, etc.
   --landscape         PDF landscape orientation
+
+  \x1b[2m# Self-Improvement Options\x1b[0m
+  --cycles <n>        Number of improvement cycles (default: 5)
+  --harvest           Enable JSONL training data capture
+  --commit            Auto-commit passing tests to git
+  --daemon            Continuous improvement mode (runs until converged)
+  --max-failures <n>  Max consecutive failures before aborting (default: 3)
 
 \x1b[1mExamples:\x1b[0m
   holoscript parse world.hs
@@ -601,6 +646,14 @@ Usage: holoscript <command> [options] [input]
   holoscript pdf scene.holo                              # Generate PDF
   holoscript pdf scene.holo --page-format A4 --landscape
   holoscript prerender scene.holo                        # SEO-ready HTML
+
+  \x1b[2m# Self-Improvement\x1b[0m
+  holoscript self-improve                     # Run 5 cycles (default)
+  holoscript self-improve --cycles 10         # Run 10 improvement cycles
+  holoscript self-improve --harvest --commit  # Harvest training data + auto-commit
+  holoscript self-improve --daemon            # Continuous mode until convergence
+  holoscript self-improve --daemon --verbose  # Continuous with detailed output
+  holoscript self-improve --max-failures 5    # Allow more retries
 
 \x1b[1mAliases:\x1b[0m
   hs              Short alias for holoscript

@@ -2340,6 +2340,19 @@ async function main(): Promise<void> {
       break;
     }
 
+    case 'self-improve': {
+      try {
+        const { runSelfImprove } = await import('./self-improve');
+        const exitCode = await runSelfImprove(options);
+        process.exit(exitCode);
+      } catch (err: any) {
+        console.error(`\x1b[31mSelf-improve error: ${err.message}\x1b[0m`);
+        if (options.verbose && err.stack) console.error(err.stack);
+        process.exit(1);
+      }
+      break;
+    }
+
     case 'absorb': {
       if (!options.input) {
         console.error('\x1b[31mError: No input directory specified.\x1b[0m');
