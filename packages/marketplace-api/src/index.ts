@@ -125,3 +125,18 @@ export type { ISkillDatabase } from './SkillMarketplaceService.js';
 
 // ─── Skill Marketplace Routes ────────────────────────────────────────────────
 export { createSkillMarketplaceRoutes } from './skillRoutes.js';
+
+// ─── MCPMe Billing Bridge ────────────────────────────────────────────────────
+export {
+  MCPMeBillingBridge,
+  getMCPMeBillingBridge,
+  tierAllows,
+} from './MCPMeBillingBridge.js';
+export type {
+  MCPMeTier,
+  MCPMeUser,
+  MCPMeServiceEntry,
+  MCPMePlan,
+  MCPMeAgentTemplate,
+  TierCheckResult,
+} from './MCPMeBillingBridge.js';

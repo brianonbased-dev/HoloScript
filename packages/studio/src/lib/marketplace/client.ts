@@ -25,15 +25,23 @@ import type {
 export interface MarketplaceClientConfig {
   baseUrl?: string;
   apiKey?: string;
+  /** MCPMe orchestrator URL for billing and tier checks */
+  mcpmeUrl?: string;
+  /** MCPMe API key for tier-gated access */
+  mcpmeApiKey?: string;
 }
 
 export class MarketplaceClient {
   private baseUrl: string;
   private apiKey?: string;
+  private mcpmeUrl: string;
+  private mcpmeApiKey?: string;
 
   constructor(config: MarketplaceClientConfig = {}) {
     this.baseUrl = config.baseUrl || 'https://marketplace.holoscript.net/api';
     this.apiKey = config.apiKey;
+    this.mcpmeUrl = config.mcpmeUrl || 'https://mcp-orchestrator-production-45f9.up.railway.app';
+    this.mcpmeApiKey = config.mcpmeApiKey;
   }
 
   /**
@@ -52,7 +60,21 @@ export class MarketplaceClient {
   }
 
   /**
-   * Generic GET request
+   * MCPMe orchestrator headers
+   */
+  private getMCPMeHeaders(): HeadersInit {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (this.mcpmeApiKey) {
+      headers['x-mcp-api-key'] = this.mcpmeApiKey;
+    }
+    return headers;
+  }
+
+  /**
+   * Generic GET request (marketplace backend)
    */
   private async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
     const url = new URL(`${this.baseUrl}${endpoint}`);
@@ -77,7 +99,7 @@ export class MarketplaceClient {
   }
 
   /**
-   * Generic POST request
+   * Generic POST request (marketplace backend)
    */
   private async post<T>(endpoint: string, body: any): Promise<T> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -91,6 +113,34 @@ export class MarketplaceClient {
     }
 
     return response.json();
+  }
+
+  /**
+   * GET request to MCPMe orchestrator
+   */
+  private async mcpmeGet<T>(path: string, params?: Record<string, string>): Promise<T> {
+    const url = new URL(path, this.mcpmeUrl);
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v) url.searchParams.set(k, v);
+      }
+    }
+    const res = await fetch(url.toString(), { headers: this.getMCPMeHeaders() });
+    if (!res.ok) throw new Error(`MCPMe error: ${res.status}`);
+    return res.json();
+  }
+
+  /**
+   * POST request to MCPMe orchestrator
+   */
+  private async mcpmePost<T>(path: string, body: unknown): Promise<T> {
+    const res = await fetch(new URL(path, this.mcpmeUrl).toString(), {
+      method: 'POST',
+      headers: this.getMCPMeHeaders(),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`MCPMe error: ${res.status}`);
+    return res.json();
   }
 
   // ── Content Discovery ─────────────────────────────────────────────────────
@@ -417,6 +467,110 @@ export class MarketplaceClient {
   }> {
     return this.get(`/collections/${id}`);
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MCPMe — Agent Marketplace & Tier-Gated Access
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Get MCPMe service catalog with pricing plans
+   */
+  async getMCPMeCatalog(): Promise<{
+    services: Array<{
+      id: string; name: string; description: string;
+      tier: string; tools: string[]; computeMultiplier: number;
+    }>;
+    plans: Array<{
+      tier: string; name: string; price: number; features: string[];
+    }>;
+  }> {
+    return this.mcpmeGet('/catalog');
+  }
+
+  /**
+   * Search uAA2++ agent templates on the orchestrator
+   */
+  async searchAgents(options: {
+    query?: string;
+    category?: string;
+    tier?: string;
+    sort?: 'popular' | 'recent' | 'rating';
+    limit?: number;
+  } = {}): Promise<{
+    templates: Array<{
+      id: string; name: string; slug: string; description: string;
+      author: string; category: string; tier: string;
+      tags: string[]; capabilities: string[];
+      installs: number; rating: number; ratingCount: number;
+      official: boolean;
+    }>;
+    total: number;
+  }> {
+    const params: Record<string, string> = {};
+    if (options.query) params.q = options.query;
+    if (options.category) params.category = options.category;
+    if (options.tier) params.tier = options.tier;
+    if (options.sort) params.sort = options.sort;
+    if (options.limit) params.limit = String(options.limit);
+    return this.mcpmeGet('/marketplace/search', params);
+  }
+
+  /**
+   * Get featured agent templates (official first-party)
+   */
+  async getFeaturedAgents(): Promise<Array<{
+    id: string; name: string; description: string;
+    tier: string; installs: number; rating: number;
+  }>> {
+    const data = await this.mcpmeGet<{ templates: any[] }>('/marketplace/featured');
+    return data.templates;
+  }
+
+  /**
+   * Get agent template detail (includes reviews)
+   */
+  async getAgentTemplate(id: string): Promise<{
+    template: any;
+    reviews: any[];
+  }> {
+    return this.mcpmeGet(`/marketplace/${id}`);
+  }
+
+  /**
+   * Install an agent template — returns uAAL program + config
+   */
+  async installAgent(id: string): Promise<{
+    success: boolean;
+    templateId?: string;
+    templateName?: string;
+    program?: string;
+    programType?: 'intent' | 'bytecode';
+    config?: { cognitiveHz: number; capabilities: string[] };
+    error?: string;
+  }> {
+    return this.mcpmePost(`/marketplace/${id}/install`, {});
+  }
+
+  /**
+   * Get agent marketplace statistics
+   */
+  async getAgentMarketplaceStats(): Promise<{
+    total: number;
+    totalInstalls: number;
+    categories: number;
+    avgRating: number;
+  }> {
+    return this.mcpmeGet('/marketplace/stats');
+  }
+
+  /**
+   * Get agent categories with counts
+   */
+  async getAgentCategories(): Promise<{
+    categories: Array<{ category: string; count: number }>;
+  }> {
+    return this.mcpmeGet('/marketplace/categories');
+  }
 }
 
 // ── Singleton Instance ────────────────────────────────────────────────────
@@ -439,3 +593,4 @@ export function getMarketplaceClient(config?: MarketplaceClientConfig): Marketpl
 export function configureMarketplace(config: MarketplaceClientConfig): void {
   marketplaceClient = new MarketplaceClient(config);
 }
+
