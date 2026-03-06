@@ -6,6 +6,7 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/*.scenario.ts'],
     globals: true,
+    pool: 'forks',
     setupFiles: ['./src/test-setup/vitest.setup.ts'],
     coverage: {
       provider: 'v8',

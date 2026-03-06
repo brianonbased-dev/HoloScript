@@ -9,6 +9,10 @@
  * - QualityScore: weighted multi-dimensional quality calculation
  * - ConvergenceDetector: detects when improvement has plateaued
  * - SelfImproveCommand: orchestrates absorb -> GraphRAG -> test -> commit loop
+ * - GRPORewardFunctions: 5 reward functions for TRL GRPOTrainer
+ * - GRPORewardOrchestrator: weighted composite reward with caching and stats
+ * - GRPOConfig: recommended hyperparameters for GRPO training
+ * - GRPOPromptExtractor: scans monorepo for diverse GRPO training prompts
  *
  * @module self-improvement
  */
@@ -74,3 +78,49 @@ export {
   type FocusedDPOConfig,
   type SplitterStats,
 } from './FocusedDPOSplitter';
+
+export {
+  createGRPORewardFunctions,
+  GRPO_REWARD_WEIGHTS,
+  type GRPORewardFunction,
+  type RewardFunctionOptions,
+  type RewardEvaluation,
+  type RewardToolRunner,
+} from './GRPORewardFunctions';
+
+export {
+  GRPORewardOrchestrator,
+  type GRPOOrchestratorConfig,
+  type RewardStatistics,
+  type RewardFunctionResult,
+  type OrchestratorResult,
+  type OrchestratorStats,
+} from './GRPORewardOrchestrator';
+
+export {
+  RECOMMENDED_GRPO_CONFIG,
+  buildGRPOConfig,
+  exportGRPOConfigAsPython,
+  type GRPOTrainingConfig,
+  type GRPOHyperparameters,
+  type VLLMConfig,
+  type OPLoRAConfig,
+  type TrainingSchedule,
+  type HardwareConfig,
+} from './GRPOConfig';
+
+export {
+  GRPOPromptExtractor,
+  createNodeFS,
+  inferDomainTags,
+  estimateDifficulty,
+  extractPackageName,
+  type GRPOPrompt,
+  type TRLPromptRecord,
+  type PromptExtractorConfig,
+  type ExtractionStats,
+  type PromptExtractorFS,
+  type PromptDifficulty,
+  type PromptSource,
+  type DomainTag,
+} from './GRPOPromptExtractor';

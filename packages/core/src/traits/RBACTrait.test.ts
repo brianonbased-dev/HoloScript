@@ -150,7 +150,7 @@ describe('RBACTrait', () => {
 
     it('should initialize built-in roles', () => {
       const initEvent = lastEmitted(emittedEvents, 'rbac_initialized');
-      expect(initEvent!.payload.rolesCount).toBe(4); // viewer, editor, admin, owner
+      expect(initEvent!.payload.rolesCount).toBe(5); // viewer, editor, admin, owner, spectator
     });
   });
 

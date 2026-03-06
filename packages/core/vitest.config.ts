@@ -6,6 +6,12 @@ export default defineConfig({
     alias: {
       // Allow sibling packages that import @holoscript/core to resolve it locally
       '@holoscript/core': resolve(__dirname, 'src/index.ts'),
+      // Cross-package aliases for integration tests
+      '@holoscript/agent-sdk': resolve(__dirname, '../agent-sdk/src/index.ts'),
+      '@holoscript/agent-protocol': resolve(__dirname, '../agent-protocol/src/index.ts'),
+      '@holoscript/uaal': resolve(__dirname, '../uaal/src/index.ts'),
+      '@holoscript/holo-vm': resolve(__dirname, '../holo-vm/src/index.ts'),
+      '@holoscript/vm-bridge': resolve(__dirname, '../vm-bridge/src/index.ts'),
     },
   },
   test: {
