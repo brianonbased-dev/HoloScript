@@ -6,7 +6,11 @@
 
 import { describe, it, expect } from 'vitest';
 import { AgentCardExporter } from '../AgentCardExporter';
-import type { HoloComposition } from '../../../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloObjectTrait } from '../../../parser/HoloCompositionTypes';
+
+function trait(name: string, config: Record<string, any> = {}): HoloObjectTrait {
+  return { type: 'ObjectTrait', name, config };
+}
 
 function createTestComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -17,19 +21,21 @@ function createTestComposition(overrides: Partial<HoloComposition> = {}): HoloCo
       {
         type: 'ObjectDeclaration',
         name: 'cube_1',
+        properties: [],
         traits: [
-          { name: 'grabbable', config: {} },
-          { name: 'throwable', config: {} },
-          { name: 'physics', config: { mass: 2 } },
-          { name: 'collidable', config: {} },
+          trait('grabbable'),
+          trait('throwable'),
+          trait('physics', { mass: 2 }),
+          trait('collidable'),
         ],
       } as any,
       {
         type: 'ObjectDeclaration',
         name: 'speaker_1',
+        properties: [],
         traits: [
-          { name: 'audio', config: {} },
-          { name: 'spatial_audio', config: {} },
+          trait('audio'),
+          trait('spatial_audio'),
         ],
       } as any,
     ],
@@ -173,8 +179,9 @@ describe('AgentCardExporter', () => {
         {
           type: 'ObjectDeclaration',
           name: 'custom_obj',
+          properties: [],
           traits: [
-            { name: 'custom_unknown_trait', config: {} },
+            trait('custom_unknown_trait'),
           ],
         } as any,
       ],

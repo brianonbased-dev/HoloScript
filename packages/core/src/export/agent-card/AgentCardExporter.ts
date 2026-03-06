@@ -960,10 +960,8 @@ export class AgentCardExporter {
     for (const template of composition.templates ?? []) {
       if (template.traits) {
         for (const trait of template.traits) {
-          if (typeof trait === 'string') {
-            traits.add(trait.replace(/^@/, ''));
-          } else if (trait && typeof trait === 'object' && 'name' in trait) {
-            traits.add(String((trait as any).name).replace(/^@/, ''));
+          if (trait && trait.name) {
+            traits.add(trait.name.replace(/^@/, ''));
           }
         }
       }
@@ -987,10 +985,8 @@ export class AgentCardExporter {
   private collectObjectTraits(obj: HoloObjectDecl, traits: Set<string>): void {
     if (obj.traits) {
       for (const trait of obj.traits) {
-        if (typeof trait === 'string') {
-          traits.add(trait.replace(/^@/, ''));
-        } else if (trait && typeof trait === 'object' && 'name' in trait) {
-          traits.add(String((trait as any).name).replace(/^@/, ''));
+        if (trait && trait.name) {
+          traits.add(trait.name.replace(/^@/, ''));
         }
       }
     }
