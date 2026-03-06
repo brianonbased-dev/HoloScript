@@ -138,6 +138,128 @@
           "type": "boolean",
           "default": true,
           "description": "Show inline diff decorations in editor."
+        },
+        "holoscript.hololand.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Hololand Platform integration (VRR, AR, AgentKit, Zora, StoryWeaver, Quest Builder, x402)."
+        },
+        "holoscript.hololand.vrr.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start VRR synchronization on extension activation."
+        },
+        "holoscript.hololand.vrr.updateInterval": {
+          "type": "number",
+          "default": 300000,
+          "minimum": 60000,
+          "description": "VRR sync update interval in milliseconds (minimum 1 minute)."
+        },
+        "holoscript.hololand.vrr.weatherApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Weather.gov API key for real-time weather sync."
+        },
+        "holoscript.hololand.vrr.eventbriteApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Eventbrite API key for real-time event sync."
+        },
+        "holoscript.hololand.vrr.squareApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Square API key for real-time inventory sync."
+        },
+        "holoscript.hololand.x402.simulationMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use simulation mode for x402 payments (no real blockchain transactions)."
+        },
+        "holoscript.hololand.x402.defaultCurrency": {
+          "type": "string",
+          "enum": ["ETH", "USDC", "DAI"],
+          "default": "ETH",
+          "description": "Default cryptocurrency for x402 payments."
+        },
+        "holoscript.hololand.agentkit.network": {
+          "type": "string",
+          "enum": ["base", "ethereum", "base-sepolia"],
+          "default": "base-sepolia",
+          "description": "Blockchain network for AgentKit wallets."
+        },
+        "holoscript.hololand.agentkit.simulationMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use simulation mode for AgentKit operations (no real blockchain transactions)."
+        },
+        "holoscript.hololand.agentkit.defaultGasLimit": {
+          "type": "number",
+          "default": 21000,
+          "description": "Default gas limit for AgentKit transactions."
+        },
+        "holoscript.hololand.zora.network": {
+          "type": "string",
+          "enum": ["base", "ethereum", "zora", "base-sepolia"],
+          "default": "base",
+          "description": "Network for Zora NFT minting."
+        },
+        "holoscript.hololand.zora.defaultRoyalty": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Default royalty percentage for Zora NFTs (10-15% typical)."
+        },
+        "holoscript.hololand.zora.ipfsGateway": {
+          "type": "string",
+          "default": "https://ipfs.io/ipfs",
+          "description": "IPFS gateway URL for NFT metadata."
+        },
+        "holoscript.hololand.zora.simulationMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use simulation mode for Zora operations (no real blockchain transactions)."
+        },
+        "holoscript.hololand.storyweaver.provider": {
+          "type": "string",
+          "enum": ["openai", "anthropic", "gemini"],
+          "default": "openai",
+          "description": "AI provider for StoryWeaver narrative generation."
+        },
+        "holoscript.hololand.storyweaver.model": {
+          "type": "string",
+          "default": "",
+          "description": "Specific model to use (e.g., 'gpt-4', 'claude-3-opus', 'gemini-pro')."
+        },
+        "holoscript.hololand.storyweaver.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for StoryWeaver AI provider."
+        },
+        "holoscript.hololand.storyweaver.temperature": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "AI temperature for narrative generation (0-2)."
+        },
+        "holoscript.hololand.storyweaver.maxTokens": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 100,
+          "maximum": 8000,
+          "description": "Maximum tokens for AI-generated narratives."
+        },
+        "holoscript.hololand.ar.simulationMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use simulation mode for AR preview (no real camera/QR scanning)."
+        },
+        "holoscript.hololand.ar.defaultTrigger": {
+          "type": "string",
+          "enum": ["qr", "nfc", "image", "location"],
+          "default": "qr",
+          "description": "Default AR portal trigger type."
         }
       }
     },
@@ -565,6 +687,132 @@
         "title": "Copy Trait Name",
         "category": "HoloScript",
         "icon": "$(clippy)"
+      },
+      {
+        "command": "holoscript.vrr.startSync",
+        "title": "Start VRR Synchronization",
+        "category": "Hololand",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "holoscript.vrr.stopSync",
+        "title": "Stop VRR Synchronization",
+        "category": "Hololand",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "holoscript.vrr.showStatus",
+        "title": "Show VRR Status",
+        "category": "Hololand",
+        "icon": "$(info)"
+      },
+      {
+        "command": "holoscript.ar.createPortal",
+        "title": "Create AR Portal",
+        "category": "Hololand",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "holoscript.ar.simulateQRScan",
+        "title": "Simulate QR Code Scan",
+        "category": "Hololand",
+        "icon": "$(device-camera)"
+      },
+      {
+        "command": "holoscript.agentkit.createWallet",
+        "title": "Create AI Agent Wallet",
+        "category": "Hololand",
+        "icon": "$(account)"
+      },
+      {
+        "command": "holoscript.agentkit.mintNFT",
+        "title": "Mint NFT with AgentKit",
+        "category": "Hololand",
+        "icon": "$(file-media)"
+      },
+      {
+        "command": "holoscript.agentkit.viewBalance",
+        "title": "View Agent Wallet Balance",
+        "category": "Hololand",
+        "icon": "$(symbol-currency)"
+      },
+      {
+        "command": "holoscript.zora.mintNFT",
+        "title": "Mint NFT on Zora",
+        "category": "Hololand",
+        "icon": "$(package)"
+      },
+      {
+        "command": "holoscript.zora.viewRoyalties",
+        "title": "View Zora Royalties",
+        "category": "Hololand",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "holoscript.storyweaver.generateNarrative",
+        "title": "Generate AI Narrative",
+        "category": "Hololand",
+        "icon": "$(book)"
+      },
+      {
+        "command": "holoscript.storyweaver.generateQuest",
+        "title": "Generate AI Quest",
+        "category": "Hololand",
+        "icon": "$(game)"
+      },
+      {
+        "command": "holoscript.quest.openBuilder",
+        "title": "Open Quest Builder",
+        "category": "Hololand",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "holoscript.quest.preview",
+        "title": "Preview Quest",
+        "category": "Hololand",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "holoscript.x402.simulatePayment",
+        "title": "Simulate x402 Payment",
+        "category": "Hololand",
+        "icon": "$(credit-card)"
+      },
+      {
+        "command": "holoscript.x402.viewHistory",
+        "title": "View x402 Payment History",
+        "category": "Hololand",
+        "icon": "$(history)"
+      },
+      {
+        "command": "holoscript.hololand.showStatus",
+        "title": "Show Hololand Platform Status",
+        "category": "Hololand",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "holoscript.hololand.openVRRPreview",
+        "title": "Open VRR Twin Preview",
+        "category": "Hololand",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "holoscript.hololand.openQuestBuilder",
+        "title": "Open Quest Builder UI",
+        "category": "Hololand",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "holoscript.hololand.openARSimulator",
+        "title": "Open AR Simulator",
+        "category": "Hololand",
+        "icon": "$(device-camera)"
+      },
+      {
+        "command": "holoscript.hololand.openWalletDashboard",
+        "title": "Open Agent Wallet Dashboard",
+        "category": "Hololand",
+        "icon": "$(account)"
       }
     ],
     "customEditors": [

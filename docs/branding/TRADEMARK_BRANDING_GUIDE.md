@@ -41,6 +41,17 @@ These are proprietary trademarks owned by the HoloScript project.
 | **HoloComposer** | 🔄 Proposed | Visual composition tool for HoloScript | IDE integration, drag-drop editor |
 | **HoloRuntime** | ⚠️ Generic | Runtime execution engine | Internal use only, not consumer-facing |
 
+### Hololand Platform Brands
+
+| Trademark | Status | Description | First Use | Usage Context |
+|-----------|--------|-------------|-----------|---------------|
+| **Hololand Platform** | ✅ Active | Commercial platform service (hosting, AI agents, payment processing) | 2024 | Platform-as-a-Service offering, 20% platform fee |
+| **Infinity Assistant** | ✅ Active | AI building service for VR/AR world creation | 2024 | infinityassistant.io, AI-powered builder |
+| **Brittney** / **Brittney AI** | ✅ Active | AI architect and building assistant | 2024 | World builder, code generator, 403.7K training samples |
+| **HololandCanvas** | ✅ Active | React component for VR rendering | 2024 | `@hololand/react-three` package |
+| **HololandObject** | ✅ Active | React component for 3D objects | 2024 | `@hololand/react-three` package |
+| **HololandAIBridge** | ✅ Active | AI integration bridge component | 2024 | `@hololand/ai-bridge` package |
+
 ---
 
 ## Third-Party Trademarks (Licensed/Used)
@@ -265,9 +276,10 @@ Use this in source files:
 
 ### Completed Rebrands
 
-| Old Name | New Name | Date | Reason | Files Affected |
-|----------|----------|------|--------|----------------|
-| PageMaster | StoryWeaver Protocol | 2025-02-19 | Better clarity, avoid conflicts | 7 files, 61 references |
+| Old Name | New Name | Date | Reason | Repository | Files Affected |
+|----------|----------|------|--------|------------|----------------|
+| PageMaster | StoryWeaver Protocol | 2025-02-19 | Better clarity, avoid conflicts | HoloScript | 7 files, 61 references |
+| PageMaster | StoryWeaver Protocol | 2025-02-19 | Consistency with HoloScript rebrand | Hololand | 18 files, 100+ references |
 
 ### Future Rebrands (Proposed)
 
@@ -281,20 +293,30 @@ Use this in source files:
 ## Brand Hierarchy
 
 ```
-HoloScript™ (Master Brand)
+HoloScript™ (Master Brand - Language)
 ├── HoloScript Plus (Language Variant)
 ├── HoloHub™ (Marketplace)
-├── Hololand™ (Platform)
-│   ├── AR Layer (Entry)
-│   ├── VRR™ Layer (Digital Twins)
-│   └── VR Layer (Premium Worlds)
-├── StoryWeaver Protocol™ (AI System)
 ├── x402 Protocol (Payment System)
+└── StoryWeaver Protocol™ (AI System)
+
+Hololand™ (Platform Brand - Separate Repository)
+├── Hololand Platform (Commercial Service)
+├── Infinity Assistant™ (AI Building Service)
+├── Brittney™ / Brittney AI (AI Architect)
+├── Architecture Layers
+│   ├── AR Layer (Free Entry)
+│   ├── VRR™ Layer (Paid Digital Twins)
+│   └── VR Layer (Premium Worlds)
+├── React Components
+│   ├── HololandCanvas
+│   ├── HololandObject
+│   └── HololandAIBridge
 └── Integrations (Third-Party)
     ├── Coinbase AgentKit SDK
     ├── Zora Protocol
     ├── OpenAI GPT-4
-    └── Base L2
+    ├── Base L2
+    └── StoryWeaver Protocol™ (from HoloScript)
 ```
 
 ---

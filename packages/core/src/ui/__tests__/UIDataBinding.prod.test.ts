@@ -1,130 +1,284 @@
 /**
- * UIDataBinding Production Tests
+ * UIDataBinding.prod.test.ts — Sprint CLXX
  *
- * Reactive model → view bindings: set/get, bind/unbind, resolve (with formatter),
- * getBindingsForWidget/Path, onChange listener, propagate.
+ * Production tests for the reactive model→view UIDataBinding system.
+ * API: new UIDataBinding()
+ *   .set(path, value)                                               → void
+ *   .get<T>(path)                                                   → T | undefined
+ *   .bind(modelPath, widgetId, widgetProperty, direction?, formatter?) → DataBinding
+ *   .unbind(id)                                                     → boolean
+ *   .resolve(bindingId)                                             → string | null
+ *   .getBindingsForWidget(widgetId)                                 → DataBinding[]
+ *   .getBindingsForPath(path)                                       → DataBinding[]
+ *   .onChange(path, cb)                                             → void
+ *   .propagate()                                                    → Map<string, string | null>
+ *   .getBindingCount()                                              → number
+ *   .getModel()                                                     → Record<string, unknown>
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UIDataBinding } from '../UIDataBinding';
 
-describe('UIDataBinding — Production', () => {
-  let db: UIDataBinding;
+let db: UIDataBinding;
 
-  beforeEach(() => {
-    db = new UIDataBinding();
-  });
+beforeEach(() => {
+  db = new UIDataBinding();
+});
 
-  describe('set / get', () => {
+describe('UIDataBinding', () => {
+  // -------------------------------------------------------------------------
+  // set / get
+  // -------------------------------------------------------------------------
+
+  describe('set() / get()', () => {
     it('stores and retrieves a value', () => {
-      db.set('health', 100);
-      expect(db.get('health')).toBe(100);
+      db.set('player.name', 'Alice');
+      expect(db.get('player.name')).toBe('Alice');
     });
 
     it('returns undefined for missing path', () => {
-      expect(db.get('missing')).toBeUndefined();
+      expect(db.get('no.such.path')).toBeUndefined();
     });
 
-    it('overwrites previous value', () => {
-      db.set('health', 100);
-      db.set('health', 50);
-      expect(db.get('health')).toBe(50);
+    it('overwrites existing value', () => {
+      db.set('score', 100);
+      db.set('score', 200);
+      expect(db.get('score')).toBe(200);
+    });
+
+    it('stores numbers', () => {
+      db.set('hp', 42);
+      expect(db.get<number>('hp')).toBe(42);
+    });
+
+    it('stores booleans', () => {
+      db.set('visible', true);
+      expect(db.get<boolean>('visible')).toBe(true);
+    });
+
+    it('stores objects', () => {
+      db.set('pos', { x: 1, y: 2 });
+      expect(db.get<{ x: number }>('pos')?.x).toBe(1);
     });
   });
 
-  describe('bind / unbind', () => {
-    it('creates binding with id', () => {
-      const binding = db.bind('health', 'hpBar', 'text');
-      expect(binding.id).toContain('binding_');
-      expect(binding.modelPath).toBe('health');
-      expect(binding.widgetId).toBe('hpBar');
+  // -------------------------------------------------------------------------
+  // onChange
+  // -------------------------------------------------------------------------
+
+  describe('onChange()', () => {
+    it('fires callback when value changes', () => {
+      const cb = vi.fn();
+      db.onChange('score', cb);
+      db.set('score', 5);
+      expect(cb).toHaveBeenCalledTimes(1);
+      expect(cb).toHaveBeenCalledWith(5, undefined);
     });
 
-    it('unbind removes binding', () => {
-      const binding = db.bind('health', 'hpBar', 'text');
-      expect(db.getBindingCount()).toBe(1);
-      db.unbind(binding.id);
+    it('passes old value to callback', () => {
+      const values: [unknown, unknown][] = [];
+      db.onChange('score', (val, old) => values.push([val, old]));
+      db.set('score', 10);
+      db.set('score', 20);
+      expect(values[0]).toEqual([10, undefined]);
+      expect(values[1]).toEqual([20, 10]);
+    });
+
+    it('does not fire for different path', () => {
+      const cb = vi.fn();
+      db.onChange('score', cb);
+      db.set('level', 3);
+      expect(cb).not.toHaveBeenCalled();
+    });
+
+    it('multiple listeners on same path all fire', () => {
+      const cb1 = vi.fn();
+      const cb2 = vi.fn();
+      db.onChange('x', cb1);
+      db.onChange('x', cb2);
+      db.set('x', 1);
+      expect(cb1).toHaveBeenCalledTimes(1);
+      expect(cb2).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // bind / unbind / getBindingCount
+  // -------------------------------------------------------------------------
+
+  describe('bind() / unbind() / getBindingCount()', () => {
+    it('bind() returns a DataBinding with an id', () => {
+      const b = db.bind('score', 'scoreLabel', 'text');
+      expect(b.id).toBeDefined();
+      expect(b.modelPath).toBe('score');
+      expect(b.widgetId).toBe('scoreLabel');
+      expect(b.widgetProperty).toBe('text');
+    });
+
+    it('default direction is one-way', () => {
+      const b = db.bind('score', 'w', 'text');
+      expect(b.direction).toBe('one-way');
+    });
+
+    it('accepts two-way direction', () => {
+      const b = db.bind('score', 'w', 'text', 'two-way');
+      expect(b.direction).toBe('two-way');
+    });
+
+    it('getBindingCount increments per bind()', () => {
+      db.bind('a', 'w1', 'text');
+      db.bind('b', 'w2', 'value');
+      expect(db.getBindingCount()).toBe(2);
+    });
+
+    it('unbind() removes a binding', () => {
+      const b = db.bind('score', 'w', 'text');
+      expect(db.unbind(b.id)).toBe(true);
       expect(db.getBindingCount()).toBe(0);
     });
 
-    it('unbind returns false for missing', () => {
-      expect(db.unbind('nope')).toBe(false);
-    });
-  });
-
-  describe('resolve', () => {
-    it('resolves binding to string', () => {
-      db.set('score', 42);
-      const binding = db.bind('score', 'display', 'text');
-      expect(db.resolve(binding.id)).toBe('42');
+    it('unbind() returns false for unknown id', () => {
+      expect(db.unbind('no-such-id')).toBe(false);
     });
 
-    it('returns empty string for undefined model value', () => {
-      const binding = db.bind('missing', 'display', 'text');
-      expect(db.resolve(binding.id)).toBe('');
-    });
-
-    it('uses formatter when provided', () => {
-      db.set('health', 75);
-      const binding = db.bind('health', 'hpBar', 'text', 'one-way', (v) => `HP: ${v}`);
-      expect(db.resolve(binding.id)).toBe('HP: 75');
-    });
-
-    it('returns null for missing binding', () => {
-      expect(db.resolve('nope')).toBeNull();
-    });
-  });
-
-  describe('getBindingsForWidget / getBindingsForPath', () => {
-    it('filters by widget id', () => {
-      db.bind('health', 'hpBar', 'text');
-      db.bind('mana', 'mpBar', 'text');
-      expect(db.getBindingsForWidget('hpBar')).toHaveLength(1);
-    });
-
-    it('filters by model path', () => {
-      db.bind('health', 'hpBar', 'text');
-      db.bind('health', 'hpLabel', 'value');
-      expect(db.getBindingsForPath('health')).toHaveLength(2);
-    });
-  });
-
-  describe('onChange', () => {
-    it('fires callback on set', () => {
-      const cb = vi.fn();
-      db.onChange('health', cb);
-      db.set('health', 100);
-      expect(cb).toHaveBeenCalledWith(100, undefined);
-    });
-
-    it('passes old value', () => {
-      const cb = vi.fn();
-      db.set('health', 100);
-      db.onChange('health', cb);
-      db.set('health', 50);
-      expect(cb).toHaveBeenCalledWith(50, 100);
-    });
-  });
-
-  describe('propagate', () => {
-    it('resolves all bindings', () => {
-      db.set('a', 1);
-      db.set('b', 2);
+    it('each bind() produces unique id', () => {
       const b1 = db.bind('a', 'w1', 'text');
       const b2 = db.bind('b', 'w2', 'text');
-      const result = db.propagate();
-      expect(result.get(b1.id)).toBe('1');
-      expect(result.get(b2.id)).toBe('2');
+      expect(b1.id).not.toBe(b2.id);
     });
   });
 
-  describe('getModel', () => {
-    it('returns copy of model', () => {
+  // -------------------------------------------------------------------------
+  // resolve
+  // -------------------------------------------------------------------------
+
+  describe('resolve()', () => {
+    it('returns null for unknown binding id', () => {
+      expect(db.resolve('nope')).toBeNull();
+    });
+
+    it('returns empty string when model value is undefined', () => {
+      const b = db.bind('missing', 'w', 'text');
+      expect(db.resolve(b.id)).toBe('');
+    });
+
+    it('converts number to string', () => {
+      db.set('score', 42);
+      const b = db.bind('score', 'w', 'text');
+      expect(db.resolve(b.id)).toBe('42');
+    });
+
+    it('converts boolean to string', () => {
+      db.set('active', true);
+      const b = db.bind('active', 'w', 'text');
+      expect(db.resolve(b.id)).toBe('true');
+    });
+
+    it('applies formatter when provided', () => {
+      db.set('price', 9.99);
+      const b = db.bind('price', 'w', 'text', 'one-way', (v) => `$${(v as number).toFixed(2)}`);
+      expect(db.resolve(b.id)).toBe('$9.99');
+    });
+
+    it('formatter receives raw model value', () => {
+      let received: unknown;
+      db.set('raw', 'hello');
+      const b = db.bind('raw', 'w', 'text', 'one-way', (v) => { received = v; return String(v); });
+      db.resolve(b.id);
+      expect(received).toBe('hello');
+    });
+
+    it('updates reflected in resolve() after set()', () => {
+      const b = db.bind('n', 'w', 'text');
+      db.set('n', 1);
+      expect(db.resolve(b.id)).toBe('1');
+      db.set('n', 99);
+      expect(db.resolve(b.id)).toBe('99');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // getBindingsForWidget / getBindingsForPath
+  // -------------------------------------------------------------------------
+
+  describe('getBindingsForWidget() / getBindingsForPath()', () => {
+    it('getBindingsForWidget returns bindings for that widget id', () => {
+      db.bind('a', 'w1', 'text');
+      db.bind('b', 'w1', 'value');
+      db.bind('c', 'w2', 'text');
+      const result = db.getBindingsForWidget('w1');
+      expect(result.length).toBe(2);
+      expect(result.every(b => b.widgetId === 'w1')).toBe(true);
+    });
+
+    it('getBindingsForWidget returns empty array for unknown widget', () => {
+      expect(db.getBindingsForWidget('unknown')).toEqual([]);
+    });
+
+    it('getBindingsForPath returns bindings for that model path', () => {
+      db.bind('score', 'w1', 'text');
+      db.bind('score', 'w2', 'value');
+      db.bind('level', 'w3', 'text');
+      const result = db.getBindingsForPath('score');
+      expect(result.length).toBe(2);
+      expect(result.every(b => b.modelPath === 'score')).toBe(true);
+    });
+
+    it('getBindingsForPath returns empty array for unknown path', () => {
+      expect(db.getBindingsForPath('nope')).toEqual([]);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // propagate
+  // -------------------------------------------------------------------------
+
+  describe('propagate()', () => {
+    it('returns a map with key per binding id', () => {
+      const b = db.bind('score', 'w', 'text');
+      db.set('score', 5);
+      const result = db.propagate();
+      expect(result.has(b.id)).toBe(true);
+    });
+
+    it('resolved values in map match resolve() directly', () => {
+      db.set('hp', 100);
+      const b = db.bind('hp', 'w', 'text');
+      const result = db.propagate();
+      expect(result.get(b.id)).toBe(db.resolve(b.id));
+    });
+
+    it('multiple bindings all appear in result', () => {
+      const b1 = db.bind('a', 'w1', 'text');
+      const b2 = db.bind('b', 'w2', 'text');
+      db.set('a', 1); db.set('b', 2);
+      const result = db.propagate();
+      expect(result.size).toBe(2);
+      expect(result.has(b1.id)).toBe(true);
+      expect(result.has(b2.id)).toBe(true);
+    });
+
+    it('returns empty map when no bindings', () => {
+      expect(db.propagate().size).toBe(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // getModel
+  // -------------------------------------------------------------------------
+
+  describe('getModel()', () => {
+    it('returns a snapshot of the current model', () => {
       db.set('x', 10);
       const model = db.getModel();
-      expect(model.x).toBe(10);
-      model.x = 99; // mutating copy shouldn't affect original
-      expect(db.get('x')).toBe(10);
+      expect(model['x']).toBe(10);
+    });
+
+    it('returns a copy (mutating does not affect internal state)', () => {
+      db.set('x', 1);
+      const model = db.getModel();
+      model['x'] = 999;
+      expect(db.get('x')).toBe(1);
     });
   });
 });

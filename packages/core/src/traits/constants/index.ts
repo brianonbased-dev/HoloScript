@@ -80,12 +80,14 @@ import { SCIENTIFIC_COMPUTING_TRAITS } from './scientific-computing';
 import { V43_AI_XR_TRAITS } from './v43-ai-xr';
 import { ENTERPRISE_MULTITENANCY_TRAITS } from './enterprise-multitenancy';
 import { ANALYTICS_OBSERVABILITY_TRAITS } from './analytics-observability';
+import { SECURITY_CRYPTO_TRAITS } from './security-crypto';
+import { RENDERING_TRAITS } from './rendering';
 
 /**
  * Combined VR_TRAITS array - the single source of truth for all valid VR trait names.
  * Now includes 213 robotics & industrial traits (CYCLE B) + 22 scientific computing traits (Phase 1)
  * + 23 V43 AI/XR traits (Tier 1-3) + 18 enterprise multi-tenancy traits
- * + 18 analytics & observability traits.
+ * + 18 analytics & observability traits + 76 security & cryptography traits + 27 rendering traits.
  */
 export const VR_TRAITS = [
   ...CORE_VR_INTERACTION_TRAITS,
@@ -171,6 +173,12 @@ export const VR_TRAITS = [
 
   // Analytics & Observability (18 traits)
   ...ANALYTICS_OBSERVABILITY_TRAITS,
+
+  // Security & Cryptography (76 traits)
+  ...SECURITY_CRYPTO_TRAITS,
+
+  // Rendering & Graphics (27 traits - Phase 1)
+  ...RENDERING_TRAITS,
 ] as const;
 
 /**
@@ -295,3 +303,9 @@ export {
   ANALYTICS_OBSERVABILITY_TRAITS,
   type AnalyticsObservabilityTraitName,
 } from './analytics-observability';
+
+// Security & Cryptography
+export { SECURITY_CRYPTO_TRAITS } from './security-crypto';
+
+// Rendering & Graphics (Phase 1)
+export { RENDERING_TRAITS, type RenderingTraitName } from './rendering';

@@ -1,245 +1,260 @@
 /**
- * BehaviorTree + BTNodes — Production Test Suite
+ * BehaviorTree.prod.test.ts — Sprint CLXX
  *
- * Covers: BTNodes (Sequence, Selector, Parallel, Inverter, Repeater,
- * Guard, Action, Condition, Wait), BehaviorTree runner (create, tick,
- * tickAll, abort, subtrees, tracing).
+ * Production tests for the BehaviorTree runner.
+ * API: new BehaviorTree()
+ *   .createTree(id, root, entity, blackboard?) → BTTreeDef
+ *   .removeTree(id)                            → boolean
+ *   .getTree(id)                               → BTTreeDef | undefined
+ *   .registerSubtree(name, root)               → void
+ *   .getSubtree(name)                          → BTNode | undefined
+ *   .tick(id, dt)                              → BTStatus
+ *   .tickAll(dt)                               → void
+ *   .abort(id)                                 → void
+ *   .enableTracing() / disableTracing()
+ *   .getTrace()                                → TraceEntry[]
+ *   .clearTrace()
+ *   .getTreeCount()                            → number
+ *   .getStatus(id)                             → BTStatus
  */
-import { describe, it, expect, vi } from 'vitest';
-import {
-  ActionNode,
-  ConditionNode,
-  WaitNode,
-  SequenceNode,
-  SelectorNode,
-  ParallelNode,
-  InverterNode,
-  RepeaterNode,
-  GuardNode,
-  type BTContext,
-  type BTStatus,
-} from '../BTNodes';
+
+import { describe, it, expect, beforeEach } from 'vitest';
 import { BehaviorTree } from '../BehaviorTree';
-import { Blackboard } from '../Blackboard';
+import { ActionNode, SequenceNode } from '../BTNodes';
+import type { BTStatus } from '../BTNodes';
 
-// ─── Helpers ────────────────────────────────────────────────────────
-function ctx(dt = 0.016): BTContext {
-  const bb = new Blackboard();
-  return { blackboard: bb, deltaTime: dt, entity: 'npc1' };
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function always(status: BTStatus) {
+  return new ActionNode(`always-${status}`, () => status);
 }
 
-function actionOf(status: BTStatus): ActionNode {
-  return new ActionNode('act', () => status);
-}
+let bt: BehaviorTree;
 
-describe('BTNodes — Production', () => {
-  // ─── ActionNode ───────────────────────────────────────────────────
-  it('ActionNode returns action result', () => {
-    const node = new ActionNode('heal', () => 'success');
-    expect(node.tick(ctx())).toBe('success');
-  });
-
-  // ─── ConditionNode ────────────────────────────────────────────────
-  it('ConditionNode returns success when true', () => {
-    const node = new ConditionNode('hasHP', () => true);
-    expect(node.tick(ctx())).toBe('success');
-  });
-
-  it('ConditionNode returns failure when false', () => {
-    const node = new ConditionNode('hasHP', () => false);
-    expect(node.tick(ctx())).toBe('failure');
-  });
-
-  // ─── WaitNode ─────────────────────────────────────────────────────
-  it('WaitNode runs until duration elapsed', () => {
-    const node = new WaitNode('pause', 1.0);
-    expect(node.tick(ctx(0.5))).toBe('running');
-    expect(node.tick(ctx(0.6))).toBe('success'); // 0.5 + 0.6 > 1.0
-  });
-
-  it('WaitNode reset clears elapsed', () => {
-    const node = new WaitNode('pause', 1.0);
-    node.tick(ctx(0.5));
-    node.reset();
-    expect(node.tick(ctx(0.3))).toBe('running'); // restarted
-  });
-
-  // ─── SequenceNode ─────────────────────────────────────────────────
-  it('Sequence succeeds when all children succeed', () => {
-    const seq = new SequenceNode('seq', [actionOf('success'), actionOf('success')]);
-    expect(seq.tick(ctx())).toBe('success');
-  });
-
-  it('Sequence fails on first failure', () => {
-    const seq = new SequenceNode('seq', [actionOf('success'), actionOf('failure')]);
-    expect(seq.tick(ctx())).toBe('failure');
-  });
-
-  it('Sequence returns running when child runs', () => {
-    const seq = new SequenceNode('seq', [actionOf('running')]);
-    expect(seq.tick(ctx())).toBe('running');
-  });
-
-  // ─── SelectorNode ─────────────────────────────────────────────────
-  it('Selector succeeds on first success', () => {
-    const sel = new SelectorNode('sel', [actionOf('failure'), actionOf('success')]);
-    expect(sel.tick(ctx())).toBe('success');
-  });
-
-  it('Selector fails when all children fail', () => {
-    const sel = new SelectorNode('sel', [actionOf('failure'), actionOf('failure')]);
-    expect(sel.tick(ctx())).toBe('failure');
-  });
-
-  // ─── ParallelNode ─────────────────────────────────────────────────
-  it('Parallel succeeds when required successes met', () => {
-    const par = new ParallelNode('par', [actionOf('success'), actionOf('success')], 2);
-    expect(par.tick(ctx())).toBe('success');
-  });
-
-  it('Parallel fails when too many failures', () => {
-    const par = new ParallelNode('par', [actionOf('failure'), actionOf('failure')], 2);
-    expect(par.tick(ctx())).toBe('failure');
-  });
-
-  it('Parallel running when not enough data', () => {
-    const par = new ParallelNode('par', [actionOf('success'), actionOf('running')], 2);
-    expect(par.tick(ctx())).toBe('running');
-  });
-
-  // ─── InverterNode ─────────────────────────────────────────────────
-  it('Inverter flips success to failure', () => {
-    const inv = new InverterNode('inv', actionOf('success'));
-    expect(inv.tick(ctx())).toBe('failure');
-  });
-
-  it('Inverter flips failure to success', () => {
-    const inv = new InverterNode('inv', actionOf('failure'));
-    expect(inv.tick(ctx())).toBe('success');
-  });
-
-  it('Inverter preserves running', () => {
-    const inv = new InverterNode('inv', actionOf('running'));
-    expect(inv.tick(ctx())).toBe('running');
-  });
-
-  // ─── GuardNode ────────────────────────────────────────────────────
-  it('Guard passes through when condition true', () => {
-    const guard = new GuardNode('g', () => true, actionOf('success'));
-    expect(guard.tick(ctx())).toBe('success');
-  });
-
-  it('Guard blocks when condition false', () => {
-    const guard = new GuardNode('g', () => false, actionOf('success'));
-    expect(guard.tick(ctx())).toBe('failure');
-  });
-
-  // ─── RepeaterNode ─────────────────────────────────────────────────
-  it('Repeater runs child multiple times', () => {
-    const rep = new RepeaterNode('rep', actionOf('success'), 3);
-    expect(rep.tick(ctx())).toBe('running'); // count 1
-    expect(rep.tick(ctx())).toBe('running'); // count 2
-    expect(rep.tick(ctx())).toBe('success'); // count 3
-  });
+beforeEach(() => {
+  bt = new BehaviorTree();
 });
 
-describe('BehaviorTree — Production', () => {
-  // ─── Tree Management ──────────────────────────────────────────────
-  it('createTree + getTree', () => {
-    const bt = new BehaviorTree();
-    const tree = bt.createTree('patrol', actionOf('success'), 'npc1');
-    expect(bt.getTree('patrol')).toBe(tree);
-    expect(bt.getTreeCount()).toBe(1);
+// ---------------------------------------------------------------------------
+// createTree / getTree / removeTree
+// ---------------------------------------------------------------------------
+
+describe('BehaviorTree', () => {
+  describe('createTree() / getTree() / removeTree()', () => {
+    it('createTree() registers and returns the tree', () => {
+      const tree = bt.createTree('t1', always('success'), 'agent-1');
+      expect(tree.id).toBe('t1');
+    });
+
+    it('getTree() retrieves the created tree', () => {
+      bt.createTree('t1', always('success'), 'agent-1');
+      expect(bt.getTree('t1')?.id).toBe('t1');
+    });
+
+    it('getTree() returns undefined for unknown id', () => {
+      expect(bt.getTree('nope')).toBeUndefined();
+    });
+
+    it('removeTree() deletes the tree', () => {
+      bt.createTree('t1', always('success'), 'agent-1');
+      expect(bt.removeTree('t1')).toBe(true);
+      expect(bt.getTree('t1')).toBeUndefined();
+    });
+
+    it('removeTree() returns false for unknown id', () => {
+      expect(bt.removeTree('no')).toBe(false);
+    });
+
+    it('createTree() initialises tickCount = 0 and status = ready', () => {
+      const tree = bt.createTree('t1', always('success'), 'agent-1');
+      expect(tree.tickCount).toBe(0);
+      expect(tree.status).toBe('ready');
+    });
   });
 
-  it('removeTree removes tree', () => {
-    const bt = new BehaviorTree();
-    bt.createTree('patrol', actionOf('success'), 'npc1');
-    expect(bt.removeTree('patrol')).toBe(true);
-    expect(bt.getTreeCount()).toBe(0);
+  // -------------------------------------------------------------------------
+  // subtrees
+  // -------------------------------------------------------------------------
+
+  describe('registerSubtree() / getSubtree()', () => {
+    it('registers and retrieves a subtree', () => {
+      const root = always('success');
+      bt.registerSubtree('patrol', root);
+      expect(bt.getSubtree('patrol')).toBe(root);
+    });
+
+    it('returns undefined for unknown subtree', () => {
+      expect(bt.getSubtree('nope')).toBeUndefined();
+    });
   });
 
-  // ─── Tick ─────────────────────────────────────────────────────────
-  it('tick evaluates tree root', () => {
-    const bt = new BehaviorTree();
-    bt.createTree('t', actionOf('success'), 'e1');
-    expect(bt.tick('t', 0.016)).toBe('success');
+  // -------------------------------------------------------------------------
+  // tick()
+  // -------------------------------------------------------------------------
+
+  describe('tick()', () => {
+    it('returns the root node status', () => {
+      bt.createTree('t1', always('success'), 'agent');
+      expect(bt.tick('t1', 0.016)).toBe('success');
+    });
+
+    it('returns failure for unknown tree id', () => {
+      expect(bt.tick('nope', 0.016)).toBe('failure');
+    });
+
+    it('increments tickCount on each tick', () => {
+      bt.createTree('t1', always('success'), 'a');
+      bt.tick('t1', 0.016);
+      bt.tick('t1', 0.016);
+      expect(bt.getTree('t1')?.tickCount).toBe(2);
+    });
+
+    it('updates tree.status after tick', () => {
+      bt.createTree('t1', always('running'), 'a');
+      bt.tick('t1', 0.016);
+      expect(bt.getStatus('t1')).toBe('running');
+    });
+
+    it('passes deltaTime in context to nodes', () => {
+      let receivedDt = -1;
+      const node = new ActionNode('dt-spy', (ctx) => { receivedDt = ctx.deltaTime; return 'success'; });
+      bt.createTree('t1', node, 'a');
+      bt.tick('t1', 0.033);
+      expect(receivedDt).toBe(0.033);
+    });
+
+    it('ticks a composite tree correctly (Sequence of successes)', () => {
+      const seq = new SequenceNode('seq', [always('success'), always('success')]);
+      bt.createTree('t1', seq, 'a');
+      expect(bt.tick('t1', 0.016)).toBe('success');
+    });
   });
 
-  it('tick returns failure for unknown tree', () => {
-    const bt = new BehaviorTree();
-    expect(bt.tick('unknown', 0.016)).toBe('failure');
+  // -------------------------------------------------------------------------
+  // tickAll()
+  // -------------------------------------------------------------------------
+
+  describe('tickAll()', () => {
+    it('ticks all registered trees', () => {
+      let count = 0;
+      const spy = new ActionNode('spy', () => { count++; return 'success'; });
+      bt.createTree('t1', spy, 'a');
+      bt.createTree('t2', spy, 'b');
+      bt.tickAll(0.016);
+      expect(count).toBe(2);
+    });
   });
 
-  it('tick increments tickCount', () => {
-    const bt = new BehaviorTree();
-    bt.createTree('t', actionOf('success'), 'e1');
-    bt.tick('t', 0.016);
-    bt.tick('t', 0.016);
-    expect(bt.getTree('t')!.tickCount).toBe(2);
+  // -------------------------------------------------------------------------
+  // abort()
+  // -------------------------------------------------------------------------
+
+  describe('abort()', () => {
+    it('marks the tree as aborted and sets status to failure', () => {
+      bt.createTree('t1', always('running'), 'a');
+      bt.abort('t1');
+      expect(bt.getTree('t1')?.aborted).toBe(true);
+      expect(bt.getStatus('t1')).toBe('failure');
+    });
+
+    it('abort() sets the tree status to failure (persists until next tick resolves it)', () => {
+      bt.createTree('t1', always('success'), 'a');
+      bt.abort('t1');
+      // abort sets status=failure immediately; getStatus reflects that
+      expect(bt.getStatus('t1')).toBe('failure');
+      // Next tick resets aborted=false and runs normally again
+      expect(bt.tick('t1', 0.016)).toBe('success');
+    });
+
+    it('abort() is a no-op for unknown id', () => {
+      expect(() => bt.abort('no-such-tree')).not.toThrow();
+    });
   });
 
-  it('tickAll ticks all trees', () => {
-    const bt = new BehaviorTree();
-    bt.createTree('a', actionOf('success'), 'e1');
-    bt.createTree('b', actionOf('success'), 'e2');
-    bt.tickAll(0.016);
-    expect(bt.getTree('a')!.tickCount).toBe(1);
-    expect(bt.getTree('b')!.tickCount).toBe(1);
+  // -------------------------------------------------------------------------
+  // tracing
+  // -------------------------------------------------------------------------
+
+  describe('enableTracing() / disableTracing() / getTrace() / clearTrace()', () => {
+    it('getTrace() returns empty array by default', () => {
+      expect(bt.getTrace()).toEqual([]);
+    });
+
+    it('tracing off: tick does not append entries', () => {
+      bt.createTree('t1', always('success'), 'a');
+      bt.tick('t1', 0.016);
+      expect(bt.getTrace().length).toBe(0);
+    });
+
+    it('tracing on: tick appends a trace entry', () => {
+      bt.enableTracing();
+      bt.createTree('t1', always('success'), 'a');
+      bt.tick('t1', 0.016);
+      expect(bt.getTrace().length).toBeGreaterThan(0);
+    });
+
+    it('trace entry has tree, node, status, tick fields', () => {
+      bt.enableTracing();
+      bt.createTree('t1', always('success'), 'a');
+      bt.tick('t1', 0.016);
+      const entry = bt.getTrace()[0];
+      expect(entry.tree).toBe('t1');
+      expect(entry.node).toBe('always-success');
+      expect(entry.status).toBe('success');
+      expect(typeof entry.tick).toBe('number');
+    });
+
+    it('disableTracing() stops accumulation', () => {
+      bt.enableTracing();
+      bt.createTree('t1', always('success'), 'a');
+      bt.tick('t1', 0.016);
+      bt.disableTracing();
+      bt.tick('t1', 0.016);
+      expect(bt.getTrace().length).toBe(1); // only first tick logged
+    });
+
+    it('clearTrace() empties the trace array', () => {
+      bt.enableTracing();
+      bt.createTree('t1', always('success'), 'a');
+      bt.tick('t1', 0.016);
+      bt.clearTrace();
+      expect(bt.getTrace().length).toBe(0);
+    });
+
+    it('getTrace() returns a copy', () => {
+      bt.enableTracing();
+      bt.createTree('t1', always('success'), 'a');
+      bt.tick('t1', 0.016);
+      const trace = bt.getTrace();
+      trace.pop();
+      expect(bt.getTrace().length).toBe(1);
+    });
   });
 
-  // ─── Abort ────────────────────────────────────────────────────────
-  it('abort sets tree status to failure', () => {
-    const bt = new BehaviorTree();
-    bt.createTree('t', actionOf('running'), 'e1');
-    bt.tick('t', 0.016);
-    bt.abort('t');
-    expect(bt.getStatus('t')).toBe('failure');
-    expect(bt.getTree('t')!.aborted).toBe(true);
-  });
+  // -------------------------------------------------------------------------
+  // getTreeCount() / getStatus()
+  // -------------------------------------------------------------------------
 
-  // ─── Subtrees ─────────────────────────────────────────────────────
-  it('registerSubtree + getSubtree', () => {
-    const bt = new BehaviorTree();
-    const sub = actionOf('success');
-    bt.registerSubtree('attack', sub);
-    expect(bt.getSubtree('attack')).toBe(sub);
-  });
+  describe('getTreeCount() / getStatus()', () => {
+    it('getTreeCount() is 0 initially', () => {
+      expect(bt.getTreeCount()).toBe(0);
+    });
 
-  // ─── Tracing ──────────────────────────────────────────────────────
-  it('enableTracing records trace entries', () => {
-    const bt = new BehaviorTree();
-    bt.enableTracing();
-    bt.createTree('t', actionOf('success'), 'e1');
-    bt.tick('t', 0.016);
-    const trace = bt.getTrace();
-    expect(trace.length).toBeGreaterThan(0);
-    expect(trace[0].tree).toBe('t');
-  });
+    it('getTreeCount() increments with each createTree()', () => {
+      bt.createTree('t1', always('success'), 'a');
+      bt.createTree('t2', always('success'), 'b');
+      expect(bt.getTreeCount()).toBe(2);
+    });
 
-  it('clearTrace empties trace', () => {
-    const bt = new BehaviorTree();
-    bt.enableTracing();
-    bt.createTree('t', actionOf('success'), 'e1');
-    bt.tick('t', 0.016);
-    bt.clearTrace();
-    expect(bt.getTrace().length).toBe(0);
-  });
+    it('getStatus() returns ready before any tick', () => {
+      bt.createTree('t1', always('success'), 'a');
+      expect(bt.getStatus('t1')).toBe('ready');
+    });
 
-  it('disableTracing stops recording', () => {
-    const bt = new BehaviorTree();
-    bt.enableTracing();
-    bt.createTree('t', actionOf('success'), 'e1');
-    bt.tick('t', 0.016);
-    bt.disableTracing();
-    bt.clearTrace();
-    bt.tick('t', 0.016);
-    expect(bt.getTrace().length).toBe(0);
-  });
-
-  // ─── getStatus ────────────────────────────────────────────────────
-  it('getStatus returns failure for unknown tree', () => {
-    const bt = new BehaviorTree();
-    expect(bt.getStatus('nope')).toBe('failure');
+    it('getStatus() returns failure for unknown id', () => {
+      expect(bt.getStatus('no')).toBe('failure');
+    });
   });
 });

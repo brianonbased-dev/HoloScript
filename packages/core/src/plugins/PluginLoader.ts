@@ -48,7 +48,16 @@ export type PluginPermission =
   | 'filesystem:read'
   | 'filesystem:write'
   | 'audio:play'
-  | 'input:capture';
+  | 'input:capture'
+  // Hololand Platform permissions
+  | 'vrr:sync'           // Access VRR real-time sync APIs
+  | 'x402:payment'       // Trigger x402 payments
+  | 'ar:camera'          // Access device camera for AR
+  | 'agentkit:wallet'    // Access AI agent wallet
+  | 'zora:nft_mint'      // Mint NFTs via Zora
+  | 'storyweaver:ai'     // Access StoryWeaver AI services
+  | 'quest:create'       // Create business quests
+  | 'quest:manage';      // Manage quest state
 
 export enum PluginState {
   UNLOADED = 'UNLOADED',

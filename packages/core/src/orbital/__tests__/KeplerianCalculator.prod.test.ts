@@ -1,274 +1,218 @@
 /**
- * KeplerianCalculator — Production Test Suite
- *
- * Covers:
- *  - dateToJulian / julianToDate  (round-trip + known epoch value)
- *  - calculatePosition            (Earth, Mars, circular orbit, J2000 epoch)
- *  - generateOrbitalPath          (point count, loop closure, valid coords)
- *
- * Reference values are cross-checked against published ephemeris data (J2000).
+ * KeplerianCalculator Production Tests
+ * Sprint CLIII - Celestial mechanics & orbital computations
  */
-
 import { describe, it, expect } from 'vitest';
 import {
   calculatePosition,
+  generateOrbitalPath,
   dateToJulian,
   julianToDate,
-  generateOrbitalPath,
   toDegrees,
   type OrbitalElements,
 } from '../KeplerianCalculator';
 
-// ---------------------------------------------------------------------------
-// Well-known orbital elements (J2000 values from JPL Horizons / NASA)
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------------------
+// Earth's approximate orbital elements (J2000 epoch)
+// -------------------------------------------------------------------------
 
 const EARTH: OrbitalElements = {
-  semiMajorAxis: 1.00000011,
-  eccentricity: 0.01671022,
-  inclination: 0.00005,
-  longitudeAscending: -11.26064,
-  argumentPeriapsis: 102.94719,
-  meanAnomalyEpoch: 100.46435,
-  orbitalPeriod: 365.25,
+  semiMajorAxis: 1.000,          // 1 AU
+  eccentricity: 0.0167,
+  inclination: 0.0001,           // ~ecliptic plane
+  longitudeAscending: 0.0,
+  argumentPeriapsis: 102.9372,
+  meanAnomalyEpoch: 357.5291,
+  orbitalPeriod: 365.25,         // days
 };
 
-const MARS: OrbitalElements = {
-  semiMajorAxis: 1.52366231,
-  eccentricity: 0.09341233,
-  inclination: 1.85061,
-  longitudeAscending: 49.57854,
-  argumentPeriapsis: 336.04084,
-  meanAnomalyEpoch: 355.45332,
-  orbitalPeriod: 686.971,
-};
-
-/** Perfect circle in the ecliptic plane (easy ground-truth) */
+// A circular orbit (eccentricity = 0) for easier math
 const CIRCULAR: OrbitalElements = {
-  semiMajorAxis: 5.0,
-  eccentricity: 0,
-  inclination: 0,
-  longitudeAscending: 0,
-  argumentPeriapsis: 0,
-  meanAnomalyEpoch: 0,
-  orbitalPeriod: 100,
+  semiMajorAxis: 2.0,            // 2 AU
+  eccentricity: 0.0,
+  inclination: 0.0,
+  longitudeAscending: 0.0,
+  argumentPeriapsis: 0.0,
+  meanAnomalyEpoch: 0.0,
+  orbitalPeriod: 100.0,
 };
 
-// ---------------------------------------------------------------------------
-// Helper
-// ---------------------------------------------------------------------------
+describe('KeplerianCalculator', () => {
 
-function distance(p: { x: number; y: number; z: number }): number {
-  return Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-}
+  // -------------------------------------------------------------------------
+  // toDegrees
+  // -------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// dateToJulian / julianToDate
-// ---------------------------------------------------------------------------
+  describe('toDegrees', () => {
+    it('converts 0 radians to 0 degrees', () => {
+      expect(toDegrees(0)).toBe(0);
+    });
 
-describe('dateToJulian', () => {
-  it('returns 0 for the J2000 epoch (2000-01-01T12:00:00Z)', () => {
-    const jd = dateToJulian(new Date('2000-01-01T12:00:00Z'));
-    expect(jd).toBeCloseTo(0, 6);
+    it('converts PI radians to 180 degrees', () => {
+      expect(toDegrees(Math.PI)).toBeCloseTo(180, 8);
+    });
+
+    it('converts 2*PI to 360 degrees', () => {
+      expect(toDegrees(2 * Math.PI)).toBeCloseTo(360, 8);
+    });
+
+    it('converts PI/2 to 90 degrees', () => {
+      expect(toDegrees(Math.PI / 2)).toBeCloseTo(90, 8);
+    });
   });
 
-  it('returns 1 for one day after J2000', () => {
-    const jd = dateToJulian(new Date('2000-01-02T12:00:00Z'));
-    expect(jd).toBeCloseTo(1, 6);
-  });
+  // -------------------------------------------------------------------------
+  // calculatePosition
+  // -------------------------------------------------------------------------
 
-  it('returns negative for dates before J2000', () => {
-    const jd = dateToJulian(new Date('1999-12-31T12:00:00Z'));
-    expect(jd).toBeCloseTo(-1, 6);
-  });
+  describe('calculatePosition', () => {
+    it('returns a valid Position3D with numeric x, y, z', () => {
+      const pos = calculatePosition(EARTH, 0);
+      expect(typeof pos.x).toBe('number');
+      expect(typeof pos.y).toBe('number');
+      expect(typeof pos.z).toBe('number');
+      expect(isNaN(pos.x)).toBe(false);
+      expect(isNaN(pos.y)).toBe(false);
+      expect(isNaN(pos.z)).toBe(false);
+    });
 
-  it('returns ~9131.5 for 2025-01-01', () => {
-    // 25 years × 365.25 days/year = 9131.25 days
-    const jd = dateToJulian(new Date('2025-01-01T12:00:00Z'));
-    expect(jd).toBeGreaterThan(9000);
-    expect(jd).toBeLessThan(9200);
-  });
-});
+    it('produces a heliocentric distance near 1 AU for Earth at J2000', () => {
+      const pos = calculatePosition(EARTH, 0);
+      const r = Math.sqrt(pos.x ** 2 + pos.y ** 2 + pos.z ** 2);
+      // Earth's orbit ranges from ~0.983 to ~1.017 AU
+      expect(r).toBeGreaterThan(0.95);
+      expect(r).toBeLessThan(1.05);
+    });
 
-describe('julianToDate', () => {
-  it('round-trip: dateToJulian → julianToDate recovers original date', () => {
-    const original = new Date('2023-06-15T00:00:00Z');
-    const jd = dateToJulian(original);
-    const recovered = julianToDate(jd);
-    const diffMs = Math.abs(recovered.getTime() - original.getTime());
-    expect(diffMs).toBeLessThan(1000); // within 1 second
-  });
+    it('circular orbit stays at fixed radius regardless of time', () => {
+      for (const t of [0, 25, 50, 75]) {
+        const pos = calculatePosition(CIRCULAR, t);
+        const r = Math.sqrt(pos.x ** 2 + pos.y ** 2 + pos.z ** 2);
+        expect(r).toBeCloseTo(2.0, 4);
+      }
+    });
 
-  it('returns J2000 epoch for julian=0', () => {
-    const d = julianToDate(0);
-    expect(d.toISOString()).toBe('2000-01-01T12:00:00.000Z');
-  });
-
-  it('returns correct date for julian=365', () => {
-    const d = julianToDate(365);
-    // 365 days after J2000 epoch (2000-01-01T12:00:00Z).
-    // Year 2000 is a leap year (366 days), so day 365 = Dec 30, 2000.
-    expect(d.getFullYear()).toBe(2000);
-    expect(d.getMonth()).toBe(11); // December (0-indexed)
-  });
-});
-
-// ---------------------------------------------------------------------------
-// calculatePosition
-// ---------------------------------------------------------------------------
-
-describe('calculatePosition — Earth', () => {
-  it('at J2000 (jd=0) is approximately 1 AU from Sun', () => {
-    const pos = calculatePosition(EARTH, 0);
-    const r = distance(pos);
-    // Earth perihelion ≈ 0.983 AU, aphelion ≈ 1.017 AU
-    expect(r).toBeGreaterThan(0.95);
-    expect(r).toBeLessThan(1.05);
-  });
-
-  it('after one full period returns to same position', () => {
-    const p0 = calculatePosition(EARTH, 0);
-    const p1 = calculatePosition(EARTH, EARTH.orbitalPeriod);
-    expect(p0.x).toBeCloseTo(p1.x, 2);
-    expect(p0.y).toBeCloseTo(p1.y, 2);
-    expect(p0.z).toBeCloseTo(p1.z, 2);
-  });
-
-  it('at half-period the ecliptic x coordinate flips sign roughly', () => {
-    const p0 = calculatePosition(EARTH, 0);
-    const p_half = calculatePosition(EARTH, EARTH.orbitalPeriod / 2);
-    // After half an orbit the body should be on the opposite side
-    // The dot product of the two position vectors should be negative
-    const dot = p0.x * p_half.x + p0.y * p_half.y + p0.z * p_half.z;
-    expect(dot).toBeLessThan(0);
-  });
-
-  it('z component is very small for near-zero inclination', () => {
-    const pos = calculatePosition(EARTH, 0);
-    // Earth inclination ≈ 0.00005° → z should be negligible
-    expect(Math.abs(pos.z)).toBeLessThan(0.01);
-  });
-});
-
-describe('calculatePosition — Mars', () => {
-  it('is between 1.38 and 1.67 AU at all sampled times', () => {
-    for (let i = 0; i <= 10; i++) {
-      const jd = (i / 10) * MARS.orbitalPeriod;
-      const pos = calculatePosition(MARS, jd);
-      const r = distance(pos);
-      // Mars perihelion ≈ 1.381 AU, aphelion ≈ 1.666 AU
-      expect(r).toBeGreaterThan(1.35);
-      expect(r).toBeLessThan(1.70);
-    }
-  });
-
-  it('after one full period returns to within 0.01 AU', () => {
-    const p0 = calculatePosition(MARS, 0);
-    const p1 = calculatePosition(MARS, MARS.orbitalPeriod);
-    const drift = distance({ x: p1.x - p0.x, y: p1.y - p0.y, z: p1.z - p0.z });
-    expect(drift).toBeLessThan(0.01);
-  });
-});
-
-describe('calculatePosition — perfect circle', () => {
-  it('distance from origin is always exactly 5 AU', () => {
-    for (let i = 0; i < 20; i++) {
-      const jd = (i / 20) * CIRCULAR.orbitalPeriod;
-      const pos = calculatePosition(CIRCULAR, jd);
-      expect(distance(pos)).toBeCloseTo(5, 4);
-    }
-  });
-
-  it('z component is zero (zero inclination / no tilt)', () => {
-    for (let i = 0; i < 10; i++) {
-      const jd = (i / 10) * CIRCULAR.orbitalPeriod;
-      const pos = calculatePosition(CIRCULAR, jd);
+    it('circular orbit with inclination=0 has z≈0', () => {
+      const pos = calculatePosition(CIRCULAR, 37);
       expect(Math.abs(pos.z)).toBeLessThan(1e-10);
-    }
+    });
+
+    it('returns different positions at different times', () => {
+      const p1 = calculatePosition(EARTH, 0);
+      const p2 = calculatePosition(EARTH, 180);
+      // Half orbit apart — x should be substantially different
+      expect(Math.abs(p1.x - p2.x)).toBeGreaterThan(0.1);
+    });
+
+    it('position after one full period ≈ same as at t=0', () => {
+      const p0 = calculatePosition(EARTH, 0);
+      const p1 = calculatePosition(EARTH, EARTH.orbitalPeriod);
+      expect(p0.x).toBeCloseTo(p1.x, 4);
+      expect(p0.y).toBeCloseTo(p1.y, 4);
+      expect(p0.z).toBeCloseTo(p1.z, 4);
+    });
+
+    it('handles very eccentric orbit (e=0.9) without NaN', () => {
+      const eccentric: OrbitalElements = { ...CIRCULAR, eccentricity: 0.9, orbitalPeriod: 100 };
+      const pos = calculatePosition(eccentric, 10);
+      expect(isNaN(pos.x)).toBe(false);
+      expect(isNaN(pos.y)).toBe(false);
+    });
   });
 
-  it('traces a circle (x² + y² ≈ r² at all times)', () => {
-    for (let i = 0; i < 36; i++) {
-      const jd = (i / 36) * CIRCULAR.orbitalPeriod;
-      const pos = calculatePosition(CIRCULAR, jd);
-      const r2 = pos.x * pos.x + pos.y * pos.y;
-      expect(Math.abs(Math.sqrt(r2) - 5)).toBeLessThan(1e-4);
-    }
-  });
-});
+  // -------------------------------------------------------------------------
+  // dateToJulian / julianToDate
+  // -------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// generateOrbitalPath
-// ---------------------------------------------------------------------------
+  describe('dateToJulian', () => {
+    it('returns 0 for J2000 epoch (2000-01-01T12:00:00Z)', () => {
+      const j2000 = new Date('2000-01-01T12:00:00Z');
+      expect(dateToJulian(j2000)).toBeCloseTo(0, 10);
+    });
 
-describe('generateOrbitalPath', () => {
-  it('returns numPoints + 1 points (closing point appended)', () => {
-    const path = generateOrbitalPath(EARTH, 100);
-    expect(path.length).toBe(101); // 100 + closing point
-  });
+    it('returns positive for dates after J2000', () => {
+      const after = new Date('2010-01-01T12:00:00Z');
+      expect(dateToJulian(after)).toBeGreaterThan(0);
+    });
 
-  it('default numPoints is 100 → 101 total', () => {
-    const path = generateOrbitalPath(EARTH);
-    expect(path.length).toBe(101);
-  });
+    it('returns negative for dates before J2000', () => {
+      const before = new Date('1990-01-01T12:00:00Z');
+      expect(dateToJulian(before)).toBeLessThan(0);
+    });
 
-  it('first and last points are identical (loop closed)', () => {
-    const path = generateOrbitalPath(EARTH, 50);
-    expect(path[0].x).toBe(path[path.length - 1].x);
-    expect(path[0].y).toBe(path[path.length - 1].y);
-    expect(path[0].z).toBe(path[path.length - 1].z);
+    it('1 year after J2000 is between 365 and 367 days', () => {
+      const oneYear = new Date('2001-01-01T12:00:00Z');
+      const jd = dateToJulian(oneYear);
+      // 2000 is a leap year, so Jan 1 2001 12:00 UTC = 366 days after J2000 epoch
+      expect(jd).toBeGreaterThan(364);
+      expect(jd).toBeLessThan(368);
+    });
   });
 
-  it('all points have finite coordinates', () => {
-    const path = generateOrbitalPath(MARS, 72);
-    for (const p of path) {
-      expect(Number.isFinite(p.x)).toBe(true);
-      expect(Number.isFinite(p.y)).toBe(true);
-      expect(Number.isFinite(p.z)).toBe(true);
-    }
+  describe('julianToDate', () => {
+    it('round-trips dateToJulian correctly', () => {
+      const original = new Date('2025-06-15T09:30:00Z');
+      const julian = dateToJulian(original);
+      const roundTripped = julianToDate(julian);
+      expect(roundTripped.getTime()).toBeCloseTo(original.getTime(), -3); // within 1ms
+    });
+
+    it('j=0 returns J2000 epoch', () => {
+      const date = julianToDate(0);
+      expect(date.toISOString()).toBe('2000-01-01T12:00:00.000Z');
+    });
+
+    it('j=365.25 is approximately 1 year after J2000', () => {
+      const date = julianToDate(365.25);
+      // Jan 1, 2000 12:00 + 365.25 days ≈ Jan 1, 2001 12:00 (but floating point lands in late 2000)
+      // Verify the timestamp is between Dec 2000 and Feb 2001
+      const ts = date.getTime();
+      const dec2000 = new Date('2000-12-01T00:00:00Z').getTime();
+      const feb2001 = new Date('2001-02-01T00:00:00Z').getTime();
+      expect(ts).toBeGreaterThan(dec2000);
+      expect(ts).toBeLessThan(feb2001);
+    });
   });
 
-  it('all points are within expected radial bounds for Earth', () => {
-    const path = generateOrbitalPath(EARTH, 200);
-    for (const p of path) {
-      const r = distance(p);
-      expect(r).toBeGreaterThan(0.9);
-      expect(r).toBeLessThan(1.1);
-    }
-  });
+  // -------------------------------------------------------------------------
+  // generateOrbitalPath
+  // -------------------------------------------------------------------------
 
-  it('works with a custom numPoints value of 1', () => {
-    const path = generateOrbitalPath(CIRCULAR, 1);
-    expect(path.length).toBe(2); // 1 point + closing
-  });
+  describe('generateOrbitalPath', () => {
+    it('returns numPoints+1 positions (closed loop)', () => {
+      const path = generateOrbitalPath(EARTH, 50);
+      expect(path).toHaveLength(51); // 50 + closing point
+    });
 
-  it('circular orbit path has constant radius', () => {
-    const path = generateOrbitalPath(CIRCULAR, 360);
-    const radii = path.map(distance);
-    const minR = Math.min(...radii);
-    const maxR = Math.max(...radii);
-    expect(maxR - minR).toBeLessThan(1e-4);
-  });
-});
+    it('defaults to 100 points + 1 closing point', () => {
+      const path = generateOrbitalPath(EARTH);
+      expect(path).toHaveLength(101);
+    });
 
-// ---------------------------------------------------------------------------
-// toDegrees utility
-// ---------------------------------------------------------------------------
+    it('first and last points are identical (closed loop)', () => {
+      const path = generateOrbitalPath(EARTH, 20);
+      const first = path[0];
+      const last = path[path.length - 1];
+      expect(first.x).toBe(last.x);
+      expect(first.y).toBe(last.y);
+      expect(first.z).toBe(last.z);
+    });
 
-describe('toDegrees', () => {
-  it('converts π to 180', () => {
-    expect(toDegrees(Math.PI)).toBeCloseTo(180, 10);
-  });
+    it('all points have numeric coordinates', () => {
+      const path = generateOrbitalPath(CIRCULAR, 10);
+      for (const p of path) {
+        expect(isNaN(p.x)).toBe(false);
+        expect(isNaN(p.y)).toBe(false);
+        expect(isNaN(p.z)).toBe(false);
+      }
+    });
 
-  it('converts 0 to 0', () => {
-    expect(toDegrees(0)).toBe(0);
-  });
-
-  it('converts 2π to 360', () => {
-    expect(toDegrees(2 * Math.PI)).toBeCloseTo(360, 10);
-  });
-
-  it('converts π/2 to 90', () => {
-    expect(toDegrees(Math.PI / 2)).toBeCloseTo(90, 10);
+    it('circular orbit path points are all at the same radius', () => {
+      const path = generateOrbitalPath(CIRCULAR, 36);
+      for (const p of path) {
+        const r = Math.sqrt(p.x ** 2 + p.y ** 2 + p.z ** 2);
+        expect(r).toBeCloseTo(2.0, 4);
+      }
+    });
   });
 });

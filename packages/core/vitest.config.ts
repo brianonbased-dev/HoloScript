@@ -23,8 +23,12 @@ export default defineConfig({
     ],
     // Increase timeout for slower tests
     testTimeout: 30000,
-    // Clear mocks between tests
+    // Clear mocks between tests (reset call counts)
     clearMocks: true,
+    // Restore all spyOn/mock implementations between tests
+    restoreMocks: true,
+    // Restore vi.stubGlobal() globals between tests (prevents `performance`, `Date` etc. leaking)
+    unstubAllGlobals: true,
     // Coverage configuration
     coverage: {
       provider: 'v8',

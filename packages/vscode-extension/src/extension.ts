@@ -40,12 +40,16 @@ import {
   HoloScriptInlineDebugAdapterFactory,
   HoloScriptDebugConfigurationProvider,
 } from './debug';
+import { HololandServices } from './services/HololandServices';
+import { registerHololandCommands } from './services/HololandCommands';
+import { registerHololandWebviews } from './webview/HololandWebviews';
 
 let client: LanguageClient | undefined;
 let traitTreeProvider: TraitCompositionTreeProvider | undefined;
 let semanticGit: SemanticGit | undefined;
 let gitStatusBarItem: vscode.StatusBarItem | undefined;
 let diffDecorationProvider: DiffDecorationProvider | undefined;
+let hololandServices: HololandServices | undefined;
 
 export function activate(context: ExtensionContext) {
   // Register the preview command
@@ -616,6 +620,16 @@ export function activate(context: ExtensionContext) {
   );
 
   console.log('HoloScript: Debug adapter registered (inline DAP with configuration provider).');
+
+  // Initialize Hololand Platform services
+  try {
+    hololandServices = HololandServices.getInstance(context);
+    registerHololandCommands(context, hololandServices);
+    registerHololandWebviews(context, hololandServices);
+    console.log('HoloScript: Hololand Platform services initialized.');
+  } catch (err) {
+    console.warn('HoloScript: Hololand services initialization failed:', err);
+  }
 }
 
 function isHoloScriptFile(document: TextDocument): boolean {
@@ -645,6 +659,12 @@ export function deactivate(): Thenable<void> | undefined {
   if (diffDecorationProvider) {
     diffDecorationProvider.dispose();
     diffDecorationProvider = undefined;
+  }
+
+  // Dispose Hololand services
+  if (hololandServices) {
+    hololandServices.dispose();
+    hololandServices = undefined;
   }
 
   if (!client) {
