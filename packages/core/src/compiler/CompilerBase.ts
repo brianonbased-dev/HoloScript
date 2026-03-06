@@ -92,6 +92,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   'VisionOSCompiler': 'visionos',
   'ARCompiler': 'ar',
   'AndroidXRCompiler': 'android-xr',
+  'AIGlassesCompiler': 'ai-glasses',
   'AndroidCompiler': 'android',
   'IOSCompiler': 'ios',
   'BabylonCompiler': 'babylon',

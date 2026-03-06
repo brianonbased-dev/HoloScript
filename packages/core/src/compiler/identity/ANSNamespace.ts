@@ -1,7 +1,7 @@
 /**
  * HoloScript Agent Namespace Schema (ANS)
  *
- * Defines capability namespace constants for all 30 HoloScript compilers.
+ * Defines capability namespace constants for all 31 HoloScript compilers.
  * Each compiler maps to an ANS capability path using the pattern:
  *
  *   /compile/DOMAIN/TARGET
@@ -110,13 +110,13 @@ export const DOMAIN_RISK_TIERS: Readonly<Record<ANSDomainValue, RiskTierValue>> 
 // ---------------------------------------------------------------------------
 
 /**
- * Type-safe union of all 30 HoloScript compiler names.
+ * Type-safe union of all 31 HoloScript compiler names.
  *
  * Each name corresponds to a specific compiler class in the codebase:
  *
  * gamedev: UnityCompiler, UnrealCompiler, GodotCompiler
  * social-vr: VRChatCompiler
- * xr: OpenXRCompiler, VisionOSCompiler, ARCompiler, AndroidXRCompiler
+ * xr: OpenXRCompiler, VisionOSCompiler, ARCompiler, AndroidXRCompiler, AIGlassesCompiler
  * mobile: AndroidCompiler, IOSCompiler
  * web3d: BabylonCompiler, WebGPUCompiler, R3FCompiler, PlayCanvasCompiler
  * runtime: WASMCompiler
@@ -142,6 +142,7 @@ export type CompilerName =
   | 'visionos'
   | 'ar'
   | 'android-xr'
+  | 'ai-glasses'
   // mobile
   | 'android'
   | 'ios'
@@ -188,7 +189,7 @@ export type CompilerName =
 export const ANS_PREFIX = '/compile' as const;
 
 /**
- * Complete ANS capability paths for all 30 HoloScript compilers.
+ * Complete ANS capability paths for all 31 HoloScript compilers.
  *
  * Pattern: /compile/DOMAIN/TARGET
  *
@@ -209,6 +210,7 @@ export const ANSCapabilityPath = {
   VISIONOS: '/compile/xr/visionos',
   AR: '/compile/xr/ar',
   ANDROID_XR: '/compile/xr/android-xr',
+  AI_GLASSES: '/compile/xr/ai-glasses',
 
   // ── mobile ───────────────────────────────────────────────────────────
   ANDROID: '/compile/mobile/android',
@@ -279,6 +281,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   'visionos': ANSDomain.XR,
   'ar': ANSDomain.XR,
   'android-xr': ANSDomain.XR,
+  'ai-glasses': ANSDomain.XR,
   // mobile
   'android': ANSDomain.MOBILE,
   'ios': ANSDomain.MOBILE,
@@ -332,6 +335,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   'visionos': ANSCapabilityPath.VISIONOS,
   'ar': ANSCapabilityPath.AR,
   'android-xr': ANSCapabilityPath.ANDROID_XR,
+  'ai-glasses': ANSCapabilityPath.AI_GLASSES,
   'android': ANSCapabilityPath.ANDROID,
   'ios': ANSCapabilityPath.IOS,
   'babylon': ANSCapabilityPath.BABYLON,
@@ -362,7 +366,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
 // ---------------------------------------------------------------------------
 
 /**
- * Array of all 30 compiler names, useful for iteration and validation.
+ * Array of all 31 compiler names, useful for iteration and validation.
  */
 export const ALL_COMPILER_NAMES: readonly CompilerName[] = Object.keys(
   COMPILER_DOMAIN_MAP
