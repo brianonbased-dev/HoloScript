@@ -1,0 +1,33 @@
+﻿
+Status Dir           Missing                
+------ ---           -------                
+GAP    accessibility SubtitleRenderer       
+GAP    agents        AgentKitIntegration    
+GAP    ai            HoloScriptGenerator,...
+GAP    analysis      ComplexityMetrics, S...
+OK     animation                            
+GAP    assets        ModelImporter          
+GAP    audio         AudioContextImpl, Au...
+GAP    compiler      ARCompiler, Robotics...
+OK     combat                               
+OK     dialogue                             
+GAP    editor        AssetBrowserPanel, A...
+GAP    environment   EnvironmentPresets, ...
+GAP    extensions    BaseAgentRef, BaseMa...
+OK     multiplayer                          
+GAP    network       LatencyCompensation,...
+GAP    physics       PBDSolver              
+OK     procgen                              
+GAP    rendering     CloudRenderer, Color...
+OK     scene                                
+GAP    security      crypto                 
+OK     tenancy                              
+GAP    traits        AccessibleTrait, Adv...
+OK     utils                                
+OK     vr                                   
+OK     wasm                                 
+OK     web3                                 
+OK     world                                
+OK     wot                                  
+
+
