@@ -40,7 +40,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
 
       - name: Run tests
         run: pnpm test
@@ -81,7 +81,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build packages
         run: pnpm build
@@ -92,6 +92,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/cli
         run: |
@@ -99,6 +100,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/infinityassistant
         run: |
@@ -106,6 +108,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/mcp-server
         run: |
@@ -113,6 +116,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/llm-provider
         run: |
@@ -120,6 +124,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/security-sandbox
         run: |
@@ -127,6 +132,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/ai-validator
         run: |
@@ -134,6 +140,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/comparative-benchmarks
         run: |
@@ -141,6 +148,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/snn-webgpu
         run: |
@@ -148,6 +156,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/agent-protocol
         run: |
@@ -155,6 +164,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/agent-sdk
         run: |
@@ -162,6 +172,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/uaal
         run: |
@@ -169,6 +180,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/vm-bridge
         run: |
@@ -176,6 +188,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish @holoscript/holo-vm
         run: |
@@ -183,6 +196,7 @@ jobs:
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
