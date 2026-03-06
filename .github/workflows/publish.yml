@@ -142,6 +142,48 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Publish @holoscript/snn-webgpu
+        run: |
+          cd packages/snn-webgpu
+          pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @holoscript/agent-protocol
+        run: |
+          cd packages/agent-protocol
+          pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @holoscript/agent-sdk
+        run: |
+          cd packages/agent-sdk
+          pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @holoscript/uaal
+        run: |
+          cd packages/uaal
+          pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @holoscript/vm-bridge
+        run: |
+          cd packages/vm-bridge
+          pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @holoscript/holo-vm
+        run: |
+          cd packages/holo-vm
+          pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:

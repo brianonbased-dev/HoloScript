@@ -70,16 +70,14 @@ export function buildRegistrationPayload(
   tools: MCPToolDefinition[],
 ): Record<string, unknown> {
   return {
-    name: config.serverName,
+    id: config.serverName,
+    name: config.serverDescription.substring(0, 80),
+    command: 'npx',
+    args: ['tsx', 'packages/core/src/mcp/HoloScriptMCPAdapter.ts'],
+    workspace: 'HoloScript',
+    tools: tools.map((tool) => tool.name),
+    visibility: 'public',
     description: config.serverDescription,
-    version: config.serverVersion,
-    transport: 'http',
-    url: `${config.orchestratorUrl}/servers/${config.serverName}`,
-    tools: tools.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: tool.inputSchema,
-    })),
   };
 }
 
@@ -129,7 +127,7 @@ export async function registerWithOrchestrator(
 
     // Step 2: Register the server with its tools
     const payload = buildRegistrationPayload(fullConfig, HOLOSCRIPT_MCP_TOOLS);
-    const registerUrl = `${fullConfig.orchestratorUrl}/servers`;
+    const registerUrl = `${fullConfig.orchestratorUrl}/servers/register`;
 
     let registerResponse: Response;
     try {
