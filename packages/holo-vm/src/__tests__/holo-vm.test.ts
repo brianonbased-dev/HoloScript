@@ -8,6 +8,7 @@ import {
   ComponentType,
   BodyType,
   LightType,
+  AssetType,
   getOpcodeFamily,
   getOpcodeName,
   isControlFlow,
@@ -147,7 +148,6 @@ describe('HoloBytecodeBuilder', () => {
 
   it('should add assets', () => {
     const builder = new HoloBytecodeBuilder();
-    const { AssetType } = require('../bytecode');
     builder.addAsset('models/robot.glb', AssetType.Mesh);
     builder.addAsset('textures/metal.png', AssetType.Texture);
 
@@ -290,12 +290,12 @@ describe('HoloVM', () => {
     it('should execute JUMP', () => {
       const builder = new HoloBytecodeBuilder();
       const main = builder.addFunction('main');
-      main.push(1);
-      main.jump(4);   // Jump over the next PUSH
-      main.push(999); // Should be skipped
-      main.push(2);   // instruction 4 - lands here
-      main.add();
-      main.halt();
+      main.push(1);   // 0
+      main.jump(3);   // 1 → jump to instruction 3 (PUSH 2)
+      main.push(999); // 2 → should be skipped
+      main.push(2);   // 3 → lands here
+      main.add();     // 4
+      main.halt();    // 5
 
       vm.load(builder.build());
       const result = vm.tick(16.67);
