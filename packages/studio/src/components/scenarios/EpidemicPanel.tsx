@@ -1,84 +1,95 @@
-/**
- * EpidemicPanel.tsx — Epidemic Heatmap Planner
- * Powered by epidemicHeatmap.ts
- */
-import React, { useState, useMemo } from 'react';
-import { sirModel, reproductionNumber, doublingTimeDays, herdImmunityThreshold, caseFatalityRate, activeCases, type SIRState } from '@/lib/epidemicHeatmap';
+'use client';
 
-const s = {
-  panel: { background: 'linear-gradient(180deg, #120a0a 0%, #1a1010 100%)', borderRadius: 12, padding: 20, color: '#f0d0c8', fontFamily: "'Inter', sans-serif", minHeight: 600, maxWidth: 720 } as React.CSSProperties,
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid rgba(239,68,68,0.15)', paddingBottom: 12 } as React.CSSProperties,
-  title: { fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #ef4444, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } as React.CSSProperties,
-  section: { marginBottom: 18, padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.08)' } as React.CSSProperties,
-  sectionTitle: { fontSize: 13, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#ef4444', marginBottom: 10 } as React.CSSProperties,
-};
+/**
+ * EpidemicPanel — Epidemic heatmap with SIR model parameters and outbreak tracking.
+ */
+
+import { useState, useCallback, useMemo } from 'react';
+import { Activity, MapPin, TrendingUp, Users, AlertTriangle, BarChart3 } from 'lucide-react';
+
+export interface OutbreakZone { id: string; name: string; lat: number; lng: number; infected: number; recovered: number; deaths: number; population: number; riskLevel: 'low' | 'medium' | 'high' | 'critical'; }
+export interface SIRParams { beta: number; gamma: number; r0: number; incubation: number; }
+
+const RISK_COLORS: Record<string, string> = { low: '#22c55e', medium: '#eab308', high: '#f97316', critical: '#ef4444' };
+
+const DEMO_ZONES: OutbreakZone[] = [
+  { id: '1', name: 'Metro District A', lat: 40.7, lng: -74.0, infected: 1250, recovered: 890, deaths: 23, population: 500000, riskLevel: 'high' },
+  { id: '2', name: 'Suburban Zone B', lat: 40.8, lng: -73.9, infected: 320, recovered: 210, deaths: 5, population: 200000, riskLevel: 'medium' },
+  { id: '3', name: 'Rural Area C', lat: 41.0, lng: -74.2, infected: 45, recovered: 30, deaths: 1, population: 50000, riskLevel: 'low' },
+  { id: '4', name: 'Harbor District D', lat: 40.6, lng: -74.1, infected: 2100, recovered: 800, deaths: 67, population: 350000, riskLevel: 'critical' },
+  { id: '5', name: 'University Zone E', lat: 40.9, lng: -73.8, infected: 580, recovered: 400, deaths: 3, population: 120000, riskLevel: 'medium' },
+];
 
 export function EpidemicPanel() {
-  const [r0, setR0] = useState(2.5);
-  const [gamma, setGamma] = useState(0.1);
-  const [pop, setPop] = useState(1000000);
-  const [days, setDays] = useState(30);
+  const [zones] = useState<OutbreakZone[]>(DEMO_ZONES);
+  const [params, setParams] = useState<SIRParams>({ beta: 0.3, gamma: 0.1, r0: 3.0, incubation: 5 });
+  const [selected, setSelected] = useState<string | null>(null);
 
-  const beta = r0 * gamma;
-  const init: SIRState = { susceptible: pop - 100, infected: 100, recovered: 0, population: pop };
-  const sir = useMemo(() => sirModel(init, beta, gamma, days), [pop, beta, gamma, days]);
-  const final = sir[sir.length - 1];
-  const herd = useMemo(() => herdImmunityThreshold(r0), [r0]);
-  const doubling = useMemo(() => doublingTimeDays(r0, gamma), [r0, gamma]);
+  const totals = useMemo(() => ({
+    infected: zones.reduce((s, z) => s + z.infected, 0),
+    recovered: zones.reduce((s, z) => s + z.recovered, 0),
+    deaths: zones.reduce((s, z) => s + z.deaths, 0),
+    population: zones.reduce((s, z) => s + z.population, 0),
+  }), [zones]);
+
+  const sel = zones.find(z => z.id === selected);
 
   return (
-    <div style={s.panel}>
-      <div style={s.header}>
-        <span style={s.title}>🦠 Epidemic Tracker</span>
-        <span style={{ fontSize: 12, color: '#ef4444' }}>SIR Model</span>
+    <div className="flex flex-col overflow-auto">
+      <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
+        <Activity className="h-4 w-4 text-red-400" />
+        <span className="text-sm font-semibold text-studio-text">Epidemic Tracker</span>
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>📊 Parameters</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, fontSize: 13 }}>
-          <label>R₀: <input type="number" step={0.1} value={r0} onChange={e => setR0(+e.target.value)} style={{ width: 50, padding: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 4, color: '#f0d0c8', textAlign: 'right' }} /></label>
-          <label>γ (recovery): <input type="number" step={0.01} value={gamma} onChange={e => setGamma(+e.target.value)} style={{ width: 50, padding: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 4, color: '#f0d0c8', textAlign: 'right' }} /></label>
-          <label>Population: <input type="number" value={pop} onChange={e => setPop(+e.target.value)} style={{ width: 80, padding: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 4, color: '#f0d0c8', textAlign: 'right' }} /></label>
-          <label>Days: <input type="number" value={days} onChange={e => setDays(+e.target.value)} style={{ width: 50, padding: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 4, color: '#f0d0c8', textAlign: 'right' }} /></label>
-        </div>
+      {/* Dashboard */}
+      <div className="grid grid-cols-4 gap-1 border-b border-studio-border p-2 text-center">
+        <div className="rounded bg-red-500/10 p-1.5"><div className="text-[9px] text-red-400">Infected</div><div className="font-mono text-sm font-bold text-red-400">{totals.infected.toLocaleString()}</div></div>
+        <div className="rounded bg-emerald-500/10 p-1.5"><div className="text-[9px] text-emerald-400">Recovered</div><div className="font-mono text-sm font-bold text-emerald-400">{totals.recovered.toLocaleString()}</div></div>
+        <div className="rounded bg-studio-panel p-1.5"><div className="text-[9px] text-studio-muted">Deaths</div><div className="font-mono text-sm font-bold text-studio-muted">{totals.deaths.toLocaleString()}</div></div>
+        <div className="rounded bg-blue-500/10 p-1.5"><div className="text-[9px] text-blue-400">CFR</div><div className="font-mono text-sm font-bold text-blue-400">{((totals.deaths / totals.infected) * 100).toFixed(1)}%</div></div>
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>📈 Day {days} Projection</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {[['Susceptible', final.susceptible.toLocaleString(), '#3b82f6'], ['Infected', final.infected.toLocaleString(), '#ef4444'], ['Recovered', final.recovered.toLocaleString(), '#22c55e']].map(([l, v, c]) => (
-            <div key={l as string} style={{ textAlign: 'center', padding: 10, background: `${c}08`, border: `1px solid ${c}20`, borderRadius: 6 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: c as string }}>{v}</div>
-              <div style={{ fontSize: 10, color: '#889' }}>{l as string}</div>
-            </div>
+      {/* SIR Parameters */}
+      <div className="border-b border-studio-border px-3 py-2">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted mb-1">SIR Model</div>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: 'β (trans)', key: 'beta' as const, min: 0, max: 1, step: 0.01 },
+            { label: 'γ (recov)', key: 'gamma' as const, min: 0, max: 1, step: 0.01 },
+            { label: 'R₀', key: 'r0' as const, min: 0, max: 10, step: 0.1 },
+            { label: 'Incub (d)', key: 'incubation' as const, min: 1, max: 21, step: 1 },
+          ].map(({ label, key, min, max, step }) => (
+            <label key={key} className="flex flex-col gap-0.5 text-[9px] text-studio-muted">
+              {label}
+              <input type="number" value={params[key]} min={min} max={max} step={step} onChange={e => setParams(p => ({ ...p, [key]: parseFloat(e.target.value) }))}
+                className="rounded border border-studio-border bg-transparent px-1 py-0.5 text-[10px] text-studio-text outline-none font-mono" />
+            </label>
           ))}
         </div>
-        <div style={{ display: 'flex', height: 20, borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
-          <div style={{ width: `${(final.susceptible/pop)*100}%`, background: '#3b82f6', transition: 'width 0.3s' }} />
-          <div style={{ width: `${(final.infected/pop)*100}%`, background: '#ef4444', transition: 'width 0.3s' }} />
-          <div style={{ width: `${(final.recovered/pop)*100}%`, background: '#22c55e', transition: 'width 0.3s' }} />
-        </div>
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>🔬 Key Metrics</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          <div style={{ textAlign: 'center', padding: 8, background: 'rgba(239,68,68,0.06)', borderRadius: 6 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: r0 > 1 ? '#ef4444' : '#22c55e' }}>R₀ = {r0}</div>
-            <div style={{ fontSize: 10, color: '#889' }}>{r0 > 1 ? 'Spreading' : 'Declining'}</div>
-          </div>
-          <div style={{ textAlign: 'center', padding: 8, background: 'rgba(245,158,11,0.06)', borderRadius: 6 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b' }}>{(herd*100).toFixed(0)}%</div>
-            <div style={{ fontSize: 10, color: '#889' }}>Herd Immunity</div>
-          </div>
-          <div style={{ textAlign: 'center', padding: 8, background: 'rgba(139,92,246,0.06)', borderRadius: 6 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#8b5cf6' }}>{doubling.toFixed(1)}d</div>
-            <div style={{ fontSize: 10, color: '#889' }}>Doubling Time</div>
+      {/* Zone List */}
+      {zones.map(z => (
+        <div key={z.id} onClick={() => setSelected(z.id)} className={`flex items-center gap-2 border-b border-studio-border/30 px-3 py-2 cursor-pointer ${selected === z.id ? 'bg-red-500/10' : 'hover:bg-studio-panel/50'}`}>
+          <div className="h-3 w-3 rounded-full" style={{ background: RISK_COLORS[z.riskLevel] }} />
+          <div className="flex-1"><div className="text-xs text-studio-text">{z.name}</div></div>
+          <span className="font-mono text-[10px] text-red-400">{z.infected.toLocaleString()}</span>
+          <span className={`rounded px-1 text-[8px] font-bold ${z.riskLevel === 'critical' ? 'bg-red-500/20 text-red-400' : z.riskLevel === 'high' ? 'bg-orange-500/20 text-orange-400' : z.riskLevel === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>{z.riskLevel}</span>
+        </div>
+      ))}
+
+      {/* Zone Detail */}
+      {sel && (
+        <div className="border-t border-studio-border px-3 py-2">
+          <div className="text-xs font-semibold text-studio-text">{sel.name}</div>
+          <div className="grid grid-cols-2 gap-1 mt-1 text-[10px] text-studio-muted">
+            <span>Population: {sel.population.toLocaleString()}</span>
+            <span>Attack rate: {((sel.infected / sel.population) * 100).toFixed(2)}%</span>
+            <span>Active: {(sel.infected - sel.recovered - sel.deaths).toLocaleString()}</span>
+            <span>Local CFR: {((sel.deaths / sel.infected) * 100).toFixed(1)}%</span>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
-
-export default EpidemicPanel;

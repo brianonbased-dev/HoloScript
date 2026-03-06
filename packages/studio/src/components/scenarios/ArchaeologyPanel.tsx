@@ -1,75 +1,113 @@
+'use client';
+
 /**
- * ArchaeologyPanel.tsx — Archaeological Dig Simulator
- * Powered by archaeologicalDig.ts
+ * ArchaeologyPanel — Excavation grid, artifact catalog, stratigraphy layers.
  */
-import React, { useState, useMemo } from 'react';
-import { dateCarbonYears, depthToEstimatedAge, classifyArtifact, registerArtifact, gridProgress, type DigGrid, type Artifact } from '@/lib/archaeologicalDig';
 
-const ERA_COLORS: Record<string, string> = { 'stone-age': '#8b6914', 'bronze-age': '#cd7f32', 'iron-age': '#708090', 'ancient': '#daa520', 'medieval': '#6b8e23', 'modern': '#4682b4' };
+import { useState, useCallback } from 'react';
+import { Pickaxe, Layers, MapPin, Camera, Filter, Plus, Eye } from 'lucide-react';
 
-const s = {
-  panel: { background: 'linear-gradient(180deg, #15120a 0%, #1a1810 100%)', borderRadius: 12, padding: 20, color: '#e0d8c0', fontFamily: "'Inter', sans-serif", minHeight: 600, maxWidth: 720 } as React.CSSProperties,
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid rgba(205,127,50,0.15)', paddingBottom: 12 } as React.CSSProperties,
-  title: { fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #cd7f32, #daa520)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } as React.CSSProperties,
-  section: { marginBottom: 18, padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(205,127,50,0.08)' } as React.CSSProperties,
-  sectionTitle: { fontSize: 13, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#cd7f32', marginBottom: 10 } as React.CSSProperties,
-};
+export type ArtifactCondition = 'intact' | 'fragmented' | 'damaged' | 'trace';
+export type StratLayer = { id: number; name: string; depth: number; color: string; period: string; };
+
+export interface Artifact {
+  id: string; name: string; type: string; condition: ArtifactCondition;
+  gridX: number; gridY: number; depth: number; layer: string;
+  description: string; dateEstimate: string; photo: boolean;
+}
+
+const LAYERS: StratLayer[] = [
+  { id: 0, name: 'Topsoil', depth: 0, color: '#8B6914', period: 'Modern' },
+  { id: 1, name: 'Alluvium', depth: 0.3, color: '#A0522D', period: '1800s' },
+  { id: 2, name: 'Cultural Layer A', depth: 0.8, color: '#6B4226', period: 'Medieval' },
+  { id: 3, name: 'Cultural Layer B', depth: 1.5, color: '#5C3317', period: 'Roman' },
+  { id: 4, name: 'Bedrock', depth: 2.5, color: '#808080', period: 'Geological' },
+];
+
+const DEMO_ARTIFACTS: Artifact[] = [
+  { id: '1', name: 'Pottery Shard', type: 'ceramic', condition: 'fragmented', gridX: 3, gridY: 7, depth: 0.9, layer: 'Cultural Layer A', description: 'Decorated rim fragment', dateEstimate: '~1200 CE', photo: true },
+  { id: '2', name: 'Iron Nail', type: 'metal', condition: 'damaged', gridX: 5, gridY: 2, depth: 1.6, layer: 'Cultural Layer B', description: 'Hand-forged square nail', dateEstimate: '~200 CE', photo: true },
+  { id: '3', name: 'Coin (Denarius)', type: 'metal', condition: 'intact', gridX: 4, gridY: 5, depth: 1.7, layer: 'Cultural Layer B', description: 'Silver denarius, emperor profile visible', dateEstimate: '~150 CE', photo: false },
+  { id: '4', name: 'Bone Fragment', type: 'organic', condition: 'fragmented', gridX: 6, gridY: 8, depth: 1.2, layer: 'Cultural Layer A', description: 'Animal bone, possibly cattle', dateEstimate: '~1100 CE', photo: false },
+  { id: '5', name: 'Charcoal Deposit', type: 'organic', condition: 'trace', gridX: 3, gridY: 3, depth: 1.8, layer: 'Cultural Layer B', description: 'Hearth remnant, suitable for C14', dateEstimate: '~100 CE', photo: true },
+];
+
+const CONDITION_COLORS: Record<ArtifactCondition, string> = { intact: 'text-emerald-400', fragmented: 'text-amber-400', damaged: 'text-red-400', trace: 'text-purple-400' };
 
 export function ArchaeologyPanel() {
-  const [depth, setDepth] = useState(2.0);
-  const [c14ratio, setC14ratio] = useState(0.5);
+  const [artifacts, setArtifacts] = useState<Artifact[]>(DEMO_ARTIFACTS);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [view, setView] = useState<'catalog' | 'strat' | 'grid'>('catalog');
+  const [layerFilter, setLayerFilter] = useState<string>('all');
 
-  const estAge = useMemo(() => depthToEstimatedAge(depth), [depth]);
-  const c14age = useMemo(() => dateCarbonYears(c14ratio), [c14ratio]);
-
-  const artifacts: Artifact[] = [
-    { id: 'a1', name: 'Clay Pottery', type: 'ceramic', material: 'clay', depthM: 1.5, gridCell: 'B3', estimatedAge: 2500, era: 'iron-age', condition: 'good', description: 'Decorated storage vessel' },
-    { id: 'a2', name: 'Bronze Dagger', type: 'tool', material: 'bronze', depthM: 3.0, gridCell: 'C4', estimatedAge: 3500, era: 'bronze-age', condition: 'fair', description: 'Ceremonial weapon with handle' },
-    { id: 'a3', name: 'Stone Arrowhead', type: 'tool', material: 'flint', depthM: 5.5, gridCell: 'A2', estimatedAge: 12000, era: 'stone-age', condition: 'excellent', description: 'Knapped projectile point' },
-    { id: 'a4', name: 'Gold Amulet', type: 'ornament', material: 'gold', depthM: 2.8, gridCell: 'D1', estimatedAge: 3000, era: 'ancient', condition: 'excellent', description: 'Sun deity pendant' },
-  ];
+  const filtered = artifacts.filter(a => layerFilter === 'all' || a.layer === layerFilter);
+  const sel = artifacts.find(a => a.id === selected);
 
   return (
-    <div style={s.panel}>
-      <div style={s.header}>
-        <span style={s.title}>🏛️ Archaeological Dig</span>
-        <span style={{ fontSize: 12, color: '#cd7f32' }}>{artifacts.length} artifacts found</span>
+    <div className="flex flex-col overflow-auto">
+      <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
+        <Pickaxe className="h-4 w-4 text-amber-600" />
+        <span className="text-sm font-semibold text-studio-text">Excavation</span>
+        <span className="text-[10px] text-studio-muted">{artifacts.length} finds</span>
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>⛏️ Excavation Depth</div>
-        <input type="range" min={0} max={10} step={0.1} value={depth} onChange={e => setDepth(+e.target.value)} style={{ width: '100%', accentColor: '#cd7f32', marginBottom: 6 }} />
-        <div style={{ fontSize: 12 }}>
-          Depth: <span style={{ color: '#cd7f32', fontWeight: 700 }}>{depth.toFixed(1)}m</span> →
-          Est. age: <span style={{ color: '#daa520', fontWeight: 700 }}>{estAge.toLocaleString()} years</span>
+      <div className="flex gap-1 border-b border-studio-border p-1">
+        {(['catalog','strat','grid'] as const).map(v =>
+          <button key={v} onClick={() => setView(v)} className={`flex-1 rounded px-2 py-1 text-[10px] ${view === v ? 'bg-amber-500/20 text-amber-400' : 'text-studio-muted'}`}>{v === 'strat' ? 'Layers' : v.charAt(0).toUpperCase() + v.slice(1)}</button>
+        )}
+      </div>
+
+      {view === 'catalog' && <>
+        <div className="flex gap-1 border-b border-studio-border px-2 py-1">
+          <button onClick={() => setLayerFilter('all')} className={`rounded px-1.5 py-0.5 text-[9px] ${layerFilter === 'all' ? 'bg-studio-accent/20 text-studio-accent' : 'text-studio-muted'}`}>All</button>
+          {LAYERS.filter(l => l.period !== 'Geological').map(l =>
+            <button key={l.id} onClick={() => setLayerFilter(l.name)} className={`rounded px-1.5 py-0.5 text-[9px] ${layerFilter === l.name ? 'bg-studio-accent/20 text-studio-accent' : 'text-studio-muted'}`}>{l.period}</button>
+          )}
         </div>
-      </div>
-
-      <div style={s.section}>
-        <div style={s.sectionTitle}>🔬 Carbon-14 Dating</div>
-        <input type="range" min={0.01} max={1} step={0.01} value={c14ratio} onChange={e => setC14ratio(+e.target.value)} style={{ width: '100%', accentColor: '#daa520', marginBottom: 6 }} />
-        <div style={{ fontSize: 12 }}>
-          C-14 ratio: <span style={{ color: '#daa520', fontWeight: 700 }}>{(c14ratio * 100).toFixed(0)}%</span> →
-          Age: <span style={{ color: '#cd7f32', fontWeight: 700 }}>{c14age.toLocaleString()} years BP</span>
-        </div>
-      </div>
-
-      <div style={s.section}>
-        <div style={s.sectionTitle}>🏺 Artifact Registry</div>
-        {artifacts.map(a => (
-          <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 4, fontSize: 12, borderLeft: `3px solid ${ERA_COLORS[a.era] || '#667'}` }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600 }}>{a.name}</div>
-              <div style={{ fontSize: 11, color: '#889' }}>{a.description}</div>
+        {filtered.map(a => (
+          <div key={a.id} onClick={() => setSelected(a.id)} className={`flex items-start gap-2 border-b border-studio-border/30 px-3 py-2 cursor-pointer ${selected === a.id ? 'bg-amber-500/10' : 'hover:bg-studio-panel/50'}`}>
+            <MapPin className="h-3 w-3 mt-0.5 text-studio-muted/40" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-studio-text">{a.name}</div>
+              <div className="text-[10px] text-studio-muted">{a.description}</div>
+              <div className="flex gap-2 mt-0.5 text-[9px]">
+                <span className={CONDITION_COLORS[a.condition]}>{a.condition}</span>
+                <span className="text-studio-muted/50">{a.dateEstimate}</span>
+                <span className="text-studio-muted/50">({a.gridX},{a.gridY}) d={a.depth}m</span>
+              </div>
             </div>
-            <span style={{ color: '#889' }}>{a.depthM}m · {a.gridCell}</span>
-            <span style={{ padding: '2px 6px', background: `${ERA_COLORS[a.era]}20`, borderRadius: 8, fontSize: 10, color: ERA_COLORS[a.era] }}>{a.era}</span>
-            <span style={{ color: '#667' }}>{a.estimatedAge.toLocaleString()}yr</span>
+            {a.photo && <Camera className="h-3 w-3 text-studio-muted/30" />}
           </div>
         ))}
-      </div>
+      </>}
+
+      {view === 'strat' && (
+        <div className="flex flex-col gap-0 px-3 py-2">
+          {LAYERS.map(layer => (
+            <div key={layer.id} className="flex items-center gap-2 border-l-4 px-2 py-2" style={{ borderColor: layer.color }}>
+              <div className="h-6 w-6 rounded" style={{ background: layer.color }} />
+              <div className="flex-1">
+                <div className="text-xs font-semibold text-studio-text">{layer.name}</div>
+                <div className="text-[10px] text-studio-muted">{layer.period} · {layer.depth}m depth</div>
+              </div>
+              <span className="text-[10px] text-studio-muted">{artifacts.filter(a => a.layer === layer.name).length} finds</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {view === 'grid' && (
+        <div className="p-3">
+          <div className="grid grid-cols-10 gap-px bg-studio-border rounded overflow-hidden">
+            {Array.from({ length: 100 }, (_, i) => {
+              const x = i % 10; const y = Math.floor(i / 10);
+              const here = artifacts.filter(a => a.gridX === x && a.gridY === y);
+              return <div key={i} className={`h-6 flex items-center justify-center text-[8px] ${here.length ? 'bg-amber-500/20 text-amber-400 font-bold' : 'bg-studio-panel/30 text-studio-muted/20'}`}>{here.length || '·'}</div>;
+            })}
+          </div>
+          <div className="mt-1 text-[9px] text-studio-muted text-center">10×10 excavation grid — numbers = artifact count</div>
+        </div>
+      )}
     </div>
   );
 }
-
-export default ArchaeologyPanel;

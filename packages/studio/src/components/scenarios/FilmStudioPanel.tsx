@@ -1,89 +1,99 @@
+'use client';
+
 /**
- * FilmStudioPanel.tsx — Film Storyboard Planner
- * Powered by filmStoryboard.ts
+ * FilmStudioPanel — Film storyboard with shot types, camera angles, and scene timeline.
  */
-import React, { useState, useMemo } from 'react';
-import { sceneDuration, totalFilmDuration, shotCountBySize, averageShotDuration, threeActBalance, isBalancedStructure, uniqueLocations, type Scene, type StoryboardPanel as SBPanel } from '@/lib/filmStoryboard';
 
-const mkPanel = (o: Partial<SBPanel> = {}): SBPanel => ({ id: 'p', sceneNumber: 1, shotNumber: 1, shotSize: 'medium', cameraMovement: 'static', lighting: 'three-point', description: '', dialogue: '', durationSec: 5, characters: [], location: '', notes: '', ...o });
+import { useState, useCallback } from 'react';
+import { Film, Camera, Clock, Plus, Trash2, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 
-const DEMO_SCENES: Scene[] = [
-  { id: 's1', number: 1, name: 'Opening', act: 'setup', location: 'Cafe', timeOfDay: 'dawn', emotionalTone: 'hopeful', panels: [mkPanel({ id: 'p1', shotSize: 'wide', durationSec: 12, cameraMovement: 'crane' }), mkPanel({ id: 'p2', shotSize: 'medium', durationSec: 8, cameraMovement: 'dolly' }), mkPanel({ id: 'p3', shotSize: 'close-up', durationSec: 5, cameraMovement: 'static' })] },
-  { id: 's2', number: 2, name: 'Confrontation', act: 'confrontation', location: 'Office', timeOfDay: 'day', emotionalTone: 'tense', panels: [mkPanel({ id: 'p4', shotSize: 'over-shoulder', durationSec: 15, cameraMovement: 'handheld' }), mkPanel({ id: 'p5', shotSize: 'close-up', durationSec: 6, cameraMovement: 'static' }), mkPanel({ id: 'p6', shotSize: 'wide', durationSec: 20, cameraMovement: 'steadicam' }), mkPanel({ id: 'p7', shotSize: 'medium', durationSec: 10, cameraMovement: 'dolly' })] },
-  { id: 's3', number: 3, name: 'Resolution', act: 'resolution', location: 'Rooftop', timeOfDay: 'dusk', emotionalTone: 'cathartic', panels: [mkPanel({ id: 'p8', shotSize: 'extreme-wide', durationSec: 15, cameraMovement: 'drone' }), mkPanel({ id: 'p9', shotSize: 'close-up', durationSec: 8, cameraMovement: 'static' })] },
-];
+export type ShotType = 'wide' | 'medium' | 'close-up' | 'extreme-close' | 'over-shoulder' | 'pov' | 'aerial' | 'tracking';
+export type CameraMove = 'static' | 'pan' | 'tilt' | 'dolly' | 'crane' | 'handheld' | 'steadicam';
 
-const s = {
-  panel: { background: 'linear-gradient(180deg, #12100a 0%, #1a1510 100%)', borderRadius: 12, padding: 20, color: '#e0d8c8', fontFamily: "'Inter', sans-serif", minHeight: 600, maxWidth: 720 } as React.CSSProperties,
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid rgba(251,191,36,0.15)', paddingBottom: 12 } as React.CSSProperties,
-  title: { fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #fbbf24, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } as React.CSSProperties,
-  section: { marginBottom: 18, padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(251,191,36,0.08)' } as React.CSSProperties,
-  sectionTitle: { fontSize: 13, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#fbbf24', marginBottom: 10 } as React.CSSProperties,
+export interface Shot {
+  id: string; number: number; description: string; shotType: ShotType;
+  camera: CameraMove; duration: number; // seconds
+  dialogue: string; action: string; notes: string;
+  transition: 'cut' | 'dissolve' | 'fade' | 'wipe';
+}
+
+export interface Scene { id: string; name: string; location: string; timeOfDay: string; shots: Shot[]; }
+
+const SHOT_COLORS: Record<ShotType, string> = { wide: '#3b82f6', medium: '#22c55e', 'close-up': '#f59e0b', 'extreme-close': '#ef4444', 'over-shoulder': '#8b5cf6', pov: '#ec4899', aerial: '#06b6d4', tracking: '#14b8a6' };
+
+const DEMO_SCENE: Scene = {
+  id: '1', name: 'The Confrontation', location: 'Rooftop — Night', timeOfDay: 'Night',
+  shots: [
+    { id: 's1', number: 1, description: 'City skyline establishing shot', shotType: 'wide', camera: 'crane', duration: 4, dialogue: '', action: 'Camera descends to rooftop', notes: 'Score builds', transition: 'cut' },
+    { id: 's2', number: 2, description: 'Hero steps through door', shotType: 'medium', camera: 'steadicam', duration: 3, dialogue: '', action: 'Door opens, hero silhouette', notes: 'Dramatic lighting', transition: 'cut' },
+    { id: 's3', number: 3, description: 'Villain turns around', shotType: 'over-shoulder', camera: 'static', duration: 2, dialogue: '"I\'ve been waiting."', action: 'Slow turn', notes: 'Rack focus', transition: 'cut' },
+    { id: 's4', number: 4, description: 'Hero reaction', shotType: 'close-up', camera: 'static', duration: 1.5, dialogue: '', action: 'Expression shifts', notes: '', transition: 'cut' },
+    { id: 's5', number: 5, description: 'Wide two-shot standoff', shotType: 'wide', camera: 'dolly', duration: 5, dialogue: '"This ends tonight."', action: 'Slow dolly in', notes: 'Music drops', transition: 'dissolve' },
+  ],
 };
 
-const ACT_COLORS = { setup: '#22c55e', confrontation: '#ef4444', resolution: '#3b82f6' };
-
 export function FilmStudioPanel() {
-  const [scenes] = useState(DEMO_SCENES);
-  const allPanels = scenes.flatMap(sc => sc.panels);
-  const total = useMemo(() => totalFilmDuration(scenes), [scenes]);
-  const balance = useMemo(() => threeActBalance(scenes), [scenes]);
-  const balanced = useMemo(() => isBalancedStructure(balance), [balance]);
-  const shots = useMemo(() => shotCountBySize(allPanels), [allPanels]);
-  const avgShot = useMemo(() => averageShotDuration(allPanels), [allPanels]);
+  const [scene, setScene] = useState<Scene>(DEMO_SCENE);
+  const [selectedShot, setSelectedShot] = useState<number>(0);
+
+  const shot = scene.shots[selectedShot];
+  const totalDuration = scene.shots.reduce((s, sh) => s + sh.duration, 0);
 
   return (
-    <div style={s.panel}>
-      <div style={s.header}>
-        <span style={s.title}>🎬 Film Storyboard</span>
-        <span style={{ fontSize: 12, color: '#fbbf24' }}>{Math.floor(total / 60)}:{String(total % 60).padStart(2, '0')}</span>
+    <div className="flex flex-col overflow-auto">
+      <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
+        <Film className="h-4 w-4 text-rose-400" />
+        <span className="text-sm font-semibold text-studio-text">Storyboard</span>
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>🎭 Three-Act Structure</div>
-        <div style={{ display: 'flex', height: 30, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
-          {(['setup', 'confrontation', 'resolution'] as const).map(act => (
-            <div key={act} style={{ width: `${balance[act] * 100}%`, background: ACT_COLORS[act], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', transition: 'width 0.3s' }}>
-              {(balance[act] * 100).toFixed(0)}%
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 12, color: balanced ? '#4ade80' : '#ef4444', fontWeight: 600 }}>
-          {balanced ? '✅ Well-balanced structure' : '⚠️ Structure needs rebalancing'}
-        </div>
+      {/* Scene Info */}
+      <div className="flex items-center justify-between border-b border-studio-border px-3 py-1.5">
+        <span className="text-xs text-studio-text">{scene.name}</span>
+        <span className="text-[10px] text-studio-muted">{scene.location} · {scene.shots.length} shots · {totalDuration.toFixed(1)}s</span>
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>🎥 Scenes</div>
-        {scenes.map(sc => (
-          <div key={sc.id} style={{ padding: '8px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 4, borderLeft: `3px solid ${ACT_COLORS[sc.act]}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-              <span style={{ fontWeight: 600 }}>Sc. {sc.number}: {sc.name}</span>
-              <span style={{ color: '#889' }}>{sceneDuration(sc)}s · {sc.panels.length} shots</span>
-            </div>
-            <div style={{ fontSize: 11, color: '#889' }}>{sc.location} · {sc.timeOfDay} · {sc.emotionalTone}</div>
-          </div>
+      {/* Shot Timeline */}
+      <div className="flex border-b border-studio-border">
+        {scene.shots.map((sh, i) => (
+          <button key={sh.id} onClick={() => setSelectedShot(i)} className={`flex-none relative transition ${selectedShot === i ? 'ring-2 ring-rose-400' : ''}`}
+            style={{ width: `${(sh.duration / totalDuration) * 100}%`, minWidth: 20 }}>
+            <div className="h-6" style={{ background: SHOT_COLORS[sh.shotType] + (selectedShot === i ? 'cc' : '66') }} />
+            <div className="text-[7px] text-center text-studio-muted truncate px-0.5">{sh.number}</div>
+          </button>
         ))}
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>📊 Shot Analysis</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {Object.entries(shots).filter(([, v]) => v > 0).map(([size, count]) => (
-            <div key={size} style={{ textAlign: 'center', padding: 8, background: 'rgba(251,191,36,0.06)', borderRadius: 6 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#fbbf24' }}>{count}</div>
-              <div style={{ fontSize: 10, color: '#889' }}>{size}</div>
-            </div>
-          ))}
+      {/* Shot Navigation */}
+      <div className="flex items-center justify-between border-b border-studio-border px-3 py-1">
+        <button onClick={() => setSelectedShot(Math.max(0, selectedShot - 1))} disabled={selectedShot === 0} className="text-studio-muted disabled:opacity-20"><ChevronLeft className="h-4 w-4" /></button>
+        <span className="text-[10px] text-studio-muted">Shot {selectedShot + 1} / {scene.shots.length}</span>
+        <button onClick={() => setSelectedShot(Math.min(scene.shots.length - 1, selectedShot + 1))} disabled={selectedShot >= scene.shots.length - 1} className="text-studio-muted disabled:opacity-20"><ChevronRight className="h-4 w-4" /></button>
+      </div>
+
+      {/* Shot Detail */}
+      {shot && (
+        <div className="flex flex-col gap-2 px-3 py-2">
+          <div className="text-xs font-semibold text-studio-text">#{shot.number}: {shot.description}</div>
+          <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
+            <div className="rounded p-1" style={{ background: SHOT_COLORS[shot.shotType] + '20', color: SHOT_COLORS[shot.shotType] }}>{shot.shotType}</div>
+            <div className="rounded bg-studio-panel p-1 text-studio-muted">{shot.camera}</div>
+            <div className="rounded bg-studio-panel p-1 text-studio-muted">{shot.duration}s</div>
+          </div>
+          {shot.action && <div className="text-[11px] text-studio-muted"><span className="text-studio-muted/50">Action:</span> {shot.action}</div>}
+          {shot.dialogue && <div className="text-[11px] text-amber-400 italic">"{shot.dialogue}"</div>}
+          {shot.notes && <div className="text-[10px] text-studio-muted/50">📝 {shot.notes}</div>}
+          <div className="text-[10px] text-studio-muted/30">→ {shot.transition}</div>
         </div>
-        <div style={{ marginTop: 8, fontSize: 12, color: '#889' }}>
-          Avg shot: <span style={{ color: '#fbbf24' }}>{avgShot.toFixed(1)}s</span> ·
-          Locations: <span style={{ color: '#f97316' }}>{uniqueLocations(scenes).length}</span> ·
-          Total shots: <span style={{ color: '#fff' }}>{allPanels.length}</span>
+      )}
+
+      {/* Shot Type Legend */}
+      <div className="border-t border-studio-border px-3 py-2">
+        <div className="flex flex-wrap gap-1">
+          {(Object.entries(SHOT_COLORS)).map(([type, color]) => (
+            <span key={type} className="flex items-center gap-0.5 text-[8px] text-studio-muted"><span className="h-2 w-2 rounded" style={{ background: color }} />{type}</span>
+          ))}
         </div>
       </div>
     </div>
   );
 }
-
-export default FilmStudioPanel;

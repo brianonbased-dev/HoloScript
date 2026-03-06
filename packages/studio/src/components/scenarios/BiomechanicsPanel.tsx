@@ -1,87 +1,93 @@
-/**
- * BiomechanicsPanel.tsx — Sports Biomechanics Lab
- * Powered by sportsBiomechanics.ts
- */
-import React, { useState, useMemo } from 'react';
-import { jointTorque, power, kineticEnergy, potentialEnergy, strideFrequency, fatigueIndex, injuryRiskScore, vo2AtIntensity, caloriesBurned } from '@/lib/sportsBiomechanics';
+'use client';
 
-const s = {
-  panel: { background: 'linear-gradient(180deg, #0a1510 0%, #0f1f18 100%)', borderRadius: 12, padding: 20, color: '#c8e8d0', fontFamily: "'Inter', sans-serif", minHeight: 600, maxWidth: 720 } as React.CSSProperties,
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid rgba(34,197,94,0.15)', paddingBottom: 12 } as React.CSSProperties,
-  title: { fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #22c55e, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } as React.CSSProperties,
-  section: { marginBottom: 18, padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.08)' } as React.CSSProperties,
-  sectionTitle: { fontSize: 13, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#22c55e', marginBottom: 10 } as React.CSSProperties,
-};
+/**
+ * BiomechanicsPanel — Sports biomechanics analysis with joint angles and force data.
+ */
+
+import { useState } from 'react';
+import { Activity, Dumbbell, Target, BarChart3, Eye, Play } from 'lucide-react';
+
+export interface JointData { name: string; angle: number; velocity: number; torque: number; rom: [number, number]; }
+export interface MotionCapture { id: string; name: string; sport: string; duration: number; fps: number; joints: JointData[]; peakForce: number; notes: string; }
+
+const DEMO_CAPTURES: MotionCapture[] = [
+  { id: '1', name: 'Sprint Start', sport: 'Track', duration: 2.5, fps: 240, peakForce: 2400, notes: 'Left leg push-off analysis',
+    joints: [
+      { name: 'Hip L', angle: 145, velocity: 320, torque: 180, rom: [0, 180] },
+      { name: 'Knee L', angle: 85, velocity: 450, torque: 220, rom: [0, 160] },
+      { name: 'Ankle L', angle: 110, velocity: 280, torque: 95, rom: [60, 140] },
+      { name: 'Hip R', angle: 60, velocity: 180, torque: 140, rom: [0, 180] },
+      { name: 'Knee R', angle: 130, velocity: 200, torque: 160, rom: [0, 160] },
+    ]},
+  { id: '2', name: 'Tennis Serve', sport: 'Tennis', duration: 1.8, fps: 300, peakForce: 1800, notes: 'Flat serve technique',
+    joints: [
+      { name: 'Shoulder R', angle: 170, velocity: 1200, torque: 80, rom: [0, 180] },
+      { name: 'Elbow R', angle: 90, velocity: 900, torque: 50, rom: [0, 160] },
+      { name: 'Wrist R', angle: 160, velocity: 1500, torque: 25, rom: [80, 200] },
+      { name: 'Trunk Rot', angle: 45, velocity: 400, torque: 200, rom: [-90, 90] },
+    ]},
+  { id: '3', name: 'Vertical Jump', sport: 'Basketball', duration: 0.8, fps: 240, peakForce: 3200, notes: 'Countermovement jump',
+    joints: [
+      { name: 'Hip', angle: 175, velocity: 500, torque: 250, rom: [0, 180] },
+      { name: 'Knee', angle: 170, velocity: 600, torque: 280, rom: [0, 160] },
+      { name: 'Ankle', angle: 140, velocity: 700, torque: 120, rom: [60, 140] },
+    ]},
+];
 
 export function BiomechanicsPanel() {
-  const [mass, setMass] = useState(70);
-  const [velocity, setVelocity] = useState(8);
-  const [vo2Max, setVo2Max] = useState(55);
-  const [intensity, setIntensity] = useState(75);
-  const [peakPower, setPeakPower] = useState(1200);
-  const [endPower, setEndPower] = useState(800);
-
-  const ke = useMemo(() => kineticEnergy(mass, velocity), [mass, velocity]);
-  const pe = useMemo(() => potentialEnergy(mass, 0.3), [mass]);
-  const pw = useMemo(() => power(mass * 9.81, velocity * 0.1), [mass, velocity]);
-  const fatigue = useMemo(() => fatigueIndex(peakPower, endPower), [peakPower, endPower]);
-  const risk = useMemo(() => injuryRiskScore(65, 12, 1.3), []);
-  const vo2 = useMemo(() => vo2AtIntensity(vo2Max, intensity), [vo2Max, intensity]);
-  const cal = useMemo(() => caloriesBurned(vo2, 30, mass), [vo2, mass]);
+  const [captures] = useState<MotionCapture[]>(DEMO_CAPTURES);
+  const [selected, setSelected] = useState<string>('1');
+  const sel = captures.find(c => c.id === selected);
 
   return (
-    <div style={s.panel}>
-      <div style={s.header}>
-        <span style={s.title}>🏋️ Biomechanics Lab</span>
-        <span style={{ fontSize: 12, color: '#22c55e' }}>Motion Analysis</span>
+    <div className="flex flex-col overflow-auto">
+      <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
+        <Dumbbell className="h-4 w-4 text-orange-400" />
+        <span className="text-sm font-semibold text-studio-text">Biomechanics</span>
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>⚡ Athlete Profile</div>
-        <div style={{ display: 'flex', gap: 12, fontSize: 13, marginBottom: 10 }}>
-          <label>Mass (kg): <input type="number" value={mass} onChange={e => setMass(+e.target.value)} style={{ width: 50, padding: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 4, color: '#c8e8d0', textAlign: 'right' }} /></label>
-          <label>v (m/s): <input type="number" value={velocity} onChange={e => setVelocity(+e.target.value)} style={{ width: 50, padding: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 4, color: '#c8e8d0', textAlign: 'right' }} /></label>
-          <label>VO₂max: <input type="number" value={vo2Max} onChange={e => setVo2Max(+e.target.value)} style={{ width: 50, padding: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 4, color: '#c8e8d0', textAlign: 'right' }} /></label>
+      {/* Capture List */}
+      {captures.map(c => (
+        <div key={c.id} onClick={() => setSelected(c.id)} className={`flex items-center gap-2 border-b border-studio-border/30 px-3 py-2 cursor-pointer ${selected === c.id ? 'bg-orange-500/10' : 'hover:bg-studio-panel/50'}`}>
+          <Activity className="h-3.5 w-3.5 text-studio-muted/40" />
+          <div className="flex-1">
+            <div className="text-xs font-semibold text-studio-text">{c.name}</div>
+            <div className="text-[10px] text-studio-muted">{c.sport} · {c.fps}fps · {c.duration}s</div>
+          </div>
+          <span className="font-mono text-[10px] text-orange-400">{c.peakForce}N</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {[['KE', `${ke.toFixed(0)} J`, '#22c55e'], ['Power', `${pw.toFixed(0)} W`, '#06b6d4'], ['Stride', `${strideFrequency(180, 60).toFixed(1)} Hz`, '#a78bfa']].map(([l, v, c]) => (
-            <div key={l as string} style={{ textAlign: 'center', padding: 10, background: `${c}08`, border: `1px solid ${c}20`, borderRadius: 6 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: c as string }}>{v}</div>
-              <div style={{ fontSize: 10, color: '#6a9978' }}>{l as string}</div>
+      ))}
+
+      {/* Joint Data */}
+      {sel && <>
+        <div className="border-t border-studio-border px-3 py-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-studio-muted">Joint Analysis — {sel.name}</span>
+            <span className="text-[9px] text-studio-muted">Peak: {sel.peakForce}N</span>
+          </div>
+          {sel.joints.map(j => (
+            <div key={j.name} className="flex items-center gap-2 py-1.5 border-b border-studio-border/20">
+              <span className="w-20 text-[11px] text-studio-text">{j.name}</span>
+              {/* Angle bar */}
+              <div className="flex-1">
+                <div className="flex justify-between text-[8px] text-studio-muted"><span>Angle</span><span>{j.angle}°</span></div>
+                <div className="h-1.5 rounded-full bg-studio-panel"><div className="h-1.5 rounded-full bg-orange-400" style={{ width: `${(j.angle / j.rom[1]) * 100}%` }} /></div>
+              </div>
+              {/* Velocity */}
+              <div className="w-16 text-right">
+                <div className="text-[8px] text-studio-muted">Vel</div>
+                <div className="font-mono text-[10px] text-blue-400">{j.velocity}°/s</div>
+              </div>
+              {/* Torque */}
+              <div className="w-14 text-right">
+                <div className="text-[8px] text-studio-muted">Torque</div>
+                <div className="font-mono text-[10px] text-emerald-400">{j.torque}Nm</div>
+              </div>
             </div>
           ))}
         </div>
-      </div>
-
-      <div style={s.section}>
-        <div style={s.sectionTitle}>😤 Fatigue & Injury</div>
-        <div style={{ display: 'flex', gap: 12, fontSize: 13, marginBottom: 8 }}>
-          <label>Peak W: <input type="number" value={peakPower} onChange={e => setPeakPower(+e.target.value)} style={{ width: 60, padding: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 4, color: '#c8e8d0', textAlign: 'right' }} /></label>
-          <label>End W: <input type="number" value={endPower} onChange={e => setEndPower(+e.target.value)} style={{ width: 60, padding: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 4, color: '#c8e8d0', textAlign: 'right' }} /></label>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-          <div style={{ textAlign: 'center', padding: 10, background: fatigue > 30 ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', borderRadius: 6, border: `1px solid ${fatigue > 30 ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}` }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: fatigue > 30 ? '#ef4444' : '#4ade80' }}>{fatigue.toFixed(0)}%</div>
-            <div style={{ fontSize: 10, color: '#889' }}>Fatigue Index</div>
-          </div>
-          <div style={{ textAlign: 'center', padding: 10, background: risk > 50 ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', borderRadius: 6, border: `1px solid ${risk > 50 ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}` }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: risk > 50 ? '#ef4444' : '#4ade80' }}>{risk}/100</div>
-            <div style={{ fontSize: 10, color: '#889' }}>Injury Risk</div>
-          </div>
-        </div>
-      </div>
-
-      <div style={s.section}>
-        <div style={s.sectionTitle}>🫁 VO₂ & Calories</div>
-        <input type="range" min={30} max={100} value={intensity} onChange={e => setIntensity(+e.target.value)} style={{ width: '100%', accentColor: '#22c55e', marginBottom: 6 }} />
-        <div style={{ fontSize: 12 }}>
-          Intensity: <span style={{ color: '#22c55e', fontWeight: 700 }}>{intensity}%</span> →
-          VO₂: <span style={{ color: '#06b6d4' }}>{vo2.toFixed(1)} mL/kg/min</span> ·
-          Calories (30min): <span style={{ color: '#f59e0b' }}>{cal.toFixed(0)} kcal</span>
-        </div>
-      </div>
+        <div className="px-3 py-2 text-[11px] text-studio-muted italic">{sel.notes}</div>
+      </>}
     </div>
   );
 }
-
-export default BiomechanicsPanel;

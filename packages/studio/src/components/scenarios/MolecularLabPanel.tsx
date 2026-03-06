@@ -1,83 +1,106 @@
-/**
- * MolecularLabPanel.tsx — Molecular Drug Design Lab
- * Powered by molecularDesigner.ts
- */
-import React, { useState, useMemo } from 'react';
-import { molecularWeight, lippinskiRuleOfFive, drugLikenessScore, bindingAffinity, logPEstimate, type Molecule, type BindingSite } from '@/lib/molecularDesigner';
+'use client';
 
-const s = {
-  panel: { background: 'linear-gradient(180deg, #0a0f18 0%, #101828 100%)', borderRadius: 12, padding: 20, color: '#c8d8f0', fontFamily: "'Inter', sans-serif", minHeight: 600, maxWidth: 720 } as React.CSSProperties,
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid rgba(59,130,246,0.15)', paddingBottom: 12 } as React.CSSProperties,
-  title: { fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } as React.CSSProperties,
-  section: { marginBottom: 18, padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(59,130,246,0.08)' } as React.CSSProperties,
-  sectionTitle: { fontSize: 13, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#3b82f6', marginBottom: 10 } as React.CSSProperties,
-};
+/**
+ * MolecularLabPanel — Molecular visualization and analysis dashboard.
+ * Lighter version focused on quick analysis; full version in MolecularViewerPanel.
+ */
+
+import { useState, useMemo } from 'react';
+import { Atom, FlaskConical, Search, BarChart3, Shield, CheckCircle, XCircle } from 'lucide-react';
+
+export interface QuickMolecule { id: string; name: string; formula: string; mw: number; logP: number; hbd: number; hba: number; psa: number; rotBonds: number; }
+
+const DEMO_MOLECULES: QuickMolecule[] = [
+  { id: '1', name: 'Aspirin', formula: 'C₉H₈O₄', mw: 180.16, logP: 1.2, hbd: 1, hba: 4, psa: 63.6, rotBonds: 3 },
+  { id: '2', name: 'Ibuprofen', formula: 'C₁₃H₁₈O₂', mw: 206.28, logP: 3.5, hbd: 1, hba: 2, psa: 37.3, rotBonds: 4 },
+  { id: '3', name: 'Caffeine', formula: 'C₈H₁₀N₄O₂', mw: 194.19, logP: -0.07, hbd: 0, hba: 6, psa: 58.4, rotBonds: 0 },
+  { id: '4', name: 'Paracetamol', formula: 'C₈H₉NO₂', mw: 151.16, logP: 0.46, hbd: 2, hba: 3, psa: 49.3, rotBonds: 1 },
+  { id: '5', name: 'Metformin', formula: 'C₄H₁₁N₅', mw: 129.16, logP: -1.4, hbd: 3, hba: 5, psa: 91.5, rotBonds: 2 },
+  { id: '6', name: 'Atorvastatin', formula: 'C₃₃H₃₅FN₂O₅', mw: 558.64, logP: 6.36, hbd: 4, hba: 7, psa: 111.8, rotBonds: 12 },
+];
+
+function lipinskiCheck(m: QuickMolecule): { passes: boolean; violations: string[] } {
+  const violations: string[] = [];
+  if (m.mw > 500) violations.push(`MW ${m.mw} > 500`);
+  if (m.logP > 5) violations.push(`logP ${m.logP} > 5`);
+  if (m.hbd > 5) violations.push(`HBD ${m.hbd} > 5`);
+  if (m.hba > 10) violations.push(`HBA ${m.hba} > 10`);
+  return { passes: violations.length <= 1, violations };
+}
+
+function drugScore(m: QuickMolecule): number {
+  let s = 100;
+  if (m.mw > 500) s -= 25; else if (m.mw > 400) s -= 10;
+  if (m.logP > 5) s -= 25; else if (m.logP > 3) s -= 10; else if (m.logP < -1) s -= 15;
+  if (m.hbd > 5) s -= 20;
+  if (m.hba > 10) s -= 20;
+  if (m.rotBonds > 10) s -= 15;
+  if (m.psa > 140) s -= 20;
+  return Math.max(0, s);
+}
 
 export function MolecularLabPanel() {
-  const molecules: Molecule[] = [
-    { id: 'mol1', name: 'Aspirin', formula: 'C9H8O4', smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O', mw: 180.16, logP: 1.2, hDonors: 1, hAcceptors: 4, rotBonds: 3, tpsa: 63.6 },
-    { id: 'mol2', name: 'Ibuprofen', formula: 'C13H18O2', smiles: 'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O', mw: 206.28, logP: 3.5, hDonors: 1, hAcceptors: 2, rotBonds: 4, tpsa: 37.3 },
-    { id: 'mol3', name: 'Caffeine', formula: 'C8H10N4O2', smiles: 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C', mw: 194.19, logP: -0.07, hDonors: 0, hAcceptors: 6, rotBonds: 0, tpsa: 58.4 },
-    { id: 'mol4', name: 'Metformin', formula: 'C4H11N5', smiles: 'CN(C)C(=N)NC(=N)N', mw: 129.16, logP: -1.43, hDonors: 4, hAcceptors: 5, rotBonds: 2, tpsa: 91.5 },
-  ];
-  const [selected, setSelected] = useState('mol1');
-  const mol = molecules.find(m => m.id === selected)!;
-  const lipinski = useMemo(() => lippinskiRuleOfFive(mol), [selected]);
-  const drugScore = useMemo(() => drugLikenessScore(mol), [selected]);
+  const [molecules] = useState<QuickMolecule[]>(DEMO_MOLECULES);
+  const [selected, setSelected] = useState<string>('1');
+  const [search, setSearch] = useState('');
+
+  const filtered = molecules.filter(m => !search || m.name.toLowerCase().includes(search.toLowerCase()) || m.formula.includes(search));
+  const sel = molecules.find(m => m.id === selected);
+  const selLipinski = sel ? lipinskiCheck(sel) : null;
+  const selScore = sel ? drugScore(sel) : 0;
 
   return (
-    <div style={s.panel}>
-      <div style={s.header}>
-        <span style={s.title}>🧪 Molecular Lab</span>
-        <span style={{ fontSize: 12, color: '#3b82f6' }}>Drug Design</span>
+    <div className="flex flex-col overflow-auto">
+      <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
+        <FlaskConical className="h-4 w-4 text-cyan-400" />
+        <span className="text-sm font-semibold text-studio-text">Molecular Lab</span>
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>💊 Compounds</div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-          {molecules.map(m => (
-            <button key={m.id} onClick={() => setSelected(m.id)} style={{ padding: '6px 12px', background: m.id === selected ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.03)', border: `1px solid ${m.id === selected ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.06)'}`, borderRadius: 6, color: m.id === selected ? '#60a5fa' : '#889', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-              {m.name}
-            </button>
-          ))}
-        </div>
-        <div style={{ padding: 12, background: 'rgba(59,130,246,0.05)', borderRadius: 8 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#60a5fa' }}>{mol.name}</div>
-          <div style={{ fontSize: 12, color: '#889', fontFamily: 'monospace' }}>{mol.formula} · {mol.smiles}</div>
-        </div>
+      <div className="flex items-center gap-1 border-b border-studio-border px-2 py-1">
+        <Search className="h-3 w-3 text-studio-muted" />
+        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search molecules..." className="flex-1 bg-transparent text-xs text-studio-text outline-none" />
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>📊 Properties</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {[['MW', `${mol.mw.toFixed(1)} Da`, '#3b82f6'], ['LogP', mol.logP.toFixed(2), '#22c55e'], ['TPSA', `${mol.tpsa.toFixed(1)} Å²`, '#f59e0b'],
-            ['H-Donors', mol.hDonors.toString(), '#a78bfa'], ['H-Accept', mol.hAcceptors.toString(), '#06b6d4'], ['Rot. Bonds', mol.rotBonds.toString(), '#ec4899']
-          ].map(([l, v, c]) => (
-            <div key={l as string} style={{ textAlign: 'center', padding: 8, background: `${c}08`, border: `1px solid ${c}20`, borderRadius: 6 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: c as string }}>{v}</div>
-              <div style={{ fontSize: 10, color: '#667' }}>{l as string}</div>
+      {/* Molecule List */}
+      {filtered.map(m => {
+        const score = drugScore(m);
+        return (
+          <div key={m.id} onClick={() => setSelected(m.id)} className={`flex items-center gap-2 border-b border-studio-border/30 px-3 py-2 cursor-pointer ${selected === m.id ? 'bg-cyan-500/10' : 'hover:bg-studio-panel/50'}`}>
+            <Atom className="h-3 w-3 text-studio-muted/40" />
+            <div className="flex-1">
+              <div className="text-xs font-semibold text-studio-text">{m.name}</div>
+              <div className="text-[10px] text-studio-muted">{m.formula} · MW {m.mw}</div>
             </div>
-          ))}
-        </div>
-      </div>
+            <div className={`rounded px-1.5 py-0.5 text-[9px] font-mono ${score >= 75 ? 'bg-emerald-500/20 text-emerald-400' : score >= 50 ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'}`}>{score}</div>
+          </div>
+        );
+      })}
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>✅ Lipinski's Rule of Five</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-          {[['MW ≤ 500', lipinski.mwOk], ['LogP ≤ 5', lipinski.logPOk], ['H-Donors ≤ 5', lipinski.hDonorsOk], ['H-Accept ≤ 10', lipinski.hAcceptorsOk]].map(([label, ok]) => (
-            <div key={label as string} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 6, fontSize: 12 }}>
-              <span style={{ color: ok ? '#4ade80' : '#ef4444' }}>{ok ? '✅' : '❌'}</span>
-              <span>{label as string}</span>
-            </div>
-          ))}
+      {/* Detail */}
+      {sel && selLipinski && (
+        <div className="border-t border-studio-border px-3 py-2">
+          <div className="text-xs font-semibold text-studio-text mb-1">{sel.name}</div>
+
+          <div className="grid grid-cols-3 gap-1 mb-2 text-center text-[10px]">
+            <div className="rounded bg-studio-panel p-1"><div className="text-studio-muted">MW</div><div className="text-studio-text">{sel.mw}</div></div>
+            <div className="rounded bg-studio-panel p-1"><div className="text-studio-muted">logP</div><div className="text-studio-text">{sel.logP}</div></div>
+            <div className="rounded bg-studio-panel p-1"><div className="text-studio-muted">PSA</div><div className="text-studio-text">{sel.psa}Å²</div></div>
+          </div>
+
+          {/* Lipinski */}
+          <div className="flex items-center gap-1 mb-1">
+            {selLipinski.passes ? <CheckCircle className="h-3.5 w-3.5 text-emerald-400" /> : <XCircle className="h-3.5 w-3.5 text-red-400" />}
+            <span className={`text-[11px] ${selLipinski.passes ? 'text-emerald-400' : 'text-red-400'}`}>{selLipinski.passes ? 'Lipinski OK' : 'Lipinski Fail'}</span>
+          </div>
+          {selLipinski.violations.length > 0 && selLipinski.violations.map((v, i) => <div key={i} className="text-[10px] text-red-400/70 ml-5">⚠ {v}</div>)}
+
+          {/* Drug-likeness gauge */}
+          <div className="mt-2">
+            <div className="flex justify-between text-[9px] text-studio-muted"><span>Drug-Likeness</span><span>{selScore}/100</span></div>
+            <div className="h-2 rounded-full bg-studio-panel"><div className={`h-2 rounded-full transition-all ${selScore >= 75 ? 'bg-emerald-500' : selScore >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${selScore}%` }} /></div>
+          </div>
         </div>
-        <div style={{ marginTop: 8, fontSize: 13 }}>
-          Drug-likeness: <span style={{ fontSize: 18, fontWeight: 700, color: drugScore >= 70 ? '#4ade80' : drugScore >= 40 ? '#fbbf24' : '#ef4444' }}>{drugScore}/100</span>
-          <span style={{ marginLeft: 8, color: '#889', fontSize: 12 }}>{lipinski.passes ? '✅ Passes Ro5' : '❌ Fails Ro5'}</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
-
-export default MolecularLabPanel;

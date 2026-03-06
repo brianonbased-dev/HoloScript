@@ -1,58 +1,112 @@
-/**
- * CourtroomPanel.tsx — Courtroom Evidence Presenter
- * Powered by courtroomEvidence.ts
- */
-import React, { useState } from 'react';
-import { admissibilityCheck, evidenceWeight, chainOfCustodyValid, timelineConflicts, type Evidence, type TimelineEvent } from '@/lib/courtroomEvidence';
+'use client';
 
-const s = {
-  panel: { background: 'linear-gradient(180deg, #0f0e12 0%, #18161e 100%)', borderRadius: 12, padding: 20, color: '#d8d0e0', fontFamily: "'Inter', sans-serif", minHeight: 600, maxWidth: 720 } as React.CSSProperties,
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid rgba(139,92,246,0.15)', paddingBottom: 12 } as React.CSSProperties,
-  title: { fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #8b5cf6, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } as React.CSSProperties,
-  section: { marginBottom: 18, padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.08)' } as React.CSSProperties,
-  sectionTitle: { fontSize: 13, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#8b5cf6', marginBottom: 10 } as React.CSSProperties,
+/**
+ * CourtroomPanel — Digital courtroom evidence management and timeline.
+ */
+
+import { useState, useCallback } from 'react';
+import { Scale, Plus, Trash2, FileText, Clock, AlertTriangle, CheckCircle, Eye, Tag, ChevronDown } from 'lucide-react';
+
+export type EvidenceType = 'document' | 'photo' | 'video' | 'audio' | 'physical' | 'testimony';
+export type EvidenceStatus = 'admitted' | 'objected' | 'pending' | 'excluded';
+
+export interface Evidence {
+  id: string; label: string; type: EvidenceType; description: string;
+  status: EvidenceStatus; timestamp: number; tags: string[];
+  exhibit: string; // e.g., "Exhibit A-1"
+}
+
+const STATUS_STYLES: Record<EvidenceStatus, { color: string; icon: typeof CheckCircle }> = {
+  admitted: { color: 'text-emerald-400', icon: CheckCircle },
+  objected: { color: 'text-red-400', icon: AlertTriangle },
+  pending: { color: 'text-amber-400', icon: Clock },
+  excluded: { color: 'text-studio-muted', icon: AlertTriangle },
 };
 
+const DEMO_EVIDENCE: Evidence[] = [
+  { id: '1', label: 'Security Camera Footage', type: 'video', description: 'Parking lot footage from 11:32 PM', status: 'admitted', timestamp: Date.now() - 86400000, tags: ['surveillance', 'timeline'], exhibit: 'Exhibit A-1' },
+  { id: '2', label: 'Fingerprint Analysis', type: 'document', description: 'Latent prints found on door handle', status: 'admitted', timestamp: Date.now() - 72000000, tags: ['forensic', 'physical'], exhibit: 'Exhibit B-1' },
+  { id: '3', label: 'Witness Statement — J. Doe', type: 'testimony', description: 'Eyewitness account of suspect near scene', status: 'objected', timestamp: Date.now() - 43200000, tags: ['witness', 'testimony'], exhibit: 'Exhibit C-1' },
+  { id: '4', label: 'Cell Tower Records', type: 'document', description: 'Location data placing defendant at scene', status: 'pending', timestamp: Date.now() - 14400000, tags: ['digital', 'timeline'], exhibit: 'Exhibit D-1' },
+  { id: '5', label: 'Audio Recording', type: 'audio', description: '911 call from neighbor at 11:45 PM', status: 'admitted', timestamp: Date.now() - 7200000, tags: ['audio', 'timeline'], exhibit: 'Exhibit E-1' },
+];
+
 export function CourtroomPanel() {
-  const evidence: Evidence[] = [
-    { id: 'e1', type: 'physical', name: 'Security Camera Footage', description: 'Video from lobby at 23:15', reliability: 0.95, source: 'Building security', timestamp: Date.now() - 86400000, custodyChain: ['Officer A', 'Evidence Room', 'Court'], admissible: true },
-    { id: 'e2', type: 'testimonial', name: 'Witness X Statement', description: 'Placed defendant at scene', reliability: 0.6, source: 'Eyewitness', timestamp: Date.now() - 172800000, custodyChain: [], admissible: true },
-    { id: 'e3', type: 'forensic', name: 'DNA Sample', description: 'Match probability 1 in 10B', reliability: 0.99, source: 'Crime lab', timestamp: Date.now() - 259200000, custodyChain: ['CSI Tech', 'Lab', 'Court'], admissible: true },
-    { id: 'e4', type: 'digital', name: 'Phone Records', description: 'Cell tower pings near scene', reliability: 0.85, source: 'Carrier subpoena', timestamp: Date.now() - 345600000, custodyChain: ['Detective B', 'Court'], admissible: true },
-  ];
+  const [evidence, setEvidence] = useState<Evidence[]>(DEMO_EVIDENCE);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<EvidenceStatus | 'all'>('all');
+  const [filterType, setFilterType] = useState<EvidenceType | 'all'>('all');
+  const [section, setSection] = useState<'evidence' | 'timeline'>('evidence');
+
+  const updateStatus = useCallback((id: string, status: EvidenceStatus) => {
+    setEvidence(prev => prev.map(e => e.id === id ? { ...e, status } : e));
+  }, []);
+
+  const filtered = evidence.filter(e =>
+    (filterStatus === 'all' || e.status === filterStatus) &&
+    (filterType === 'all' || e.type === filterType)
+  );
+
+  const counts: Record<EvidenceStatus, number> = { admitted: 0, objected: 0, pending: 0, excluded: 0 };
+  evidence.forEach(e => counts[e.status]++);
+
+  const selectedItem = evidence.find(e => e.id === selected);
 
   return (
-    <div style={s.panel}>
-      <div style={s.header}>
-        <span style={s.title}>⚖️ Courtroom Evidence</span>
-        <span style={{ fontSize: 12, color: '#8b5cf6' }}>{evidence.length} exhibits</span>
+    <div className="flex flex-col overflow-auto">
+      <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
+        <Scale className="h-4 w-4 text-amber-400" />
+        <span className="text-sm font-semibold text-studio-text">Courtroom Evidence</span>
+        <span className="text-[10px] text-studio-muted">{evidence.length} items</span>
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>📋 Evidence Registry</div>
-        {evidence.map(e => {
-          const adm = admissibilityCheck(e);
-          const weight = evidenceWeight(e);
-          const custody = chainOfCustodyValid(e);
+      {/* Status Bar */}
+      <div className="flex gap-2 border-b border-studio-border px-3 py-1.5">
+        {(Object.entries(counts) as [EvidenceStatus, number][]).map(([status, count]) => {
+          const S = STATUS_STYLES[status];
+          return <button key={status} onClick={() => setFilterStatus(filterStatus === status ? 'all' : status)} className={`flex items-center gap-1 text-[10px] ${filterStatus === status ? S.color : 'text-studio-muted/50'}`}>
+            <S.icon className="h-3 w-3" />{count}
+          </button>;
+        })}
+      </div>
+
+      {/* Type Filter */}
+      <div className="flex gap-1 border-b border-studio-border px-2 py-1">
+        {(['all','document','photo','video','audio','testimony'] as const).map(t =>
+          <button key={t} onClick={() => setFilterType(t === 'all' ? 'all' : t)} className={`rounded px-1.5 py-0.5 text-[9px] ${filterType === t ? 'bg-studio-accent/20 text-studio-accent' : 'text-studio-muted'}`}>{t}</button>
+        )}
+      </div>
+
+      {/* Evidence List */}
+      <div className="flex-1 overflow-y-auto">
+        {filtered.map(e => {
+          const S = STATUS_STYLES[e.status];
           return (
-            <div key={e.id} style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 6, borderLeft: `3px solid ${adm ? '#22c55e' : '#ef4444'}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                <span style={{ fontWeight: 600 }}>{e.name}</span>
-                <span style={{ color: adm ? '#4ade80' : '#ef4444', fontWeight: 700, fontSize: 11 }}>{adm ? 'ADMISSIBLE' : 'EXCLUDED'}</span>
+            <div key={e.id} onClick={() => setSelected(e.id)} className={`flex items-start gap-2 border-b border-studio-border/30 px-3 py-2 cursor-pointer transition ${selected === e.id ? 'bg-studio-accent/10' : 'hover:bg-studio-panel/50'}`}>
+              <S.icon className={`h-3.5 w-3.5 mt-0.5 ${S.color}`} />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold text-studio-text truncate">{e.label}</div>
+                <div className="text-[10px] text-studio-muted truncate">{e.description}</div>
+                <div className="flex gap-1 mt-0.5">{e.tags.map(t => <span key={t} className="rounded bg-studio-panel px-1 text-[8px] text-studio-muted">{t}</span>)}</div>
               </div>
-              <div style={{ fontSize: 11, color: '#889', marginTop: 2 }}>{e.description}</div>
-              <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11 }}>
-                <span style={{ color: '#a78bfa' }}>Type: {e.type}</span>
-                <span style={{ color: '#f59e0b' }}>Weight: {weight}/10</span>
-                <span style={{ color: custody ? '#4ade80' : '#ef4444' }}>Chain: {custody ? '✓ Valid' : '✗ Broken'}</span>
-                <span style={{ color: '#889' }}>Reliability: {(e.reliability * 100).toFixed(0)}%</span>
-              </div>
+              <span className="text-[9px] font-mono text-studio-muted/50">{e.exhibit}</span>
             </div>
           );
         })}
       </div>
+
+      {/* Selected Detail */}
+      {selectedItem && (
+        <div className="border-t border-studio-border px-3 py-2">
+          <div className="text-xs font-semibold text-studio-text">{selectedItem.exhibit}: {selectedItem.label}</div>
+          <div className="text-[10px] text-studio-muted mt-1">{selectedItem.description}</div>
+          <div className="flex gap-1 mt-2">
+            {(['admitted','objected','pending','excluded'] as EvidenceStatus[]).map(s =>
+              <button key={s} onClick={() => updateStatus(selectedItem.id, s)} className={`rounded px-2 py-0.5 text-[9px] ${selectedItem.status === s ? STATUS_STYLES[s].color + ' bg-studio-panel' : 'text-studio-muted/40'}`}>{s}</button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-export default CourtroomPanel;

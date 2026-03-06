@@ -1,75 +1,105 @@
+'use client';
+
 /**
- * TimeCapsulePanel.tsx — Time Capsule Creator
- * Powered by timeCapsule.ts
+ * TimeCapsulePanel — Time capsule creation, sealing, and scheduling.
  */
-import React, { useState, useMemo } from 'react';
-import { timeCapsuleAge, isOpenable, preservationScore, totalItems, capsuleSummary, type TimeCapsule, type CapsuleItem } from '@/lib/timeCapsule';
 
-const TYPE_EMOJIS: Record<string, string> = { letter: '✉️', photo: '📷', artifact: '🏺', digital: '💾', document: '📄', other: '📦' };
+import { useState, useCallback } from 'react';
+import { Clock, Lock, Unlock, Plus, Trash2, Calendar, Archive, Gift, Eye } from 'lucide-react';
 
-const s = {
-  panel: { background: 'linear-gradient(180deg, #0f1215 0%, #151a20 100%)', borderRadius: 12, padding: 20, color: '#c8d8e8', fontFamily: "'Inter', sans-serif", minHeight: 600, maxWidth: 720 } as React.CSSProperties,
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid rgba(6,182,212,0.15)', paddingBottom: 12 } as React.CSSProperties,
-  title: { fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } as React.CSSProperties,
-  section: { marginBottom: 18, padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(6,182,212,0.08)' } as React.CSSProperties,
-  sectionTitle: { fontSize: 13, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#06b6d4', marginBottom: 10 } as React.CSSProperties,
-};
+export type CapsuleStatus = 'open' | 'sealed' | 'scheduled' | 'revealed';
+
+export interface CapsuleItem { id: string; type: 'text' | 'photo' | 'audio' | 'scene' | 'code'; label: string; preview: string; addedAt: number; }
+
+export interface TimeCapsule {
+  id: string; name: string; status: CapsuleStatus; items: CapsuleItem[];
+  createdAt: number; sealedAt?: number; revealDate?: number; message?: string;
+}
+
+const DEMO_CAPSULES: TimeCapsule[] = [
+  { id: '1', name: 'Studio Launch Day', status: 'sealed', items: [
+    { id: 'a', type: 'text', label: 'Vision Statement', preview: 'We set out to build the ultimate spatial...', addedAt: Date.now() - 2592000000 },
+    { id: 'b', type: 'scene', label: 'First Scene', preview: 'hello_world.holo', addedAt: Date.now() - 2592000000 },
+    { id: 'c', type: 'photo', label: 'Team Screenshot', preview: 'team_day1.png', addedAt: Date.now() - 2592000000 },
+  ], createdAt: Date.now() - 2592000000, sealedAt: Date.now() - 2500000000, revealDate: Date.now() + 31536000000, message: 'Open in 1 year to see how far we have come!' },
+  { id: '2', name: 'Sprint 100 Milestone', status: 'open', items: [
+    { id: 'd', type: 'code', label: 'Test Count', preview: '17,740 tests passing', addedAt: Date.now() - 172800000 },
+  ], createdAt: Date.now() - 172800000, message: 'Record our progress at Sprint 100' },
+];
+
+const STATUS_ICONS: Record<CapsuleStatus, typeof Clock> = { open: Unlock, sealed: Lock, scheduled: Calendar, revealed: Gift };
+const STATUS_COLORS: Record<CapsuleStatus, string> = { open: 'text-emerald-400', sealed: 'text-amber-400', scheduled: 'text-blue-400', revealed: 'text-purple-400' };
+const TYPE_EMOJI: Record<string, string> = { text: '📝', photo: '📷', audio: '🎵', scene: '🌍', code: '💻' };
+
+function timeUntil(ts: number): string {
+  const d = ts - Date.now(); if (d < 0) return 'Past due';
+  const days = Math.floor(d / 86400000); if (days > 365) return `${Math.floor(days/365)}y ${days%365}d`;
+  if (days > 0) return `${days}d`; return `${Math.floor(d/3600000)}h`;
+}
 
 export function TimeCapsulePanel() {
-  const capsule: TimeCapsule = {
-    id: 'tc1', name: 'Class of 2026', sealedDate: new Date('2026-06-15').getTime(), openDate: new Date('2051-06-15').getTime(),
-    location: 'School Courtyard', coordinators: ['Principal Lee', 'Student Council'],
-    items: [
-      { id: 'i1', type: 'letter', name: 'Letters to Future Selves', description: 'Sealed envelopes from each student', addedBy: 'Students', condition: 'sealed', preservationType: 'vacuum-sealed' },
-      { id: 'i2', type: 'photo', name: 'Class Photo 2026', description: 'Graduation day group photo', addedBy: 'Yearbook', condition: 'mint', preservationType: 'laminated' },
-      { id: 'i3', type: 'digital', name: 'USB Drive', description: 'Videos, playlists, social media snapshots', addedBy: 'Tech Club', condition: 'new', preservationType: 'waterproof-case' },
-      { id: 'i4', type: 'artifact', name: 'School Newspaper', description: 'Final edition of The Beacon', addedBy: 'Journalism', condition: 'good', preservationType: 'acid-free-paper' },
-      { id: 'i5', type: 'other', name: 'Fidget Spinner', description: '2020s cultural artifact', addedBy: 'Class Historian', condition: 'used', preservationType: 'none' },
-    ],
-  };
+  const [capsules, setCapsules] = useState<TimeCapsule[]>(DEMO_CAPSULES);
+  const [selected, setSelected] = useState<string | null>('2');
 
-  const age = useMemo(() => timeCapsuleAge(capsule), []);
-  const canOpen = useMemo(() => isOpenable(capsule), []);
-  const preservation = useMemo(() => preservationScore(capsule), []);
-  const summary = useMemo(() => capsuleSummary(capsule), []);
+  const seal = useCallback((id: string) => {
+    setCapsules(prev => prev.map(c => c.id === id ? { ...c, status: 'sealed', sealedAt: Date.now() } : c));
+  }, []);
+
+  const reveal = useCallback((id: string) => {
+    setCapsules(prev => prev.map(c => c.id === id ? { ...c, status: 'revealed' } : c));
+  }, []);
+
+  const addItem = useCallback((capsuleId: string) => {
+    setCapsules(prev => prev.map(c => c.id === capsuleId ? { ...c, items: [...c.items, { id: String(Date.now()), type: 'text', label: 'New Entry', preview: '', addedAt: Date.now() }] } : c));
+  }, []);
+
+  const sel = capsules.find(c => c.id === selected);
 
   return (
-    <div style={s.panel}>
-      <div style={s.header}>
-        <span style={s.title}>⏳ Time Capsule</span>
-        <span style={{ fontSize: 12, color: canOpen ? '#4ade80' : '#f59e0b' }}>{canOpen ? '🔓 Ready to Open' : '🔒 Sealed'}</span>
+    <div className="flex flex-col overflow-auto">
+      <div className="flex items-center gap-2 border-b border-studio-border px-3 py-2">
+        <Archive className="h-4 w-4 text-purple-400" />
+        <span className="text-sm font-semibold text-studio-text">Time Capsules</span>
+        <span className="text-[10px] text-studio-muted">{capsules.length}</span>
       </div>
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>📦 {capsule.name}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
-          {[['Age', `${age.toFixed(1)} yrs`, '#06b6d4'], ['Items', totalItems(capsule).toString(), '#8b5cf6'], ['Preservation', `${preservation}/10`, '#22c55e']].map(([l, v, c]) => (
-            <div key={l as string} style={{ textAlign: 'center', padding: 10, background: `${c}08`, border: `1px solid ${c}20`, borderRadius: 6 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: c as string }}>{v}</div>
-              <div style={{ fontSize: 10, color: '#889' }}>{l as string}</div>
+      {/* Capsule List */}
+      {capsules.map(c => {
+        const Icon = STATUS_ICONS[c.status];
+        return (
+          <div key={c.id} onClick={() => setSelected(c.id)} className={`flex items-start gap-2 border-b border-studio-border/50 px-3 py-2 cursor-pointer transition ${selected === c.id ? 'bg-purple-500/10' : 'hover:bg-studio-panel/50'}`}>
+            <Icon className={`h-4 w-4 mt-0.5 ${STATUS_COLORS[c.status]}`} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-studio-text">{c.name}</div>
+              <div className="flex gap-2 text-[10px] text-studio-muted">
+                <span>{c.items.length} items</span>
+                <span className={STATUS_COLORS[c.status]}>{c.status}</span>
+                {c.revealDate && <span>opens: {timeUntil(c.revealDate)}</span>}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Selected Capsule Detail */}
+      {sel && (
+        <div className="border-t border-studio-border px-3 py-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-studio-text">{sel.name}</span>
+            {sel.status === 'open' && <button onClick={() => seal(sel.id)} className="flex items-center gap-1 rounded bg-amber-500/20 px-2 py-0.5 text-[10px] text-amber-400"><Lock className="h-3 w-3"/>Seal</button>}
+            {sel.status === 'sealed' && <button onClick={() => reveal(sel.id)} className="flex items-center gap-1 rounded bg-purple-500/20 px-2 py-0.5 text-[10px] text-purple-400"><Eye className="h-3 w-3"/>Reveal</button>}
+          </div>
+          {sel.message && <div className="rounded bg-studio-panel/50 px-2 py-1 text-[11px] text-studio-muted italic mb-2">"{sel.message}"</div>}
+          {sel.items.map(item => (
+            <div key={item.id} className="flex items-center gap-2 py-1 text-[11px]">
+              <span>{TYPE_EMOJI[item.type]}</span>
+              <span className="text-studio-text">{item.label}</span>
+              <span className="flex-1 truncate text-studio-muted/50 font-mono text-[9px]">{item.preview}</span>
             </div>
           ))}
+          {sel.status === 'open' && <button onClick={() => addItem(sel.id)} className="mt-1 flex items-center gap-1 text-[10px] text-studio-muted hover:text-studio-text"><Plus className="h-3 w-3"/>Add Item</button>}
         </div>
-        <div style={{ fontSize: 12, color: '#889' }}>
-          Sealed: {new Date(capsule.sealedDate).toLocaleDateString()} → Opens: {new Date(capsule.openDate).toLocaleDateString()}
-        </div>
-      </div>
-
-      <div style={s.section}>
-        <div style={s.sectionTitle}>🗃️ Contents</div>
-        {capsule.items.map(item => (
-          <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 4, fontSize: 12 }}>
-            <span style={{ fontSize: 16 }}>{TYPE_EMOJIS[item.type] || '📦'}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600 }}>{item.name}</div>
-              <div style={{ fontSize: 11, color: '#889' }}>{item.description}</div>
-            </div>
-            <span style={{ color: '#667', fontSize: 11 }}>{item.preservationType}</span>
-          </div>
-        ))}
-      </div>
+      )}
     </div>
   );
 }
-
-export default TimeCapsulePanel;

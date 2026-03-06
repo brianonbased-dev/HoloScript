@@ -13,16 +13,16 @@ importers:
         version: 0.10.4(@tanstack/react-query@5.90.21)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.3)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.13.0)(react@18.3.1)(typescript@5.9.3)(ws@8.19.0)
       tree-sitter-go:
         specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        version: 0.25.0
       tree-sitter-javascript:
         specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        version: 0.25.0
       tree-sitter-python:
         specifier: ^0.25.0
-        version: 0.25.0(tree-sitter@0.21.1)
+        version: 0.25.0
       tree-sitter-rust:
         specifier: ^0.24.0
-        version: 0.24.0(tree-sitter@0.21.1)
+        version: 0.24.0
       tree-sitter-typescript:
         specifier: ^0.23.2
         version: 0.23.2(tree-sitter@0.21.1)
@@ -311,6 +311,28 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@24.10.13)(jsdom@28.1.0)
 
+  packages/compiler:
+    dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
+      '@holoscript/parser':
+        specifier: workspace:*
+        version: link:../parser
+      '@holoscript/traits':
+        specifier: workspace:*
+        version: link:../traits
+    devDependencies:
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@24.10.13)(jsdom@28.1.0)
+
   packages/compiler-wasm: {}
 
   packages/core:
@@ -410,6 +432,34 @@ importers:
       typedoc:
         specifier: ^0.28.16
         version: 0.28.16(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@24.10.13)(jsdom@28.1.0)
+
+  packages/engine:
+    dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
+      three:
+        specifier: ^0.182.0
+        version: 0.182.0
+      ws:
+        specifier: ^8.16.0
+        version: 8.19.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+    devDependencies:
+      '@types/three':
+        specifier: ^0.170.0
+        version: 0.170.0
+      '@types/ws':
+        specifier: ^8.5.10
+        version: 8.18.1
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -594,6 +644,22 @@ importers:
       rimraf:
         specifier: ^5.0.5
         version: 5.0.10
+
+  packages/intelligence:
+    dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@24.10.13)(jsdom@28.1.0)
 
   packages/linter:
     dependencies:
@@ -875,6 +941,44 @@ importers:
         version: 4.0.18(@types/node@24.10.13)(tsx@4.21.0)
 
   packages/neovim: {}
+
+  packages/parser:
+    dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
+    optionalDependencies:
+      tree-sitter:
+        specifier: 0.21.1
+        version: 0.21.1
+      tree-sitter-go:
+        specifier: ^0.25.0
+        version: 0.25.0(tree-sitter@0.21.1)
+      tree-sitter-javascript:
+        specifier: ^0.25.0
+        version: 0.25.0(tree-sitter@0.21.1)
+      tree-sitter-python:
+        specifier: ^0.25.0
+        version: 0.25.0(tree-sitter@0.21.1)
+      tree-sitter-rust:
+        specifier: ^0.24.0
+        version: 0.24.0(tree-sitter@0.21.1)
+      tree-sitter-typescript:
+        specifier: ^0.23.2
+        version: 0.23.2(tree-sitter@0.21.1)
+      web-tree-sitter:
+        specifier: ^0.24.0
+        version: 0.24.7
+    devDependencies:
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@24.10.13)(jsdom@28.1.0)
 
   packages/partner-sdk:
     dependencies:
@@ -1365,6 +1469,22 @@ importers:
       puppeteer:
         specifier: ^23.0.0
         version: 23.11.1(typescript@5.9.3)
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@24.10.13)(jsdom@28.1.0)
+
+  packages/traits:
+    dependencies:
+      '@holoscript/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       tsup:
         specifier: ^8.0.1
         version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
@@ -26652,6 +26772,19 @@ packages:
     requiresBuild: true
     dev: true
 
+  /tree-sitter-go@0.25.0:
+    resolution: {integrity: sha512-APBc/Dq3xz/e35Xpkhb1blu5UgW+2E3RyGWawZSCNcbGwa7jhSQPS8KsUupuzBla8PCo8+lz9W/JDJjmfRa2tw==}
+    requiresBuild: true
+    peerDependencies:
+      tree-sitter: ^0.25.0
+    peerDependenciesMeta:
+      tree-sitter:
+        optional: true
+    dependencies:
+      node-addon-api: 8.6.0
+      node-gyp-build: 4.8.4
+    dev: false
+
   /tree-sitter-go@0.25.0(tree-sitter@0.21.1):
     resolution: {integrity: sha512-APBc/Dq3xz/e35Xpkhb1blu5UgW+2E3RyGWawZSCNcbGwa7jhSQPS8KsUupuzBla8PCo8+lz9W/JDJjmfRa2tw==}
     requiresBuild: true
@@ -26680,6 +26813,19 @@ packages:
       tree-sitter: 0.21.1
     dev: false
 
+  /tree-sitter-javascript@0.25.0:
+    resolution: {integrity: sha512-1fCbmzAskZkxcZzN41sFZ2br2iqTYP3tKls1b/HKGNPQUVOpsUxpmGxdN/wMqAk3jYZnYBR1dd/y/0avMeU7dw==}
+    requiresBuild: true
+    peerDependencies:
+      tree-sitter: ^0.25.0
+    peerDependenciesMeta:
+      tree-sitter:
+        optional: true
+    dependencies:
+      node-addon-api: 8.6.0
+      node-gyp-build: 4.8.4
+    dev: false
+
   /tree-sitter-javascript@0.25.0(tree-sitter@0.21.1):
     resolution: {integrity: sha512-1fCbmzAskZkxcZzN41sFZ2br2iqTYP3tKls1b/HKGNPQUVOpsUxpmGxdN/wMqAk3jYZnYBR1dd/y/0avMeU7dw==}
     requiresBuild: true
@@ -26694,6 +26840,19 @@ packages:
       tree-sitter: 0.21.1
     dev: false
 
+  /tree-sitter-python@0.25.0:
+    resolution: {integrity: sha512-eCmJx6zQa35GxaCtQD+wXHOhYqBxEL+bp71W/s3fcDMu06MrtzkVXR437dRrCrbrDbyLuUDJpAgycs7ncngLXw==}
+    requiresBuild: true
+    peerDependencies:
+      tree-sitter: ^0.25.0
+    peerDependenciesMeta:
+      tree-sitter:
+        optional: true
+    dependencies:
+      node-addon-api: 8.6.0
+      node-gyp-build: 4.8.4
+    dev: false
+
   /tree-sitter-python@0.25.0(tree-sitter@0.21.1):
     resolution: {integrity: sha512-eCmJx6zQa35GxaCtQD+wXHOhYqBxEL+bp71W/s3fcDMu06MrtzkVXR437dRrCrbrDbyLuUDJpAgycs7ncngLXw==}
     requiresBuild: true
@@ -26706,6 +26865,19 @@ packages:
       node-addon-api: 8.5.0
       node-gyp-build: 4.8.4
       tree-sitter: 0.21.1
+    dev: false
+
+  /tree-sitter-rust@0.24.0:
+    resolution: {integrity: sha512-NWemUDf629Tfc90Y0Z55zuwPCAHkLxWnMf2RznYu4iBkkrQl2o/CHGB7Cr52TyN5F1DAx8FmUnDtCy9iUkXZEQ==}
+    requiresBuild: true
+    peerDependencies:
+      tree-sitter: ^0.22.1
+    peerDependenciesMeta:
+      tree-sitter:
+        optional: true
+    dependencies:
+      node-addon-api: 8.6.0
+      node-gyp-build: 4.8.4
     dev: false
 
   /tree-sitter-rust@0.24.0(tree-sitter@0.21.1):
