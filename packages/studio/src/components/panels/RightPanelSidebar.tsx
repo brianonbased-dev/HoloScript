@@ -3,7 +3,7 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * Mounts 16 integration panels into a collapsible right drawer.
+ * Mounts 20 integration panels into a collapsible right drawer.
  * Each tab shows its panel content. Can be used on any page within the AppShell.
  */
 
@@ -24,11 +24,15 @@ import { ShaderPanel } from './ShaderPanel';
 import { CombatPanel } from './CombatPanel';
 import { PathfindingPanel } from './PathfindingPanel';
 import { ParticlePanel } from './ParticlePanel';
+import { CameraPanel } from './CameraPanel';
+import { InventoryPanel } from './InventoryPanel';
+import { TerrainPanel } from './TerrainPanel';
+import { LightingPanel } from './LightingPanel';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles';
+export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting';
 
 interface RightPanelSidebarProps {
   /** AST nodes for safety analysis (pass from editor) */
@@ -58,6 +62,10 @@ const TABS: { id: PanelTab; icon: string; label: string; title: string; separato
   { id: 'combat', icon: '⚔️', label: 'Combat', title: 'Combat system designer' },
   { id: 'pathfinding', icon: '🗺️', label: 'Path', title: 'A* pathfinding visualizer' },
   { id: 'particles', icon: '🎆', label: 'FX', title: 'Particle system editor' },
+  { id: 'camera', icon: '📷', label: 'Cam', title: 'Camera controller', separator: true },
+  { id: 'inventory', icon: '🎒', label: 'Items', title: 'Inventory system' },
+  { id: 'terrain', icon: '🏔️', label: 'Terrain', title: 'Heightmap terrain editor' },
+  { id: 'lighting', icon: '💡', label: 'Light', title: 'Scene lighting manager' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -121,6 +129,10 @@ export function RightPanelSidebar({
             {activeTab === 'combat' && <CombatPanel />}
             {activeTab === 'pathfinding' && <PathfindingPanel />}
             {activeTab === 'particles' && <ParticlePanel />}
+            {activeTab === 'camera' && <CameraPanel />}
+            {activeTab === 'inventory' && <InventoryPanel />}
+            {activeTab === 'terrain' && <TerrainPanel />}
+            {activeTab === 'lighting' && <LightingPanel />}
           </div>
         </div>
       )}

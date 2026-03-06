@@ -2604,3 +2604,19 @@ export type { ShaderNode, ShaderConnection, ShaderNodeDef, ShaderPort, ShaderDat
 // ── Particles (value re-export) ────────────────────────────────────
 export { ParticleSystem } from './particles/ParticleSystem';
 export type { Particle, EmitterConfig, EmitterShape, Color4 } from './particles/ParticleSystem';
+
+// ── Camera ─────────────────────────────────────────────────────────
+export { CameraController } from './camera/CameraController';
+export type { CameraMode, CameraState, CameraConfig } from './camera/CameraController';
+
+// ── Inventory / Gameplay ───────────────────────────────────────────
+export { InventorySystem } from './gameplay/InventorySystem';
+export type { ItemDef, ItemCategory, ItemRarity, InventorySlot } from './gameplay/InventorySystem';
+
+// ── Terrain ────────────────────────────────────────────────────────
+export { TerrainSystem } from './environment/TerrainSystem';
+export type { TerrainConfig, TerrainLayer, TerrainVertex, TerrainChunk } from './environment/TerrainSystem';
+
+// ── Lighting ───────────────────────────────────────────────────────
+export { LightingModel } from './rendering/LightingModel';
+export type { Light, LightType, AmbientConfig, GIProbe } from './rendering/LightingModel';
