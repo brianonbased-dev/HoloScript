@@ -55,10 +55,25 @@ import { McpOrchestratorClient } from '../services/McpOrchestratorClient';
 describe('McpOrchestratorClient', () => {
   let client: McpOrchestratorClient;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
     mockFetch.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({}) });
+
+    // Re-establish the default vscode.workspace.getConfiguration mock after clearAllMocks
+    const vscode = await import('vscode');
+    const configValues: Record<string, any> = {
+      orchestratorUrl: 'http://localhost:5567',
+      apiKey: 'test-api-key',
+      enabled: true,
+      heartbeatSeconds: 20,
+      visibility: 'public',
+      workspaceId: 'holoscript',
+    };
+    (vscode.workspace.getConfiguration as any).mockImplementation(() => ({
+      get: vi.fn((key: string, defaultVal?: any) => configValues[key] ?? defaultVal),
+    }));
+
     client = new McpOrchestratorClient();
   });
 

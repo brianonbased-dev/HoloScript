@@ -13,6 +13,9 @@
  * - GRPORewardOrchestrator: weighted composite reward with caching and stats
  * - GRPOConfig: recommended hyperparameters for GRPO training
  * - GRPOPromptExtractor: scans monorepo for diverse GRPO training prompts
+ * - OPLoRAConfig: extended OPLoRA configuration with validation and Python export
+ * - OPLoRAMonitor: tracks benchmark scores, constraint satisfaction, and alerts
+ * - ForgettingDetector: sliding-window detection of catastrophic forgetting
  *
  * @module self-improvement
  */
@@ -124,3 +127,34 @@ export {
   type PromptSource,
   type DomainTag,
 } from './GRPOPromptExtractor';
+
+export {
+  DEFAULT_OPLORA_CONFIG,
+  validateOPLoRAConfig,
+  buildOPLoRAConfig,
+  exportOPLoRAConfigAsPython,
+  type ExtendedOPLoRAConfig,
+  type ValidatedOPLoRAConfig,
+  type OPLoRAValidationError,
+} from './OPLoRAConfig';
+
+export {
+  OPLoRAMonitor,
+  type BenchmarkName,
+  type BenchmarkScore,
+  type ModuleWeightRatio,
+  type ConstraintSatisfaction,
+  type AlertSeverity,
+  type MonitorAlert,
+  type OPLoRAMonitorConfig,
+  type MonitorStats,
+  type MonitorSnapshot,
+} from './OPLoRAMonitor';
+
+export {
+  ForgettingDetector,
+  type ForgettingDetectorConfig,
+  type ForgettingSeverity,
+  type ForgettingResult,
+  type AggregateDetectionResult,
+} from './ForgettingDetector';
