@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * HoloScriptEditor â€” Monaco editor with HoloScript language support
@@ -18,6 +18,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import MonacoEditor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import { useSceneStore } from '@/lib/store';
+import { EditorToolbar } from './EditorToolbar';
 
 /** Minimal IStandaloneCodeEditor surface used by this component. */
 interface IStandaloneCodeEditor {
@@ -461,42 +462,47 @@ export function HoloScriptEditor({ height = '100%' }: HoloScriptEditorProps) {
   }, [setCode]);
 
   return (
-    <MonacoEditor
-      height={height}
-      defaultLanguage={HOLOSCRIPT_LANGUAGE_ID}
-      language={HOLOSCRIPT_LANGUAGE_ID}
-      value={code}
-      onChange={handleChange}
-      onMount={handleMount}
-      theme="holoscript-dark"
-      options={{
-        fontSize: 12,
-        fontFamily: '"JetBrains Mono", "Fira Mono", "Cascadia Code", monospace',
-        lineHeight: 20,
-        minimap: { enabled: false },
-        scrollBeyondLastLine: false,
-        wordWrap: 'on',
-        padding: { top: 12, bottom: 12 },
-        folding: true,
-        renderLineHighlight: 'gutter',
-        glyphMargin: false,
-        lineDecorationsWidth: 4,
-        tabSize: 2,
-        insertSpaces: true,
-        automaticLayout: true,
-        bracketPairColorization: { enabled: true },
-        formatOnPaste: true,
-        suggest: {
-          showKeywords: true,
-          showSnippets: true,
-        },
-        quickSuggestions: {
-          other: true,
-          comments: false,
-          strings: false,
-        },
-      }}
-    />
+    <div className="flex flex-col h-full">
+      <div className="flex-1 min-h-0">
+        <MonacoEditor
+          height="100%"
+          defaultLanguage={HOLOSCRIPT_LANGUAGE_ID}
+          language={HOLOSCRIPT_LANGUAGE_ID}
+          value={code}
+          onChange={handleChange}
+          onMount={handleMount}
+          theme="holoscript-dark"
+          options={{
+            fontSize: 12,
+            fontFamily: '"JetBrains Mono", "Fira Mono", "Cascadia Code", monospace',
+            lineHeight: 20,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            wordWrap: 'on',
+            padding: { top: 12, bottom: 12 },
+            folding: true,
+            renderLineHighlight: 'gutter',
+            glyphMargin: false,
+            lineDecorationsWidth: 4,
+            tabSize: 2,
+            insertSpaces: true,
+            automaticLayout: true,
+            bracketPairColorization: { enabled: true },
+            formatOnPaste: true,
+            suggest: {
+              showKeywords: true,
+              showSnippets: true,
+            },
+            quickSuggestions: {
+              other: true,
+              comments: false,
+              strings: false,
+            },
+          }}
+        />
+      </div>
+      <EditorToolbar code={code} />
+    </div>
   );
 }
 

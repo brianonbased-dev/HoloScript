@@ -2432,22 +2432,27 @@ export type {
 // ═══════════════════════════════════════════════════════════════════
 
 export { EffectRow } from './types/effects';
-export type { VREffect, VREffectCategory } from './types/effects';
+export type { VREffect, EffectCategory, EffectViolation, EffectViolationSeverity, EffectDeclaration } from './types/effects';
 
 export { TRAIT_EFFECTS, inferFromTraits, inferFromBuiltins, knownTraits, knownBuiltins } from './compiler/safety/EffectInference';
 export type { InferredEffects } from './compiler/safety/EffectInference';
 
-export { checkEffects, isSafeTraitSet, dangerLevel } from './compiler/safety/EffectChecker';
+export { EffectChecker, createEffectChecker, isSafeTraitSet, dangerLevel } from './compiler/safety/EffectChecker';
+export type { EffectCheckerConfig, EffectCheckResult, ModuleEffectCheckResult, EffectASTNode } from './compiler/safety/EffectChecker';
 
-export { analyzeResourceBudget, PLATFORM_BUDGETS } from './compiler/safety/ResourceBudgetAnalyzer';
-export type { ResourceCategory, ResourceBudgetResult } from './compiler/safety/ResourceBudgetAnalyzer';
+export { ResourceBudgetAnalyzer, PLATFORM_BUDGETS, TRAIT_RESOURCE_COSTS } from './compiler/safety/ResourceBudgetAnalyzer';
+export type { ResourceCategory, BudgetAnalysisResult, BudgetDiagnostic, ResourceUsageNode } from './compiler/safety/ResourceBudgetAnalyzer';
 
-export { checkCapabilities, TRUST_LEVELS } from './compiler/safety/CapabilityTypes';
+export { checkCapabilities, expandCapabilities, deriveRequirements, TRUST_LEVEL_CAPABILITIES, EFFECT_TO_CAPABILITY, CAPABILITY_HIERARCHY } from './compiler/safety/CapabilityTypes';
+export type { CapabilityScope, CapabilityRequirement, CapabilityCheckResult } from './compiler/safety/CapabilityTypes';
 
 export { runSafetyPass, quickSafetyCheck } from './compiler/safety/CompilerSafetyPass';
-export type { SafetyPassResult, SafetyPassOptions, EffectASTNode } from './compiler/safety/CompilerSafetyPass';
+export type { SafetyPassResult, SafetyPassConfig } from './compiler/safety/CompilerSafetyPass';
 
-export type { SafetyReport, SafetyVerdict, SafetyCertificate } from './compiler/safety/SafetyReport';
+export { buildSafetyReport, formatReport, generateCertificate } from './compiler/safety/SafetyReport';
+export type { SafetyReport, SafetyVerdict } from './compiler/safety/SafetyReport';
+
+export type { EffectCertificate, EffectTrustLevel } from './types/effects';
 
 // ═══════════════════════════════════════════════════════════════════
 // @platform() Conditional Compilation (Cross-Reality)

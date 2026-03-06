@@ -68,6 +68,7 @@ import {
 import { SemanticCompletionProvider } from './SemanticCompletionProvider';
 import { AICompletionProvider } from './ai/AICompletionProvider';
 import { TreeSitterManager, type ContentChange } from './TreeSitterManager';
+import { runSafetyDiagnostics } from './SafetyDiagnostics';
 
 // Create connection and document manager
 const connection = createConnection(ProposedFeatures.all);
@@ -520,6 +521,16 @@ async function validateDocument(document: TextDocument): Promise<void> {
       };
 
       findSymbols(ast.children || []);
+
+      // 2.5 Compile-time safety pass — effects, budgets, capabilities
+      try {
+        const safetyDiags = runSafetyDiagnostics(ast, uri);
+        diagnostics.push(...safetyDiags);
+      } catch (safetyErr) {
+        console.error(
+          `[Safety] Pass failed: ${safetyErr instanceof Error ? safetyErr.message : safetyErr}`,
+        );
+      }
 
       // LRU eviction before adding new entry
       evictLRUDocuments();

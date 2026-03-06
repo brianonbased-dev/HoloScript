@@ -369,6 +369,116 @@ describe('dangerLevel', () => {
 // Known Traits/Builtins Coverage
 // =============================================================================
 
+// =============================================================================
+// traitEffectDeclaration Tests
+// =============================================================================
+
+describe('traitEffectDeclaration', () => {
+  it('returns annotated declaration for known traits', () => {
+    const decl = traitEffectDeclaration('@mesh');
+    expect(decl.origin).toBe('annotated');
+    expect(decl.declared.has('render:spawn')).toBe(true);
+  });
+
+  it('returns inferred pure declaration for unknown traits', () => {
+    const decl = traitEffectDeclaration('@nonexistent');
+    expect(decl.origin).toBe('inferred');
+    expect(decl.declared.isPure()).toBe(true);
+  });
+
+  it('normalizes trait names without @ prefix', () => {
+    const decl = traitEffectDeclaration('physics');
+    expect(decl.origin).toBe('annotated');
+    expect(decl.declared.has('physics:force')).toBe(true);
+  });
+});
+
+// =============================================================================
+// EffectChecker Configuration Tests
+// =============================================================================
+
+describe('EffectChecker config', () => {
+  it('ignoredCategories suppresses specific categories', () => {
+    const checker = createEffectChecker({ ignoredCategories: ['resource'] });
+    const node: EffectASTNode = {
+      type: 'object', name: 'Heavy',
+      traits: ['@particle'],
+      calls: [],
+      declaredEffects: ['render:particle', 'render:spawn'],
+    };
+    const result = checker.checkNode(node);
+    // @particle infers resource:gpu but 'resource' category is ignored
+    const resourceViolations = result.violations.filter(v => v.effect.startsWith('resource:'));
+    expect(resourceViolations).toHaveLength(0);
+  });
+
+  it('strictUnknownTraits changes severity', () => {
+    const strictChecker = createEffectChecker({ strictUnknownTraits: true });
+    const lenientChecker = createEffectChecker({ strictUnknownTraits: false });
+    const node: EffectASTNode = {
+      type: 'object', name: 'UnknownTrait',
+      traits: ['@completely_custom'],
+      calls: [],
+      declaredEffects: [],
+    };
+    // Both should produce results without crashing
+    const strictResult = strictChecker.checkNode(node);
+    const lenientResult = lenientChecker.checkNode(node);
+    expect(strictResult.inferred.isPure()).toBe(true);
+    expect(lenientResult.inferred.isPure()).toBe(true);
+  });
+});
+
+// =============================================================================
+// Edge Cases
+// =============================================================================
+
+describe('edge cases', () => {
+  it('empty EffectASTNode array produces passing module check', () => {
+    const checker = createEffectChecker();
+    const result = checker.checkModule([]);
+    expect(result.passed).toBe(true);
+    expect(result.moduleEffects.isPure()).toBe(true);
+  });
+
+  it('composeEffects with no arguments produces pure', () => {
+    const result = composeEffects();
+    expect(result.row.isPure()).toBe(true);
+    expect(result.sources.size).toBe(0);
+  });
+
+  it('composeEffects merges sources from multiple inference results', () => {
+    const a = inferFromTraits(['@mesh']);
+    const b = inferFromBuiltins(['spawn']);
+    const composed = composeEffects(a, b);
+    const sources = composed.sources.get('render:spawn');
+    expect(sources).toContain('@mesh');
+    expect(sources).toContain('spawn');
+  });
+
+  it('EffectRow hasCategory works correctly', () => {
+    const row = EffectRow.of('render:spawn', 'physics:force');
+    expect(row.hasCategory('render')).toBe(true);
+    expect(row.hasCategory('physics')).toBe(true);
+    expect(row.hasCategory('audio')).toBe(false);
+  });
+
+  it('dangerLevel caps at 10', () => {
+    const extreme = new EffectRow([
+      'authority:own', 'authority:delegate', 'authority:revoke',
+      'authority:zone', 'authority:world',
+      'inventory:take', 'inventory:destroy', 'inventory:duplicate', 'inventory:trade',
+      'agent:spawn', 'agent:kill', 'agent:control',
+      'io:network', 'io:write',
+    ] as VREffect[]);
+    expect(dangerLevel(extreme)).toBeLessThanOrEqual(10);
+  });
+});
+
+// =============================================================================
+// Coverage
+// =============================================================================
+
 describe('coverage', () => {
   it('has 40+ known traits', () => {
     expect(knownTraits().length).toBeGreaterThanOrEqual(40);
