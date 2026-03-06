@@ -48,6 +48,9 @@ export default defineConfig({
 
     // Codebase Absorption Engine (dynamically loaded)
     'codebase/index': 'src/codebase/index.ts',
+
+    // Self-Improvement Pipeline (dynamically loaded)
+    'self-improvement/index': 'src/self-improvement/index.ts',
   },
   format: ['cjs', 'esm'],
   dts: false, // Temporarily disable for v3.0 - type mismatches to resolve in v3.1

@@ -51,6 +51,11 @@
       "import": "./dist/codebase/index.js",
       "require": "./dist/codebase/index.cjs"
     },
+    "./self-improvement": {
+      "types": "./dist/self-improvement/index.d.ts",
+      "import": "./dist/self-improvement/index.js",
+      "require": "./dist/self-improvement/index.cjs"
+    },
     "./compiler/*": {
       "types": "./dist/compiler/*.d.ts",
       "import": "./dist/compiler/*.js",
