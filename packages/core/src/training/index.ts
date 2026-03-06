@@ -1,8 +1,9 @@
 /**
- * Spatial Training Data Pipeline
+ * Training Data Pipeline
  *
  * Generates labeled spatial reasoning training examples from
- * HoloScript compositions with spatial constraints.
+ * HoloScript compositions with spatial constraints, and monitors
+ * SNN sparsity for energy-efficient neural computation.
  *
  * @module training
  */
@@ -24,3 +25,20 @@ export type {
   SpatialTrainingJSONLEntry,
   SpatialRelationshipParams,
 } from './SpatialTrainingDataTypes';
+
+export {
+  SparsityMonitor,
+  createSparsityMonitor,
+} from './SparsityMonitor';
+
+export type { LayerActivityInput } from './SparsityMonitor';
+
+export type {
+  SNNLayerMetrics,
+  SparsitySnapshot,
+  EnergyEfficiencyMetrics,
+  SparsityViolation,
+  SparsityMonitorConfig,
+  SparsityMonitorStats,
+  SparsityQualityHistoryEntry,
+} from './SparsityMonitorTypes';
