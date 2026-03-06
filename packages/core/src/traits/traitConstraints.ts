@@ -322,4 +322,22 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     suggestion:
       'Add @collidable to provide bounds for trajectory constraint checking.',
   },
+
+  // =============================================================================
+  // ROBOTICS / URDF ROBOT MODEL CONSTRAINTS
+  // =============================================================================
+  {
+    type: 'conflicts',
+    source: 'urdf_robot',
+    targets: ['cloth', 'soft_body', 'fluid'],
+    message:
+      'URDF robot models use rigid body joints and cannot have cloth, soft body, or fluid physics.',
+  },
+  {
+    type: 'conflicts',
+    source: 'urdf_robot',
+    targets: ['particle_emitter'],
+    message:
+      'URDF robot models define their own visual hierarchy and conflict with particle emitters.',
+  },
 ];

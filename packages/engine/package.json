@@ -1,0 +1,36 @@
+{
+  "name": "@holoscript/engine",
+  "version": "1.0.0",
+  "description": "HoloScript spatial engine — runtime, ECS, networking, rendering, physics",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/Holoscript.git",
+    "directory": "packages/engine"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*",
+    "three": "^0.182.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.170.0",
+    "@types/ws": "^8.5.10",
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

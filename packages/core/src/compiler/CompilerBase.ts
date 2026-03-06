@@ -115,6 +115,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   'TraitCompositionCompiler': 'trait-composition',
   'DomainBlockCompilerMixin': 'domain-block',
   'NIRCompiler': 'nir',
+  'URDFToUSDZConverter': 'urdf',
 };
 
 /**

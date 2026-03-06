@@ -2,11 +2,13 @@
 
 /**
  * PhysicsPanel — physics body type preset picker with @physics trait insertion.
+ * Wired to spatialEngineBridge for collision preview and terrain generation.
  */
 
-import { useState, useEffect } from 'react';
-import { Atom, X, Search, Copy, Plus } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Atom, X, Search, Copy, Plus, Mountain, Crosshair } from 'lucide-react';
 import { useSceneStore } from '@/lib/store';
+import { useSpatialEngine } from '@/hooks/useSpatialEngine';
 
 interface PhysicsPreset {
   id: string; name: string; type: string; description: string; emoji: string; traitSnippet: string;
@@ -27,6 +29,14 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
   const [copied, setCopied] = useState(false);
   const setCode = useSceneStore((s) => s.setCode);
   const code = useSceneStore((s) => s.code) ?? '';
+
+  // Spatial engine bridge for collision preview and terrain generation
+  const {
+    ready: engineReady,
+    isWasm,
+    testSphereCollision,
+    generateTerrainSnippet,
+  } = useSpatialEngine();
 
   useEffect(() => {
     setLoading(true);
@@ -107,6 +117,24 @@ export function PhysicsPanel({ onClose }: PhysicsPanelProps) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Spatial Engine Quick Actions */}
+      <div className="shrink-0 border-t border-studio-border p-2.5 space-y-1.5">
+        <div className="flex items-center gap-1.5 text-[9px] text-studio-muted">
+          <Crosshair className="h-3 w-3" />
+          <span>Spatial Engine: {engineReady ? (isWasm ? 'WASM' : 'JS Fallback') : 'Loading...'}</span>
+        </div>
+        <button
+          onClick={() => {
+            const snippet = generateTerrainSnippet({ seed: Math.floor(Math.random() * 10000) });
+            setCode(code + '\n' + snippet + '\n');
+          }}
+          disabled={!engineReady}
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-studio-border bg-studio-surface py-1.5 text-[10px] text-studio-muted hover:text-studio-text hover:border-studio-accent/40 transition disabled:opacity-40"
+        >
+          <Mountain className="h-3 w-3" /> Generate Terrain Object
+        </button>
       </div>
     </div>
   );

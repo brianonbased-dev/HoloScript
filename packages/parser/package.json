@@ -1,0 +1,41 @@
+{
+  "name": "@holoscript/parser",
+  "version": "1.0.0",
+  "description": "HoloScript parser — tree-sitter grammars, tokenizer, AST types. Rust/WASM candidate.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/Holoscript.git",
+    "directory": "packages/parser"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "optionalDependencies": {
+    "tree-sitter": "0.21.1",
+    "tree-sitter-typescript": "^0.23.2",
+    "tree-sitter-python": "^0.25.0",
+    "tree-sitter-rust": "^0.24.0",
+    "tree-sitter-go": "^0.25.0",
+    "tree-sitter-javascript": "^0.25.0",
+    "web-tree-sitter": "^0.24.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
