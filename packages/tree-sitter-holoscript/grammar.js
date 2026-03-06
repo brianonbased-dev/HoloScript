@@ -119,6 +119,8 @@ module.exports = grammar({
         $.trait_definition,
         $.timeline,
         $.state_declaration,
+        // Linear resource types (v4.4 — compile-time safety)
+        $.resource_definition,
         // Extensible: any unknown domain block
         $.custom_block
       ),
@@ -1377,6 +1379,19 @@ module.exports = grammar({
 
     budget_entry: ($) =>
       seq(field('resource', $.identifier), ':', field('limit', $.number)),
+
+    // Resource definition — linear resource type declaration
+    // resource InventoryItem has(drop) { ... }
+    // resource EntityAuthority { ... }  // no abilities = fully linear
+    resource_definition: ($) =>
+      seq('resource', field('name', $.identifier),
+        optional($.resource_abilities),
+        '{', repeat(choice($.property, $.function_declaration)), '}'),
+
+    // Resource abilities — which linear abilities the resource has
+    // has(copy, drop)  or  has(drop)
+    resource_abilities: ($) =>
+      seq('has', '(', sepBy($.identifier, ','), ')'),
 
     // =========================================================================
     // IDENTIFIERS & COMMENTS

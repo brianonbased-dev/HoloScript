@@ -3,9 +3,8 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * Mounts the 4 integration panels (Safety, Marketplace, Platform, Traits)
- * into a collapsible right drawer. Each tab shows its panel content.
- * Can be used on any page within the AppShell.
+ * Mounts 12 integration panels into a collapsible right drawer.
+ * Each tab shows its panel content. Can be used on any page within the AppShell.
  */
 
 import React, { useState } from 'react';
@@ -17,11 +16,15 @@ import { PhysicsPreviewPanel } from './PhysicsPreviewPanel';
 import { BehaviorTreePanel } from './BehaviorTreePanel';
 import { DialoguePanel } from './DialoguePanel';
 import { ECSInspectorPanel } from './ECSInspectorPanel';
+import { AnimationPanel } from './AnimationPanel';
+import { AudioPanel } from './AudioPanel';
+import { ProcGenPanel } from './ProcGenPanel';
+import { MultiplayerPanel } from './MultiplayerPanel';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs';
+export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer';
 
 interface RightPanelSidebarProps {
   /** AST nodes for safety analysis (pass from editor) */
@@ -43,6 +46,10 @@ const TABS: { id: PanelTab; icon: string; label: string; title: string; separato
   { id: 'ai', icon: '🧠', label: 'AI', title: 'Behavior tree editor & debugger' },
   { id: 'dialogue', icon: '💬', label: 'Dialogue', title: 'Dialogue graph editor' },
   { id: 'ecs', icon: '🔧', label: 'ECS', title: 'Entity-Component-System inspector' },
+  { id: 'animation', icon: '🎬', label: 'Anim', title: 'Animation timeline & easing', separator: true },
+  { id: 'audio', icon: '🔊', label: 'Audio', title: 'Spatial audio manager' },
+  { id: 'procgen', icon: '🌍', label: 'ProcGen', title: 'Procedural terrain generation' },
+  { id: 'multiplayer', icon: '🌐', label: 'Net', title: 'Multiplayer state simulation' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -98,27 +105,33 @@ export function RightPanelSidebar({
             {activeTab === 'ai' && <BehaviorTreePanel />}
             {activeTab === 'dialogue' && <DialoguePanel />}
             {activeTab === 'ecs' && <ECSInspectorPanel />}
+            {activeTab === 'animation' && <AnimationPanel />}
+            {activeTab === 'audio' && <AudioPanel />}
+            {activeTab === 'procgen' && <ProcGenPanel />}
+            {activeTab === 'multiplayer' && <MultiplayerPanel />}
           </div>
         </div>
       )}
 
       {/* Tab strip (always visible) */}
-      <div className="flex flex-col border-l border-studio-border bg-studio-bg w-10 flex-shrink-0">
+      <div className="flex flex-col border-l border-studio-border bg-studio-bg w-10 flex-shrink-0 overflow-y-auto">
         {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabClick(tab.id)}
-            title={tab.title}
-            className={`
-              flex items-center justify-center h-10 w-10 text-base transition
-              ${activeTab === tab.id && isOpen
-                ? 'bg-studio-accent/10 text-studio-accent'
-                : 'text-studio-muted hover:bg-studio-panel hover:text-studio-text'
-              }
-            `}
-          >
-            {tab.icon}
-          </button>
+          <React.Fragment key={tab.id}>
+            {tab.separator && <div className="border-t border-studio-border/40 mx-1.5 my-0.5" />}
+            <button
+              onClick={() => handleTabClick(tab.id)}
+              title={tab.title}
+              className={`
+                flex items-center justify-center h-9 w-10 text-sm transition flex-shrink-0
+                ${activeTab === tab.id && isOpen
+                  ? 'bg-studio-accent/10 text-studio-accent'
+                  : 'text-studio-muted hover:bg-studio-panel hover:text-studio-text'
+                }
+              `}
+            >
+              {tab.icon}
+            </button>
+          </React.Fragment>
         ))}
 
         {/* Spacer */}

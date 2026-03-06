@@ -19,6 +19,7 @@ import { EffectChecker, EffectCheckerConfig, EffectASTNode, createEffectChecker,
 import { ResourceBudgetAnalyzer, ResourceUsageNode } from './ResourceBudgetAnalyzer';
 import { deriveRequirements, checkCapabilities, CapabilityScope, TRUST_LEVEL_CAPABILITIES } from './CapabilityTypes';
 import { buildSafetyReport, formatReport, generateCertificate, SafetyReport } from './SafetyReport';
+import { LinearTypeChecker, LinearCheckerConfig } from './LinearTypeChecker';
 
 // =============================================================================
 // COMPILER SAFETY PASS
@@ -36,6 +37,8 @@ export interface SafetyPassConfig {
   effectCheckerConfig?: EffectCheckerConfig;
   /** Budget warning threshold (0-1, default 0.8) */
   budgetWarningThreshold?: number;
+  /** Linear type checker config overrides */
+  linearCheckerConfig?: LinearCheckerConfig;
   /** Whether to generate a certificate on success */
   generateCertificate?: boolean;
 }
@@ -104,9 +107,13 @@ export function runSafetyPass(
   const capResult = checkCapabilities(requirements, grantedCapabilities);
   capResult.name = moduleId;
 
+  // ── Layer 6: Linear type checking ──
+  const linearChecker = new LinearTypeChecker(config.linearCheckerConfig);
+  const linearResult = linearChecker.checkModule(nodes);
+
   // ── Layer 5: Safety report ──
   const danger = dangerLevel(effectResult.moduleEffects);
-  const report = buildSafetyReport(moduleId, effectResult, budgetResult, capResult, danger);
+  const report = buildSafetyReport(moduleId, effectResult, budgetResult, capResult, danger, linearResult);
 
   const cert = config.generateCertificate !== false ? generateCertificate(report) : null;
   const formatted = formatReport(report);
@@ -167,3 +174,6 @@ export { deriveRequirements, checkCapabilities, expandCapabilities, EFFECT_TO_CA
 export type { CapabilityScope, CapabilityRequirement, CapabilityCheckResult } from './CapabilityTypes';
 export { buildSafetyReport, generateCertificate, formatReport } from './SafetyReport';
 export type { SafetyReport, SafetyVerdict } from './SafetyReport';
+export { LinearTypeChecker, BUILTIN_RESOURCES, TRAIT_RESOURCE_MAP } from './LinearTypeChecker';
+export type { LinearCheckerConfig } from './LinearTypeChecker';
+export type { ResourceType, ResourceAbility, OwnershipState, LinearViolation, LinearCheckResult } from '../../types/linear';

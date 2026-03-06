@@ -9,6 +9,7 @@
  */
 
 import { EffectRow, VREffect, EffectViolation, EffectCertificate, EffectTrustLevel } from '../../types/effects';
+import type { LinearViolation, LinearCheckResult } from '../../types/linear';
 import type { ModuleEffectCheckResult } from './EffectChecker';
 import type { BudgetAnalysisResult, BudgetDiagnostic } from './ResourceBudgetAnalyzer';
 import type { CapabilityCheckResult, CapabilityRequirement } from './CapabilityTypes';
@@ -57,6 +58,13 @@ export interface SafetyReport {
     minimumTrustLevel: string;
   };
 
+  /** Layer 6: Linear type analysis */
+  linear: {
+    passed: boolean;
+    violations: LinearViolation[];
+    trackedResources: number;
+  };
+
   /** Summary statistics */
   summary: {
     totalViolations: number;
@@ -81,17 +89,21 @@ export function buildSafetyReport(
   budgetResult: BudgetAnalysisResult,
   capabilityResult: CapabilityCheckResult,
   dangerScore: number,
+  linearResult?: LinearCheckResult,
 ): SafetyReport {
   const effectViolations = effectResult.violations;
   const budgetDiagnostics = budgetResult.diagnostics;
   const capMissing = capabilityResult.missing;
+  const linearViolations = linearResult?.violations || [];
 
   const totalErrors = effectViolations.filter(v => v.severity === 'error').length
     + budgetDiagnostics.filter(d => d.severity === 'error').length
-    + capMissing.length;
+    + capMissing.length
+    + linearViolations.filter(v => v.severity === 'error').length;
 
   const totalWarnings = effectViolations.filter(v => v.severity === 'warning').length
-    + budgetDiagnostics.filter(d => d.severity === 'warning').length;
+    + budgetDiagnostics.filter(d => d.severity === 'warning').length
+    + linearViolations.filter(v => v.severity === 'warning').length;
 
   const totalInfos = effectViolations.filter(v => v.severity === 'info').length
     + budgetDiagnostics.filter(d => d.severity === 'info').length;
@@ -136,6 +148,11 @@ export function buildSafetyReport(
       required: capabilityResult.required,
       missing: capMissing,
       minimumTrustLevel,
+    },
+    linear: {
+      passed: linearResult ? linearResult.passed : true,
+      violations: linearViolations,
+      trackedResources: linearResult ? linearResult.trackedResources.size : 0,
     },
     summary: {
       totalViolations: totalErrors + totalWarnings + totalInfos,
@@ -194,6 +211,15 @@ export function formatReport(report: SafetyReport): string {
   lines.push(`Capabilities: ${report.capabilities.passed ? '✓' : '✗'} (min trust: ${report.capabilities.minimumTrustLevel})`);
   for (const m of report.capabilities.missing) {
     lines.push(`  ✗ Missing '${m.scope}': ${m.reason}`);
+  }
+
+  // Linear types
+  lines.push(`Linear Types: ${report.linear.passed ? '✓' : '✗'} (${report.linear.trackedResources} resources tracked)`);
+  for (const v of report.linear.violations.filter(v => v.severity === 'error')) {
+    lines.push(`  ✗ ${v.message}`);
+  }
+  for (const v of report.linear.violations.filter(v => v.severity === 'warning')) {
+    lines.push(`  ⚠ ${v.message}`);
   }
 
   lines.push('');

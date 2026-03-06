@@ -2569,3 +2569,15 @@ export type {
   RenderableComponent, AgentComponent, SystemStats,
 } from './traits/ECSWorldTrait';
 export { ComponentType } from './traits/ECSWorldTrait';
+
+// ── Animation Engine ───────────────────────────────────────────────
+export { AnimationEngine, Easing } from './animation/AnimationEngine';
+export type { Keyframe, AnimationClip, ActiveAnimation, EasingFn } from './animation/AnimationEngine';
+
+// ── Audio Engine ───────────────────────────────────────────────────
+export { AudioEngine } from './audio/AudioEngine';
+export type { AudioSourceConfig, AudioSource, ListenerState, DistanceModel } from './audio/AudioEngine';
+
+// ── TileMap / Procedural ───────────────────────────────────────────
+export { TileMap, TileFlags } from './tilemap/TileMap';
+export type { TileData, TileLayer, AutoTileRule } from './tilemap/TileMap';
