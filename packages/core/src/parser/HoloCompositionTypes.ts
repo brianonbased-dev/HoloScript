@@ -23,6 +23,27 @@ export interface SourceRange {
 }
 
 // =============================================================================
+// PLATFORM CONSTRAINT (conditional compilation decorator)
+// =============================================================================
+
+/**
+ * Platform constraint parsed from `@platform(...)` decorators.
+ *
+ * Syntax forms:
+ * ```holoscript
+ * @platform(quest3)                 → include: ['quest3'], exclude: []
+ * @platform(phone, desktop)         → include: ['phone', 'desktop'], exclude: []
+ * @platform(not: car, wearable)     → include: [], exclude: ['car', 'wearable']
+ * ```
+ */
+export interface PlatformConstraint {
+  /** Target platforms this block applies to (empty = all) */
+  include: string[];
+  /** Platforms to exclude */
+  exclude: string[];
+}
+
+// =============================================================================
 // BASE NODE
 // =============================================================================
 
@@ -135,6 +156,8 @@ export interface HoloLight extends HoloNode {
   name: string;
   lightType: 'directional' | 'point' | 'spot' | 'hemisphere' | 'ambient' | 'area';
   properties: HoloLightProperty[];
+  /** @platform() conditional compilation constraint */
+  platformConstraint?: PlatformConstraint;
 }
 
 export interface HoloLightProperty extends HoloNode {
@@ -322,6 +345,8 @@ export interface HoloTemplate extends HoloNode {
   actions: HoloAction[];
   traits: HoloObjectTrait[];
   directives?: any[]; // For lifecycle hooks, etc.
+  /** @platform() conditional compilation constraint */
+  platformConstraint?: PlatformConstraint;
 }
 
 export interface HoloMigration extends HoloNode {
@@ -351,6 +376,8 @@ export interface HoloObjectDecl extends HoloNode {
   directives?: any[]; // for compatibility with newer runtime
   children?: HoloObjectDecl[];
   subOrbs?: HoloSubOrb[];
+  /** @platform() conditional compilation constraint */
+  platformConstraint?: PlatformConstraint;
 }
 
 export interface HoloSubOrb extends HoloNode {
@@ -439,6 +466,8 @@ export interface HoloSpatialGroup extends HoloNode {
   objects: HoloObjectDecl[];
   groups?: HoloSpatialGroup[]; // nested groups
   body?: HoloStatement[]; // logic statements inside the group
+  /** @platform() conditional compilation constraint */
+  platformConstraint?: PlatformConstraint;
 }
 
 export interface HoloGroupProperty extends HoloNode {
@@ -1375,6 +1404,8 @@ export interface HoloNormBlock extends HoloNode {
   compliance?: HoloNormCompliance;
   /** Event handlers for norm lifecycle events */
   eventHandlers?: HoloEventHandler[];
+  /** @platform() conditional compilation constraint */
+  platformConstraint?: PlatformConstraint;
 }
 
 /**

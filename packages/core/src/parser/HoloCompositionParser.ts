@@ -98,6 +98,7 @@ import type {
   HoloMetanorm,
   HoloMetanormRules,
   HoloMetanormEscalation,
+  PlatformConstraint,
 } from './HoloCompositionTypes';
 import { TypoDetector } from './TypoDetector';
 
@@ -1078,29 +1079,63 @@ export class HoloCompositionParser {
         this.skipNewlines();
         if (this.isAtEnd()) break;
 
-        // Handle @world, @environment, etc. (root-level decorators)
+        // Handle @world, @environment, @platform, etc. (root-level decorators)
         // But NOT if followed by a domain block (e.g. contract "X" @erc721 { } — the
         // domain block's parseDomainBlock() handles inline traits itself)
         if (this.check('AT')) {
-          // Peek ahead: if the token after the decorator name is a domain block,
-          // this @ is an inline trait on the previous domain block — skip it so
-          // parseDomainBlock handles traits. But at ROOT level, there is no
-          // "previous domain block", so we handle @world/@environment decorators.
-          this.advance(); // consume @
-          const decoratorName = this.current().value.toLowerCase();
-          this.advance(); // consume decorator name
-
-          if (decoratorName === 'world' || decoratorName === 'environment') {
-            composition.environment = this.parseEnvironmentBody();
-          } else if (decoratorName === 'state') {
-            composition.state = this.parseStateBody();
-          } else {
-            // Skip unknown root-level decorators and optional config
-            if (this.check('LPAREN')) {
-              this.skipParens();
+          // Peek ahead to check if this is @platform(...)
+          if (this.peek(1).type === 'IDENTIFIER' && this.peek(1).value.toLowerCase() === 'platform') {
+            this.advance(); // consume @
+            this.advance(); // consume 'platform'
+            const constraint = this.parsePlatformConstraint();
+            this.skipNewlines();
+            // Attach the constraint to the next block
+            if (this.check('TEMPLATE')) {
+              const tmpl = this.parseTemplate();
+              tmpl.platformConstraint = constraint;
+              composition.templates.push(tmpl);
+            } else if (this.check('OBJECT')) {
+              const obj = this.parseObject();
+              obj.platformConstraint = constraint;
+              composition.objects.push(obj);
+            } else if (this.check('NORM')) {
+              const norm = this.parseNormBlock();
+              norm.platformConstraint = constraint;
+              composition.norms!.push(norm);
+            } else if (this.check('SPATIAL_GROUP')) {
+              const grp = this.parseSpatialGroup();
+              grp.platformConstraint = constraint;
+              composition.spatialGroups.push(grp);
+            } else if (this.check('LIGHT')) {
+              const light = this.parseLight();
+              light.platformConstraint = constraint;
+              composition.lights.push(light);
+            } else {
+              // Unknown block after @platform — parse whatever follows
+              // and discard the constraint (best-effort)
+              if (this.check('LBRACE')) this.skipBlock();
             }
-            if (this.check('LBRACE')) {
-              this.skipBlock();
+          } else {
+            // Peek ahead: if the token after the decorator name is a domain block,
+            // this @ is an inline trait on the previous domain block — skip it so
+            // parseDomainBlock handles traits. But at ROOT level, there is no
+            // "previous domain block", so we handle @world/@environment decorators.
+            this.advance(); // consume @
+            const decoratorName = this.current().value.toLowerCase();
+            this.advance(); // consume decorator name
+
+            if (decoratorName === 'world' || decoratorName === 'environment') {
+              composition.environment = this.parseEnvironmentBody();
+            } else if (decoratorName === 'state') {
+              composition.state = this.parseStateBody();
+            } else {
+              // Skip unknown root-level decorators and optional config
+              if (this.check('LPAREN')) {
+                this.skipParens();
+              }
+              if (this.check('LBRACE')) {
+                this.skipBlock();
+              }
             }
           }
         } else if (this.check('TEMPLATE')) {
@@ -3859,6 +3894,75 @@ export class HoloCompositionParser {
 
     this.expect('RPAREN');
     return config;
+  }
+
+  // ===========================================================================
+  // PLATFORM CONSTRAINT PARSING
+  // ===========================================================================
+
+  /**
+   * Parse @platform(...) decorator arguments into a PlatformConstraint.
+   *
+   * Supports three forms:
+   *   @platform(quest3)                 → include: ['quest3'], exclude: []
+   *   @platform(phone, desktop)         → include: ['phone', 'desktop'], exclude: []
+   *   @platform(not: car, wearable)     → include: [], exclude: ['car', 'wearable']
+   *
+   * Assumes the `@` and `platform` tokens have already been consumed.
+   * Expects the opening `(` to be the current token.
+   */
+  private parsePlatformConstraint(): PlatformConstraint {
+    this.expect('LPAREN');
+
+    const include: string[] = [];
+    const exclude: string[] = [];
+    let isExclude = false;
+
+    while (!this.check('RPAREN') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RPAREN')) break;
+
+      // Check for "not:" prefix
+      if (
+        this.check('IDENTIFIER') &&
+        this.current().value === 'not' &&
+        this.peek(1).type === 'COLON'
+      ) {
+        this.advance(); // consume 'not'
+        this.advance(); // consume ':'
+        isExclude = true;
+        continue;
+      }
+
+      // Read platform name (may be hyphenated like "android-xr")
+      let platformName = '';
+      if (this.check('IDENTIFIER') || this.check('STRING')) {
+        platformName = this.check('STRING') ? this.expectString() : this.advance().value;
+      } else {
+        this.advance(); // skip unexpected token
+        continue;
+      }
+
+      // Handle hyphenated names: phone-ios, android-xr, etc.
+      while (this.check('MINUS') && this.peek(1).type === 'IDENTIFIER') {
+        this.advance(); // consume '-'
+        platformName += '-' + this.advance().value;
+      }
+
+      if (isExclude) {
+        exclude.push(platformName);
+      } else {
+        include.push(platformName);
+      }
+
+      if (this.check('COMMA')) {
+        this.advance(); // consume ','
+      }
+      this.skipNewlines();
+    }
+
+    this.expect('RPAREN');
+    return { include, exclude };
   }
 
   // ===========================================================================

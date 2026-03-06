@@ -290,6 +290,14 @@ export {
   type OptimizationOptions,
 } from './compiler/OptimizationPass';
 
+// Cross-Reality Composition Validator (Static analysis for cross-reality correctness)
+export {
+  CrossRealityValidator,
+  type CrossRealityValidationIssue,
+  type CrossRealityValidationResult,
+  type HandoffPathAnalysis,
+} from './compiler/CrossRealityValidator';
+
 // HoloScript Multi-Target Compilers (NEW - Cross-platform)
 export { UnityCompiler, type UnityCompilerOptions } from './compiler/UnityCompiler';
 export { GodotCompiler, type GodotCompilerOptions } from './compiler/GodotCompiler';
