@@ -58,6 +58,7 @@ import { StateCompiler } from './StateCompiler';
 import { TraitCompositionCompiler } from './TraitCompositionCompiler';
 import { TSLCompiler } from './TSLCompiler';
 import { A2AAgentCardCompiler } from './A2AAgentCardCompiler';
+import { NIRCompiler } from './NIRCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -211,6 +212,8 @@ class CompilerFactory {
         return new TSLCompiler(options);
       case 'a2a-agent-card':
         return new A2AAgentCardCompiler(options);
+      case 'nir':
+        return new NIRCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
@@ -506,6 +509,7 @@ export class ExportManager {
       'trait-composition',
       'tsl',
       'a2a-agent-card',
+      'nir',
     ];
   }
 

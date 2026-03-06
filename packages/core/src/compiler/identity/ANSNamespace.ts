@@ -41,6 +41,7 @@ export const ANSDomain = {
   IOT: 'iot',
   WEB3: 'web3',
   AI: 'ai',
+  NEUROMORPHIC: 'neuromorphic',
   META: 'meta',
   MIXIN: 'mixin',
 } as const;
@@ -82,6 +83,7 @@ export type RiskTierValue = (typeof RiskTier)[keyof typeof RiskTier];
  * - iot: HIGH — interfaces with physical devices and digital twins
  * - web3: CRITICAL — handles financial transactions, NFT minting, smart contracts
  * - ai: HIGH — generates AI agent cards and cognitive models
+ * - neuromorphic: HIGH — compiles to neuromorphic hardware (Loihi 2, SpiNNaker 2, SynSense)
  * - meta: STANDARD — meta-compilation (incremental, multi-layer, state, traits)
  * - mixin: STANDARD — shared compilation utilities
  */
@@ -98,6 +100,7 @@ export const DOMAIN_RISK_TIERS: Readonly<Record<ANSDomainValue, RiskTierValue>> 
   [ANSDomain.IOT]: RiskTier.HIGH,
   [ANSDomain.WEB3]: RiskTier.CRITICAL,
   [ANSDomain.AI]: RiskTier.HIGH,
+  [ANSDomain.NEUROMORPHIC]: RiskTier.HIGH,
   [ANSDomain.META]: RiskTier.STANDARD,
   [ANSDomain.MIXIN]: RiskTier.STANDARD,
 } as const;
@@ -123,6 +126,7 @@ export const DOMAIN_RISK_TIERS: Readonly<Record<ANSDomainValue, RiskTierValue>> 
  * iot: DTDLCompiler
  * web3: NFTMarketplaceCompiler
  * ai: SCMCompiler, VRRCompiler, A2AAgentCardCompiler
+ * neuromorphic: NIRCompiler
  * meta: MultiLayerCompiler, IncrementalCompiler, StateCompiler, TraitCompositionCompiler
  * mixin: DomainBlockCompilerMixin
  */
@@ -164,6 +168,8 @@ export type CompilerName =
   | 'scm'
   | 'vrr'
   | 'a2a-agent-card'
+  // neuromorphic
+  | 'nir'
   // meta
   | 'multi-layer'
   | 'incremental'
@@ -239,6 +245,9 @@ export const ANSCapabilityPath = {
   VRR: '/compile/ai/vrr',
   A2A_AGENT_CARD: '/compile/ai/a2a-agent-card',
 
+  // ── neuromorphic ─────────────────────────────────────────────────────
+  NIR: '/compile/neuromorphic/nir',
+
   // ── meta ─────────────────────────────────────────────────────────────
   MULTI_LAYER: '/compile/meta/multi-layer',
   INCREMENTAL: '/compile/meta/incremental',
@@ -296,6 +305,8 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   'scm': ANSDomain.AI,
   'vrr': ANSDomain.AI,
   'a2a-agent-card': ANSDomain.AI,
+  // neuromorphic
+  'nir': ANSDomain.NEUROMORPHIC,
   // meta
   'multi-layer': ANSDomain.META,
   'incremental': ANSDomain.META,
@@ -338,6 +349,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   'scm': ANSCapabilityPath.SCM,
   'vrr': ANSCapabilityPath.VRR,
   'a2a-agent-card': ANSCapabilityPath.A2A_AGENT_CARD,
+  'nir': ANSCapabilityPath.NIR,
   'multi-layer': ANSCapabilityPath.MULTI_LAYER,
   'incremental': ANSCapabilityPath.INCREMENTAL,
   'state': ANSCapabilityPath.STATE,

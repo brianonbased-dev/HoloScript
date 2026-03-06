@@ -67,7 +67,8 @@ export type ExportTarget =
   | 'state'       // State machine compilation
   | 'trait-composition' // Trait composition
   | 'tsl'             // Trait Shader Language (trait-to-shader)
-  | 'a2a-agent-card'; // A2A Protocol Agent Card manifests
+  | 'a2a-agent-card'  // A2A Protocol Agent Card manifests
+  | 'nir';            // Neuromorphic Intermediate Representation (Intel Loihi 2, SpiNNaker 2, SynSense)
 
 /**
  * Circuit configuration per target

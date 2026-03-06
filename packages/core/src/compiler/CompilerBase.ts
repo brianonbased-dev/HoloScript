@@ -114,6 +114,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   'StateCompiler': 'state',
   'TraitCompositionCompiler': 'trait-composition',
   'DomainBlockCompilerMixin': 'domain-block',
+  'NIRCompiler': 'nir',
 };
 
 /**
