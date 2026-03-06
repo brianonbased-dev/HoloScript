@@ -1,28 +1,25 @@
 /**
  * ARCompiler — Production structural tests
  *
- * ARCompiler is currently a documented stub (see ARCompiler.ts).
+ * ARCompiler is a class extending CompilerBase.
  * These tests verify:
- *  a) The module exports a valid default object (placeholder check)
+ *  a) The module exports a valid class
  *  b) The file can be imported without throwing
- *  c) When implemented, the compiler will conform to expected interface shape
- *
- * NOTE: Implementation tests should be expanded once ARCompiler class is built.
+ *  c) Design contracts are documented via specification tests
  */
 import { describe, it, expect } from 'vitest';
 import ARCompiler from '../ARCompiler';
 
-describe('ARCompiler — module shape (stub)', () => {
+describe('ARCompiler — module shape', () => {
   it('imports without throwing', () => {
     expect(ARCompiler).toBeDefined();
   });
-  it('exports an object', () => {
-    expect(typeof ARCompiler).toBe('object');
+  it('exports a class (function)', () => {
+    expect(typeof ARCompiler).toBe('function');
   });
-  it('placeholder is an empty object (documented TODO)', () => {
-    // This verifies the stub is in the expected placeholder state.
-    // Once built, ARCompiler will be a class — update tests accordingly.
-    expect(ARCompiler).toEqual({});
+  it('is a constructor (class)', () => {
+    expect(ARCompiler.prototype).toBeDefined();
+    expect(ARCompiler.prototype.constructor).toBe(ARCompiler);
   });
 });
 

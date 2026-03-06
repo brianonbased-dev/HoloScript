@@ -32,7 +32,31 @@
  * @module self-improvement
  */
 
-import { computeRougeL } from './SelfImproveHarvester';
+/**
+ * Compute ROUGE-L similarity between two strings using Longest Common Subsequence.
+ * Returns F1-score in [0, 1].
+ */
+export function computeRougeL(a: string, b: string): number {
+  const tokA = a.toLowerCase().split(/\s+/).filter(Boolean);
+  const tokB = b.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokA.length === 0 || tokB.length === 0) return 0;
+
+  // LCS via dynamic programming
+  const m = tokA.length;
+  const n = tokB.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = tokA[i - 1] === tokB[j - 1]
+        ? dp[i - 1][j - 1] + 1
+        : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  const lcs = dp[m][n];
+  const precision = lcs / m;
+  const recall = lcs / n;
+  return precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
+}
 
 // =============================================================================
 // TYPES

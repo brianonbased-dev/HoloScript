@@ -1,24 +1,25 @@
 /**
  * VRRCompiler — Production structural tests
  *
- * VRRCompiler is currently a documented stub (see VRRCompiler.ts).
+ * VRRCompiler is a class extending CompilerBase.
  * These tests verify:
- *  a) The module exports a valid default object (placeholder check)
+ *  a) The module exports a valid class
  *  b) The file can be imported without throwing
  *  c) Design contracts are documented via specification tests
  */
 import { describe, it, expect } from 'vitest';
 import VRRCompiler from '../VRRCompiler';
 
-describe('VRRCompiler — module shape (stub)', () => {
+describe('VRRCompiler — module shape', () => {
   it('imports without throwing', () => {
     expect(VRRCompiler).toBeDefined();
   });
-  it('exports an object', () => {
-    expect(typeof VRRCompiler).toBe('object');
+  it('exports a class (function)', () => {
+    expect(typeof VRRCompiler).toBe('function');
   });
-  it('placeholder is an empty object (documented TODO)', () => {
-    expect(VRRCompiler).toEqual({});
+  it('is a constructor (class)', () => {
+    expect(VRRCompiler.prototype).toBeDefined();
+    expect(VRRCompiler.prototype.constructor).toBe(VRRCompiler);
   });
 });
 

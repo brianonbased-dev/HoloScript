@@ -47,27 +47,22 @@ describe('buildRegistrationPayload', () => {
 
     const payload = buildRegistrationPayload(config, HOLOSCRIPT_MCP_TOOLS);
 
-    expect(payload.name).toBe('holoscript-tools');
+    expect(payload.id).toBe('holoscript-tools');
+    expect(payload.name).toBe('Test description');
     expect(payload.description).toBe('Test description');
-    expect(payload.version).toBe('1.0.0');
-    expect(payload.transport).toBe('http');
+    expect(payload.workspace).toBe('HoloScript');
+    expect(payload.visibility).toBe('public');
     expect(Array.isArray(payload.tools)).toBe(true);
 
-    const tools = payload.tools as Array<{ name: string; description: string; inputSchema: object }>;
+    // Tools are serialized as string names
+    const tools = payload.tools as string[];
     expect(tools).toHaveLength(5);
 
-    const toolNames = tools.map((t) => t.name);
-    expect(toolNames).toContain('holo_compile_nir');
-    expect(toolNames).toContain('holo_compile_wgsl');
-    expect(toolNames).toContain('holo_generate_spatial_training');
-    expect(toolNames).toContain('holo_sparsity_check');
-    expect(toolNames).toContain('holo_agent_create');
-
-    // Each tool should have inputSchema
-    for (const tool of tools) {
-      expect(typeof tool.description).toBe('string');
-      expect(typeof tool.inputSchema).toBe('object');
-    }
+    expect(tools).toContain('holo_compile_nir');
+    expect(tools).toContain('holo_compile_wgsl');
+    expect(tools).toContain('holo_generate_spatial_training');
+    expect(tools).toContain('holo_sparsity_check');
+    expect(tools).toContain('holo_agent_create');
   });
 });
 
@@ -118,7 +113,7 @@ describe('registerWithOrchestrator', () => {
     // Verify fetch was called with correct URLs
     expect(mockFetch).toHaveBeenCalledTimes(3);
     expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:5567/health');
-    expect(mockFetch.mock.calls[1][0]).toBe('http://localhost:5567/servers');
+    expect(mockFetch.mock.calls[1][0]).toBe('http://localhost:5567/servers/register');
   });
 
   it('should fail when health check fails', async () => {
@@ -162,6 +157,17 @@ describe('registerWithOrchestrator', () => {
 
     expect(result.success).toBe(false);
     expect(result.errors[0]).toContain('registration failed');
+  });
+
+  it('should fail when registration request throws', async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, status: 200 })
+      .mockRejectedValueOnce(new Error('Network error'));
+
+    const result = await registerWithOrchestrator();
+
+    expect(result.success).toBe(false);
+    expect(result.errors[0]).toContain('registration request failed');
   });
 
   it('should succeed even if verification request fails', async () => {
@@ -208,10 +214,10 @@ describe('registerWithOrchestrator', () => {
 
     expect(result.serverName).toBe('custom-holo');
 
-    // Verify the registration body includes the custom name
+    // Verify the registration body includes the custom id
     const registerCall = mockFetch.mock.calls[1];
     const body = JSON.parse(registerCall[1].body);
-    expect(body.name).toBe('custom-holo');
+    expect(body.id).toBe('custom-holo');
   });
 
   it('should include all 5 tools in registration body', async () => {
@@ -229,8 +235,8 @@ describe('registerWithOrchestrator', () => {
     const body = JSON.parse(registerCall[1].body);
     expect(body.tools).toHaveLength(5);
 
-    const names = body.tools.map((t: { name: string }) => t.name);
-    expect(names).toEqual([
+    // Tools are serialized as string names
+    expect(body.tools).toEqual([
       'holo_compile_nir',
       'holo_compile_wgsl',
       'holo_generate_spatial_training',

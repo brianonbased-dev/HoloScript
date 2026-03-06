@@ -3,7 +3,7 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * Mounts 24 integration panels into a collapsible right drawer.
+ * Mounts 28 integration panels into a collapsible right drawer.
  * Each tab shows its panel content. Can be used on any page within the AppShell.
  */
 
@@ -32,11 +32,15 @@ import { CinematicPanel } from './CinematicPanel';
 import { CollaborationPanel } from './CollaborationPanel';
 import { SecurityPanel } from './SecurityPanel';
 import { ScriptingPanel } from './ScriptingPanel';
+import { SaveLoadPanel } from './SaveLoadPanel';
+import { ProfilerPanel } from './ProfilerPanel';
+import { CompilerPanel } from './CompilerPanel';
+import { LODPanel } from './LODPanel';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting';
+export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod';
 
 interface RightPanelSidebarProps {
   /** AST nodes for safety analysis (pass from editor) */
@@ -74,6 +78,10 @@ const TABS: { id: PanelTab; icon: string; label: string; title: string; separato
   { id: 'collaboration', icon: '👥', label: 'Collab', title: 'Collaboration session' },
   { id: 'security', icon: '🔒', label: 'Sandbox', title: 'Security sandbox' },
   { id: 'scripting', icon: '📝', label: 'REPL', title: 'HoloScript REPL' },
+  { id: 'saveload', icon: '💾', label: 'Save', title: 'Save/load manager', separator: true },
+  { id: 'profiler', icon: '📊', label: 'Perf', title: 'Performance profiler' },
+  { id: 'compiler', icon: '🔨', label: 'Build', title: 'Multi-target compiler' },
+  { id: 'lod', icon: '🔍', label: 'LOD', title: 'Level of Detail' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -145,6 +153,10 @@ export function RightPanelSidebar({
             {activeTab === 'collaboration' && <CollaborationPanel />}
             {activeTab === 'security' && <SecurityPanel />}
             {activeTab === 'scripting' && <ScriptingPanel />}
+            {activeTab === 'saveload' && <SaveLoadPanel />}
+            {activeTab === 'profiler' && <ProfilerPanel />}
+            {activeTab === 'compiler' && <CompilerPanel />}
+            {activeTab === 'lod' && <LODPanel />}
           </div>
         </div>
       )}

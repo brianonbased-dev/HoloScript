@@ -2635,3 +2635,16 @@ export type { SessionPeer, SessionConfig, SessionStats, SessionState } from './c
 export { createSandbox, execute as executeSandbox, destroy as destroySandbox } from './security/SandboxExecutor';
 export type { Sandbox, SandboxState, SandboxExecutionResult } from './security/SandboxExecutor';
 export type { SecurityPolicy } from './security/SecurityPolicy';
+export { createDefaultPolicy, createStrictPolicy } from './security/SecurityPolicy';
+
+// ── Persistence / Save ─────────────────────────────────────────────
+export { SaveManager } from './persistence/SaveManager';
+export type { SaveSlot, SaveConfig } from './persistence/SaveManager';
+
+// ── Debug / Profiler ───────────────────────────────────────────────
+export { Profiler } from './debug/Profiler';
+export type { ProfileScope, FrameProfile, MemorySnapshot, ProfileSummary } from './debug/Profiler';
+
+// ── LOD ────────────────────────────────────────────────────────────
+export { LODManager } from './lod/LODManager';
+export type { LODManagerOptions } from './lod/LODManager';
