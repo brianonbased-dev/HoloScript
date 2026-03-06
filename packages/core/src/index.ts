@@ -300,6 +300,25 @@ export { WebGPUCompiler, type WebGPUCompilerOptions } from './compiler/WebGPUCom
 export { BabylonCompiler, type BabylonCompilerOptions } from './compiler/BabylonCompiler';
 export { AndroidXRCompiler, type AndroidXRCompilerOptions, type AndroidXRCompileResult, compileToAndroidXR } from './compiler/AndroidXRCompiler';
 export { OpenXRCompiler, type OpenXRCompilerOptions } from './compiler/OpenXRCompiler';
+export {
+  OpenXRSpatialEntitiesCompiler,
+  type OpenXRSpatialEntitiesCompilerOptions,
+  type SpatialEntitiesDocument,
+  type SpatialEntity,
+  type SpatialEntityComponent,
+  type XrPosef,
+  type XrVector3f,
+  type XrQuaternionf,
+  type XrExtent3Df,
+  type XrExtent2Df,
+  type SpatialBoundsComponent,
+  type SemanticLabelComponent,
+  type Bounds2DComponent,
+  type MeshComponent,
+  type PersistenceComponent,
+  type AnchorComponent,
+  type GeospatialExtension,
+} from './compiler/OpenXRSpatialEntitiesCompiler';
 export { VRRCompiler, type VRRCompilerOptions, type VRRCompilationResult } from './compiler/VRRCompiler';
 export { ARCompiler, type ARCompilerOptions, type ARCompilationResult } from './compiler/ARCompiler';
 export { MultiLayerCompiler, type MultiLayerCompilerOptions, type MultiLayerCompilationResult } from './compiler/MultiLayerCompiler';

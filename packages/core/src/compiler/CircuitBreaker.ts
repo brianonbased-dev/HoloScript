@@ -68,7 +68,8 @@ export type ExportTarget =
   | 'trait-composition' // Trait composition
   | 'tsl'             // Trait Shader Language (trait-to-shader)
   | 'a2a-agent-card'  // A2A Protocol Agent Card manifests
-  | 'nir';            // Neuromorphic Intermediate Representation (Intel Loihi 2, SpiNNaker 2, SynSense)
+  | 'nir'             // Neuromorphic Intermediate Representation (Intel Loihi 2, SpiNNaker 2, SynSense)
+  | 'openxr-spatial-entities';  // OpenXR Spatial Entity persistence (XR_FB_spatial_entity_storage)
 
 /**
  * Circuit configuration per target

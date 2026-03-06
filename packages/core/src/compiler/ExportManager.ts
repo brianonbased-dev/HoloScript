@@ -59,6 +59,7 @@ import { TraitCompositionCompiler } from './TraitCompositionCompiler';
 import { TSLCompiler } from './TSLCompiler';
 import { A2AAgentCardCompiler } from './A2AAgentCardCompiler';
 import { NIRCompiler } from './NIRCompiler';
+import { OpenXRSpatialEntitiesCompiler } from './OpenXRSpatialEntitiesCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -214,6 +215,8 @@ class CompilerFactory {
         return new A2AAgentCardCompiler(options);
       case 'nir':
         return new NIRCompiler(options);
+      case 'openxr-spatial-entities':
+        return new OpenXRSpatialEntitiesCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
@@ -238,6 +241,7 @@ const EXPORT_TARGET_TO_GAUSSIAN_PLATFORMS: Partial<Record<ExportTarget, Gaussian
   // VR targets
   vrchat: ['quest3', 'desktop_vr'],
   openxr: ['quest3', 'desktop_vr'],
+  'openxr-spatial-entities': ['quest3', 'desktop_vr'],
   vrr: ['quest3', 'desktop_vr'],
 
   // Mobile VR

@@ -95,6 +95,9 @@ export interface HoloComposition extends HoloNode {
   terrains?: HoloTerrainBlock[];
   // Domain-specific blocks (v4.1 — March 2026)
   domainBlocks?: HoloDomainBlock[];
+  // Norm lifecycle blocks (v4.5 — March 2026, CRSEC model)
+  norms?: HoloNormBlock[];
+  metanorms?: HoloMetanorm[];
 }
 
 // =============================================================================
@@ -1192,6 +1195,8 @@ export type HoloDomainType =
   | 'navigation'  // navmesh, nav_agent, behavior_tree
   | 'input'       // input, interaction, gesture_profile
   | 'codebase'  // codebase absorption: codebase, module_map, dependency_graph, call_graph
+  // Norm lifecycle / cultural engineering (v4.5)
+  | 'norms'     // norm, metanorm, norm_proposal, norm_voting, norm_adoption, norm_violation, norm_sanction
   | 'custom';  // any user-defined block keyword
 
 export interface HoloDomainBlock extends HoloNode {
@@ -1210,4 +1215,269 @@ export interface HoloDomainBlock extends HoloNode {
   children?: HoloObjectDecl[];
   /** Event handlers inside the block */
   eventHandlers?: HoloEventHandler[];
+}
+
+// =============================================================================
+// NORM LIFECYCLE BLOCKS (v4.5 — March 2026)
+// CRSEC Model: Creation, Representation, Spreading, Evaluation, Compliance
+//
+// Declarative cultural engineering primitives for multi-agent norm governance.
+// Supports the full norm lifecycle including proposals, voting rules, adoption
+// thresholds, violation consequences, sanction enforcement, and metanorm
+// governance (norms about norms).
+// =============================================================================
+
+/**
+ * Norm lifecycle phase identifiers (CRSEC model).
+ *
+ * - creation:   How the norm is proposed and authored
+ * - representation: Formal encoding of the norm's rules and constraints
+ * - spreading:  How the norm propagates through agent communication/observation
+ * - evaluation: Sanity checks and acceptance criteria for norm adoption
+ * - compliance: Enforcement, violation detection, and sanction application
+ */
+export type NormLifecyclePhase =
+  | 'creation'
+  | 'representation'
+  | 'spreading'
+  | 'evaluation'
+  | 'compliance';
+
+/**
+ * Status of a norm within its lifecycle
+ */
+export type NormStatus =
+  | 'draft'         // Proposed but not yet active
+  | 'proposed'      // Formally proposed, awaiting votes
+  | 'voting'        // Under active voting
+  | 'adopted'       // Accepted and enforceable
+  | 'suspended'     // Temporarily not enforced
+  | 'deprecated'    // Being phased out
+  | 'revoked'       // Permanently removed
+  | 'contested';    // Under challenge / re-evaluation
+
+/**
+ * Voting mechanism for norm proposals
+ */
+export type NormVotingMechanism =
+  | 'majority'        // Simple majority (>50%)
+  | 'supermajority'   // 2/3 majority required
+  | 'consensus'       // Unanimous agreement
+  | 'weighted'        // Weight by trust/reputation
+  | 'liquid_democracy' // Delegated voting
+  | 'quadratic'       // Quadratic voting (cost increases with conviction)
+  | 'ranked_choice'   // Instant-runoff ranked voting
+  | 'lazy_consensus'; // Accepted unless objected within deadline
+
+/**
+ * Norm violation severity level
+ */
+export type NormViolationSeverity =
+  | 'info'       // Informational, no action
+  | 'warning'    // Warning issued
+  | 'minor'      // Minor infraction
+  | 'moderate'   // Moderate infraction
+  | 'major'      // Major violation
+  | 'critical';  // Critical violation, immediate action
+
+/**
+ * Sanction type applied for norm violations
+ */
+export type NormSanctionType =
+  | 'warn'          // Issue warning
+  | 'restrict'      // Restrict capabilities
+  | 'penalize'      // Apply penalty (reputation, resources)
+  | 'suspend'       // Temporary suspension
+  | 'ban'           // Permanent ban
+  | 'quarantine'    // Isolate from community
+  | 'escalate'      // Escalate to metanorm authority
+  | 'custom';       // User-defined sanction
+
+/**
+ * How a norm spreads through the agent population
+ */
+export type NormSpreadingMechanism =
+  | 'broadcast'     // Announced to all agents
+  | 'observation'   // Learned through observing behavior
+  | 'communication' // Shared through direct communication
+  | 'imitation'     // Adopted by imitating successful agents
+  | 'enforcement'   // Learned via sanction application
+  | 'passive';      // Available but not actively promoted
+
+// ---------------------------------------------------------------------------
+// NORM BLOCK — First-class norm declaration
+// ---------------------------------------------------------------------------
+
+/**
+ * A first-class norm declaration in a HoloScript composition.
+ *
+ * Grammar:
+ * ```holoscript
+ * norm "NoSpamming" {
+ *   description: "Agents must not send unsolicited messages"
+ *   category: "communication"
+ *   priority: 8
+ *
+ *   creation {
+ *     author: "system"
+ *     rationale: "Prevent message flooding in shared spaces"
+ *     initial_status: "proposed"
+ *   }
+ *
+ *   representation {
+ *     condition: "message_count_per_minute < 10"
+ *     scope: "all_agents"
+ *     exceptions: ["system_announcements", "emergency_alerts"]
+ *   }
+ *
+ *   spreading {
+ *     mechanism: "broadcast"
+ *     visibility: "public"
+ *     adoption_incentive: 5
+ *   }
+ *
+ *   evaluation {
+ *     voting: "majority"
+ *     quorum: 0.6
+ *     approval_threshold: 0.5
+ *     review_period: 86400
+ *     auto_adopt: false
+ *   }
+ *
+ *   compliance {
+ *     monitoring: "continuous"
+ *     violation_threshold: 3
+ *     severity: "moderate"
+ *     sanctions: ["warn", "restrict", "suspend"]
+ *     appeal_allowed: true
+ *     grace_period: 3600
+ *   }
+ * }
+ * ```
+ */
+export interface HoloNormBlock extends HoloNode {
+  type: 'NormBlock';
+  /** Name of the norm */
+  name: string;
+  /** Trait decorators on the norm (e.g. @enforceable @community_driven) */
+  traits: string[];
+  /** Top-level norm properties (description, category, priority, etc.) */
+  properties: Record<string, HoloValue>;
+  /** Creation phase: how the norm is proposed and authored */
+  creation?: HoloNormCreation;
+  /** Representation phase: formal rule encoding */
+  representation?: HoloNormRepresentation;
+  /** Spreading phase: propagation through the agent population */
+  spreading?: HoloNormSpreading;
+  /** Evaluation phase: acceptance criteria and voting rules */
+  evaluation?: HoloNormEvaluation;
+  /** Compliance phase: enforcement, violation, and sanctions */
+  compliance?: HoloNormCompliance;
+  /** Event handlers for norm lifecycle events */
+  eventHandlers?: HoloEventHandler[];
+}
+
+/**
+ * Creation phase — how the norm originates.
+ */
+export interface HoloNormCreation extends HoloNode {
+  type: 'NormCreation';
+  properties: Record<string, HoloValue>;
+}
+
+/**
+ * Representation phase — formal encoding of the norm's constraints.
+ */
+export interface HoloNormRepresentation extends HoloNode {
+  type: 'NormRepresentation';
+  properties: Record<string, HoloValue>;
+}
+
+/**
+ * Spreading phase — how the norm propagates through the population.
+ */
+export interface HoloNormSpreading extends HoloNode {
+  type: 'NormSpreading';
+  properties: Record<string, HoloValue>;
+}
+
+/**
+ * Evaluation phase — sanity checks, voting, and acceptance criteria.
+ */
+export interface HoloNormEvaluation extends HoloNode {
+  type: 'NormEvaluation';
+  properties: Record<string, HoloValue>;
+}
+
+/**
+ * Compliance phase — enforcement, violation detection, and sanctions.
+ */
+export interface HoloNormCompliance extends HoloNode {
+  type: 'NormCompliance';
+  properties: Record<string, HoloValue>;
+}
+
+// ---------------------------------------------------------------------------
+// METANORM — Norms about norms (governance of the norm system itself)
+// ---------------------------------------------------------------------------
+
+/**
+ * A metanorm declaration: governance rules about the norm system itself.
+ *
+ * Grammar:
+ * ```holoscript
+ * metanorm "NormAmendmentProcess" {
+ *   description: "Rules for proposing changes to existing norms"
+ *   applies_to: "all_norms"
+ *
+ *   rules {
+ *     amendment_quorum: 0.75
+ *     amendment_voting: "supermajority"
+ *     cooldown_period: 604800
+ *     max_amendments_per_cycle: 3
+ *     retroactive_allowed: false
+ *   }
+ *
+ *   escalation {
+ *     authority: "governance_council"
+ *     override_threshold: 0.9
+ *     appeal_levels: 2
+ *   }
+ *
+ *   on norm_conflict(normA, normB) {
+ *     emit("norm_conflict_detected", { a: normA, b: normB })
+ *   }
+ * }
+ * ```
+ */
+export interface HoloMetanorm extends HoloNode {
+  type: 'Metanorm';
+  /** Name of the metanorm */
+  name: string;
+  /** Trait decorators */
+  traits: string[];
+  /** Top-level metanorm properties */
+  properties: Record<string, HoloValue>;
+  /** Governance rules sub-block */
+  rules?: HoloMetanormRules;
+  /** Escalation sub-block */
+  escalation?: HoloMetanormEscalation;
+  /** Event handlers for metanorm events */
+  eventHandlers?: HoloEventHandler[];
+}
+
+/**
+ * Metanorm governance rules sub-block.
+ */
+export interface HoloMetanormRules extends HoloNode {
+  type: 'MetanormRules';
+  properties: Record<string, HoloValue>;
+}
+
+/**
+ * Metanorm escalation sub-block.
+ */
+export interface HoloMetanormEscalation extends HoloNode {
+  type: 'MetanormEscalation';
+  properties: Record<string, HoloValue>;
 }

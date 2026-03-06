@@ -89,6 +89,15 @@ import type {
   HoloTerrainBlock,
   HoloDomainBlock,
   HoloDomainType,
+  HoloNormBlock,
+  HoloNormCreation,
+  HoloNormRepresentation,
+  HoloNormSpreading,
+  HoloNormEvaluation,
+  HoloNormCompliance,
+  HoloMetanorm,
+  HoloMetanormRules,
+  HoloMetanormEscalation,
 } from './HoloCompositionTypes';
 import { TypoDetector } from './TypoDetector';
 
@@ -291,6 +300,14 @@ type TokenType =
   | 'SEMANTIC_SEARCH'
   | 'GRAPH_QUERY'
   | 'ANNOTATION'
+  // Norm lifecycle / cultural engineering (v4.5)
+  | 'NORM'
+  | 'METANORM'
+  | 'NORM_PROPOSAL'
+  | 'NORM_VOTING'
+  | 'NORM_ADOPTION'
+  | 'NORM_VIOLATION'
+  | 'NORM_SANCTION'
   // Spatial primitives
   | 'SPAWN_GROUP'
   | 'WAYPOINTS'
@@ -538,6 +555,14 @@ const KEYWORDS: Record<string, TokenType> = {
   // Graph RAG (v4.4)
   semantic_search: 'SEMANTIC_SEARCH',
   graph_query: 'GRAPH_QUERY',
+  // Norm lifecycle / cultural engineering (v4.5)
+  norm: 'NORM',
+  metanorm: 'METANORM',
+  norm_proposal: 'NORM_PROPOSAL',
+  norm_voting: 'NORM_VOTING',
+  norm_adoption: 'NORM_ADOPTION',
+  norm_violation: 'NORM_VIOLATION',
+  norm_sanction: 'NORM_SANCTION',
   true: 'BOOLEAN',
   false: 'BOOLEAN',
   null: 'NULL',
@@ -1043,6 +1068,9 @@ export class HoloCompositionParser {
       constraints: [],
       terrains: [],
       domainBlocks: [],
+      // v4.5 additions — CRSEC norm lifecycle
+      norms: [],
+      metanorms: [],
     };
 
     while (!this.isAtEnd()) {
@@ -1125,6 +1153,11 @@ export class HoloCompositionParser {
           composition.constraints!.push(this.parseConstraintBlock());
         } else if (this.check('TERRAIN')) {
           composition.terrains!.push(this.parseTerrainBlock());
+        // Norm lifecycle blocks (v4.5 — CRSEC model)
+        } else if (this.check('NORM')) {
+          composition.norms!.push(this.parseNormBlock());
+        } else if (this.check('METANORM')) {
+          composition.metanorms!.push(this.parseMetanormBlock());
         // Domain-specific blocks (v4.1)
         } else if (this.isDomainBlockToken()) {
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -1304,6 +1337,9 @@ export class HoloCompositionParser {
       constraints: [],
       terrains: [],
       domainBlocks: [],
+      // v4.5 additions — CRSEC norm lifecycle
+      norms: [],
+      metanorms: [],
     };
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
@@ -1382,6 +1418,11 @@ export class HoloCompositionParser {
           composition.constraints!.push(this.parseConstraintBlock());
         } else if (this.check('TERRAIN')) {
           composition.terrains!.push(this.parseTerrainBlock());
+        // Norm lifecycle blocks (v4.5 — CRSEC model)
+        } else if (this.check('NORM')) {
+          composition.norms!.push(this.parseNormBlock());
+        } else if (this.check('METANORM')) {
+          composition.metanorms!.push(this.parseMetanormBlock());
         // Domain-specific blocks (v4)
         } else if (this.isDomainBlockToken()) {
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -4824,6 +4865,8 @@ export class HoloCompositionParser {
     'CODEBASE', 'MODULE_MAP', 'DEPENDENCY_GRAPH', 'CALL_GRAPH',
     // Graph RAG (v4.4)
     'SEMANTIC_SEARCH', 'GRAPH_QUERY',
+    // Norm lifecycle / cultural engineering (v4.5)
+    'NORM_PROPOSAL', 'NORM_VOTING', 'NORM_ADOPTION', 'NORM_VIOLATION', 'NORM_SANCTION',
   ]);
 
   /** Token → domain type mapping */
@@ -4860,6 +4903,9 @@ export class HoloCompositionParser {
     DEPENDENCY_GRAPH: 'codebase', CALL_GRAPH: 'codebase',
     // Graph RAG (v4.4)
     SEMANTIC_SEARCH: 'codebase', GRAPH_QUERY: 'codebase',
+    // Norm lifecycle / cultural engineering (v4.5)
+    NORM_PROPOSAL: 'norms', NORM_VOTING: 'norms', NORM_ADOPTION: 'norms',
+    NORM_VIOLATION: 'norms', NORM_SANCTION: 'norms',
   };
 
   /** Check if current token is a domain block token */
@@ -4870,6 +4916,279 @@ export class HoloCompositionParser {
   /** Check if value is a light primitive shorthand */
   private isLightPrimitive(value: string): boolean {
     return LIGHT_PRIMITIVES.has(value);
+  }
+
+  // ===========================================================================
+  // NORM LIFECYCLE BLOCKS (v4.5 — March 2026, CRSEC Model)
+  // ===========================================================================
+
+  /**
+   * Parse a norm block with full CRSEC lifecycle sub-blocks.
+   *
+   * Pattern:
+   * ```
+   * norm "NormName" @trait1 @trait2 {
+   *   description: "..."
+   *   category: "..."
+   *   priority: 8
+   *
+   *   creation { ... }
+   *   representation { ... }
+   *   spreading { ... }
+   *   evaluation { ... }
+   *   compliance { ... }
+   *
+   *   on norm_violated(agent, context) { ... }
+   * }
+   * ```
+   */
+  private parseNormBlock(): HoloNormBlock {
+    this.pushContext('norm');
+    this.advance(); // consume 'norm'
+
+    // Parse name (string or identifier)
+    let name = 'unnamed';
+    if (this.check('STRING')) {
+      name = this.expectString();
+    } else if (this.check('IDENTIFIER')) {
+      name = this.expectIdentifier();
+    }
+
+    // Parse optional inline traits (@enforceable @community_driven)
+    const traits: string[] = [];
+    while (this.check('AT') && this.peek(1)?.type === 'IDENTIFIER') {
+      this.advance(); // consume @
+      traits.push(this.current().value);
+      this.advance(); // consume trait name
+      // Handle trait with parenthesized config: @trait(key: value)
+      if (this.check('LPAREN')) {
+        this.skipParens();
+      }
+    }
+
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let creation: HoloNormCreation | undefined;
+    let representation: HoloNormRepresentation | undefined;
+    let spreading: HoloNormSpreading | undefined;
+    let evaluation: HoloNormEvaluation | undefined;
+    let compliance: HoloNormCompliance | undefined;
+    const eventHandlers: HoloEventHandler[] = [];
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      const tokenVal = this.current().value;
+      const tokenLower = tokenVal.toLowerCase();
+
+      // CRSEC lifecycle sub-blocks
+      if (tokenLower === 'creation' && this.peek(1)?.type === 'LBRACE') {
+        this.advance(); // consume 'creation'
+        creation = this.parseNormSubBlock('NormCreation') as HoloNormCreation;
+      } else if (tokenLower === 'representation' && this.peek(1)?.type === 'LBRACE') {
+        this.advance(); // consume 'representation'
+        representation = this.parseNormSubBlock('NormRepresentation') as HoloNormRepresentation;
+      } else if (tokenLower === 'spreading' && this.peek(1)?.type === 'LBRACE') {
+        this.advance(); // consume 'spreading'
+        spreading = this.parseNormSubBlock('NormSpreading') as HoloNormSpreading;
+      } else if (tokenLower === 'evaluation' && this.peek(1)?.type === 'LBRACE') {
+        this.advance(); // consume 'evaluation'
+        evaluation = this.parseNormSubBlock('NormEvaluation') as HoloNormEvaluation;
+      } else if (tokenLower === 'compliance' && this.peek(1)?.type === 'LBRACE') {
+        this.advance(); // consume 'compliance'
+        compliance = this.parseNormSubBlock('NormCompliance') as HoloNormCompliance;
+      }
+      // Event handlers (on_norm_violated, on_adopted, etc.)
+      else if (this.check('IDENTIFIER') && tokenLower.startsWith('on') && tokenLower.length > 2 &&
+               (this.peek(1)?.type === 'LPAREN' || this.peek(1)?.type === 'LBRACE')) {
+        const evtName = this.current().value;
+        this.advance(); // consume event name
+        const parameters: HoloParameter[] = [];
+        if (this.check('LPAREN')) {
+          this.advance(); // consume (
+          while (!this.check('RPAREN') && !this.isAtEnd()) {
+            const pName = this.expectIdentifier();
+            parameters.push({ type: 'Parameter', name: pName });
+            if (this.check('COMMA')) this.advance();
+          }
+          this.expect('RPAREN');
+        }
+        if (this.check('LBRACE')) {
+          const body = this.parseStatementBlock();
+          this.expect('RBRACE');
+          eventHandlers.push({ type: 'EventHandler', event: evtName, parameters, body } as HoloEventHandler);
+        }
+      }
+      // Regular key: value properties
+      else if (this.check('IDENTIFIER') || this.check('STRING')) {
+        const key = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+        this.expect('COLON');
+        const value = this.parseValue();
+        properties[key] = value;
+        if (this.check('COMMA')) this.advance();
+      } else {
+        // Skip unrecognized tokens
+        this.advance();
+      }
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+
+    return {
+      type: 'NormBlock',
+      name,
+      traits,
+      properties,
+      creation,
+      representation,
+      spreading,
+      evaluation,
+      compliance,
+      eventHandlers: eventHandlers.length > 0 ? eventHandlers : undefined,
+    };
+  }
+
+  /**
+   * Parse a norm lifecycle sub-block (creation, representation, spreading, evaluation, compliance).
+   * All sub-blocks follow the same pattern: { key: value, ... }
+   */
+  private parseNormSubBlock(nodeType: string): { type: string; properties: Record<string, HoloValue> } {
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      const key = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+      this.expect('COLON');
+      const value = this.parseValue();
+      properties[key] = value;
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+
+    return { type: nodeType, properties };
+  }
+
+  /**
+   * Parse a metanorm block (norms about norms).
+   *
+   * Pattern:
+   * ```
+   * metanorm "MetanormName" @trait1 {
+   *   description: "..."
+   *   applies_to: "all_norms"
+   *
+   *   rules { ... }
+   *   escalation { ... }
+   *
+   *   on norm_conflict(normA, normB) { ... }
+   * }
+   * ```
+   */
+  private parseMetanormBlock(): HoloMetanorm {
+    this.pushContext('metanorm');
+    this.advance(); // consume 'metanorm'
+
+    // Parse name
+    let name = 'unnamed';
+    if (this.check('STRING')) {
+      name = this.expectString();
+    } else if (this.check('IDENTIFIER')) {
+      name = this.expectIdentifier();
+    }
+
+    // Parse optional inline traits
+    const traits: string[] = [];
+    while (this.check('AT') && this.peek(1)?.type === 'IDENTIFIER') {
+      this.advance(); // consume @
+      traits.push(this.current().value);
+      this.advance(); // consume trait name
+      // Handle trait with parenthesized config: @trait(key: value)
+      if (this.check('LPAREN')) {
+        this.skipParens();
+      }
+    }
+
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let rules: HoloMetanormRules | undefined;
+    let escalation: HoloMetanormEscalation | undefined;
+    const eventHandlers: HoloEventHandler[] = [];
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      const tokenVal = this.current().value;
+      const tokenLower = tokenVal.toLowerCase();
+
+      // Sub-blocks
+      if (tokenLower === 'rules' && this.peek(1)?.type === 'LBRACE') {
+        this.advance(); // consume 'rules'
+        rules = this.parseNormSubBlock('MetanormRules') as HoloMetanormRules;
+      } else if (tokenLower === 'escalation' && this.peek(1)?.type === 'LBRACE') {
+        this.advance(); // consume 'escalation'
+        escalation = this.parseNormSubBlock('MetanormEscalation') as HoloMetanormEscalation;
+      }
+      // Event handlers (on_norm_conflict, etc.)
+      else if (this.check('IDENTIFIER') && tokenLower.startsWith('on') && tokenLower.length > 2 &&
+               (this.peek(1)?.type === 'LPAREN' || this.peek(1)?.type === 'LBRACE')) {
+        const evtName = this.current().value;
+        this.advance(); // consume event name
+        const parameters: HoloParameter[] = [];
+        if (this.check('LPAREN')) {
+          this.advance(); // consume (
+          while (!this.check('RPAREN') && !this.isAtEnd()) {
+            const pName = this.expectIdentifier();
+            parameters.push({ type: 'Parameter', name: pName });
+            if (this.check('COMMA')) this.advance();
+          }
+          this.expect('RPAREN');
+        }
+        if (this.check('LBRACE')) {
+          const body = this.parseStatementBlock();
+          this.expect('RBRACE');
+          eventHandlers.push({ type: 'EventHandler', event: evtName, parameters, body } as HoloEventHandler);
+        }
+      }
+      // Regular properties
+      else if (this.check('IDENTIFIER') || this.check('STRING')) {
+        const key = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+        this.expect('COLON');
+        const value = this.parseValue();
+        properties[key] = value;
+        if (this.check('COMMA')) this.advance();
+      } else {
+        this.advance();
+      }
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+
+    return {
+      type: 'Metanorm',
+      name,
+      traits,
+      properties,
+      rules,
+      escalation,
+      eventHandlers: eventHandlers.length > 0 ? eventHandlers : undefined,
+    };
   }
 
   /**

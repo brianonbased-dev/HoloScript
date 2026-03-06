@@ -27,6 +27,12 @@ import {
   COMPILER_ANS_MAP,
   isValidCompilerName,
 } from './identity/ANSNamespace';
+import {
+  type SpatialZoneEnforcer,
+  type SpatialAccessDecision,
+  SpatialPermission,
+  getSpatialZoneEnforcer,
+} from './identity/SpatialMemoryZones';
 
 // ---------------------------------------------------------------------------
 // Dual-mode token types (P3 Migration Bridge)
@@ -196,6 +202,12 @@ export abstract class CompilerBase implements ICompiler {
   private _capabilityRBAC: CapabilityRBAC | null = null;
 
   /**
+   * Lazy-initialized SpatialZoneEnforcer for compile-time spatial zone checks.
+   * Only created when spatial zone validation is first invoked.
+   */
+  private _spatialZoneEnforcer: SpatialZoneEnforcer | null = null;
+
+  /**
    * Compiler name (for error messages)
    */
   protected abstract readonly compilerName: string;
@@ -220,6 +232,18 @@ export abstract class CompilerBase implements ICompiler {
       this._capabilityRBAC = getCapabilityRBAC();
     }
     return this._capabilityRBAC;
+  }
+
+  /**
+   * Get or create the SpatialZoneEnforcer instance.
+   *
+   * Lazily initialized to avoid overhead when spatial zones are not in use.
+   */
+  protected getSpatialZoneEnforcer(): SpatialZoneEnforcer {
+    if (!this._spatialZoneEnforcer) {
+      this._spatialZoneEnforcer = getSpatialZoneEnforcer();
+    }
+    return this._spatialZoneEnforcer;
   }
 
   /**
@@ -406,6 +430,58 @@ export abstract class CompilerBase implements ICompiler {
   }
 
   // =========================================================================
+  // Spatial Memory Zone validation
+  // =========================================================================
+
+  /**
+   * Validate spatial zone access for the current compilation.
+   *
+   * This step runs **after** RBAC/UCAN token verification and enforces
+   * compile-time spatial zone permissions when zones are registered.
+   *
+   * **Backward compatible**: When no zones are registered in the global
+   * SpatialZoneEnforcer, this method is a no-op.
+   *
+   * **Non-blocking**: Zone enforcement failures are logged as warnings
+   * but do NOT throw or block compilation. This allows gradual rollout
+   * of spatial zone policies without breaking existing pipelines.
+   *
+   * @param agentToken - JWT token string (spatial zones use JWT verification)
+   */
+  protected validateSpatialZoneAccess(agentToken?: string): void {
+    // Skip when no token provided (same pattern as other validators)
+    if (!agentToken) return;
+
+    const enforcer = this.getSpatialZoneEnforcer();
+    const zoneIds = enforcer.getRegisteredZoneIds();
+
+    // No zones registered: skip silently (backward compatible)
+    if (zoneIds.length === 0) return;
+
+    // Check SPATIAL_READ access in each registered zone.
+    // This verifies the agent has at minimum read-level spatial access
+    // during compilation. Specific operations (write, delete, admin)
+    // are enforced by the runtime layer or by subclass overrides.
+    for (const zoneId of zoneIds) {
+      const decision: SpatialAccessDecision = enforcer.checkZoneAccess(
+        agentToken,
+        zoneId,
+        SpatialPermission.SPATIAL_READ,
+      );
+
+      if (!decision.allowed) {
+        // Log warning but do NOT block compilation.
+        // Zone enforcement is advisory during the rollout phase.
+        console.warn(
+          `[${this.compilerName}] Spatial zone access warning: ` +
+          `agent ${decision.agentId ?? 'unknown'} denied SPATIAL_READ ` +
+          `in zone "${zoneId}": ${decision.reason}`,
+        );
+      }
+    }
+  }
+
+  // =========================================================================
   // Dual-mode access validation (P3 Migration Bridge)
   // =========================================================================
 
@@ -434,6 +510,10 @@ export abstract class CompilerBase implements ICompiler {
     // P3 Migration Bridge: Route to UCAN capability verification
     if (isCapabilityTokenCredential(agentToken)) {
       this.validateCapabilityAccess(agentToken, outputPath);
+      // Note: Spatial zone validation requires a JWT string token.
+      // UCAN tokens do not carry the sub/agent_role claims that
+      // SpatialZoneEnforcer needs, so spatial checks are skipped
+      // for UCAN credentials.
       return;
     }
 
@@ -443,6 +523,10 @@ export abstract class CompilerBase implements ICompiler {
     if (outputPath) {
       this.validateOutputPath(agentToken, outputPath);
     }
+
+    // Spatial zone enforcement (runs after RBAC token verification).
+    // Non-blocking: logs warnings but does not throw.
+    this.validateSpatialZoneAccess(agentToken);
   }
 
   // =========================================================================
