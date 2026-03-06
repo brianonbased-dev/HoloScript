@@ -50,7 +50,9 @@ export class ConfigLoader {
   }
 
   private findConfigFile(startDir: string): string | null {
-    let currentDir = fs.lstatSync(startDir).isDirectory() ? startDir : path.dirname(startDir);
+    // Ensure startDir is an absolute path
+    const resolvedStartDir = path.resolve(startDir);
+    let currentDir = fs.lstatSync(resolvedStartDir).isDirectory() ? resolvedStartDir : path.dirname(resolvedStartDir);
     const root = path.parse(currentDir).root;
 
     while (currentDir !== root) {
