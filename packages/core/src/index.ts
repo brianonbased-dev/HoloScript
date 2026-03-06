@@ -2454,6 +2454,11 @@ export type { SafetyReport, SafetyVerdict } from './compiler/safety/SafetyReport
 
 export type { EffectCertificate, EffectTrustLevel } from './types/effects';
 
+// Linear Resource Types (Layer 6 — Move-inspired ownership)
+export { LinearTypeChecker, BUILTIN_RESOURCES, TRAIT_RESOURCE_MAP } from './compiler/safety/LinearTypeChecker';
+export type { LinearCheckerConfig } from './compiler/safety/LinearTypeChecker';
+export type { ResourceType, ResourceAbility, OwnershipState, LinearViolation, LinearCheckResult } from './types/linear';
+
 // ═══════════════════════════════════════════════════════════════════
 // @platform() Conditional Compilation (Cross-Reality)
 // ═══════════════════════════════════════════════════════════════════
@@ -2581,3 +2586,21 @@ export type { AudioSourceConfig, AudioSource, ListenerState, DistanceModel } fro
 // ── TileMap / Procedural ───────────────────────────────────────────
 export { TileMap, TileFlags } from './tilemap/TileMap';
 export type { TileData, TileLayer, AutoTileRule } from './tilemap/TileMap';
+
+// ── Combat ─────────────────────────────────────────────────────────
+export { CombatManager } from './combat/CombatManager';
+export type { HitBox, HurtBox, ComboStep, ComboChain, Cooldown, CombatTarget } from './combat/CombatManager';
+
+// ── Navigation / Pathfinding ───────────────────────────────────────
+export { AStarPathfinder } from './navigation/AStarPathfinder';
+export type { PathNode, PathResult, DynamicObstacle } from './navigation/AStarPathfinder';
+export { NavMesh } from './navigation/NavMesh';
+export type { NavPoint, NavPolygon } from './navigation/NavMesh';
+
+// ── Shader Graph (re-export rendering) ─────────────────────────────
+export { SHADER_NODES } from './rendering/ShaderGraph';
+export type { ShaderNode, ShaderConnection, ShaderNodeDef, ShaderPort, ShaderDataType, CompiledShader, ShaderUniform } from './rendering/ShaderGraph';
+
+// ── Particles (value re-export) ────────────────────────────────────
+export { ParticleSystem } from './particles/ParticleSystem';
+export type { Particle, EmitterConfig, EmitterShape, Color4 } from './particles/ParticleSystem';

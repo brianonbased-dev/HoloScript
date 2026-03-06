@@ -3,7 +3,7 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * Mounts 12 integration panels into a collapsible right drawer.
+ * Mounts 16 integration panels into a collapsible right drawer.
  * Each tab shows its panel content. Can be used on any page within the AppShell.
  */
 
@@ -20,11 +20,15 @@ import { AnimationPanel } from './AnimationPanel';
 import { AudioPanel } from './AudioPanel';
 import { ProcGenPanel } from './ProcGenPanel';
 import { MultiplayerPanel } from './MultiplayerPanel';
+import { ShaderPanel } from './ShaderPanel';
+import { CombatPanel } from './CombatPanel';
+import { PathfindingPanel } from './PathfindingPanel';
+import { ParticlePanel } from './ParticlePanel';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer';
+export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles';
 
 interface RightPanelSidebarProps {
   /** AST nodes for safety analysis (pass from editor) */
@@ -50,6 +54,10 @@ const TABS: { id: PanelTab; icon: string; label: string; title: string; separato
   { id: 'audio', icon: '🔊', label: 'Audio', title: 'Spatial audio manager' },
   { id: 'procgen', icon: '🌍', label: 'ProcGen', title: 'Procedural terrain generation' },
   { id: 'multiplayer', icon: '🌐', label: 'Net', title: 'Multiplayer state simulation' },
+  { id: 'shader', icon: '✨', label: 'Shader', title: 'Visual shader graph editor', separator: true },
+  { id: 'combat', icon: '⚔️', label: 'Combat', title: 'Combat system designer' },
+  { id: 'pathfinding', icon: '🗺️', label: 'Path', title: 'A* pathfinding visualizer' },
+  { id: 'particles', icon: '🎆', label: 'FX', title: 'Particle system editor' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -109,6 +117,10 @@ export function RightPanelSidebar({
             {activeTab === 'audio' && <AudioPanel />}
             {activeTab === 'procgen' && <ProcGenPanel />}
             {activeTab === 'multiplayer' && <MultiplayerPanel />}
+            {activeTab === 'shader' && <ShaderPanel />}
+            {activeTab === 'combat' && <CombatPanel />}
+            {activeTab === 'pathfinding' && <PathfindingPanel />}
+            {activeTab === 'particles' && <ParticlePanel />}
           </div>
         </div>
       )}

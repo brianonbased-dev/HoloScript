@@ -17,6 +17,7 @@ import {
   type EffectViolation,
   type BudgetDiagnostic,
   type CapabilityRequirement,
+  type LinearViolation,
 } from '@holoscript/core';
 
 // ---------------------------------------------------------------------------
@@ -192,6 +193,24 @@ function missingCapToDiag(cap: CapabilityRequirement): Diagnostic {
   };
 }
 
+function linearViolationToDiag(v: LinearViolation): Diagnostic {
+  const line = (v.location?.line || 1) - 1;
+  const col = v.location?.column || 0;
+
+  return {
+    severity: v.severity === 'error'
+      ? DiagnosticSeverity.Error
+      : DiagnosticSeverity.Warning,
+    range: {
+      start: { line, character: col },
+      end: { line, character: col + 30 },
+    },
+    message: v.message,
+    source: 'holoscript-safety',
+    code: `linear:${v.kind}`,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -247,6 +266,11 @@ export function runSafetyDiagnostics(
     // Missing capabilities
     for (const cap of result.report.capabilities.missing) {
       diagnostics.push(missingCapToDiag(cap));
+    }
+
+    // Linear type violations
+    for (const v of result.report.linear.violations) {
+      diagnostics.push(linearViolationToDiag(v));
     }
 
     return diagnostics;
