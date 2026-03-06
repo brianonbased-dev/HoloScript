@@ -1,96 +1,139 @@
 'use client';
 
 /**
- * ScriptConsole — in-editor JS/HoloScript REPL with output log and history navigation.
+ * ScriptConsole — Runtime console with log levels, filtering, timestamps.
  */
 
-import { useRef, useEffect, KeyboardEvent } from 'react';
-import { Terminal, X, Trash2, ChevronRight } from 'lucide-react';
-import { useScriptConsole, type ConsoleEntry } from '@/hooks/useScriptConsole';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { Terminal, Trash2, Filter, ChevronDown, Copy, Download } from 'lucide-react';
 
-const LEVEL_STYLE: Record<string, string> = {
-  log:    'text-studio-text',
-  info:   'text-blue-400',
-  warn:   'text-yellow-400',
-  error:  'text-red-400',
-  result: 'text-green-400',
-};
+export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
-const LEVEL_PREFIX: Record<string, string> = {
-  log: '', info: 'ℹ', warn: '⚠', error: '✖', result: '←',
-};
-
-function LogLine({ entry }: { entry: ConsoleEntry }) {
-  const prefix = LEVEL_PREFIX[entry.level] ?? '';
-  return (
-    <div className={`flex gap-1.5 px-3 py-0.5 font-mono text-[10px] leading-relaxed ${LEVEL_STYLE[entry.level] ?? 'text-studio-text'}`}>
-      {prefix && <span className="shrink-0 opacity-60">{prefix}</span>}
-      <span className="whitespace-pre-wrap break-all">{entry.content}</span>
-    </div>
-  );
+export interface LogEntry {
+  id: number;
+  level: LogLevel;
+  message: string;
+  timestamp: number;
+  source?: string;
+  count: number;
 }
 
-interface ScriptConsoleProps { onClose: () => void; }
+const LEVEL_STYLES: Record<LogLevel, { color: string; bg: string; label: string }> = {
+  log:   { color: 'text-studio-text',   bg: '',                          label: 'LOG' },
+  info:  { color: 'text-blue-400',      bg: 'bg-blue-500/5',            label: 'INF' },
+  warn:  { color: 'text-amber-400',     bg: 'bg-amber-500/5',           label: 'WRN' },
+  error: { color: 'text-red-400',       bg: 'bg-red-500/5',             label: 'ERR' },
+  debug: { color: 'text-purple-400',    bg: 'bg-purple-500/5',          label: 'DBG' },
+};
 
-export function ScriptConsole({ onClose }: ScriptConsoleProps) {
-  const { entries, input, setInput, evaluate, clear, historyUp, historyDown } = useScriptConsole();
-  const logEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+let nextId = 0;
 
-  // Auto-scroll to bottom on new entries
-  useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+export function ScriptConsole() {
+  const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [filter, setFilter] = useState('');
+  const [levelFilter, setLevelFilter] = useState<Set<LogLevel>>(new Set(['log','info','warn','error','debug']));
+  const [input, setInput] = useState('');
+  const [collapsed, setCollapsed] = useState(true);
+  const [showFilter, setShowFilter] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [entries]);
+
+  const addEntry = useCallback((level: LogLevel, message: string, source?: string) => {
+    setEntries(prev => {
+      // Collapse duplicates
+      if (collapsed && prev.length > 0) {
+        const last = prev[prev.length - 1];
+        if (last.message === message && last.level === level) {
+          return [...prev.slice(0, -1), { ...last, count: last.count + 1, timestamp: Date.now() }];
+        }
+      }
+      return [...prev, { id: nextId++, level, message, timestamp: Date.now(), source, count: 1 }];
+    });
+  }, [collapsed]);
+
+  const handleExec = useCallback(() => {
+    if (!input.trim()) return;
+    addEntry('log', `> ${input}`, 'repl');
+    try {
+      // eslint-disable-next-line no-eval
+      const result = String(eval(input));
+      addEntry('info', result, 'eval');
+    } catch (e: any) {
+      addEntry('error', e.message, 'eval');
+    }
+    setInput('');
+  }, [input, addEntry]);
+
+  const filtered = entries.filter(e =>
+    levelFilter.has(e.level) &&
+    (!filter || e.message.toLowerCase().includes(filter.toLowerCase()))
+  );
+
+  const counts = { log: 0, info: 0, warn: 0, error: 0, debug: 0 };
+  entries.forEach(e => counts[e.level]++);
+
+  const exportLogs = useCallback(() => {
+    const text = entries.map(e => `[${new Date(e.timestamp).toISOString()}] [${e.level.toUpperCase()}] ${e.message}`).join('\n');
+    navigator.clipboard?.writeText(text);
   }, [entries]);
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') { evaluate(input); setInput(''); }
-    if (e.key === 'ArrowUp') { e.preventDefault(); historyUp(); }
-    if (e.key === 'ArrowDown') { e.preventDefault(); historyDown(); }
-    if (e.key === 'l' && e.ctrlKey) { e.preventDefault(); clear(); }
+  const formatTime = (ts: number) => {
+    const d = new Date(ts);
+    return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}.${d.getMilliseconds().toString().padStart(3,'0')}`;
   };
 
   return (
-    <div className="flex h-full flex-col bg-[#0a0a12] text-studio-text">
-      {/* Header */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel px-3 py-2.5">
-        <Terminal className="h-4 w-4 text-studio-accent" />
-        <span className="text-[12px] font-semibold">Script Console</span>
-        <span className="ml-1 rounded-full border border-studio-border px-1.5 py-0.5 text-[7px] text-studio-muted">JS/HoloScript</span>
-        <div className="ml-auto flex gap-1">
-          <button onClick={clear} title="Clear (Ctrl+L)" className="rounded p-1 text-studio-muted hover:text-studio-text">
-            <Trash2 className="h-3.5 w-3.5" />
+    <div className="flex flex-col h-full">
+      {/* Toolbar */}
+      <div className="flex items-center gap-1 border-b border-studio-border px-2 py-1">
+        <Terminal className="h-3.5 w-3.5 text-emerald-400" />
+        <span className="text-xs font-semibold text-studio-text">Console</span>
+        <div className="flex-1" />
+        {/* Level badges */}
+        {(Object.entries(counts) as [LogLevel, number][]).filter(([,c]) => c > 0).map(([level, count]) => (
+          <button key={level} onClick={() => { const s = new Set(levelFilter); s.has(level) ? s.delete(level) : s.add(level); setLevelFilter(s); }}
+            className={`rounded px-1 text-[9px] font-mono ${levelFilter.has(level) ? LEVEL_STYLES[level].color : 'text-studio-muted/30'}`}>
+            {count}
           </button>
-          <button onClick={onClose} className="rounded p-1 text-studio-muted hover:text-studio-text">
-            <X className="h-4 w-4" />
-          </button>
+        ))}
+        <button onClick={() => setShowFilter(!showFilter)} className="text-studio-muted hover:text-studio-text"><Filter className="h-3 w-3" /></button>
+        <button onClick={exportLogs} className="text-studio-muted hover:text-studio-text"><Copy className="h-3 w-3" /></button>
+        <button onClick={() => setEntries([])} className="text-studio-muted hover:text-red-400"><Trash2 className="h-3 w-3" /></button>
+      </div>
+
+      {showFilter && (
+        <div className="flex items-center gap-1 border-b border-studio-border px-2 py-1">
+          <input type="text" value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter..." className="flex-1 bg-transparent text-xs text-studio-text outline-none" />
+          <div className="flex gap-0.5">
+            {(['log','info','warn','error','debug'] as LogLevel[]).map(l => (
+              <button key={l} onClick={() => { const s = new Set(levelFilter); s.has(l)?s.delete(l):s.add(l); setLevelFilter(s); }}
+                className={`rounded px-1 py-0.5 text-[8px] ${levelFilter.has(l) ? LEVEL_STYLES[l].color + ' bg-studio-panel' : 'text-studio-muted/30'}`}>{LEVEL_STYLES[l].label}</button>
+            ))}
+          </div>
         </div>
+      )}
+
+      {/* Log entries */}
+      <div className="flex-1 overflow-y-auto font-mono text-[11px]">
+        {filtered.length === 0 && <div className="p-4 text-center text-studio-muted text-xs">No log entries</div>}
+        {filtered.map(entry => (
+          <div key={entry.id} className={`flex items-start gap-1.5 px-2 py-0.5 border-b border-studio-border/20 ${LEVEL_STYLES[entry.level].bg}`}>
+            <span className="shrink-0 text-studio-muted/40 text-[9px] tabular-nums">{formatTime(entry.timestamp)}</span>
+            <span className={`shrink-0 text-[9px] font-bold ${LEVEL_STYLES[entry.level].color}`}>{LEVEL_STYLES[entry.level].label}</span>
+            <span className={`flex-1 break-all ${LEVEL_STYLES[entry.level].color}`}>{entry.message}</span>
+            {entry.count > 1 && <span className="shrink-0 rounded-full bg-studio-accent/20 px-1.5 text-[9px] text-studio-accent">{entry.count}</span>}
+            {entry.source && <span className="shrink-0 text-[8px] text-studio-muted/40">{entry.source}</span>}
+          </div>
+        ))}
+        <div ref={bottomRef} />
       </div>
 
-      {/* Log output */}
-      <div className="flex-1 overflow-y-auto py-1" onClick={() => inputRef.current?.focus()}>
-        {entries.map((entry) => <LogLine key={entry.id} entry={entry} />)}
-        <div ref={logEndRef} />
-      </div>
-
-      {/* Input bar */}
-      <div className="flex shrink-0 items-center gap-2 border-t border-studio-border bg-studio-panel/60 px-3 py-2">
-        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-studio-accent" />
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="scene.objects.length   // ↑↓ history · Enter run · Ctrl+L clear"
-          className="flex-1 bg-transparent font-mono text-[10px] text-studio-text outline-none placeholder-studio-muted/30"
-          autoComplete="off" spellCheck={false}
-        />
-      </div>
-
-      {/* Hint bar */}
-      <div className="shrink-0 border-t border-studio-border/40 bg-studio-panel/30 px-3 py-1">
-        <p className="text-[7px] text-studio-muted">
-          Available: <code className="text-studio-accent">scene.code</code> · <code className="text-studio-accent">scene.objects</code> · <code className="text-studio-accent">scene.lineCount</code> · <code className="text-studio-accent">Math</code> · <code className="text-studio-accent">JSON</code>
-        </p>
+      {/* Input */}
+      <div className="flex items-center border-t border-studio-border px-2 py-1">
+        <span className="text-emerald-400 text-xs mr-1">&gt;</span>
+        <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleExec()}
+          placeholder="Execute expression..." className="flex-1 bg-transparent text-xs text-studio-text outline-none font-mono" />
       </div>
     </div>
   );
