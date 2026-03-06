@@ -20,6 +20,8 @@ export class MarketplaceWebview {
   private _selectedTrait: TraitPackage | null = null;
   private _loading: boolean = false;
   private _apiBaseUrl: string;
+  private _mcpmeUrl: string;
+  private _activeTab: 'traits' | 'agents' = 'traits';
 
   /**
    * Creates or shows the Marketplace webview panel
@@ -63,6 +65,9 @@ export class MarketplaceWebview {
     this._apiBaseUrl = vscode.workspace
       .getConfiguration('holoscript')
       .get('marketplaceApiUrl', 'http://localhost:3001');
+    this._mcpmeUrl = vscode.workspace
+      .getConfiguration('holoscript')
+      .get('mcpmeUrl', 'https://mcp-orchestrator-production-45f9.up.railway.app');
 
     // Set initial HTML
     this._update();
@@ -114,13 +119,34 @@ export class MarketplaceWebview {
         break;
 
       case 'refresh':
-        await this._performSearch(this._searchQuery);
+        if (this._activeTab === 'agents') {
+          await this._searchAgents(this._searchQuery);
+        } else {
+          await this._performSearch(this._searchQuery);
+        }
         break;
 
       case 'filterByCategory':
         await this._performSearch(this._searchQuery, {
           category: message.category as string,
         });
+        break;
+
+      case 'switchTab':
+        this._activeTab = message.tab as 'traits' | 'agents';
+        if (this._activeTab === 'agents') {
+          await this._searchAgents('');
+        } else {
+          await this._performSearch('');
+        }
+        break;
+
+      case 'searchAgents':
+        await this._searchAgents(message.query as string);
+        break;
+
+      case 'installAgent':
+        await this._installAgent(message.agentId as string);
         break;
     }
   }
@@ -224,6 +250,71 @@ export class MarketplaceWebview {
   }
 
   /**
+   * Searches agent templates on the MCPMe orchestrator
+   */
+  private async _searchAgents(query: string) {
+    this._loading = true;
+    this._postMessage({ command: 'loading', loading: true });
+
+    try {
+      const params = new URLSearchParams();
+      if (query) params.set('q', query);
+      params.set('limit', '50');
+      params.set('sort', 'popular');
+
+      const response = await fetch(`${this._mcpmeUrl}/marketplace/search?${params}`);
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+      const result = await response.json();
+
+      this._postMessage({
+        command: 'agentResults',
+        agents: result.templates || [],
+        total: result.total || 0,
+        query,
+      });
+    } catch (error) {
+      this._postMessage({
+        command: 'error',
+        message: `Failed to search agents: ${error}`,
+      });
+    } finally {
+      this._loading = false;
+      this._postMessage({ command: 'loading', loading: false });
+    }
+  }
+
+  /**
+   * Installs an agent template from the MCPMe orchestrator
+   */
+  private async _installAgent(agentId: string) {
+    this._postMessage({ command: 'installing', agentId, installing: true });
+
+    try {
+      const response = await fetch(`${this._mcpmeUrl}/marketplace/${agentId}/install`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) throw new Error(`Install failed: ${response.status}`);
+      const result = await response.json();
+
+      if (result.success) {
+        vscode.window.showInformationMessage(
+          `✅ Installed agent "${result.templateName}". Program type: ${result.programType}`
+        );
+        this._postMessage({ command: 'agentInstalled', agentId });
+      } else {
+        vscode.window.showWarningMessage(result.error || 'Install failed');
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Agent install failed: ${error}`);
+    } finally {
+      this._postMessage({ command: 'installing', agentId, installing: false });
+    }
+  }
+
+  /**
    * Posts a message to the webview
    */
   private _postMessage(message: object) {
@@ -309,8 +400,11 @@ export class MarketplaceWebview {
       </div>
     </div>
 
-    <!-- Categories -->
+    <!-- Tabs -->
     <div class="categories-bar">
+      <button class="tab-btn active" data-tab="traits">🧩 Traits</button>
+      <button class="tab-btn" data-tab="agents">🤖 Agents</button>
+      <span class="tab-separator">|</span>
       <button class="category-btn active" data-category="">All</button>
       <button class="category-btn" data-category="core">Core</button>
       <button class="category-btn" data-category="physics">Physics</button>
@@ -334,6 +428,19 @@ export class MarketplaceWebview {
           <p>No traits found</p>
         </div>
         <!-- Traits will be inserted here -->
+      </div>
+
+      <!-- Agent List (hidden by default) -->
+      <div id="agent-list" class="trait-list" style="display: none;">
+        <div class="loading-indicator" style="display: none;">
+          <span class="codicon codicon-loading codicon-modifier-spin"></span>
+          Loading agents...
+        </div>
+        <div class="empty-state" style="display: none;">
+          <span class="codicon codicon-robot"></span>
+          <p>No agents found</p>
+        </div>
+        <!-- Agent cards will be inserted here -->
       </div>
 
       <!-- Trait Details Panel -->

@@ -12,6 +12,7 @@ const CONTENT_TYPE_ICONS: Record<string, typeof Brain> = {
   scene: Layers,
   skill: Brain,
   agent_config: Bot,
+  agent: Bot,
   trait: Puzzle,
   plugin: Package,
 };
@@ -20,6 +21,7 @@ const CONTENT_TYPE_COLORS: Record<string, string> = {
   scene: 'bg-indigo-500/20 text-indigo-400',
   skill: 'bg-amber-500/20 text-amber-400',
   agent_config: 'bg-cyan-500/20 text-cyan-400',
+  agent: 'bg-violet-500/20 text-violet-400',
   trait: 'bg-emerald-500/20 text-emerald-400',
   plugin: 'bg-rose-500/20 text-rose-400',
 };
