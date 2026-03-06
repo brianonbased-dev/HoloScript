@@ -100,3 +100,20 @@ export type {
   QualityDetail,
   QualityScoringConfig,
 } from './QualityScoringPipeline';
+
+// TrainingMonkey Integration: Spatial reasoning data -> Alpaca format pipeline
+export {
+  TrainingMonkeyIntegration,
+  createTrainingMonkeyIntegration,
+  DEFAULT_INTEGRATION_CONFIG,
+} from './trainingmonkey';
+
+export type {
+  AlpacaEntry,
+  WeightedAlpacaEntry,
+  DatasetSplit,
+  SplitStats,
+  TrainingMonkeyConfig,
+  TrainingMonkeyIntegrationConfig,
+  IntegrationResult,
+} from './trainingmonkey';
