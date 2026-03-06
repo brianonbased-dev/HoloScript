@@ -2620,3 +2620,18 @@ export type { TerrainConfig, TerrainLayer, TerrainVertex, TerrainChunk } from '.
 // ── Lighting ───────────────────────────────────────────────────────
 export { LightingModel } from './rendering/LightingModel';
 export type { Light, LightType, AmbientConfig, GIProbe } from './rendering/LightingModel';
+
+// ── Cinematic ──────────────────────────────────────────────────────
+export { CinematicDirector } from './cinematic/CinematicDirector';
+export type { ActorMark, CuePoint, CinematicScene } from './cinematic/CinematicDirector';
+export { CameraRig } from './cinematic/CameraRig';
+export { SequenceTrack } from './cinematic/SequenceTrack';
+
+// ── Collaboration ──────────────────────────────────────────────────
+export { CollaborationSession } from './collaboration/CollaborationSession';
+export type { SessionPeer, SessionConfig, SessionStats, SessionState } from './collaboration/CollaborationSession';
+
+// ── Security / Sandbox ─────────────────────────────────────────────
+export { createSandbox, execute as executeSandbox, destroy as destroySandbox } from './security/SandboxExecutor';
+export type { Sandbox, SandboxState, SandboxExecutionResult } from './security/SandboxExecutor';
+export type { SecurityPolicy } from './security/SecurityPolicy';

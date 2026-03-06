@@ -1,138 +1,78 @@
 'use client';
-
 /**
- * useCollaboration — connects to the collab WebSocket and maintains presence.
- *
- * Transport: native WebSocket → ws://localhost:4999/collab (configurable via env)
- * Protocol (JSON messages):
- *   → { type:'join', userId, name, color }
- *   → { type:'cursor', userId, x, y, selectedId }
- *   → { type:'leave', userId }
- *   ← same shape for remote peers
- *
- * Call `sendCursorPosition(x, y)` on mousemove in the viewport.
+ * useCollaboration — Hook for collaborative editing sessions
  */
+import { useState, useCallback, useRef } from 'react';
+import { CollaborationSession, type SessionPeer, type SessionStats } from '@holoscript/core';
 
-import { useEffect, useRef, useCallback } from 'react';
-import { useCollabStore } from '@/lib/collabStore';
+export interface UseCollaborationReturn {
+  session: CollaborationSession;
+  peers: SessionPeer[];
+  documents: string[];
+  stats: SessionStats | null;
+  addPeer: (name: string, platform?: 'vr' | 'ide' | 'web' | 'mobile') => void;
+  removePeer: (peerId: string) => void;
+  openDocument: (path: string) => void;
+  closeDocument: (path: string) => void;
+  buildDemoSession: () => void;
+  reset: () => void;
+}
 
-const WS_URL =
-  typeof window !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_COLLAB_WS_URL ?? 'ws://localhost:4999/collab')
-    : '';
+const PEER_COLORS = ['#00d4ff', '#ff6b6b', '#51cf66', '#ffd43b', '#cc5de8', '#ff922b'];
 
-export function useCollaboration(roomId: string) {
-  const ws = useRef<WebSocket | null>(null);
-  const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pruneRef = useRef<ReturnType<typeof setInterval> | null>(null);
+export function useCollaboration(): UseCollaborationReturn {
+  const sessRef = useRef(new CollaborationSession({
+    sessionId: 'studio-collab',
+    workspaceId: 'holoscript-studio',
+    localPeer: { peerId: 'local', displayName: 'You', color: '#00d4ff', platform: 'ide' },
+  }));
+  const [peers, setPeers] = useState<SessionPeer[]>([]);
+  const [documents, setDocuments] = useState<string[]>([]);
+  const [stats, setStats] = useState<SessionStats | null>(null);
+  const peerCounter = useRef(0);
 
-  const { selfId, selfName, selfColor, setConnected, upsertCursor, removeCursor, pruneStale } =
-    useCollabStore();
+  const sync = useCallback(() => {
+    setPeers(sessRef.current.getPeers());
+    setDocuments(sessRef.current.getOpenDocuments());
+    setStats(sessRef.current.getStats());
+  }, []);
 
-  // Send cursor position (throttled externally by the caller)
-  const sendCursorPosition = useCallback(
-    (x: number, y: number, selectedId: string | null = null) => {
-      if (ws.current?.readyState !== WebSocket.OPEN) return;
-      ws.current.send(
-        JSON.stringify({ type: 'cursor', userId: selfId, x, y, selectedId })
-      );
-    },
-    [selfId]
-  );
+  const addPeer = useCallback((name: string, platform: 'vr' | 'ide' | 'web' | 'mobile' = 'ide') => {
+    const id = `peer-${peerCounter.current++}`;
+    sessRef.current.addPeer({
+      peerId: id, displayName: name, color: PEER_COLORS[peerCounter.current % PEER_COLORS.length],
+      openDocuments: [], connectionQuality: 0.8 + Math.random() * 0.2, platform, joinedAt: Date.now(),
+    });
+    sync();
+  }, [sync]);
 
-  useEffect(() => {
-    if (!WS_URL || !roomId) return;
+  const removePeer = useCallback((peerId: string) => { sessRef.current.removePeer(peerId); sync(); }, [sync]);
 
-    let mounted = true;
+  const openDocument = useCallback((path: string) => {
+    sessRef.current.openDocument(path, `// ${path}\n`);
+    sync();
+  }, [sync]);
 
-    const connect = () => {
-      try {
-        const socket = new WebSocket(`${WS_URL}?room=${encodeURIComponent(roomId)}`);
-        ws.current = socket;
+  const closeDocument = useCallback((path: string) => { sessRef.current.closeDocument(path); sync(); }, [sync]);
 
-        socket.onopen = () => {
-          if (!mounted) return;
-          setConnected(true);
-          socket.send(
-            JSON.stringify({ type: 'join', userId: selfId, name: selfName, color: selfColor })
-          );
-          // Keep-alive ping every 25 s
-          pingRef.current = setInterval(() => {
-            if (socket.readyState === WebSocket.OPEN) {
-              socket.send(JSON.stringify({ type: 'ping', userId: selfId }));
-            }
-          }, 25_000);
-        };
+  const buildDemoSession = useCallback(() => {
+    sessRef.current = new CollaborationSession({
+      sessionId: 'demo-session', workspaceId: 'holoscript-studio',
+      localPeer: { peerId: 'local', displayName: 'You', color: '#00d4ff', platform: 'ide' },
+    });
+    peerCounter.current = 0;
+    sessRef.current.addPeer({ peerId: 'peer-vr', displayName: 'Alice (VR)', color: '#ff6b6b', openDocuments: ['main.holo'], connectionQuality: 0.95, platform: 'vr', joinedAt: Date.now() });
+    sessRef.current.addPeer({ peerId: 'peer-web', displayName: 'Bob (Web)', color: '#51cf66', openDocuments: ['scene.holo'], connectionQuality: 0.82, platform: 'web', joinedAt: Date.now() });
+    sessRef.current.openDocument('main.holo', 'world "Demo" {\n  orb "Sun" { position: [0, 10, 0] }\n}\n');
+    sessRef.current.openDocument('scene.holo', 'trait Glowing { emission: 1.0 }\n');
+    sync();
+  }, [sync]);
 
-        socket.onmessage = (event) => {
-          if (!mounted) return;
-          try {
-            const msg = JSON.parse(event.data as string) as {
-              type: string;
-              userId: string;
-              name?: string;
-              color?: string;
-              x?: number;
-              y?: number;
-              selectedId?: string | null;
-            };
-            if (msg.userId === selfId) return; // ignore own messages echoed back
+  const reset = useCallback(() => {
+    sessRef.current = new CollaborationSession({ sessionId: 'studio-collab', workspaceId: 'holoscript-studio', localPeer: { peerId: 'local', displayName: 'You', color: '#00d4ff', platform: 'ide' } });
+    peerCounter.current = 0;
+    sync();
+  }, [sync]);
 
-            switch (msg.type) {
-              case 'join':
-              case 'cursor':
-                upsertCursor({
-                  userId: msg.userId,
-                  name: msg.name ?? msg.userId,
-                  color: msg.color ?? '#ffffff',
-                  x: msg.x ?? 0,
-                  y: msg.y ?? 0,
-                  selectedId: msg.selectedId ?? null,
-                  lastSeen: Date.now(),
-                });
-                break;
-              case 'leave':
-                removeCursor(msg.userId);
-                break;
-            }
-          } catch {
-            // parse error — ignore
-          }
-        };
-
-        socket.onclose = () => {
-          if (!mounted) return;
-          setConnected(false);
-          if (pingRef.current) clearInterval(pingRef.current);
-          // Reconnect after 3 s
-          setTimeout(() => { if (mounted) connect(); }, 3_000);
-        };
-
-        socket.onerror = () => {
-          socket.close();
-        };
-      } catch {
-        // WebSocket not available (SSR guard)
-      }
-    };
-
-    connect();
-
-    // Prune stale cursors every 5 s
-    pruneRef.current = setInterval(() => pruneStale(), 5_000);
-
-    return () => {
-      mounted = false;
-      if (pingRef.current) clearInterval(pingRef.current);
-      if (pruneRef.current) clearInterval(pruneRef.current);
-      if (ws.current) {
-        ws.current.send(JSON.stringify({ type: 'leave', userId: selfId }));
-        ws.current.close();
-      }
-      setConnected(false);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId]);
-
-  return { sendCursorPosition };
+  return { session: sessRef.current, peers, documents, stats, addPeer, removePeer, openDocument, closeDocument, buildDemoSession, reset };
 }

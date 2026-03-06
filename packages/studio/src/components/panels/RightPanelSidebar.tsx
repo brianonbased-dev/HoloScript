@@ -3,7 +3,7 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * Mounts 20 integration panels into a collapsible right drawer.
+ * Mounts 24 integration panels into a collapsible right drawer.
  * Each tab shows its panel content. Can be used on any page within the AppShell.
  */
 
@@ -28,11 +28,15 @@ import { CameraPanel } from './CameraPanel';
 import { InventoryPanel } from './InventoryPanel';
 import { TerrainPanel } from './TerrainPanel';
 import { LightingPanel } from './LightingPanel';
+import { CinematicPanel } from './CinematicPanel';
+import { CollaborationPanel } from './CollaborationPanel';
+import { SecurityPanel } from './SecurityPanel';
+import { ScriptingPanel } from './ScriptingPanel';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting';
+export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting';
 
 interface RightPanelSidebarProps {
   /** AST nodes for safety analysis (pass from editor) */
@@ -66,6 +70,10 @@ const TABS: { id: PanelTab; icon: string; label: string; title: string; separato
   { id: 'inventory', icon: '🎒', label: 'Items', title: 'Inventory system' },
   { id: 'terrain', icon: '🏔️', label: 'Terrain', title: 'Heightmap terrain editor' },
   { id: 'lighting', icon: '💡', label: 'Light', title: 'Scene lighting manager' },
+  { id: 'cinematic', icon: '🎬', label: 'Cine', title: 'Cinematic director', separator: true },
+  { id: 'collaboration', icon: '👥', label: 'Collab', title: 'Collaboration session' },
+  { id: 'security', icon: '🔒', label: 'Sandbox', title: 'Security sandbox' },
+  { id: 'scripting', icon: '📝', label: 'REPL', title: 'HoloScript REPL' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -133,6 +141,10 @@ export function RightPanelSidebar({
             {activeTab === 'inventory' && <InventoryPanel />}
             {activeTab === 'terrain' && <TerrainPanel />}
             {activeTab === 'lighting' && <LightingPanel />}
+            {activeTab === 'cinematic' && <CinematicPanel />}
+            {activeTab === 'collaboration' && <CollaborationPanel />}
+            {activeTab === 'security' && <SecurityPanel />}
+            {activeTab === 'scripting' && <ScriptingPanel />}
           </div>
         </div>
       )}
