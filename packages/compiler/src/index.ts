@@ -1,13 +1,11 @@
 /**
  * @holoscript/compiler — Multi-Target Compiler
  *
- * Re-exports compiler pipeline from @holoscript/core.
- * 212 files, 99K LOC, 25 compile targets.
+ * 25 compile targets: Unity, Unreal, Godot, VisionOS, VRChat,
+ * Babylon, PlayCanvas, R3F, WASM, WebGPU, URDF, DTDL, SDF, USD,
+ * glTF, Android, iOS, AndroidXR, etc.
  *
- * Usage:
- *   import { compile, UnityCompiler, WebGPUCompiler } from '@holoscript/compiler';
+ * Source lives in @holoscript/core/src/compiler/ (212 files, 99K LOC).
  */
 
-// Re-export compiler subsystem from core
-// Phase 2: compiler source files will be moved here
-export * from '@holoscript/core';
+export * from '@holoscript/core/compiler/index';

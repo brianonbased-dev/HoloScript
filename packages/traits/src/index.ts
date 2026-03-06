@@ -1,13 +1,15 @@
 /**
  * @holoscript/traits — Standard Traits Library
  *
- * Re-exports all trait definitions from @holoscript/core.
- * 837 files, 194K LOC, 1,800+ trait definitions.
+ * Public API for HoloScript's 1,800+ trait definitions.
+ * Re-exports from @holoscript/core/traits barrel.
  *
  * Usage:
- *   import { Transform, Renderable, Physics } from '@holoscript/traits';
+ *   import { Transform, Renderable, PhysicsBody } from '@holoscript/traits';
+ *
+ * This is the canonical entry point for traits.
+ * Source files live in @holoscript/core/src/traits/ (Phase 2 keeps them in core
+ * due to back-imports into ../types, ../runtime, ../agents).
  */
 
-// Re-export all traits from core
-// Phase 2: traits source files will be moved here
-export * from '@holoscript/core';
+export * from '@holoscript/core/traits';

@@ -60,6 +60,10 @@
       "types": "./dist/compiler/*.d.ts",
       "import": "./dist/compiler/*.js",
       "require": "./dist/compiler/*.cjs"
+    },
+    "./traits": {
+      "types": "./dist/traits/index.d.ts",
+      "import": "./dist/traits/index.js"
     }
   },
   "scripts": {
