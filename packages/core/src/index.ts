@@ -2537,3 +2537,35 @@ export type { GateDecision, WorldSafetyPolicy, ResourceSnapshot } from './runtim
 
 export { CultureRuntime } from './runtime/CultureRuntime';
 export type { CultureEvent, CultureRuntimeConfig } from './runtime/CultureRuntime';
+
+// ── AI: Behavior Tree ──────────────────────────────────────────────
+export { BehaviorTree } from './ai/BehaviorTree';
+export type { BTContext as BTTreeContext, BTTreeDef } from './ai/BehaviorTree';
+export {
+  BTNode, SequenceNode, SelectorNode, ParallelNode,
+  InverterNode, RepeaterNode, GuardNode,
+  ActionNode, ConditionNode, WaitNode,
+} from './ai/BTNodes';
+export type { BTStatus } from './ai/BTNodes';
+export { Blackboard } from './ai/Blackboard';
+
+// ── Dialogue ───────────────────────────────────────────────────────
+export { DialogueGraph } from './dialogue/DialogueGraph';
+export type {
+  DialogueNode as DialogueGraphNode,
+  DialogueNodeType as DialogueGraphNodeType,
+  DialogueState,
+} from './dialogue/DialogueGraph';
+export { DialogueRunner } from './dialogue/DialogueRunner';
+export type {
+  DialogueNode as DialogueRunnerNode,
+  DialogueNodeType as DialogueRunnerNodeType,
+} from './dialogue/DialogueRunner';
+
+// ── ECS ────────────────────────────────────────────────────────────
+export { ECSWorld } from './traits/ECSWorldTrait';
+export type {
+  TransformComponent, VelocityComponent, ColliderComponent,
+  RenderableComponent, AgentComponent, SystemStats,
+} from './traits/ECSWorldTrait';
+export { ComponentType } from './traits/ECSWorldTrait';

@@ -13,11 +13,15 @@ import { SafetyPanel } from './SafetyPanel';
 import { MarketplacePanel } from './MarketplacePanel';
 import { PlatformPicker } from './PlatformPicker';
 import { TraitInspector } from './TraitInspector';
+import { PhysicsPreviewPanel } from './PhysicsPreviewPanel';
+import { BehaviorTreePanel } from './BehaviorTreePanel';
+import { DialoguePanel } from './DialoguePanel';
+import { ECSInspectorPanel } from './ECSInspectorPanel';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits';
+export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs';
 
 interface RightPanelSidebarProps {
   /** AST nodes for safety analysis (pass from editor) */
@@ -30,11 +34,15 @@ interface RightPanelSidebarProps {
   defaultOpen?: boolean;
 }
 
-const TABS: { id: PanelTab; icon: string; label: string; title: string }[] = [
+const TABS: { id: PanelTab; icon: string; label: string; title: string; separator?: boolean }[] = [
   { id: 'safety', icon: '🛡️', label: 'Safety', title: 'Compile-time safety analysis' },
   { id: 'marketplace', icon: '🛒', label: 'Store', title: 'Browse & install packages' },
   { id: 'platform', icon: '🎯', label: 'Platform', title: 'Target platform selection' },
   { id: 'traits', icon: '🧬', label: 'Traits', title: 'Trait inspector & culture norms' },
+  { id: 'physics', icon: '⚡', label: 'Physics', title: 'Physics simulation preview', separator: true },
+  { id: 'ai', icon: '🧠', label: 'AI', title: 'Behavior tree editor & debugger' },
+  { id: 'dialogue', icon: '💬', label: 'Dialogue', title: 'Dialogue graph editor' },
+  { id: 'ecs', icon: '🔧', label: 'ECS', title: 'Entity-Component-System inspector' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -82,18 +90,14 @@ export function RightPanelSidebar({
 
           {/* Active panel */}
           <div className="p-0">
-            {activeTab === 'safety' && (
-              <SafetyPanel nodes={safetyNodes} autoAnalyze />
-            )}
-            {activeTab === 'marketplace' && (
-              <MarketplacePanel worldId={worldId} />
-            )}
-            {activeTab === 'platform' && (
-              <PlatformPicker />
-            )}
-            {activeTab === 'traits' && (
-              <TraitInspector showCulture />
-            )}
+            {activeTab === 'safety' && <SafetyPanel nodes={safetyNodes} autoAnalyze />}
+            {activeTab === 'marketplace' && <MarketplacePanel worldId={worldId} />}
+            {activeTab === 'platform' && <PlatformPicker />}
+            {activeTab === 'traits' && <TraitInspector showCulture />}
+            {activeTab === 'physics' && <PhysicsPreviewPanel />}
+            {activeTab === 'ai' && <BehaviorTreePanel />}
+            {activeTab === 'dialogue' && <DialoguePanel />}
+            {activeTab === 'ecs' && <ECSInspectorPanel />}
           </div>
         </div>
       )}

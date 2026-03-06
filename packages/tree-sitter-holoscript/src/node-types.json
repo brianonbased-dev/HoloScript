@@ -375,6 +375,10 @@
           "named": true
         },
         {
+          "type": "effect_annotation",
+          "named": true
+        },
+        {
           "type": "parameter_list",
           "named": true
         }
@@ -875,6 +879,47 @@
     "type": "boolean",
     "named": true,
     "fields": {}
+  },
+  {
+    "type": "budget_decorator",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "budget_entry",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "budget_entry",
+    "named": true,
+    "fields": {
+      "limit": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          }
+        ]
+      },
+      "resource": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
   },
   {
     "type": "call_action",
@@ -1556,6 +1601,62 @@
     }
   },
   {
+    "type": "effect_annotation",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "effect_specifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "effect_specifier",
+    "named": true,
+    "fields": {
+      "category": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "operation": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "effects_decorator",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "effect_specifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "emit_action",
     "named": true,
     "fields": {
@@ -1997,6 +2098,10 @@
       "types": [
         {
           "type": "block",
+          "named": true
+        },
+        {
+          "type": "effect_annotation",
           "named": true
         },
         {
@@ -2761,11 +2866,19 @@
           "named": true
         },
         {
+          "type": "budget_decorator",
+          "named": true
+        },
+        {
           "type": "collider_block",
           "named": true
         },
         {
           "type": "decorator_event_handler",
+          "named": true
+        },
+        {
+          "type": "effects_decorator",
           "named": true
         },
         {
@@ -3531,11 +3644,19 @@
           "named": true
         },
         {
+          "type": "budget_decorator",
+          "named": true
+        },
+        {
           "type": "collider_block",
           "named": true
         },
         {
           "type": "decorator_event_handler",
+          "named": true
+        },
+        {
+          "type": "effects_decorator",
           "named": true
         },
         {
@@ -4714,6 +4835,14 @@
     "named": false
   },
   {
+    "type": "@budget",
+    "named": false
+  },
+  {
+    "type": "@effects",
+    "named": false
+  },
+  {
     "type": "Vector3",
     "named": false
   },
@@ -5299,6 +5428,10 @@
     "named": false
   },
   {
+    "type": "graph_query",
+    "named": false
+  },
+  {
     "type": "gravity_zone",
     "named": false
   },
@@ -5852,6 +5985,10 @@
   },
   {
     "type": "self",
+    "named": false
+  },
+  {
+    "type": "semantic_search",
     "named": false
   },
   {

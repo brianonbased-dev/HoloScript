@@ -269,7 +269,9 @@ module.exports = grammar({
       choice($.property, $.trait_inline, $.trait_with_body, $.state_block, $.networked_block,
         // Structured physics blocks in templates
         $.physics_block, $.collider_block, $.rigidbody_block, $.force_field_block, $.articulation_block,
-        $.animation, $.event_handler, $.action, $.decorator_event_handler),
+        $.animation, $.event_handler, $.action, $.decorator_event_handler,
+        // Compile-time safety annotations
+        $.effects_decorator, $.budget_decorator),
 
     // =========================================================================
     // OBJECT (Instances in scene)
@@ -303,7 +305,10 @@ module.exports = grammar({
         $.animation,
         $.event_handler,
         $.action,
-        $.decorator_event_handler
+        $.decorator_event_handler,
+        // Compile-time safety annotations
+        $.effects_decorator,
+        $.budget_decorator
       ),
 
     // =========================================================================
@@ -459,8 +464,10 @@ module.exports = grammar({
       ),
 
     // Function declaration — function foo(x: number): string { }
+    // Optional effect annotation: <physics:force, render:spawn> function foo() { }
     function_declaration: ($) =>
       seq(
+        optional($.effect_annotation),
         'function', field('name', choice($.identifier, $.string)),
         '(', optional($.parameter_list), ')',
         optional(seq(':', field('return_type', $.type))),
@@ -979,8 +986,15 @@ module.exports = grammar({
     // ACTIONS & EVENTS
     // =========================================================================
 
+    // Action declaration with optional effect annotation
+    // <physics:force> action moveNPC(target: Entity) { }
     action: ($) =>
-      seq('action', field('name', $.identifier), '(', optional($.parameter_list), ')', $.block),
+      seq(
+        optional($.effect_annotation),
+        'action', field('name', $.identifier),
+        '(', optional($.parameter_list), ')',
+        $.block
+      ),
 
     parameter_list: ($) => seq($.parameter, repeat(seq(',', $.parameter))),
 
@@ -1337,6 +1351,32 @@ module.exports = grammar({
     // Generic type — Map<string, SymbolInfo>, Promise<void>
     generic_type: ($) =>
       prec(2, seq(field('name', $.identifier), '<', sepBy($.type, ','), '>')),
+
+    // =========================================================================
+    // COMPILE-TIME SAFETY ANNOTATIONS
+    // =========================================================================
+
+    // Effect annotation — declares which effects a function/action may produce
+    // <physics:force, render:spawn> function move() { ... }
+    effect_annotation: ($) =>
+      prec(3, seq('<', sepBy($.effect_specifier, ','), '>')),
+
+    // Single effect specifier — category:operation (e.g. physics:force)
+    effect_specifier: ($) =>
+      seq(field('category', $.identifier), ':', field('operation', $.identifier)),
+
+    // @effects() decorator — declares effects on objects/templates
+    // @effects(physics:force, render:spawn)
+    effects_decorator: ($) =>
+      seq('@effects', '(', sepBy($.effect_specifier, ','), ')'),
+
+    // @budget() decorator — declares resource budget constraints
+    // @budget(particles: 500, memoryMB: 16)
+    budget_decorator: ($) =>
+      seq('@budget', '(', sepBy($.budget_entry, ','), ')'),
+
+    budget_entry: ($) =>
+      seq(field('resource', $.identifier), ':', field('limit', $.number)),
 
     // =========================================================================
     // IDENTIFIERS & COMMENTS
