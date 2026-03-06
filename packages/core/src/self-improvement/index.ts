@@ -61,15 +61,12 @@ export {
 
 export {
   SelfImproveHarvester,
-  computeRougeL,
-  createSyntaxValidatorFromParser,
-  type HarvestRecord,
-  type HarvestTrainingExample,
+  type HarvestEntry,
   type HarvesterConfig,
-  type HarvesterStats,
   type FileWriter,
-  type SyntaxValidator,
 } from './SelfImproveHarvester';
+
+export { computeRougeL } from './GRPOPromptExtractor';
 
 export {
   FocusedDPOSplitter,

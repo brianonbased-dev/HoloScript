@@ -2648,3 +2648,16 @@ export type { ProfileScope, FrameProfile, MemorySnapshot, ProfileSummary } from 
 // ── LOD ────────────────────────────────────────────────────────────
 export { LODManager } from './lod/LODManager';
 export type { LODManagerOptions } from './lod/LODManager';
+
+// ── AI / State Machine ─────────────────────────────────────────────
+export { StateMachine } from './ai/StateMachine';
+export type { StateConfig, TransitionConfig, StateAction, GuardFn } from './ai/StateMachine';
+
+// ── Input ──────────────────────────────────────────────────────────
+export { InputManager } from './input/InputManager';
+export type { KeyState, MouseState, GamepadState, InputAction, InputSnapshot, InputDeviceType } from './input/InputManager';
+
+// ── Network ────────────────────────────────────────────────────────
+export { NetworkManager } from './network/NetworkManager';
+export type { NetworkMessage, PeerInfo, MessageType } from './network/NetworkManager';
+

@@ -3,7 +3,7 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * Mounts 28 integration panels into a collapsible right drawer.
+ * Mounts 32 integration panels into a collapsible right drawer.
  * Each tab shows its panel content. Can be used on any page within the AppShell.
  */
 
@@ -36,11 +36,15 @@ import { SaveLoadPanel } from './SaveLoadPanel';
 import { ProfilerPanel } from './ProfilerPanel';
 import { CompilerPanel } from './CompilerPanel';
 import { LODPanel } from './LODPanel';
+import { StateMachinePanel } from './StateMachinePanel';
+import { InputPanel } from './InputPanel';
+import { NetworkPanel } from './NetworkPanel';
+import { CulturePanel } from './CulturePanel';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod';
+export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod' | 'statemachine' | 'input' | 'network' | 'culture';
 
 interface RightPanelSidebarProps {
   /** AST nodes for safety analysis (pass from editor) */
@@ -82,6 +86,10 @@ const TABS: { id: PanelTab; icon: string; label: string; title: string; separato
   { id: 'profiler', icon: '📊', label: 'Perf', title: 'Performance profiler' },
   { id: 'compiler', icon: '🔨', label: 'Build', title: 'Multi-target compiler' },
   { id: 'lod', icon: '🔍', label: 'LOD', title: 'Level of Detail' },
+  { id: 'statemachine', icon: '🔄', label: 'FSM', title: 'State machine', separator: true },
+  { id: 'input', icon: '🎮', label: 'Input', title: 'Input manager' },
+  { id: 'network', icon: '📡', label: 'Net', title: 'Network manager' },
+  { id: 'culture', icon: '🏛️', label: 'Culture', title: 'Culture runtime' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -157,6 +165,10 @@ export function RightPanelSidebar({
             {activeTab === 'profiler' && <ProfilerPanel />}
             {activeTab === 'compiler' && <CompilerPanel />}
             {activeTab === 'lod' && <LODPanel />}
+            {activeTab === 'statemachine' && <StateMachinePanel />}
+            {activeTab === 'input' && <InputPanel />}
+            {activeTab === 'network' && <NetworkPanel />}
+            {activeTab === 'culture' && <CulturePanel />}
           </div>
         </div>
       )}

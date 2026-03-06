@@ -7,11 +7,19 @@
  * @module traits/FluidSimulationTrait
  */
 
+// =============================================================================
+// VECTOR TYPE
+// =============================================================================
+
 export interface Vec3 {
   x: number;
   y: number;
   z: number;
 }
+
+// =============================================================================
+// PARTICLE TYPE
+// =============================================================================
 
 export interface FluidParticle {
   id: number;
@@ -23,379 +31,439 @@ export interface FluidParticle {
   mass: number;
 }
 
-export interface FluidCell {
-  particles: number[]; // particle ids
-  density: number;
-  velocity: Vec3;
+// =============================================================================
+// BOUNDARY TYPES
+// =============================================================================
+
+export interface PlaneBoundary {
+  type: 'plane';
+  position: Vec3;
+  normal: Vec3;
+  restitution: number;
 }
 
-export interface FluidSimulationConfig {
-  /** Rest density of the fluid (kg/m³) */
-  restDensity?: number;
-  /** Dynamic viscosity coefficient */
-  viscosity?: number;
-  /** Gas constant for pressure calculation */
-  gasConstant?: number;
-  /** Smoothing length for SPH kernel */
-  smoothingLength?: number;
-  /** Surface tension coefficient */
-  surfaceTension?: number;
-  /** Gravity vector */
-  gravity?: Vec3;
-  /** Bounding box */
-  bounds?: { min: Vec3; max: Vec3 };
+export interface SphereBoundary {
+  type: 'sphere';
+  position: Vec3;
+  radius: number;
+  restitution: number;
+}
+
+export interface BoxBoundary {
+  type: 'box';
+  position: Vec3;
+  size: Vec3;
+  restitution: number;
+}
+
+export type FluidBoundary = PlaneBoundary | SphereBoundary | BoxBoundary;
+
+// =============================================================================
+// SPH KERNEL FUNCTIONS
+// =============================================================================
+
+/**
+ * Poly6 smoothing kernel. Returns 0 when r > h or r < 0.
+ */
+export function poly6Kernel(r: number, h: number): number {
+  if (r < 0 || r > h) return 0;
+  const coeff = 315 / (64 * Math.PI * h ** 9);
+  return coeff * (h * h - r * r) ** 3;
 }
 
 /**
- * SPH Fluid Simulation System
- *
- * A particle-based fluid simulation using Smoothed Particle Hydrodynamics.
- * Supports density queries, pressure, viscosity, and surface tension.
+ * Spiky kernel gradient for pressure forces.
+ * Returns {x:0,y:0,z:0} when distance > h or distance is near zero.
  */
-export class FluidSimulationSystem {
-  private particles: Map<number, FluidParticle> = new Map();
-  private nextId = 0;
-  private config: Required<FluidSimulationConfig>;
-  private grid: Map<string, FluidCell> = new Map();
-  private gridCellSize: number;
+export function spikyKernelGradient(
+  dx: number,
+  dy: number,
+  dz: number,
+  h: number,
+): Vec3 {
+  const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (r > h || r < 1e-5) return { x: 0, y: 0, z: 0 };
+  const coeff = (-45 / (Math.PI * h ** 6)) * (h - r) ** 2;
+  return {
+    x: coeff * (dx / r),
+    y: coeff * (dy / r),
+    z: coeff * (dz / r),
+  };
+}
 
-  constructor(config: FluidSimulationConfig = {}) {
-    this.config = {
-      restDensity: config.restDensity ?? 1000,
-      viscosity: config.viscosity ?? 0.001,
-      gasConstant: config.gasConstant ?? 8.314,
-      smoothingLength: config.smoothingLength ?? 0.1,
-      surfaceTension: config.surfaceTension ?? 0.072,
-      gravity: config.gravity ?? { x: 0, y: -9.81, z: 0 },
-      bounds: config.bounds ?? {
-        min: { x: -10, y: -10, z: -10 },
-        max: { x: 10, y: 10, z: 10 },
-      },
-    };
-    this.gridCellSize = this.config.smoothingLength * 2;
+/**
+ * Viscosity kernel Laplacian. Returns 0 when r > h or r < 0.
+ */
+export function viscosityKernelLaplacian(r: number, h: number): number {
+  if (r < 0 || r > h) return 0;
+  return (45 / (Math.PI * h ** 6)) * (h - r);
+}
+
+// =============================================================================
+// SPATIAL HASH
+// =============================================================================
+
+/**
+ * Spatial hash for efficient neighbor queries.
+ */
+export class SpatialHash {
+  private cellSize: number;
+  private cells = new Map<string, number[]>();
+
+  constructor(cellSize: number) {
+    this.cellSize = cellSize;
   }
 
-  /**
-   * Add a fluid particle to the simulation
-   */
-  addParticle(position: Vec3, mass = 1.0): number {
+  private key(x: number, y: number, z: number): string {
+    const cx = Math.floor(x / this.cellSize);
+    const cy = Math.floor(y / this.cellSize);
+    const cz = Math.floor(z / this.cellSize);
+    return `${cx},${cy},${cz}`;
+  }
+
+  insert(id: number, pos: Vec3): void {
+    const k = this.key(pos.x, pos.y, pos.z);
+    if (!this.cells.has(k)) this.cells.set(k, []);
+    this.cells.get(k)!.push(id);
+  }
+
+  getNeighbors(pos: Vec3): number[] {
+    const cx = Math.floor(pos.x / this.cellSize);
+    const cy = Math.floor(pos.y / this.cellSize);
+    const cz = Math.floor(pos.z / this.cellSize);
+    const result: number[] = [];
+
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          const k = `${cx + dx},${cy + dy},${cz + dz}`;
+          const cell = this.cells.get(k);
+          if (cell) result.push(...cell);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  clear(): void {
+    this.cells.clear();
+  }
+}
+
+// =============================================================================
+// FLUID SIMULATION CONFIG
+// =============================================================================
+
+export interface FluidSimulationConfig {
+  restDensity?: number;
+  viscosity?: number;
+  gravity?: Vec3;
+  solverType?: 'sph' | 'flip' | 'hybrid';
+  timeStep?: number;
+  maxVelocity?: number;
+  smoothingRadius?: number;
+  gridCellSize?: number;
+  particleRadius?: number;
+  gasConstant?: number;
+  surfaceTension?: number;
+}
+
+// =============================================================================
+// FLUID SIMULATION SYSTEM
+// =============================================================================
+
+/**
+ * SPH Fluid Simulation System with boundaries, kernel functions, and spatial hashing.
+ */
+export class FluidSimulationSystem {
+  private particles = new Map<number, FluidParticle>();
+  private nextId = 0;
+  private cfg: Required<FluidSimulationConfig>;
+  private boundaries: FluidBoundary[] = [];
+  private spatialHash: SpatialHash;
+
+  constructor(config: FluidSimulationConfig = {}) {
+    this.cfg = {
+      restDensity: config.restDensity ?? 1000,
+      viscosity: config.viscosity ?? 0.001,
+      gravity: config.gravity ?? { x: 0, y: -9.81, z: 0 },
+      solverType: config.solverType ?? 'sph',
+      timeStep: config.timeStep ?? 0.016,
+      maxVelocity: config.maxVelocity ?? 100,
+      smoothingRadius: config.smoothingRadius ?? 0.04,
+      gridCellSize: config.gridCellSize ?? 0.04,
+      particleRadius: config.particleRadius ?? 0.01,
+      gasConstant: config.gasConstant ?? 8.314,
+      surfaceTension: config.surfaceTension ?? 0.072,
+    };
+    this.spatialHash = new SpatialHash(this.cfg.gridCellSize);
+  }
+
+  // ── Particle Management ────────────────────────────────────────────────
+
+  addParticle(position: Vec3, velocity?: Vec3): number {
     const id = this.nextId++;
     this.particles.set(id, {
       id,
       position: { ...position },
-      velocity: { x: 0, y: 0, z: 0 },
+      velocity: velocity ? { ...velocity } : { x: 0, y: 0, z: 0 },
       force: { x: 0, y: 0, z: 0 },
-      density: this.config.restDensity,
+      density: this.cfg.restDensity,
       pressure: 0,
-      mass,
+      mass: 1.0,
     });
-    this.updateGrid();
     return id;
   }
 
-  /**
-   * Remove a particle from the simulation
-   */
-  removeParticle(id: number): boolean {
-    const removed = this.particles.delete(id);
-    if (removed) this.updateGrid();
-    return removed;
-  }
-
-  /**
-   * Get all particles
-   */
-  getParticles(): FluidParticle[] {
-    return Array.from(this.particles.values());
-  }
-
-  /**
-   * Get a specific particle
-   */
   getParticle(id: number): FluidParticle | undefined {
     return this.particles.get(id);
   }
 
-  /**
-   * Get fluid density at a world position using SPH interpolation
-   */
-  getDensityAt(position: Vec3): number {
-    const h = this.config.smoothingLength;
-    let density = 0;
-
-    for (const particle of this.particles.values()) {
-      const dx = position.x - particle.position.x;
-      const dy = position.y - particle.position.y;
-      const dz = position.z - particle.position.z;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-      if (dist < h) {
-        // Poly6 SPH kernel
-        const q = 1 - (dist / h) ** 2;
-        density += particle.mass * (315 / (64 * Math.PI * h ** 3)) * q ** 3;
-      }
-    }
-
-    return density;
+  getParticles(): FluidParticle[] {
+    return Array.from(this.particles.values());
   }
 
-  /**
-   * Get fluid velocity at a world position using SPH interpolation
-   */
-  getVelocityAt(position: Vec3): Vec3 {
-    const h = this.config.smoothingLength;
-    const vel: Vec3 = { x: 0, y: 0, z: 0 };
-    let totalWeight = 0;
-
-    for (const particle of this.particles.values()) {
-      const dx = position.x - particle.position.x;
-      const dy = position.y - particle.position.y;
-      const dz = position.z - particle.position.z;
-      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-      if (dist < h) {
-        const q = 1 - (dist / h) ** 2;
-        const weight = q ** 3;
-        vel.x += particle.velocity.x * weight;
-        vel.y += particle.velocity.y * weight;
-        vel.z += particle.velocity.z * weight;
-        totalWeight += weight;
-      }
-    }
-
-    if (totalWeight > 0) {
-      vel.x /= totalWeight;
-      vel.y /= totalWeight;
-      vel.z /= totalWeight;
-    }
-
-    return vel;
-  }
-
-  /**
-   * Get fluid pressure at a world position
-   */
-  getPressureAt(position: Vec3): number {
-    const density = this.getDensityAt(position);
-    // Equation of state: P = k * (ρ - ρ₀)
-    return this.config.gasConstant * (density - this.config.restDensity);
-  }
-
-  /**
-   * Compute SPH densities for all particles
-   */
-  computeDensities(): void {
-    const h = this.config.smoothingLength;
-    const particles = Array.from(this.particles.values());
-
-    for (const pi of particles) {
-      let density = 0;
-
-      for (const pj of particles) {
-        const dx = pi.position.x - pj.position.x;
-        const dy = pi.position.y - pj.position.y;
-        const dz = pi.position.z - pj.position.z;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-        if (dist < h) {
-          const q = 1 - (dist / h) ** 2;
-          density += pj.mass * (315 / (64 * Math.PI * h ** 3)) * q ** 3;
-        }
-      }
-
-      pi.density = Math.max(density, this.config.restDensity * 0.01);
-      pi.pressure = this.config.gasConstant * (pi.density - this.config.restDensity);
-    }
-  }
-
-  /**
-   * Compute SPH forces (pressure + viscosity + gravity + surface tension)
-   */
-  computeForces(): void {
-    const h = this.config.smoothingLength;
-    const particles = Array.from(this.particles.values());
-
-    for (const pi of particles) {
-      pi.force = { ...this.config.gravity };
-      pi.force.x *= pi.mass;
-      pi.force.y *= pi.mass;
-      pi.force.z *= pi.mass;
-
-      for (const pj of particles) {
-        if (pi.id === pj.id) continue;
-
-        const dx = pi.position.x - pj.position.x;
-        const dy = pi.position.y - pj.position.y;
-        const dz = pi.position.z - pj.position.z;
-        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-        if (dist < h && dist > 0.001) {
-          const hd = h - dist;
-
-          // Pressure force (Spiky kernel gradient)
-          const pressureScale =
-            -pj.mass *
-            ((pi.pressure + pj.pressure) / (2 * pj.density)) *
-            (-45 / (Math.PI * h ** 6)) *
-            hd ** 2;
-
-          pi.force.x += pressureScale * (dx / dist);
-          pi.force.y += pressureScale * (dy / dist);
-          pi.force.z += pressureScale * (dz / dist);
-
-          // Viscosity force (Laplacian kernel)
-          const viscScale =
-            this.config.viscosity *
-            pj.mass *
-            (1 / pj.density) *
-            (45 / (Math.PI * h ** 6)) *
-            hd;
-
-          pi.force.x += viscScale * (pj.velocity.x - pi.velocity.x);
-          pi.force.y += viscScale * (pj.velocity.y - pi.velocity.y);
-          pi.force.z += viscScale * (pj.velocity.z - pi.velocity.z);
-        }
-      }
-    }
-  }
-
-  /**
-   * Integrate particle positions using Euler integration
-   */
-  integrate(dt: number): void {
-    const bounds = this.config.bounds;
-
-    for (const particle of this.particles.values()) {
-      // Update velocity: v += (F/m) * dt
-      particle.velocity.x += (particle.force.x / particle.mass) * dt;
-      particle.velocity.y += (particle.force.y / particle.mass) * dt;
-      particle.velocity.z += (particle.force.z / particle.mass) * dt;
-
-      // Update position: x += v * dt
-      particle.position.x += particle.velocity.x * dt;
-      particle.position.y += particle.velocity.y * dt;
-      particle.position.z += particle.velocity.z * dt;
-
-      // Boundary conditions (elastic reflection)
-      const restitution = 0.3;
-
-      if (particle.position.x < bounds.min.x) {
-        particle.position.x = bounds.min.x;
-        particle.velocity.x *= -restitution;
-      } else if (particle.position.x > bounds.max.x) {
-        particle.position.x = bounds.max.x;
-        particle.velocity.x *= -restitution;
-      }
-
-      if (particle.position.y < bounds.min.y) {
-        particle.position.y = bounds.min.y;
-        particle.velocity.y *= -restitution;
-      } else if (particle.position.y > bounds.max.y) {
-        particle.position.y = bounds.max.y;
-        particle.velocity.y *= -restitution;
-      }
-
-      if (particle.position.z < bounds.min.z) {
-        particle.position.z = bounds.min.z;
-        particle.velocity.z *= -restitution;
-      } else if (particle.position.z > bounds.max.z) {
-        particle.position.z = bounds.max.z;
-        particle.velocity.z *= -restitution;
-      }
-    }
-
-    this.updateGrid();
-  }
-
-  /**
-   * Step the simulation by one timestep
-   */
-  step(dt = 0.016): void {
-    this.computeDensities();
-    this.computeForces();
-    this.integrate(dt);
-  }
-
-  /**
-   * Get total kinetic energy of the fluid
-   */
-  getKineticEnergy(): number {
-    let energy = 0;
-    for (const particle of this.particles.values()) {
-      const v2 =
-        particle.velocity.x ** 2 + particle.velocity.y ** 2 + particle.velocity.z ** 2;
-      energy += 0.5 * particle.mass * v2;
-    }
-    return energy;
-  }
-
-  /**
-   * Get average density of all particles
-   */
-  getAverageDensity(): number {
-    if (this.particles.size === 0) return 0;
-    let total = 0;
-    for (const particle of this.particles.values()) {
-      total += particle.density;
-    }
-    return total / this.particles.size;
-  }
-
-  /**
-   * Get particle count
-   */
   getParticleCount(): number {
     return this.particles.size;
   }
 
-  /**
-   * Get simulation config
-   */
-  getConfig(): Required<FluidSimulationConfig> {
-    return { ...this.config };
+  removeParticle(id: number): boolean {
+    return this.particles.delete(id);
   }
 
-  /**
-   * Update simulation config
-   */
-  updateConfig(config: Partial<FluidSimulationConfig>): void {
-    this.config = { ...this.config, ...config };
-  }
-
-  /**
-   * Reset the simulation
-   */
-  reset(): void {
+  clearParticles(): void {
     this.particles.clear();
-    this.grid.clear();
     this.nextId = 0;
   }
 
-  // ─── Private helpers ──────────────────────────────────────────────────────
+  // ── Boundary Management ────────────────────────────────────────────────
 
-  private cellKey(x: number, y: number, z: number): string {
-    const cx = Math.floor(x / this.gridCellSize);
-    const cy = Math.floor(y / this.gridCellSize);
-    const cz = Math.floor(z / this.gridCellSize);
-    return `${cx},${cy},${cz}`;
+  addBoundary(boundary: FluidBoundary): void {
+    this.boundaries.push(boundary);
   }
 
-  private updateGrid(): void {
-    this.grid.clear();
-    for (const particle of this.particles.values()) {
-      const key = this.cellKey(
-        particle.position.x,
-        particle.position.y,
-        particle.position.z
-      );
-      if (!this.grid.has(key)) {
-        this.grid.set(key, {
-          particles: [],
-          density: 0,
-          velocity: { x: 0, y: 0, z: 0 },
-        });
+  getBoundaries(): FluidBoundary[] {
+    return [...this.boundaries];
+  }
+
+  clearBoundaries(): void {
+    this.boundaries.length = 0;
+  }
+
+  // ── Configuration ──────────────────────────────────────────────────────
+
+  getConfig(): Required<FluidSimulationConfig> {
+    return { ...this.cfg };
+  }
+
+  setConfig(partial: Partial<FluidSimulationConfig>): void {
+    Object.assign(this.cfg, partial);
+    if (partial.gridCellSize !== undefined) {
+      this.spatialHash = new SpatialHash(this.cfg.gridCellSize);
+    }
+  }
+
+  // ── Simulation Step ────────────────────────────────────────────────────
+
+  step(dt?: number): void {
+    const h = this.cfg.smoothingRadius;
+    const deltaT = dt ?? this.cfg.timeStep;
+    const particles = Array.from(this.particles.values());
+
+    // Rebuild spatial hash
+    this.spatialHash.clear();
+    for (const p of particles) {
+      this.spatialHash.insert(p.id, p.position);
+    }
+
+    // Compute densities
+    for (const pi of particles) {
+      let density = 0;
+      for (const pj of particles) {
+        const r = this.dist(pi.position, pj.position);
+        density += pj.mass * poly6Kernel(r, h);
       }
-      this.grid.get(key)!.particles.push(particle.id);
+      pi.density = Math.max(density, this.cfg.restDensity * 0.01);
+      pi.pressure = this.cfg.gasConstant * (pi.density - this.cfg.restDensity);
+    }
+
+    // Compute forces
+    for (const pi of particles) {
+      pi.force = {
+        x: this.cfg.gravity.x * pi.mass,
+        y: this.cfg.gravity.y * pi.mass,
+        z: this.cfg.gravity.z * pi.mass,
+      };
+
+      for (const pj of particles) {
+        if (pi.id === pj.id) continue;
+        const dx = pi.position.x - pj.position.x;
+        const dy = pi.position.y - pj.position.y;
+        const dz = pi.position.z - pj.position.z;
+        const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (r < h && r > 1e-5) {
+          // Pressure force
+          const grad = spikyKernelGradient(dx, dy, dz, h);
+          const pScale = -pj.mass * ((pi.pressure + pj.pressure) / (2 * pj.density));
+          pi.force.x += pScale * grad.x;
+          pi.force.y += pScale * grad.y;
+          pi.force.z += pScale * grad.z;
+
+          // Viscosity force
+          const viscLap = viscosityKernelLaplacian(r, h);
+          const vScale = this.cfg.viscosity * pj.mass * (1 / pj.density) * viscLap;
+          pi.force.x += vScale * (pj.velocity.x - pi.velocity.x);
+          pi.force.y += vScale * (pj.velocity.y - pi.velocity.y);
+          pi.force.z += vScale * (pj.velocity.z - pi.velocity.z);
+        }
+      }
+    }
+
+    // Integrate
+    for (const p of particles) {
+      p.velocity.x += (p.force.x / p.mass) * deltaT;
+      p.velocity.y += (p.force.y / p.mass) * deltaT;
+      p.velocity.z += (p.force.z / p.mass) * deltaT;
+
+      // Clamp velocity
+      const speed = Math.sqrt(p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2);
+      if (speed > this.cfg.maxVelocity) {
+        const scale = this.cfg.maxVelocity / speed;
+        p.velocity.x *= scale;
+        p.velocity.y *= scale;
+        p.velocity.z *= scale;
+      }
+
+      p.position.x += p.velocity.x * deltaT;
+      p.position.y += p.velocity.y * deltaT;
+      p.position.z += p.velocity.z * deltaT;
+    }
+
+    // Apply boundaries
+    for (const p of particles) {
+      this.applyBoundaries(p);
+    }
+  }
+
+  // ── Density Queries ────────────────────────────────────────────────────
+
+  getDensityAt(position: Vec3): number {
+    const h = this.cfg.smoothingRadius;
+    let density = 0;
+    for (const p of this.particles.values()) {
+      const r = this.dist(position, p.position);
+      density += p.mass * poly6Kernel(r, h);
+    }
+    return density;
+  }
+
+  isInsideFluid(position: Vec3): boolean {
+    return this.getDensityAt(position) > this.cfg.restDensity * 0.5;
+  }
+
+  // ── Statistics ─────────────────────────────────────────────────────────
+
+  getKineticEnergy(): number {
+    let energy = 0;
+    for (const p of this.particles.values()) {
+      energy += 0.5 * p.mass * (p.velocity.x ** 2 + p.velocity.y ** 2 + p.velocity.z ** 2);
+    }
+    return energy;
+  }
+
+  getAverageDensity(): number {
+    if (this.particles.size === 0) return 0;
+    let total = 0;
+    for (const p of this.particles.values()) total += p.density;
+    return total / this.particles.size;
+  }
+
+  reset(): void {
+    this.particles.clear();
+    this.spatialHash.clear();
+    this.boundaries.length = 0;
+    this.nextId = 0;
+  }
+
+  // ── Private Helpers ────────────────────────────────────────────────────
+
+  private dist(a: Vec3, b: Vec3): number {
+    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
+  }
+
+  private applyBoundaries(p: FluidParticle): void {
+    const pr = this.cfg.particleRadius;
+    for (const b of this.boundaries) {
+      if (b.type === 'plane') {
+        const dx = p.position.x - b.position.x;
+        const dy = p.position.y - b.position.y;
+        const dz = p.position.z - b.position.z;
+        const d = dx * b.normal.x + dy * b.normal.y + dz * b.normal.z;
+        if (d < pr) {
+          // Push out
+          p.position.x += b.normal.x * (pr - d);
+          p.position.y += b.normal.y * (pr - d);
+          p.position.z += b.normal.z * (pr - d);
+          // Reflect velocity
+          const vn = p.velocity.x * b.normal.x + p.velocity.y * b.normal.y + p.velocity.z * b.normal.z;
+          if (vn < 0) {
+            p.velocity.x -= (1 + b.restitution) * vn * b.normal.x;
+            p.velocity.y -= (1 + b.restitution) * vn * b.normal.y;
+            p.velocity.z -= (1 + b.restitution) * vn * b.normal.z;
+          }
+        }
+      } else if (b.type === 'sphere') {
+        const dx = p.position.x - b.position.x;
+        const dy = p.position.y - b.position.y;
+        const dz = p.position.z - b.position.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const maxDist = b.radius - pr;
+        if (dist > maxDist && dist > 1e-6) {
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const nz = dz / dist;
+          p.position.x = b.position.x + nx * maxDist;
+          p.position.y = b.position.y + ny * maxDist;
+          p.position.z = b.position.z + nz * maxDist;
+          const vn = p.velocity.x * nx + p.velocity.y * ny + p.velocity.z * nz;
+          if (vn > 0) {
+            p.velocity.x -= (1 + b.restitution) * vn * nx;
+            p.velocity.y -= (1 + b.restitution) * vn * ny;
+            p.velocity.z -= (1 + b.restitution) * vn * nz;
+          }
+        }
+      } else if (b.type === 'box') {
+        const halfX = b.size.x / 2;
+        const halfY = b.size.y / 2;
+        const halfZ = b.size.z / 2;
+        const limit = pr;
+
+        if (p.position.x > b.position.x + halfX - limit) {
+          p.position.x = b.position.x + halfX - limit;
+          p.velocity.x *= -b.restitution;
+        } else if (p.position.x < b.position.x - halfX + limit) {
+          p.position.x = b.position.x - halfX + limit;
+          p.velocity.x *= -b.restitution;
+        }
+
+        if (p.position.y > b.position.y + halfY - limit) {
+          p.position.y = b.position.y + halfY - limit;
+          p.velocity.y *= -b.restitution;
+        } else if (p.position.y < b.position.y - halfY + limit) {
+          p.position.y = b.position.y - halfY + limit;
+          p.velocity.y *= -b.restitution;
+        }
+
+        if (p.position.z > b.position.z + halfZ - limit) {
+          p.position.z = b.position.z + halfZ - limit;
+          p.velocity.z *= -b.restitution;
+        } else if (p.position.z < b.position.z - halfZ + limit) {
+          p.position.z = b.position.z - halfZ + limit;
+          p.velocity.z *= -b.restitution;
+        }
+      }
     }
   }
 }
