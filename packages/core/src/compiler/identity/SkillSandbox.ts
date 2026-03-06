@@ -1080,7 +1080,7 @@ export class SkillSandbox {
 
     // Check for secret patterns in output
     const secretPatterns = [
-      /(?:api[_-]?key|secret|password|token)\s*[:=]\s*['"][^'"]{8,}/i,
+      /(?:api[_-]?key|secret|password|token)["']?\s*[:=]\s*["'][^"']{8,}/i,
       /(?:AKIA|ASIA)[A-Z0-9]{16}/,  // AWS keys
       /-----BEGIN (?:RSA |EC |)PRIVATE KEY-----/,
     ];

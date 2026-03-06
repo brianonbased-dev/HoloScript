@@ -85,6 +85,11 @@ export const TRAIT_EFFECTS: Record<string, VREffect[]> = {
 
   // Sandbox (explicitly limited)
   '@sandbox':     [],  // Pure — sandboxed code should have no effects
+
+  // Culture traits (emergent agent culture)
+  '@norm_compliant':  ['agent:observe', 'agent:communicate'],  // Must observe + report norms
+  '@cultural_memory': ['state:read', 'state:write', 'state:persistent'],  // Dual memory persistence
+  '@cultural_trace':  ['state:write', 'render:spawn'],  // Spatial stigmergic markers
 };
 
 /**
