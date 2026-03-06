@@ -157,10 +157,10 @@ export function activate(context: ExtensionContext) {
     })
   );
 
-  // Register Open Marketplace command
+  // Register Open Marketplace command (pass mcpClient for orchestrator integration)
   context.subscriptions.push(
     commands.registerCommand('holoscript.openMarketplace', () => {
-      MarketplaceWebview.createOrShow(context.extensionUri);
+      MarketplaceWebview.createOrShow(context.extensionUri, mcpClient);
     })
   );
 

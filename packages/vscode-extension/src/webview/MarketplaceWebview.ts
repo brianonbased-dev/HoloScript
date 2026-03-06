@@ -1,10 +1,19 @@
 import * as vscode from 'vscode';
 import type { TraitPackage, TraitSummary, SearchResult } from '@holoscript/marketplace-api';
+import {
+  McpOrchestratorClient,
+  McpServerInfo,
+  McpToolInfo,
+  McpHealthInfo,
+  McpAgentInfo,
+} from '../services/McpOrchestratorClient';
 
 export interface MarketplaceMessage {
   command: string;
   [key: string]: unknown;
 }
+
+export type MarketplaceTab = 'traits' | 'mcpServers' | 'agentMarketplace' | 'agents';
 
 export class MarketplaceWebview {
   public static currentPanel: MarketplaceWebview | undefined;
@@ -21,12 +30,20 @@ export class MarketplaceWebview {
   private _loading: boolean = false;
   private _apiBaseUrl: string;
   private _mcpmeUrl: string;
-  private _activeTab: 'traits' | 'agents' = 'traits';
+  private _activeTab: MarketplaceTab = 'traits';
+
+  // MCP orchestrator state
+  private _mcpClient: McpOrchestratorClient;
+  private _mcpServers: McpServerInfo[] = [];
+  private _mcpHealth: McpHealthInfo = { status: 'down' };
+  private _mcpAgents: McpAgentInfo[] = [];
+  private _healthPollTimer: NodeJS.Timeout | null = null;
+  private _healthPollIntervalMs: number = 30_000;
 
   /**
    * Creates or shows the Marketplace webview panel
    */
-  public static createOrShow(extensionUri: vscode.Uri) {
+  public static createOrShow(extensionUri: vscode.Uri, mcpClient?: McpOrchestratorClient) {
     const column = vscode.ViewColumn.One;
 
     if (MarketplaceWebview.currentPanel) {
@@ -48,7 +65,11 @@ export class MarketplaceWebview {
       }
     );
 
-    MarketplaceWebview.currentPanel = new MarketplaceWebview(panel, extensionUri);
+    MarketplaceWebview.currentPanel = new MarketplaceWebview(
+      panel,
+      extensionUri,
+      mcpClient ?? new McpOrchestratorClient()
+    );
     return MarketplaceWebview.currentPanel;
   }
 
@@ -56,12 +77,21 @@ export class MarketplaceWebview {
    * Revives the panel from a persisted state
    */
   public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
-    MarketplaceWebview.currentPanel = new MarketplaceWebview(panel, extensionUri);
+    MarketplaceWebview.currentPanel = new MarketplaceWebview(
+      panel,
+      extensionUri,
+      new McpOrchestratorClient()
+    );
   }
 
-  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+  private constructor(
+    panel: vscode.WebviewPanel,
+    extensionUri: vscode.Uri,
+    mcpClient: McpOrchestratorClient
+  ) {
     this._panel = panel;
     this._extensionUri = extensionUri;
+    this._mcpClient = mcpClient;
     this._apiBaseUrl = vscode.workspace
       .getConfiguration('holoscript')
       .get('marketplaceApiUrl', 'http://localhost:3001');
@@ -84,7 +114,48 @@ export class MarketplaceWebview {
 
     // Initial search
     this._performSearch('');
+
+    // Start health polling
+    this._startHealthPolling();
   }
+
+  // ── Health polling ─────────────────────────────────────────────────────
+
+  /**
+   * Starts periodic health polling from the MCP orchestrator.
+   * Pushes health + server updates to the webview on each cycle.
+   */
+  private _startHealthPolling(): void {
+    this._pollHealth(); // immediate first poll
+
+    this._healthPollTimer = setInterval(() => {
+      this._pollHealth();
+    }, this._healthPollIntervalMs);
+  }
+
+  /** Stops the health polling timer. */
+  private _stopHealthPolling(): void {
+    if (this._healthPollTimer) {
+      clearInterval(this._healthPollTimer);
+      this._healthPollTimer = null;
+    }
+  }
+
+  /** Executes a single health poll cycle. */
+  private async _pollHealth(): Promise<void> {
+    try {
+      this._mcpHealth = await this._mcpClient.getHealth();
+    } catch {
+      this._mcpHealth = { status: 'down' };
+    }
+
+    this._postMessage({
+      command: 'mcpHealthUpdate',
+      health: this._mcpHealth,
+    });
+  }
+
+  // ── Message handler ────────────────────────────────────────────────────
 
   /**
    * Handles messages from the webview
@@ -103,27 +174,25 @@ export class MarketplaceWebview {
         await this._installTrait(message.traitId as string, message.version as string);
         break;
 
-      case 'openExternal':
+      case 'openExternal': {
         const url = message.url as string;
         if (url) {
           vscode.env.openExternal(vscode.Uri.parse(url));
         }
         break;
+      }
 
-      case 'copyToClipboard':
+      case 'copyToClipboard': {
         const text = message.text as string;
         if (text) {
           await vscode.env.clipboard.writeText(text);
           vscode.window.showInformationMessage('Copied to clipboard!');
         }
         break;
+      }
 
       case 'refresh':
-        if (this._activeTab === 'agents') {
-          await this._searchAgents(this._searchQuery);
-        } else {
-          await this._performSearch(this._searchQuery);
-        }
+        await this._refreshActiveTab();
         break;
 
       case 'filterByCategory':
@@ -133,12 +202,8 @@ export class MarketplaceWebview {
         break;
 
       case 'switchTab':
-        this._activeTab = message.tab as 'traits' | 'agents';
-        if (this._activeTab === 'agents') {
-          await this._searchAgents('');
-        } else {
-          await this._performSearch('');
-        }
+        this._activeTab = message.tab as MarketplaceTab;
+        await this._refreshActiveTab();
         break;
 
       case 'searchAgents':
@@ -148,8 +213,175 @@ export class MarketplaceWebview {
       case 'installAgent':
         await this._installAgent(message.agentId as string);
         break;
+
+      // ── MCP Servers tab messages ───────────────────────────────────
+      case 'refreshMcpServers':
+        await this._fetchMcpServers();
+        break;
+
+      case 'fetchServerTools':
+        await this._fetchServerTools(message.serverId as string);
+        break;
+
+      case 'enableServer':
+        await this._enableMcpServer(message.serverId as string);
+        break;
+
+      case 'disableServer':
+        await this._disableMcpServer(message.serverId as string);
+        break;
+
+      // ── Agent Marketplace tab messages ─────────────────────────────
+      case 'refreshAgentMarketplace':
+        await this._fetchMcpAgents();
+        break;
     }
   }
+
+  /** Refreshes content based on the currently active tab. */
+  private async _refreshActiveTab(): Promise<void> {
+    switch (this._activeTab) {
+      case 'traits':
+        await this._performSearch(this._searchQuery);
+        break;
+      case 'agents':
+        await this._searchAgents(this._searchQuery);
+        break;
+      case 'mcpServers':
+        await this._fetchMcpServers();
+        break;
+      case 'agentMarketplace':
+        await this._fetchMcpAgents();
+        break;
+    }
+  }
+
+  // ── MCP Servers methods ────────────────────────────────────────────────
+
+  /**
+   * Fetches all registered MCP servers and pushes them to the webview.
+   */
+  private async _fetchMcpServers(): Promise<void> {
+    this._loading = true;
+    this._postMessage({ command: 'loading', loading: true });
+
+    try {
+      this._mcpServers = await this._mcpClient.getServers();
+
+      this._postMessage({
+        command: 'mcpServersResult',
+        servers: this._mcpServers,
+        total: this._mcpServers.length,
+      });
+    } catch (error) {
+      this._postMessage({
+        command: 'error',
+        message: `Failed to fetch MCP servers: ${error}`,
+      });
+    } finally {
+      this._loading = false;
+      this._postMessage({ command: 'loading', loading: false });
+    }
+  }
+
+  /**
+   * Fetches detailed tools for a single MCP server.
+   */
+  private async _fetchServerTools(serverId: string): Promise<void> {
+    this._postMessage({ command: 'loading', loading: true });
+
+    try {
+      const tools: McpToolInfo[] = await this._mcpClient.getServerTools(serverId);
+
+      this._postMessage({
+        command: 'mcpServerToolsResult',
+        serverId,
+        tools,
+      });
+    } catch (error) {
+      this._postMessage({
+        command: 'error',
+        message: `Failed to fetch tools for "${serverId}": ${error}`,
+      });
+    } finally {
+      this._postMessage({ command: 'loading', loading: false });
+    }
+  }
+
+  /**
+   * Enables (installs) a server via the orchestrator.
+   */
+  private async _enableMcpServer(serverId: string): Promise<void> {
+    this._postMessage({ command: 'installing', serverId, installing: true });
+
+    try {
+      const ok = await this._mcpClient.enableServer(serverId);
+
+      if (ok) {
+        vscode.window.showInformationMessage(`MCP server "${serverId}" enabled.`);
+        // Refresh server list to show updated status
+        await this._fetchMcpServers();
+      } else {
+        vscode.window.showWarningMessage(`Failed to enable MCP server "${serverId}".`);
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Enable server failed: ${error}`);
+    } finally {
+      this._postMessage({ command: 'installing', serverId, installing: false });
+    }
+  }
+
+  /**
+   * Disables a server via the orchestrator.
+   */
+  private async _disableMcpServer(serverId: string): Promise<void> {
+    this._postMessage({ command: 'installing', serverId, installing: true });
+
+    try {
+      const ok = await this._mcpClient.disableServer(serverId);
+
+      if (ok) {
+        vscode.window.showInformationMessage(`MCP server "${serverId}" disabled.`);
+        await this._fetchMcpServers();
+      } else {
+        vscode.window.showWarningMessage(`Failed to disable MCP server "${serverId}".`);
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Disable server failed: ${error}`);
+    } finally {
+      this._postMessage({ command: 'installing', serverId, installing: false });
+    }
+  }
+
+  // ── MCP Agent Marketplace methods ──────────────────────────────────────
+
+  /**
+   * Fetches agent-protocol compatible agents from the orchestrator.
+   */
+  private async _fetchMcpAgents(): Promise<void> {
+    this._loading = true;
+    this._postMessage({ command: 'loading', loading: true });
+
+    try {
+      this._mcpAgents = await this._mcpClient.getAgents();
+
+      this._postMessage({
+        command: 'mcpAgentsResult',
+        agents: this._mcpAgents,
+        total: this._mcpAgents.length,
+      });
+    } catch (error) {
+      this._postMessage({
+        command: 'error',
+        message: `Failed to fetch MCP agents: ${error}`,
+      });
+    } finally {
+      this._loading = false;
+      this._postMessage({ command: 'loading', loading: false });
+    }
+  }
+
+  // ── Existing trait/agent methods ───────────────────────────────────────
 
   /**
    * Performs a search against the marketplace API
@@ -301,7 +533,7 @@ export class MarketplaceWebview {
 
       if (result.success) {
         vscode.window.showInformationMessage(
-          `✅ Installed agent "${result.templateName}". Program type: ${result.programType}`
+          `Installed agent "${result.templateName}". Program type: ${result.programType}`
         );
         this._postMessage({ command: 'agentInstalled', agentId });
       } else {
@@ -313,6 +545,8 @@ export class MarketplaceWebview {
       this._postMessage({ command: 'installing', agentId, installing: false });
     }
   }
+
+  // ── Webview plumbing ───────────────────────────────────────────────────
 
   /**
    * Posts a message to the webview
@@ -329,10 +563,11 @@ export class MarketplaceWebview {
   }
 
   /**
-   * Disposes the webview panel
+   * Disposes the webview panel and cleans up resources
    */
   public dispose() {
     MarketplaceWebview.currentPanel = undefined;
+    this._stopHealthPolling();
     this._panel.dispose();
     while (this._disposables.length) {
       const x = this._disposables.pop();
@@ -370,11 +605,12 @@ export class MarketplaceWebview {
     <header class="marketplace-header">
       <div class="header-left">
         <h1>
-          <span class="logo">🌀</span>
+          <span class="logo">&#x1F300;</span>
           HoloScript Marketplace
         </h1>
       </div>
       <div class="header-right">
+        <span id="mcp-health-indicator" class="health-indicator health-down" title="MCP Orchestrator: checking...">&#x25CF;</span>
         <button id="refresh-btn" class="icon-btn" title="Refresh">
           <span class="codicon codicon-refresh"></span>
         </button>
@@ -388,9 +624,9 @@ export class MarketplaceWebview {
     <div class="search-container">
       <div class="search-input-wrapper">
         <span class="codicon codicon-search search-icon"></span>
-        <input 
-          type="text" 
-          id="search-input" 
+        <input
+          type="text"
+          id="search-input"
           placeholder="Search traits..."
           autocomplete="off"
         >
@@ -402,8 +638,10 @@ export class MarketplaceWebview {
 
     <!-- Tabs -->
     <div class="categories-bar">
-      <button class="tab-btn active" data-tab="traits">🧩 Traits</button>
-      <button class="tab-btn" data-tab="agents">🤖 Agents</button>
+      <button class="tab-btn active" data-tab="traits">&#x1F9E9; Traits</button>
+      <button class="tab-btn" data-tab="mcpServers">&#x1F5A5; MCP Servers</button>
+      <button class="tab-btn" data-tab="agentMarketplace">&#x1F916; Agent Marketplace</button>
+      <button class="tab-btn" data-tab="agents">&#x1F4E6; Agent Templates</button>
       <span class="tab-separator">|</span>
       <button class="category-btn active" data-category="">All</button>
       <button class="category-btn" data-category="core">Core</button>
@@ -427,10 +665,33 @@ export class MarketplaceWebview {
           <span class="codicon codicon-package"></span>
           <p>No traits found</p>
         </div>
-        <!-- Traits will be inserted here -->
       </div>
 
-      <!-- Agent List (hidden by default) -->
+      <!-- MCP Servers List -->
+      <div id="mcp-servers-list" class="trait-list" style="display: none;">
+        <div class="loading-indicator" style="display: none;">
+          <span class="codicon codicon-loading codicon-modifier-spin"></span>
+          Loading MCP servers...
+        </div>
+        <div class="empty-state" style="display: none;">
+          <span class="codicon codicon-server"></span>
+          <p>No MCP servers registered</p>
+        </div>
+      </div>
+
+      <!-- Agent Marketplace List -->
+      <div id="agent-marketplace-list" class="trait-list" style="display: none;">
+        <div class="loading-indicator" style="display: none;">
+          <span class="codicon codicon-loading codicon-modifier-spin"></span>
+          Loading agents...
+        </div>
+        <div class="empty-state" style="display: none;">
+          <span class="codicon codicon-robot"></span>
+          <p>No agent-protocol agents found</p>
+        </div>
+      </div>
+
+      <!-- Agent Templates List (legacy) -->
       <div id="agent-list" class="trait-list" style="display: none;">
         <div class="loading-indicator" style="display: none;">
           <span class="codicon codicon-loading codicon-modifier-spin"></span>
@@ -440,7 +701,6 @@ export class MarketplaceWebview {
           <span class="codicon codicon-robot"></span>
           <p>No agents found</p>
         </div>
-        <!-- Agent cards will be inserted here -->
       </div>
 
       <!-- Trait Details Panel -->
@@ -449,7 +709,6 @@ export class MarketplaceWebview {
           <span class="codicon codicon-close"></span>
         </button>
         <div class="details-content">
-          <!-- Details will be inserted here -->
         </div>
       </div>
     </main>
@@ -459,6 +718,8 @@ export class MarketplaceWebview {
       <span id="result-count">0 traits</span>
       <span class="status-separator">|</span>
       <span id="api-status">Connected</span>
+      <span class="status-separator">|</span>
+      <span id="mcp-status">MCP: checking...</span>
     </footer>
   </div>
 

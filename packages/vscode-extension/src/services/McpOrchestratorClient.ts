@@ -11,6 +11,43 @@ interface McpRegistrationPayload {
   tools?: string[];
 }
 
+/** Represents a registered MCP server from the orchestrator registry. */
+export interface McpServerInfo {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive' | 'error';
+  tools: string[];
+  workspace?: string;
+  visibility?: 'public' | 'private';
+  lastHeartbeat?: string;
+}
+
+/** A single tool exposed by an MCP server. */
+export interface McpToolInfo {
+  name: string;
+  description?: string;
+  inputSchema?: Record<string, unknown>;
+}
+
+/** Health response from the orchestrator. */
+export interface McpHealthInfo {
+  status: 'ok' | 'degraded' | 'down';
+  uptime?: number;
+  serverCount?: number;
+  version?: string;
+}
+
+/** An agent-protocol compatible agent entry. */
+export interface McpAgentInfo {
+  id: string;
+  name: string;
+  description?: string;
+  protocol: string;
+  endpoint?: string;
+  capabilities?: string[];
+  status: 'online' | 'offline' | 'unknown';
+}
+
 export class McpOrchestratorClient {
   private readonly output = vscode.window.createOutputChannel('HoloScript MCP');
   private heartbeatTimer: NodeJS.Timeout | null = null;
@@ -143,6 +180,167 @@ export class McpOrchestratorClient {
 
   private log(message: string): void {
     this.output.appendLine(`[MCP] ${message}`);
+  }
+
+  // ── Public query methods ─────────────────────────────────────────────
+
+  /**
+   * Fetches all registered MCP servers from the orchestrator.
+   */
+  async getServers(): Promise<McpServerInfo[]> {
+    const config = this.getConfig();
+    if (!config.url || !config.apiKey) {
+      return [];
+    }
+
+    const response = await fetch(`${config.url}/servers`, {
+      headers: { 'x-mcp-api-key': config.apiKey },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch servers (${response.status})`);
+    }
+
+    const data: any = await response.json();
+    // Orchestrator may return { servers: [...] } or a plain array
+    const raw: any[] = Array.isArray(data) ? data : data.servers ?? [];
+    return raw.map((s: any) => ({
+      id: s.id ?? '',
+      name: s.name ?? s.id ?? 'Unknown',
+      status: s.status ?? 'inactive',
+      tools: Array.isArray(s.tools) ? s.tools : [],
+      workspace: s.workspace,
+      visibility: s.visibility,
+      lastHeartbeat: s.lastHeartbeat ?? s.last_heartbeat,
+    }));
+  }
+
+  /**
+   * Fetches the tools exposed by a specific server.
+   */
+  async getServerTools(serverId: string): Promise<McpToolInfo[]> {
+    const config = this.getConfig();
+    if (!config.url || !config.apiKey) {
+      return [];
+    }
+
+    const response = await fetch(
+      `${config.url}/servers/${encodeURIComponent(serverId)}/tools`,
+      { headers: { 'x-mcp-api-key': config.apiKey } }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch tools for ${serverId} (${response.status})`);
+    }
+
+    const data: any = await response.json();
+    const raw: any[] = Array.isArray(data) ? data : data.tools ?? [];
+    return raw.map((t: any) => ({
+      name: t.name ?? '',
+      description: t.description,
+      inputSchema: t.inputSchema ?? t.input_schema,
+    }));
+  }
+
+  /**
+   * Fetches health information from the orchestrator.
+   */
+  async getHealth(): Promise<McpHealthInfo> {
+    const config = this.getConfig();
+    if (!config.url) {
+      return { status: 'down' };
+    }
+
+    const response = await fetch(`${config.url}/health`);
+    if (!response.ok) {
+      return { status: 'down' };
+    }
+
+    const data: any = await response.json();
+    return {
+      status: data.status === 'ok' || data.status === 'healthy' ? 'ok'
+        : data.status === 'degraded' ? 'degraded' : 'down',
+      uptime: data.uptime,
+      serverCount: data.serverCount ?? data.server_count,
+      version: data.version,
+    };
+  }
+
+  /**
+   * Enables (installs) a server on the orchestrator.
+   */
+  async enableServer(serverId: string): Promise<boolean> {
+    const config = this.getConfig();
+    if (!config.url || !config.apiKey) {
+      return false;
+    }
+
+    const response = await fetch(
+      `${config.url}/servers/${encodeURIComponent(serverId)}/enable`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-mcp-api-key': config.apiKey,
+        },
+      }
+    );
+
+    return response.ok;
+  }
+
+  /**
+   * Disables a server on the orchestrator.
+   */
+  async disableServer(serverId: string): Promise<boolean> {
+    const config = this.getConfig();
+    if (!config.url || !config.apiKey) {
+      return false;
+    }
+
+    const response = await fetch(
+      `${config.url}/servers/${encodeURIComponent(serverId)}/disable`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-mcp-api-key': config.apiKey,
+        },
+      }
+    );
+
+    return response.ok;
+  }
+
+  /**
+   * Fetches agent-protocol compatible agents from the orchestrator.
+   */
+  async getAgents(): Promise<McpAgentInfo[]> {
+    const config = this.getConfig();
+    if (!config.url || !config.apiKey) {
+      return [];
+    }
+
+    const response = await fetch(`${config.url}/agents`, {
+      headers: { 'x-mcp-api-key': config.apiKey },
+    });
+
+    if (!response.ok) {
+      // Agents endpoint may not exist on older orchestrators
+      return [];
+    }
+
+    const data: any = await response.json();
+    const raw: any[] = Array.isArray(data) ? data : data.agents ?? [];
+    return raw.map((a: any) => ({
+      id: a.id ?? '',
+      name: a.name ?? a.id ?? 'Unknown',
+      description: a.description,
+      protocol: a.protocol ?? 'agent-protocol',
+      endpoint: a.endpoint,
+      capabilities: Array.isArray(a.capabilities) ? a.capabilities : [],
+      status: a.status ?? 'unknown',
+    }));
   }
 
   async getStatus(): Promise<{ ok: boolean; message: string }> {
