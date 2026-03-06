@@ -63,3 +63,14 @@ export {
   type FileWriter,
   type SyntaxValidator,
 } from './SelfImproveHarvester';
+
+export {
+  FocusedDPOSplitter,
+  type ASTSegment,
+  type SegmentKind,
+  type DPOPair,
+  type DPOPairMetadata,
+  type DegradationStrategy,
+  type FocusedDPOConfig,
+  type SplitterStats,
+} from './FocusedDPOSplitter';
