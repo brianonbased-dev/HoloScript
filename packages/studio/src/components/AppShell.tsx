@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
+import { RightPanelSidebar } from './panels/RightPanelSidebar';
 
 // ═══════════════════════════════════════════════════════════════════
 // Navigation Items
@@ -232,19 +233,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </aside>
 
-      {/* Main content */}
-      <main className="flex flex-1 flex-col overflow-hidden">
-        {/* Top bar with breadcrumbs */}
-        <header className="flex h-10 items-center border-b border-studio-border px-4">
-          {/* Spacer for hamburger on mobile */}
-          {isMobile && <div className="w-8 shrink-0" />}
-          <Breadcrumbs pathname={pathname} />
-        </header>
+      {/* Main content + Right panel */}
+      <main className="flex flex-1 overflow-hidden">
+        {/* Page column */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Top bar with breadcrumbs */}
+          <header className="flex h-10 items-center border-b border-studio-border px-4">
+            {/* Spacer for hamburger on mobile */}
+            {isMobile && <div className="w-8 shrink-0" />}
+            <Breadcrumbs pathname={pathname} />
+          </header>
 
-        {/* Page content */}
-        <div className="flex-1 overflow-auto">
-          {children}
+          {/* Page content */}
+          <div className="flex-1 overflow-auto">
+            {children}
+          </div>
         </div>
+
+        {/* Right panel sidebar — Safety / Marketplace / Platform / Traits */}
+        {!isMobile && <RightPanelSidebar />}
       </main>
     </div>
   );

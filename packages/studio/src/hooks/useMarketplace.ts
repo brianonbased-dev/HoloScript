@@ -11,6 +11,7 @@ import {
   createSubmission, verifySubmission, publishSubmission,
   type MarketplacePackage, type MarketplaceSubmissionType,
 } from '@holoscript/core';
+import { seedMarketplace } from '../../data/marketplace-seeds';
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -30,7 +31,7 @@ export interface UseMarketplaceReturn {
 
 let _registry: MarketplaceRegistry | null = null;
 function getRegistry(): MarketplaceRegistry {
-  if (!_registry) _registry = new MarketplaceRegistry();
+  if (!_registry) _registry = seedMarketplace(); // Auto-seed on first access
   return _registry;
 }
 

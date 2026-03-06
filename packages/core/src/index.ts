@@ -2458,7 +2458,7 @@ export {
   ALL_PLATFORMS as XR_ALL_PLATFORMS,
   PLATFORM_CAPABILITIES as XR_PLATFORM_CAPABILITIES,
   platformCategory, embodimentFor, agentBudgetFor, hasCapability,
-  resolvePlatforms, matchesPlatform, selectBlock, eliminateDeadCode,
+  resolvePlatforms, matchesPlatform, selectBlock,
   DEFAULT_EMBODIMENT,
 } from './compiler/platform/PlatformConditional';
 export type {
