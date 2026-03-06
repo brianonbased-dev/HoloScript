@@ -51,3 +51,15 @@ export {
   type VitestSuiteResult,
   type LintResult,
 } from './SelfImproveCommand';
+
+export {
+  SelfImproveHarvester,
+  computeRougeL,
+  createSyntaxValidatorFromParser,
+  type HarvestRecord,
+  type HarvestTrainingExample,
+  type HarvesterConfig,
+  type HarvesterStats,
+  type FileWriter,
+  type SyntaxValidator,
+} from './SelfImproveHarvester';

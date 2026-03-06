@@ -1,0 +1,16 @@
+{
+  "totalCycles": 13,
+  "lastCycleAt": "2026-03-06T02:07:12.285Z",
+  "lastQuality": 0.21,
+  "bestQuality": 0.49,
+  "focusRotation": [
+    "coverage",
+    "docs",
+    "complexity",
+    "all"
+  ],
+  "currentFocusIndex": 1,
+  "convergenceStreak": 2,
+  "backoffMultiplier": 1,
+  "improvements": []
+}

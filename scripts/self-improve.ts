@@ -30,6 +30,12 @@
  *   # Resume from last state
  *   npx tsx scripts/self-improve.ts --daemon --resume
  *
+ *   # Harvest training data (captures iteration tuples as JSONL)
+ *   npx tsx scripts/self-improve.ts --cycles 5 --harvest
+ *
+ *   # Daemon with harvesting enabled
+ *   npx tsx scripts/self-improve.ts --daemon --harvest
+ *
  * Environment:
  *   ANTHROPIC_API_KEY  — Required. Your Claude API key.
  *   HOLOSCRIPT_ROOT    — Optional. Defaults to this repo root.
@@ -39,6 +45,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { SelfImproveHarvester } from '../packages/core/src/self-improvement/SelfImproveHarvester';
 
 // ─── Path Resolution ─────────────────────────────────────────────────────────
 
@@ -64,6 +71,7 @@ interface Config {
   daemon: boolean;
   intervalMinutes: number;
   resume: boolean;
+  harvest: boolean;
 }
 
 interface DaemonState {
@@ -106,6 +114,7 @@ function parseArgs(): Config {
     daemon: args.includes('--daemon'),
     intervalMinutes: 15,
     resume: args.includes('--resume'),
+    harvest: args.includes('--harvest'),
   };
 
   const cyclesIdx = args.indexOf('--cycles');
@@ -275,6 +284,13 @@ function detectConvergence(state: DaemonState, newQuality: number): {
 
 // ─── Claude Agent Loop ──────────────────────────────────────────────────────
 
+/** Data captured from a single improvement cycle for harvesting */
+interface CycleHarvestData {
+  diagnoseResult: any;
+  validateResult: any;
+  toolCalls: Array<{ name: string; args: Record<string, unknown>; result: string }>;
+}
+
 async function runImprovementCycle(
   anthropic: Anthropic,
   handlers: Array<(name: string, args: Record<string, unknown>) => Promise<unknown | null>>,
@@ -283,6 +299,7 @@ async function runImprovementCycle(
   state: DaemonState,
   skillContext: string,
   focus: string,
+  harvestData?: CycleHarvestData,
 ): Promise<{ summary: string; qualityScore: number }> {
   const tools: Anthropic.Tool[] = toolDefs.map((t: any) => ({
     name: t.name,
@@ -357,6 +374,17 @@ Keep responses concise. You are a diagnosis engine, not a code editor.`;
 
       const result = await callTool(handlers, toolUse.name, input);
 
+      // Capture tool call data for harvesting
+      if (harvestData) {
+        harvestData.toolCalls.push({ name: toolUse.name, args: input, result });
+        if (toolUse.name === 'holo_self_diagnose') {
+          try { harvestData.diagnoseResult = JSON.parse(result); } catch { /* skip */ }
+        }
+        if (toolUse.name === 'holo_validate_quality') {
+          try { harvestData.validateResult = JSON.parse(result); } catch { /* skip */ }
+        }
+      }
+
       // Extract quality score if this was a validate call
       if (toolUse.name === 'holo_validate_quality') {
         try {
@@ -382,6 +410,124 @@ Keep responses concise. You are a diagnosis engine, not a code editor.`;
   return { summary: finalSummary, qualityScore };
 }
 
+// ─── Harvest Helper ──────────────────────────────────────────────────────
+
+function harvestCycleData(
+  harvester: SelfImproveHarvester,
+  harvestData: CycleHarvestData,
+  cycleNumber: number,
+  qualityScore: number,
+  focus: string,
+  convergenceConverged: boolean,
+): void {
+  // Extract the top candidate from diagnose results
+  const candidates = harvestData.diagnoseResult?.candidates ?? [];
+  const topCandidate = candidates[0];
+
+  if (!topCandidate) return;
+
+  // Build an instruction from the diagnosis focus + candidate
+  const instruction = [
+    `Self-improvement cycle targeting ${focus}:`,
+    `Analyze and test ${topCandidate.symbol} in ${topCandidate.file}`,
+    topCandidate.reason ?? '',
+  ].filter(Boolean).join(' ');
+
+  // Build output from all tool call results (summarized)
+  const outputParts: string[] = [];
+  for (const tc of harvestData.toolCalls) {
+    outputParts.push(`[${tc.name}] ${tc.result.slice(0, 500)}`);
+  }
+  const output = outputParts.join('\n\n');
+
+  // Build test_result from validate data
+  const validate = harvestData.validateResult ?? {};
+  const testResult = {
+    passed: validate.allPassing ?? false,
+    testsPassed: 0,
+    testsFailed: 0,
+    testsTotal: 0,
+    duration: 0,
+  };
+  if (validate.scores?.tests) {
+    const testsStr = validate.scores.tests.details ?? '';
+    const match = testsStr.match(/(\d+)\/(\d+)/);
+    if (match) {
+      testResult.testsPassed = parseInt(match[1], 10);
+      testResult.testsTotal = parseInt(match[2], 10);
+      testResult.testsFailed = testResult.testsTotal - testResult.testsPassed;
+    }
+  }
+
+  // Use the harvester's captureIteration by first setting up internal state
+  // via a synthetic quality report and convergence status
+  const qualityReport = qualityScore > 0 ? {
+    score: qualityScore,
+    scorePercent: Math.round(qualityScore * 100),
+    dimensions: {} as any,
+    timestamp: new Date().toISOString(),
+    status: qualityScore >= 0.9 ? 'excellent' as const :
+            qualityScore >= 0.75 ? 'good' as const :
+            qualityScore >= 0.55 ? 'fair' as const :
+            qualityScore >= 0.35 ? 'poor' as const : 'critical' as const,
+  } : null;
+
+  const convergenceStatus = {
+    converged: convergenceConverged,
+    reason: convergenceConverged ? 'plateau' as const : null,
+    iterations: cycleNumber,
+    currentScore: qualityScore,
+    bestScore: qualityScore,
+    windowAverage: qualityScore,
+    windowSlope: 0,
+    plateauCount: convergenceConverged ? 1 : 0,
+    totalImprovement: 0,
+  };
+
+  // Write directly as JSONL since the CLI agent loop differs from SelfImproveCommand
+  const harvestRecord = {
+    instruction,
+    input: [
+      `Target: ${topCandidate.symbol}`,
+      `File: ${topCandidate.file}`,
+      `Type: ${topCandidate.type}`,
+      `Priority: ${topCandidate.priority}`,
+      `Action: ${topCandidate.suggestedAction ?? 'N/A'}`,
+    ].join('\n'),
+    output,
+    metadata: {
+      source: 'self-improve-harvester' as const,
+      timestamp: Date.now(),
+      iteration: cycleNumber,
+      target_symbol: topCandidate.symbol ?? '',
+      target_file: topCandidate.file ?? '',
+      quality_score: qualityScore,
+      test_passed: testResult.passed,
+      pass_rate: testResult.testsTotal > 0
+        ? Math.round((testResult.testsPassed / testResult.testsTotal) * 10000) / 10000
+        : 0,
+      convergence_converged: convergenceConverged,
+      filter_stages_passed: ['format'],
+    },
+  };
+
+  // Run through harvester's filter pipeline via a lightweight check
+  const passesComplexity = instruction.length >= 20;
+  const passesFormat = !!topCandidate.symbol && !!topCandidate.file && output.length > 0;
+
+  if (passesComplexity && passesFormat) {
+    const line = JSON.stringify(harvestRecord) + '\n';
+    const outputFile = harvester.getOutputFile();
+    try {
+      const dir = path.dirname(outputFile);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.appendFileSync(outputFile, line, 'utf-8');
+    } catch (err: any) {
+      log(`[harvest] Write failed: ${err.message}`);
+    }
+  }
+}
+
 // ─── Daemon Loop ─────────────────────────────────────────────────────────────
 
 async function runDaemon(
@@ -390,6 +536,7 @@ async function runDaemon(
   toolDefs: any[],
   config: Config,
   skillContext: string,
+  harvester?: SelfImproveHarvester,
 ) {
   let state = config.resume ? loadDaemonState() : loadDaemonState();
   let running = true;
@@ -398,6 +545,11 @@ async function runDaemon(
   const shutdown = () => {
     log('🛑 Shutdown signal received — saving state...');
     saveDaemonState(state);
+    if (harvester) {
+      harvester.flush().catch(() => { /* best effort */ });
+      const stats = harvester.getStats();
+      log(`📊 Harvest stats: ${stats.totalAccepted} accepted / ${stats.totalCaptured} captured → ${stats.outputFile}`);
+    }
     log(`💾 State saved (${state.totalCycles} cycles, best quality: ${state.bestQuality.toFixed(3)})`);
     running = false;
   };
@@ -418,8 +570,13 @@ async function runDaemon(
     const startTime = Date.now();
 
     try {
+      // Prepare harvest data capture if harvesting is enabled
+      const harvestData: CycleHarvestData | undefined = harvester
+        ? { diagnoseResult: null, validateResult: null, toolCalls: [] }
+        : undefined;
+
       const result = await runImprovementCycle(
-        anthropic, handlers, toolDefs, config, state, skillContext, focus,
+        anthropic, handlers, toolDefs, config, state, skillContext, focus, harvestData,
       );
 
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -446,6 +603,14 @@ async function runDaemon(
       }
 
       state.lastQuality = result.qualityScore;
+
+      // Harvest training data if enabled
+      if (harvester && harvestData) {
+        harvestCycleData(
+          harvester, harvestData, state.totalCycles,
+          result.qualityScore, focus, convergence.converged,
+        );
+      }
 
       // Save state after every cycle
       saveDaemonState(state);
@@ -509,6 +674,7 @@ async function runSingleShot(
   toolDefs: any[],
   config: Config,
   skillContext: string,
+  harvester?: SelfImproveHarvester,
 ) {
   const state = loadDaemonState();
 
@@ -523,8 +689,13 @@ async function runSingleShot(
     const startTime = Date.now();
 
     try {
+      // Prepare harvest data capture if harvesting is enabled
+      const harvestData: CycleHarvestData | undefined = harvester
+        ? { diagnoseResult: null, validateResult: null, toolCalls: [] }
+        : undefined;
+
       const result = await runImprovementCycle(
-        anthropic, handlers, toolDefs, config, state, skillContext, focus,
+        anthropic, handlers, toolDefs, config, state, skillContext, focus, harvestData,
       );
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -532,6 +703,14 @@ async function runSingleShot(
       state.lastCycleAt = new Date().toISOString();
       state.lastQuality = result.qualityScore;
       if (result.qualityScore > state.bestQuality) state.bestQuality = result.qualityScore;
+
+      // Harvest training data if enabled
+      if (harvester && harvestData) {
+        harvestCycleData(
+          harvester, harvestData, state.totalCycles,
+          result.qualityScore, focus, false,
+        );
+      }
 
       saveDaemonState(state);
       appendQualityHistory({
@@ -550,6 +729,13 @@ async function runSingleShot(
       console.error(`❌ Cycle ${i + 1} failed: ${err.message}`);
       if (config.verbose) console.error(err.stack);
     }
+  }
+
+  // Flush any remaining harvest data
+  if (harvester) {
+    await harvester.flush();
+    const stats = harvester.getStats();
+    console.log(`\n📊 Harvest complete: ${stats.totalAccepted} records → ${stats.outputFile}`);
   }
 }
 
@@ -570,6 +756,7 @@ async function main() {
   console.log(`  Focus:    ${config.focus}`);
   console.log(`  Mode:     ${config.daemon ? `DAEMON (every ${config.intervalMinutes}m)` : `SINGLE (${config.cycles} cycle${config.cycles > 1 ? 's' : ''})`}`);
   console.log(`  Commit:   ${config.commit ? '✅ YES' : '❌ NO (dry run)'}`);
+  console.log(`  Harvest:  ${config.harvest ? '✅ YES (JSONL training data)' : '❌ NO'}`);
   console.log(`  Model:    ${MODEL}`);
   console.log('');
 
@@ -598,14 +785,30 @@ async function main() {
     console.log(`📊 Resuming — ${state.totalCycles} prior cycles, best quality: ${state.bestQuality.toFixed(3)}`);
   }
 
+  // Initialize harvester if --harvest flag is set
+  let harvester: SelfImproveHarvester | undefined;
+  if (config.harvest) {
+    const datasetsDir = path.join(config.rootDir, 'datasets');
+    harvester = new SelfImproveHarvester({
+      enabled: true,
+      outputDir: datasetsDir,
+      minPassRate: 0.8,
+      minInstructionLength: 20,
+      maxRougeLSimilarity: 0.7,
+      validateSyntax: true,
+      flushInterval: 10,
+    });
+    console.log(`✅ Harvester enabled → ${harvester.getOutputFile()}`);
+  }
+
   const anthropic = new Anthropic();
   console.log('✅ Claude API connected');
   console.log('');
 
   if (config.daemon) {
-    await runDaemon(anthropic, handlers, toolDefs, config, skillContext);
+    await runDaemon(anthropic, handlers, toolDefs, config, skillContext, harvester);
   } else {
-    await runSingleShot(anthropic, handlers, toolDefs, config, skillContext);
+    await runSingleShot(anthropic, handlers, toolDefs, config, skillContext, harvester);
     console.log('🏁 Self-improvement session complete.');
   }
 }

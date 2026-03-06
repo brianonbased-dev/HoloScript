@@ -1,0 +1,65 @@
+{
+  "name": "@holoscript/holo-vm",
+  "version": "0.1.0",
+  "description": "HOLO VM — HoloScript native bytecode execution engine for spatial computing",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./opcodes": {
+      "types": "./dist/opcodes.d.ts",
+      "import": "./dist/opcodes.js",
+      "require": "./dist/opcodes.cjs"
+    },
+    "./bytecode": {
+      "types": "./dist/bytecode.d.ts",
+      "import": "./dist/bytecode.js",
+      "require": "./dist/bytecode.cjs"
+    },
+    "./executor": {
+      "types": "./dist/executor.d.ts",
+      "import": "./dist/executor.js",
+      "require": "./dist/executor.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@holoscript/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "@types/node": "^24.10.1",
+    "vitest": "^4.0.18"
+  },
+  "keywords": [
+    "holoscript",
+    "vm",
+    "bytecode",
+    "spatial-computing",
+    "ecs",
+    "wasm"
+  ],
+  "author": "Brian X Base Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/Holoscript.git",
+    "directory": "packages/holo-vm"
+  }
+}
