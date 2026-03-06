@@ -1462,22 +1462,55 @@ export class HoloCompositionParser {
         } else if (this.isDomainBlockToken()) {
           composition.domainBlocks!.push(this.parseDomainBlock());
         } else if (this.check('AT')) {
-          // Handle @state, @world, and other decorators at composition level
-          this.advance(); // consume @
-          const decoratorName = this.current().value.toLowerCase();
-          this.advance(); // consume decorator name
-
-          if (decoratorName === 'state') {
-            composition.state = this.parseStateBody();
-          } else if (decoratorName === 'world' || decoratorName === 'environment') {
-            composition.environment = this.parseEnvironmentBody();
-          } else {
-            // Skip unknown decorator arguments and optional block body
-            if (this.check('LPAREN')) {
-              this.skipParens();
+          // Check for @platform(...) decorator at composition level
+          if (this.peek(1).type === 'IDENTIFIER' && this.peek(1).value.toLowerCase() === 'platform') {
+            this.advance(); // consume @
+            this.advance(); // consume 'platform'
+            const constraint = this.parsePlatformConstraint();
+            this.skipNewlines();
+            // Attach the constraint to the next block
+            if (this.check('TEMPLATE')) {
+              const tmpl = this.parseTemplate();
+              tmpl.platformConstraint = constraint;
+              composition.templates.push(tmpl);
+            } else if (this.check('OBJECT')) {
+              const obj = this.parseObject();
+              obj.platformConstraint = constraint;
+              composition.objects.push(obj);
+            } else if (this.check('NORM')) {
+              const norm = this.parseNormBlock();
+              norm.platformConstraint = constraint;
+              composition.norms!.push(norm);
+            } else if (this.check('SPATIAL_GROUP')) {
+              const grp = this.parseSpatialGroup();
+              grp.platformConstraint = constraint;
+              composition.spatialGroups.push(grp);
+            } else if (this.check('LIGHT')) {
+              const light = this.parseLight();
+              light.platformConstraint = constraint;
+              composition.lights.push(light);
+            } else {
+              // Unknown block after @platform — best-effort skip
+              if (this.check('LBRACE')) this.skipBlock();
             }
-            if (this.check('LBRACE')) {
-              this.skipBlock();
+          } else {
+            // Handle @state, @world, and other decorators at composition level
+            this.advance(); // consume @
+            const decoratorName = this.current().value.toLowerCase();
+            this.advance(); // consume decorator name
+
+            if (decoratorName === 'state') {
+              composition.state = this.parseStateBody();
+            } else if (decoratorName === 'world' || decoratorName === 'environment') {
+              composition.environment = this.parseEnvironmentBody();
+            } else {
+              // Skip unknown decorator arguments and optional block body
+              if (this.check('LPAREN')) {
+                this.skipParens();
+              }
+              if (this.check('LBRACE')) {
+                this.skipBlock();
+              }
             }
           }
         } else if (this.check('ACTION') || this.check('ASYNC')) {

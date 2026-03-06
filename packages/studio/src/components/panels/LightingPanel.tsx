@@ -1,13 +1,21 @@
 'use client';
-/** LightingPanel — Scene lighting manager */
-import React from 'react';
+/** LightingPanel — Scene lighting manager (bus-wired) */
+import React, { useCallback } from 'react';
 import { useLighting } from '../../hooks/useLighting';
+import { useStudioBus } from '../../hooks/useStudioBus';
 import type { LightType } from '@holoscript/core';
 
 const LIGHT_ICONS: Record<LightType, string> = { directional: '☀️', point: '💡', spot: '🔦' };
 
 export function LightingPanel() {
   const { lights, ambient, addLight, removeLight, toggleLight, setAmbient, buildDemoScene, reset } = useLighting();
+  const { emit } = useStudioBus();
+
+  // Wrap mutations to broadcast changes to viewport
+  const emitState = useCallback(() => {
+    // Slight delay to let React state settle
+    setTimeout(() => emit('lighting:changed', { lights, ambient }), 0);
+  }, [emit, lights, ambient]);
 
   return (
     <div className="p-3 space-y-3 text-xs">

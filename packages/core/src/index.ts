@@ -115,6 +115,7 @@ export type {
   HoloTransitionProperty,
   HoloConditionalBlock,
   HoloForEachBlock,
+  PlatformConstraint,
 } from './parser/HoloCompositionTypes';
 
 // HoloScript+ Enhanced Parser with Trait Annotations (NEW - Phase 3)
@@ -2506,6 +2507,16 @@ export type {
   PlatformCondition,
   PlatformBlock,
 } from './compiler/platform/PlatformConditional';
+
+// @platform() Compiler Mixin (Composition-level filtering)
+export {
+  PlatformConditionalCompilerMixin,
+  matchesPlatformConstraint,
+  createPlatformTarget,
+} from './compiler/PlatformConditionalCompilerMixin';
+export type {
+  CompilePlatformTarget,
+} from './compiler/PlatformConditionalCompilerMixin';
 
 // ═══════════════════════════════════════════════════════════════════
 // Culture Traits (Emergent Agent Culture)
