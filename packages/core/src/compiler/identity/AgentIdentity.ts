@@ -18,6 +18,7 @@
 
 import * as crypto from 'crypto';
 import { promisify } from 'util';
+import type { CulturalFamily, PromptDialect } from '../../traits/CultureTraits';
 
 const generateKeyPairAsync = promisify(crypto.generateKeyPair);
 
@@ -83,6 +84,28 @@ export enum WorkflowStep {
 }
 
 /**
+ * Cultural profile metadata for an agent.
+ *
+ * Carries the same dimensions as `CulturalProfileTrait` (cooperation_index,
+ * cultural_family, prompt_dialect) so they can travel inside JWT tokens and
+ * be validated by the compiler pipeline without re-parsing the composition.
+ *
+ * This is the *identity-layer* representation.  The trait-layer representation
+ * (`CulturalProfileTrait`) additionally includes `norm_set`, which is
+ * composition-level data and therefore not embedded in individual tokens.
+ */
+export interface CulturalProfileMetadata {
+  /** Willingness to cooperate, 0-1 (0 = adversarial, 1 = fully cooperative) */
+  cooperation_index: number;
+
+  /** Cultural family archetype */
+  cultural_family: CulturalFamily;
+
+  /** Prompt / communication dialect */
+  prompt_dialect: PromptDialect;
+}
+
+/**
  * Agent configuration used for checksum calculation
  */
 export interface AgentConfig {
@@ -101,6 +124,13 @@ export interface AgentConfig {
 
   /** Optional target scope (e.g., package path restriction) */
   scope?: string;
+
+  /**
+   * Optional cultural profile metadata.
+   * When present, the compiler pipeline can validate cross-agent cultural
+   * compatibility without requiring explicit trait declarations in HoloScript.
+   */
+  culturalProfile?: CulturalProfileMetadata;
 }
 
 /**
@@ -154,6 +184,13 @@ export interface IntentTokenPayload {
     execution_context?: Record<string, any>;
   };
 
+  /**
+   * Cultural profile metadata embedded in the token.
+   * Allows the compiler to perform cultural compatibility checks
+   * using only token data, without re-reading the composition.
+   */
+  cultural_profile?: CulturalProfileMetadata;
+
   /** Proof-of-Possession confirmation (JWK thumbprint) */
   cnf?: {
     jkt: string; // JWK SHA-256 thumbprint
@@ -194,6 +231,7 @@ export function calculateAgentChecksum(config: AgentConfig): AgentChecksum {
     prompt: config.prompt || '',
     tools: (config.tools || []).sort(), // Sort for determinism
     configuration: config.configuration || {},
+    culturalProfile: config.culturalProfile || null,
   };
 
   const serialized = JSON.stringify(canonical);

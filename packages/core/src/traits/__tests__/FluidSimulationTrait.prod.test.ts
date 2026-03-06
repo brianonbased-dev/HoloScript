@@ -313,8 +313,7 @@ describe('FluidSimulationSystem — multi-particle SPH interactions', () => {
     const sim = new FluidSimulationSystem({ smoothingRadius: 0.1, restDensity: 1 });
     sim.addParticle({ x: 0, y: 0, z: 0 });
     sim.addParticle({ x: 0.05, y: 0, z: 0 }); // within smoothing radius
-    // After building spatial hash via step, mid-point density should be > 0
-    sim.step();
+    // getDensityAt iterates all particles directly (no spatial hash needed)
     const densityAt = sim.getDensityAt({ x: 0.025, y: 0, z: 0 }); // midpoint
     const densityFar = sim.getDensityAt({ x: 5, y: 0, z: 0 }); // far away
     expect(densityAt).toBeGreaterThan(0);

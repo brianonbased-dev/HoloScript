@@ -4,7 +4,7 @@
  * Tests for RSA public key cryptography with hybrid RSA+AES encryption
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { RSAEncryptionTrait } from '../RSAEncryptionTrait';
 import type { RSAEncryptionConfig } from '../RSAEncryptionTrait';
 
@@ -112,7 +112,7 @@ describe('RSAEncryptionTrait', () => {
       const result = RSAEncryptionTrait.compile(config, 'web');
 
       expect(result).toContain('generateKeyPair');
-      expect(result).toContain('modulusLength: 3072');
+      expect(result).toContain('keySize = 3072');
       expect(result).toContain('SHA-384');
     });
 

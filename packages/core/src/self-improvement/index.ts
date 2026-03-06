@@ -64,6 +64,7 @@ export {
   type HarvestEntry,
   type HarvesterConfig,
   type FileWriter,
+  type AcceptedExample,
 } from './SelfImproveHarvester';
 
 export { computeRougeL } from './GRPOPromptExtractor';

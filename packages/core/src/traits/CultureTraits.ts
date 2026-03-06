@@ -11,12 +11,16 @@
  * 2. Cultural Socialization — behavior-changing norms (requires 5-layer arch)
  * 3. Cultural Persistence — cross-session continuity (requires Lifelong Team Memory)
  *
+ * Includes `cultural_profile` trait type for compile-time cultural compatibility
+ * checking between agent compositions. The compiler can detect incompatible
+ * agent team compositions before runtime via CulturalCompatibilityChecker.
+ *
  * References:
  * - IJCAI 2024: Emergence of Social Norms in Generative Agent Societies
  * - Science Advances 2025: Emergent Social Conventions in LLM Populations
  * - AAMAS 2026: Molt Dynamics in Autonomous AI Agent Populations
  *
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 // =============================================================================
@@ -233,4 +237,222 @@ export function normsByCategory(category: NormCategory): CulturalNorm[] {
 export function criticalMassForChange(norm: CulturalNorm, populationSize: number): number {
   const percentages = { weak: 0.02, moderate: 0.25, strong: 0.50 };
   return Math.ceil(populationSize * percentages[norm.strength]);
+}
+
+// =============================================================================
+// CULTURAL PROFILE TRAIT — COMPILE-TIME COMPATIBILITY CHECKING
+// =============================================================================
+
+/**
+ * Cultural family classification.
+ * Determines baseline behavioral conventions and interaction protocols.
+ * Families within the same group are generally compatible; cross-group
+ * compositions require explicit compatibility declarations.
+ */
+export type CulturalFamily =
+  | 'cooperative'     // Mutual aid, consensus-seeking, shared goals
+  | 'competitive'     // Individual achievement, ranking, resource contest
+  | 'hierarchical'    // Authority-driven, chain of command, delegated tasks
+  | 'egalitarian'     // Flat structure, equal voice, collective decision
+  | 'isolationist'    // Self-sufficient, minimal interaction, independent
+  | 'mercantile'      // Trade-oriented, value exchange, contract-based
+  | 'exploratory'     // Discovery-driven, knowledge-seeking, adaptive
+  | 'ritualistic';    // Tradition-preserving, ceremony-driven, pattern-following
+
+/**
+ * Prompt dialect — the communication style and instruction format
+ * an agent uses internally and when interacting with other agents.
+ * Mismatched dialects produce warnings (not errors) since agents
+ * can often adapt, but performance degrades.
+ */
+export type PromptDialect =
+  | 'directive'       // Command-oriented: "Do X. Then Y."
+  | 'socratic'        // Question-oriented: "What if we...? How about...?"
+  | 'narrative'       // Story-oriented: "The agent finds itself needing to..."
+  | 'structured'      // Schema-oriented: "{ task: X, priority: Y }"
+  | 'consensus'       // Proposal-oriented: "I propose we... Do you agree?"
+  | 'reactive';       // Event-oriented: "When X happens, respond with Y."
+
+/**
+ * @cultural_profile trait configuration.
+ *
+ * Declares the cultural identity of an agent so the compiler can detect
+ * incompatible team compositions at compile time. Every agent bearing
+ * this trait exposes four dimensions:
+ *
+ * 1. `cooperation_index` — numeric willingness to cooperate (0 = hostile, 1 = fully cooperative)
+ * 2. `cultural_family` — behavioral archetype classification
+ * 3. `prompt_dialect` — communication style for inter-agent messaging
+ * 4. `norm_set` — array of norm IDs this agent subscribes to
+ *
+ * Example HoloScript:
+ * ```holoscript
+ * object "TeamLeader" {
+ *   @cultural_profile {
+ *     cooperation_index: 0.9
+ *     cultural_family: "hierarchical"
+ *     prompt_dialect: "directive"
+ *     norm_set: ["no_griefing", "resource_sharing", "fair_trade"]
+ *   }
+ * }
+ * ```
+ */
+export interface CulturalProfileTrait {
+  /**
+   * Willingness to cooperate, 0-1.
+   * - 0.0 = fully adversarial (will not share, will compete)
+   * - 0.5 = neutral (situational cooperation)
+   * - 1.0 = fully cooperative (always shares, never competes)
+   *
+   * The compiler flags agent pairs whose cooperation_index delta exceeds
+   * the configurable threshold (default 0.5).
+   */
+  cooperation_index: number;
+
+  /**
+   * The cultural family this agent belongs to.
+   * Used for compile-time compatibility matrix checks.
+   */
+  cultural_family: CulturalFamily;
+
+  /**
+   * The prompt/communication dialect this agent uses.
+   * Mismatched dialects produce warnings since inter-agent
+   * communication may degrade.
+   */
+  prompt_dialect: PromptDialect;
+
+  /**
+   * Array of norm IDs this agent subscribes to.
+   * References norms from BUILTIN_NORMS or custom-registered norms.
+   * The compiler checks for contradictory norms within a composition.
+   */
+  norm_set: string[];
+}
+
+// =============================================================================
+// CULTURAL FAMILY COMPATIBILITY MATRIX
+// =============================================================================
+
+/**
+ * Compatibility rating between cultural families.
+ * - 'compatible' — agents can work together without issues
+ * - 'cautious' — agents can work together but need mediation (warning)
+ * - 'incompatible' — agents will conflict at runtime (error)
+ */
+export type CompatibilityRating = 'compatible' | 'cautious' | 'incompatible';
+
+/**
+ * Known incompatibility pairs between cultural families.
+ * This matrix is symmetric: if A is incompatible with B, then B is incompatible with A.
+ *
+ * Reasoning:
+ * - competitive + cooperative: fundamental goal misalignment
+ * - competitive + egalitarian: ranking vs. equal voice
+ * - hierarchical + egalitarian: authority vs. flat structure
+ * - isolationist + cooperative: self-sufficiency vs. mutual aid
+ * - isolationist + ritualistic: independence vs. group ceremonies
+ */
+export const CULTURAL_FAMILY_COMPATIBILITY: ReadonlyArray<{
+  familyA: CulturalFamily;
+  familyB: CulturalFamily;
+  rating: CompatibilityRating;
+  reason: string;
+}> = [
+  // Incompatible pairs
+  {
+    familyA: 'competitive', familyB: 'cooperative', rating: 'incompatible',
+    reason: 'Competitive agents pursue individual gain, cooperative agents pursue shared goals. Fundamental goal misalignment.',
+  },
+  {
+    familyA: 'hierarchical', familyB: 'egalitarian', rating: 'incompatible',
+    reason: 'Hierarchical agents expect chain of command, egalitarian agents reject authority structures.',
+  },
+  {
+    familyA: 'isolationist', familyB: 'cooperative', rating: 'incompatible',
+    reason: 'Isolationist agents refuse interaction, cooperative agents require mutual engagement.',
+  },
+
+  // Cautious pairs (can work with mediation)
+  {
+    familyA: 'competitive', familyB: 'egalitarian', rating: 'cautious',
+    reason: 'Competitive ranking conflicts with equal-voice principles. Needs mediation.',
+  },
+  {
+    familyA: 'isolationist', familyB: 'ritualistic', rating: 'cautious',
+    reason: 'Isolationist independence conflicts with group ceremony requirements. Needs mediation.',
+  },
+  {
+    familyA: 'mercantile', familyB: 'cooperative', rating: 'cautious',
+    reason: 'Mercantile agents expect value exchange, cooperative agents share freely. Needs mediation.',
+  },
+  {
+    familyA: 'competitive', familyB: 'hierarchical', rating: 'cautious',
+    reason: 'Competitive agents may challenge authority. Needs clear ranking rules.',
+  },
+  {
+    familyA: 'isolationist', familyB: 'hierarchical', rating: 'cautious',
+    reason: 'Isolationist agents resist authority. Needs minimal supervision protocols.',
+  },
+];
+
+/**
+ * Norm pairs that are mutually contradictory.
+ * If two agents in a composition subscribe to contradictory norms,
+ * the compiler emits an error.
+ */
+export const CONTRADICTORY_NORM_PAIRS: ReadonlyArray<{
+  normA: string;
+  normB: string;
+  reason: string;
+}> = [
+  {
+    normA: 'resource_sharing', normB: 'spawn_limits',
+    reason: 'Resource sharing may require spawning items, but spawn limits restrict it.',
+  },
+  // Users can extend this set via registerContradictoryNorms()
+];
+
+/**
+ * Registry for user-defined contradictory norm pairs.
+ */
+const customContradictoryNorms: Array<{ normA: string; normB: string; reason: string }> = [];
+
+/**
+ * Register a custom contradictory norm pair.
+ * The compiler will emit an error when both norms appear in a composition.
+ */
+export function registerContradictoryNorms(normA: string, normB: string, reason: string): void {
+  customContradictoryNorms.push({ normA, normB, reason });
+}
+
+/**
+ * Get all contradictory norm pairs (built-in + custom).
+ */
+export function getAllContradictoryNorms(): ReadonlyArray<{ normA: string; normB: string; reason: string }> {
+  return [...CONTRADICTORY_NORM_PAIRS, ...customContradictoryNorms];
+}
+
+/**
+ * Look up the compatibility rating between two cultural families.
+ * Returns 'compatible' if no explicit entry exists in the matrix.
+ */
+export function getFamilyCompatibility(
+  familyA: CulturalFamily,
+  familyB: CulturalFamily,
+): { rating: CompatibilityRating; reason: string } {
+  if (familyA === familyB) {
+    return { rating: 'compatible', reason: 'Same cultural family.' };
+  }
+
+  for (const entry of CULTURAL_FAMILY_COMPATIBILITY) {
+    if (
+      (entry.familyA === familyA && entry.familyB === familyB) ||
+      (entry.familyA === familyB && entry.familyB === familyA)
+    ) {
+      return { rating: entry.rating, reason: entry.reason };
+    }
+  }
+
+  return { rating: 'compatible', reason: 'No known incompatibility between these families.' };
 }

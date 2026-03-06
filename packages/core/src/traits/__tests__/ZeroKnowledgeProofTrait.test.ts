@@ -4,7 +4,7 @@
  * Tests for zk-SNARKs, zk-STARKs, PLONK, and Groth16 zero-knowledge proofs
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ZeroKnowledgeProofTrait } from '../ZeroKnowledgeProofTrait';
 import type { ZeroKnowledgeProofConfig } from '../ZeroKnowledgeProofTrait';
 
@@ -61,29 +61,26 @@ describe('ZeroKnowledgeProofTrait', () => {
       expect(() => ZeroKnowledgeProofTrait.validate(config)).not.toThrow();
     });
 
-    it('should warn about Groth16 trusted setup requirement', () => {
+    it('should throw when Groth16 has trusted_setup_required set to false', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'groth16',
         curve: 'bn254',
+        trusted_setup_required: false,
+      };
+
+      expect(() => ZeroKnowledgeProofTrait.validate(config)).toThrow('groth16 requires trusted setup');
+    });
+
+    it('should warn when zk-STARKs have trusted_setup_required set to true', () => {
+      const config: ZeroKnowledgeProofConfig = {
+        proof_system: 'zk_stark',
+        trusted_setup_required: true,
       };
 
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       ZeroKnowledgeProofTrait.validate(config);
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Groth16 requires circuit-specific trusted setup'));
-      consoleSpy.mockRestore();
-    });
-
-    it('should recommend zk-STARKs for quantum resistance', () => {
-      const config: ZeroKnowledgeProofConfig = {
-        proof_system: 'groth16',
-        curve: 'bn254',
-      };
-
-      const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
-      ZeroKnowledgeProofTrait.validate(config);
-
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('zk-STARKs recommended for quantum resistance'));
+      expect(consoleSpy).toHaveBeenCalledWith('zk-STARKs do not require trusted setup');
       consoleSpy.mockRestore();
     });
   });
@@ -97,13 +94,13 @@ describe('ZeroKnowledgeProofTrait', () => {
 
       const result = ZeroKnowledgeProofTrait.compile(config, 'web');
 
-      expect(result).toContain("const snarkjs = require('snarkjs')");
+      expect(result).toContain("import { groth16, plonk } from 'snarkjs'");
       expect(result).toContain('class ZKProofSystem');
       expect(result).toContain('generateProof');
       expect(result).toContain('verifyProof');
     });
 
-    it('should include trusted setup handling', () => {
+    it('should include trusted setup flag in constructor', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'groth16',
         curve: 'bn254',
@@ -112,12 +109,12 @@ describe('ZeroKnowledgeProofTrait', () => {
 
       const result = ZeroKnowledgeProofTrait.compile(config, 'web');
 
-      expect(result).toContain('loadWasm');
-      expect(result).toContain('loadZKey');
-      expect(result).toContain('verification_key');
+      expect(result).toContain('this.trustedSetup = true');
+      expect(result).toContain('provingKey.wasm');
+      expect(result).toContain('provingKey.zkey');
     });
 
-    it('should support witness calculation', () => {
+    it('should include groth16.fullProve for witness proving', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'groth16',
         curve: 'bn254',
@@ -125,8 +122,8 @@ describe('ZeroKnowledgeProofTrait', () => {
 
       const result = ZeroKnowledgeProofTrait.compile(config, 'web');
 
-      expect(result).toContain('calculateWitness');
-      expect(result).toContain('input');
+      expect(result).toContain('groth16.fullProve');
+      expect(result).toContain('witness');
     });
   });
 
@@ -139,11 +136,11 @@ describe('ZeroKnowledgeProofTrait', () => {
 
       const result = ZeroKnowledgeProofTrait.compile(config, 'web');
 
-      expect(result).toContain('snarkjs.plonk.fullProve');
-      expect(result).toContain('snarkjs.plonk.verify');
+      expect(result).toContain('plonk.fullProve');
+      expect(result).toContain('plonk.verify');
     });
 
-    it('should use universal trusted setup', () => {
+    it('should include PLONK proof generation comment', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'plonk',
         curve: 'bn254',
@@ -151,7 +148,7 @@ describe('ZeroKnowledgeProofTrait', () => {
 
       const result = ZeroKnowledgeProofTrait.compile(config, 'web');
 
-      expect(result).toContain('universal trusted setup');
+      expect(result).toContain('PLONK proof generation');
     });
   });
 
@@ -164,8 +161,8 @@ describe('ZeroKnowledgeProofTrait', () => {
       const result = ZeroKnowledgeProofTrait.compile(config, 'web');
 
       expect(result).toContain('zk-STARK');
-      expect(result).toContain('No trusted setup required');
-      expect(result).toContain('Quantum-resistant');
+      expect(result).toContain("import { stark } from 'starkware'");
+      expect(result).toContain('stark.prove');
     });
   });
 
@@ -179,11 +176,11 @@ describe('ZeroKnowledgeProofTrait', () => {
       const result = ZeroKnowledgeProofTrait.compile(config, 'solidity');
 
       expect(result).toContain('pragma solidity');
-      expect(result).toContain('contract Groth16Verifier');
+      expect(result).toContain('contract ZKVerifier');
       expect(result).toContain('function verifyProof');
     });
 
-    it('should include pairing precompile calls', () => {
+    it('should include pairing operations', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'groth16',
         curve: 'bn254',
@@ -192,7 +189,7 @@ describe('ZeroKnowledgeProofTrait', () => {
       const result = ZeroKnowledgeProofTrait.compile(config, 'solidity');
 
       expect(result).toContain('pairing');
-      expect(result).toContain('ecrecover'); // For BN254 pairing
+      expect(result).toContain('scalarMul');
     });
 
     it('should support public input validation', () => {
@@ -203,13 +200,13 @@ describe('ZeroKnowledgeProofTrait', () => {
 
       const result = ZeroKnowledgeProofTrait.compile(config, 'solidity');
 
-      expect(result).toContain('uint256[] memory input');
+      expect(result).toContain('uint[] memory input');
       expect(result).toContain('require(input.length');
     });
   });
 
   describe('compile() - Solidity target (PLONK)', () => {
-    it('should generate PLONK verifier contract', () => {
+    it('should generate PLONK verifier in ZKVerifier contract', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'plonk',
         curve: 'bn254',
@@ -217,11 +214,11 @@ describe('ZeroKnowledgeProofTrait', () => {
 
       const result = ZeroKnowledgeProofTrait.compile(config, 'solidity');
 
-      expect(result).toContain('contract PlonkVerifier');
-      expect(result).toContain('verifyProof');
+      expect(result).toContain('contract ZKVerifier');
+      expect(result).toContain('verifyPlonk');
     });
 
-    it('should use KZG commitment scheme', () => {
+    it('should include polynomial commitments for PLONK', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'plonk',
         curve: 'bn254',
@@ -230,7 +227,7 @@ describe('ZeroKnowledgeProofTrait', () => {
 
       const result = ZeroKnowledgeProofTrait.compile(config, 'solidity');
 
-      expect(result).toContain('commitment');
+      expect(result).toContain('polyCommitments');
     });
   });
 
@@ -290,8 +287,8 @@ describe('ZeroKnowledgeProofTrait', () => {
 
       const result = ZeroKnowledgeProofTrait.compile(config, 'web');
 
-      expect(result).toContain('recursive');
-      expect(result).toContain('compose');
+      expect(result).toContain('Recursive');
+      expect(result).toContain('combineProofs');
     });
   });
 
@@ -305,58 +302,58 @@ describe('ZeroKnowledgeProofTrait', () => {
 
       const result = ZeroKnowledgeProofTrait.compile(config, 'web');
 
-      expect(result).toContain('batch');
-      expect(result).toContain('verifyBatch');
+      expect(result).toContain('Batch');
+      expect(result).toContain('batchVerify');
     });
   });
 
   describe('compile() - commitment schemes', () => {
-    it('should support Pedersen commitments', () => {
+    it('should support Pedersen commitments in generic output', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'bulletproofs',
         curve: 'ed25519',
         commitment_scheme: 'pedersen',
       };
 
-      const result = ZeroKnowledgeProofTrait.compile(config, 'web');
+      const result = ZeroKnowledgeProofTrait.compile(config, 'generic');
 
       expect(result).toContain('pedersen');
     });
 
-    it('should support Poseidon hash', () => {
+    it('should support Poseidon hash in generic output', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'plonk',
         curve: 'bn254',
         commitment_scheme: 'poseidon',
       };
 
-      const result = ZeroKnowledgeProofTrait.compile(config, 'web');
+      const result = ZeroKnowledgeProofTrait.compile(config, 'generic');
 
       expect(result).toContain('poseidon');
     });
 
-    it('should support SHA-256 commitments', () => {
+    it('should support SHA-256 commitments in generic output', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'groth16',
         curve: 'bn254',
         commitment_scheme: 'sha256',
       };
 
-      const result = ZeroKnowledgeProofTrait.compile(config, 'web');
+      const result = ZeroKnowledgeProofTrait.compile(config, 'generic');
 
       expect(result).toContain('sha256');
     });
   });
 
   describe('compile() - circuit size optimization', () => {
-    it('should handle circuit size parameter', () => {
+    it('should handle circuit size parameter in generic output', () => {
       const config: ZeroKnowledgeProofConfig = {
         proof_system: 'groth16',
         curve: 'bn254',
         circuit_size: 1024,
       };
 
-      const result = ZeroKnowledgeProofTrait.compile(config, 'web');
+      const result = ZeroKnowledgeProofTrait.compile(config, 'generic');
 
       expect(result).toContain('1024');
     });

@@ -19,6 +19,7 @@ export {
   type AgentChecksum,
   type AgentKeyPair,
   type IntentTokenPayload,
+  type CulturalProfileMetadata,
 
   // Functions
   calculateAgentChecksum,
@@ -313,3 +314,37 @@ export {
   // Utilities
   isPostQuantumAvailable,
 } from './HybridCryptoProvider';
+
+// Spatial Memory Permission Zones
+export {
+  // Enums
+  SpatialPermission,
+
+  // Interfaces / Types
+  type GeospatialBounds,
+  type LocalBounds,
+  type NamedBounds,
+  type ZoneBounds,
+  type ZoneClassification,
+  type SpatialZone,
+  type SpatialZonePolicy,
+  type SpatialPosition,
+  type SpatialAccessAuditEntry,
+  type SpatialAccessDecision,
+  type SpatialZoneEnforcerConfig,
+
+  // Class
+  SpatialZoneEnforcer,
+
+  // Factory functions
+  createSpatialZone,
+  createGeospatialZone,
+  createLocalZone,
+  createNamedZone,
+  createZonePolicy,
+  createSpatialZoneEnforcer,
+
+  // Singleton
+  getSpatialZoneEnforcer,
+  resetSpatialZoneEnforcer,
+} from './SpatialMemoryZones';

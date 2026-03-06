@@ -340,4 +340,44 @@ export const BUILTIN_CONSTRAINTS: TraitConstraint[] = [
     message:
       'URDF robot models define their own visual hierarchy and conflict with particle emitters.',
   },
+
+  // =============================================================================
+  // CULTURAL PROFILE TRAIT CONSTRAINTS
+  // =============================================================================
+
+  // norm_compliant requires cultural_profile — agents must declare cultural identity
+  // before they can be subject to norm compliance checking
+  {
+    type: 'requires',
+    source: 'norm_compliant',
+    targets: ['cultural_profile'],
+    message:
+      'Norm compliance requires a cultural_profile to define the agent\'s cultural identity.',
+    suggestion:
+      'Add @cultural_profile with cooperation_index, cultural_family, prompt_dialect, and norm_set.',
+  },
+
+  // cultural_memory requires cultural_profile — cultural memory storage needs
+  // a cultural identity context to organize episodic and stigmergic memories
+  {
+    type: 'requires',
+    source: 'cultural_memory',
+    targets: ['cultural_profile'],
+    message:
+      'Cultural memory requires a cultural_profile to contextualize memory storage.',
+    suggestion:
+      'Add @cultural_profile before using @cultural_memory on an agent.',
+  },
+
+  // cultural_profile conflicts with isolationist + networked combination
+  // (isolationist agents should not be networked — contradicts their nature)
+  {
+    type: 'conflicts',
+    source: 'cultural_trace',
+    targets: ['invisible'],
+    message:
+      'Cultural traces (stigmergic markers) must be visible for other agents to perceive them.',
+    suggestion:
+      'Remove @invisible from objects bearing @cultural_trace, or use a visible marker.',
+  },
 ];

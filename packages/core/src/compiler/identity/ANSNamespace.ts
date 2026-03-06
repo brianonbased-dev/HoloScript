@@ -139,6 +139,7 @@ export type CompilerName =
   | 'vrchat'
   // xr
   | 'openxr'
+  | 'openxr-spatial-entities'
   | 'visionos'
   | 'ar'
   | 'android-xr'
@@ -207,6 +208,7 @@ export const ANSCapabilityPath = {
 
   // ── xr ───────────────────────────────────────────────────────────────
   OPENXR: '/compile/xr/openxr',
+  OPENXR_SPATIAL_ENTITIES: '/compile/xr/openxr-spatial-entities',
   VISIONOS: '/compile/xr/visionos',
   AR: '/compile/xr/ar',
   ANDROID_XR: '/compile/xr/android-xr',
@@ -278,6 +280,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   'vrchat': ANSDomain.SOCIAL_VR,
   // xr
   'openxr': ANSDomain.XR,
+  'openxr-spatial-entities': ANSDomain.XR,
   'visionos': ANSDomain.XR,
   'ar': ANSDomain.XR,
   'android-xr': ANSDomain.XR,
@@ -332,6 +335,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   'godot': ANSCapabilityPath.GODOT,
   'vrchat': ANSCapabilityPath.VRCHAT,
   'openxr': ANSCapabilityPath.OPENXR,
+  'openxr-spatial-entities': ANSCapabilityPath.OPENXR_SPATIAL_ENTITIES,
   'visionos': ANSCapabilityPath.VISIONOS,
   'ar': ANSCapabilityPath.AR,
   'android-xr': ANSCapabilityPath.ANDROID_XR,

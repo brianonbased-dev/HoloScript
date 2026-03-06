@@ -252,6 +252,28 @@ export class TraitDependencyGraph {
       requires: ['crdt-room'],
       conflicts: [],
     });
+
+    // Cultural profile traits — compile-time cultural compatibility checking
+    this.registerTrait({
+      name: 'cultural_profile',
+      requires: [],
+      conflicts: [],
+    });
+    this.registerTrait({
+      name: 'norm_compliant',
+      requires: ['cultural_profile'],
+      conflicts: [],
+    });
+    this.registerTrait({
+      name: 'cultural_memory',
+      requires: ['cultural_profile'],
+      conflicts: [],
+    });
+    this.registerTrait({
+      name: 'cultural_trace',
+      requires: [],
+      conflicts: [],
+    });
   }
 
   // ===========================================================================

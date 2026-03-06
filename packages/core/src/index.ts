@@ -2661,3 +2661,14 @@ export type { KeyState, MouseState, GamepadState, InputAction, InputSnapshot, In
 export { NetworkManager } from './network/NetworkManager';
 export type { NetworkMessage, PeerInfo, MessageType } from './network/NetworkManager';
 
+// ── Animation Timeline ─────────────────────────────────────────────
+export { Timeline } from './animation/Timeline';
+export type { TimelineMode, TimelineEntry, TimelineConfig } from './animation/Timeline';
+
+// ── Scene Manager ──────────────────────────────────────────────────
+export { SceneManager } from './scene/SceneManager';
+export type { SavedScene, SceneListEntry } from './scene/SceneManager';
+
+// ── Asset Registry ─────────────────────────────────────────────────
+export { AssetRegistry } from './assets/AssetRegistry';
+export type { AssetEvent, AssetEventType, CacheEntry, RegistryConfig } from './assets/AssetRegistry';

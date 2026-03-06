@@ -12,6 +12,8 @@
 
 import { getRBAC, ResourceType, type AccessDecision } from './identity/AgentRBAC';
 import { WorkflowStep } from './identity/AgentIdentity';
+import type { CulturalProfileMetadata } from './identity/AgentIdentity';
+import type { CulturalCompatibilityResult } from './CulturalCompatibilityChecker';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import {
   CapabilityRBAC,
@@ -89,6 +91,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   'GodotCompiler': 'godot',
   'VRChatCompiler': 'vrchat',
   'OpenXRCompiler': 'openxr',
+  'OpenXRSpatialEntitiesCompiler': 'openxr-spatial-entities',
   'VisionOSCompiler': 'visionos',
   'ARCompiler': 'ar',
   'AndroidXRCompiler': 'android-xr',

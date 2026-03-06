@@ -7,6 +7,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SelfImproveIO } from './SelfImproveCommand';
+import type { QualityReport } from './QualityScore';
+import type { ConvergenceStatus } from './ConvergenceDetector';
 
 // =============================================================================
 // TYPES
@@ -39,6 +41,21 @@ export interface FileWriter {
   append(filePath: string, content: string): Promise<void>;
   appendSync(filePath: string, content: string): void;
   ensureDir(dirPath: string): void;
+}
+
+/** Accepted training example in Alpaca format */
+export interface AcceptedExample {
+  instruction: string;
+  input: string;
+  output: string;
+  metadata: {
+    source: string;
+    timestamp: number;
+    quality_score: number;
+    test_passed: boolean;
+    pass_rate: number;
+    filter_stages_passed: string[];
+  };
 }
 
 // =============================================================================
@@ -82,6 +99,11 @@ export class SelfImproveHarvester {
   private fileIndex: number = 0;
   private fileWriter: FileWriter;
   private entries: HarvestEntry[] = [];
+  private totalCaptured: number = 0;
+  private totalAccepted: number = 0;
+  private totalRejected: number = 0;
+  private acceptedExamples: AcceptedExample[] = [];
+  private pendingFlush: string[] = [];
 
   constructor(
     config: Partial<HarvesterConfig> = {},
@@ -166,8 +188,22 @@ export class SelfImproveHarvester {
     };
   }
 
-  getStats(): { entryCount: number; currentFile: string; fileIndex: number } {
-    return { entryCount: this.entryCount, currentFile: this.currentFile, fileIndex: this.fileIndex };
+  getStats(): {
+    entryCount: number;
+    currentFile: string;
+    fileIndex: number;
+    totalCaptured: number;
+    totalAccepted: number;
+    totalRejected: number;
+  } {
+    return {
+      entryCount: this.entryCount,
+      currentFile: this.currentFile,
+      fileIndex: this.fileIndex,
+      totalCaptured: this.totalCaptured,
+      totalAccepted: this.totalAccepted,
+      totalRejected: this.totalRejected,
+    };
   }
 
   getEntries(): HarvestEntry[] {
@@ -178,5 +214,74 @@ export class SelfImproveHarvester {
     const fp = filePath ?? this.currentFile;
     if (!fs.existsSync(fp)) return [];
     return fs.readFileSync(fp, 'utf-8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  }
+
+  /**
+   * Capture a quality iteration for training data.
+   * Converts a QualityReport into an Alpaca-format training example.
+   */
+  captureIteration(
+    qualityReport: QualityReport,
+    convergenceStatus: ConvergenceStatus | null,
+  ): AcceptedExample {
+    this.totalCaptured++;
+
+    const passRate = qualityReport.dimensions.testPassRate.raw;
+    const testPassed = passRate >= 0.5;
+    const qualityScore = qualityReport.score;
+
+    const filterStages: string[] = [];
+    if (testPassed) filterStages.push('test-pass-rate');
+    if (qualityReport.dimensions.coverage.raw >= 0.5) filterStages.push('coverage');
+    if (qualityReport.dimensions.typeCheckPass.raw >= 0.5) filterStages.push('type-check');
+    if (qualityReport.dimensions.lintScore.raw >= 0.5) filterStages.push('lint');
+    if (qualityReport.dimensions.circuitBreakerHealth.raw >= 0.5) filterStages.push('circuit-breaker');
+
+    const example: AcceptedExample = {
+      instruction: `Improve HoloScript code quality (score: ${qualityReport.scorePercent.toFixed(1)}%)`,
+      input: JSON.stringify(qualityReport.dimensions),
+      output: `Quality: ${qualityReport.status}, Score: ${qualityReport.score.toFixed(4)}${
+        convergenceStatus ? `, Converged: ${convergenceStatus.converged}` : ''
+      }`,
+      metadata: {
+        source: 'self-improve-harvester',
+        timestamp: Date.now(),
+        quality_score: qualityScore,
+        test_passed: testPassed,
+        pass_rate: passRate,
+        filter_stages_passed: filterStages,
+      },
+    };
+
+    if (qualityScore >= this.config.minQualityScore) {
+      this.acceptedExamples.push(example);
+      this.totalAccepted++;
+    } else {
+      this.totalRejected++;
+    }
+
+    const line = JSON.stringify(example);
+    this.pendingFlush.push(line);
+
+    return example;
+  }
+
+  /** Flush pending entries to disk */
+  async flush(): Promise<void> {
+    if (this.pendingFlush.length === 0) return;
+    this.fileWriter.ensureDir(this.config.outputDir);
+    const content = this.pendingFlush.join('\n') + '\n';
+    await this.fileWriter.append(this.currentFile, content);
+    this.pendingFlush = [];
+  }
+
+  /** Get all accepted training examples in Alpaca format */
+  getAcceptedExamples(): AcceptedExample[] {
+    return [...this.acceptedExamples];
+  }
+
+  /** Serialize accepted examples as JSONL */
+  toJSONL(): string {
+    return this.acceptedExamples.map(e => JSON.stringify(e)).join('\n');
   }
 }

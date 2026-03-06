@@ -3,7 +3,7 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * Mounts 32 integration panels into a collapsible right drawer.
+ * Mounts 36 integration panels into a collapsible right drawer.
  * Each tab shows its panel content. Can be used on any page within the AppShell.
  */
 
@@ -40,11 +40,15 @@ import { StateMachinePanel } from './StateMachinePanel';
 import { InputPanel } from './InputPanel';
 import { NetworkPanel } from './NetworkPanel';
 import { CulturePanel } from './CulturePanel';
+import { TimelinePanel } from './TimelinePanel';
+import { ScenePanel } from './ScenePanel';
+import { AssetPanel } from './AssetPanel';
+import { ReactiveStatePanel } from './ReactiveStatePanel';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod' | 'statemachine' | 'input' | 'network' | 'culture';
+export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod' | 'statemachine' | 'input' | 'network' | 'culture' | 'timeline' | 'scene' | 'assets' | 'state';
 
 interface RightPanelSidebarProps {
   /** AST nodes for safety analysis (pass from editor) */
@@ -90,6 +94,10 @@ const TABS: { id: PanelTab; icon: string; label: string; title: string; separato
   { id: 'input', icon: '🎮', label: 'Input', title: 'Input manager' },
   { id: 'network', icon: '📡', label: 'Net', title: 'Network manager' },
   { id: 'culture', icon: '🏛️', label: 'Culture', title: 'Culture runtime' },
+  { id: 'timeline', icon: '⏱️', label: 'Time', title: 'Animation timeline', separator: true },
+  { id: 'scene', icon: '🎭', label: 'Scene', title: 'Scene manager' },
+  { id: 'assets', icon: '📦', label: 'Assets', title: 'Asset browser' },
+  { id: 'state', icon: '⚡', label: 'State', title: 'Reactive state' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -169,6 +177,10 @@ export function RightPanelSidebar({
             {activeTab === 'input' && <InputPanel />}
             {activeTab === 'network' && <NetworkPanel />}
             {activeTab === 'culture' && <CulturePanel />}
+            {activeTab === 'timeline' && <TimelinePanel />}
+            {activeTab === 'scene' && <ScenePanel />}
+            {activeTab === 'assets' && <AssetPanel />}
+            {activeTab === 'state' && <ReactiveStatePanel />}
           </div>
         </div>
       )}

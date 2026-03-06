@@ -4,7 +4,7 @@
  * Tests for code signing and signature verification with Ed25519 and ECDSA
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { PackageSigningTrait } from '../PackageSigningTrait';
 import type { PackageSigningConfig } from '../PackageSigningTrait';
 

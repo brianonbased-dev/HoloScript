@@ -4,7 +4,7 @@
  * Tests for VM, WASM, iframe, Web Worker, and container-based sandboxing
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { SandboxExecutionTrait } from '../SandboxExecutionTrait';
 import type { SandboxExecutionConfig } from '../SandboxExecutionTrait';
 
