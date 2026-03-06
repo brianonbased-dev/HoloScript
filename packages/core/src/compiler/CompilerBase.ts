@@ -444,6 +444,40 @@ export abstract class CompilerBase implements ICompiler {
       this.validateOutputPath(agentToken, outputPath);
     }
   }
+
+  // =========================================================================
+  // Cultural compatibility validation
+  // =========================================================================
+
+  /**
+   * Extract cultural profile from an agent token.
+   *
+   * @param agentToken - JWT token string (capability tokens do not carry cultural profiles)
+   * @returns The cultural profile if present, or null
+   */
+  protected extractCulturalProfile(agentToken?: string): CulturalProfileMetadata | null {
+    if (!agentToken) return null;
+    return this.rbac.extractCulturalProfile(agentToken);
+  }
+
+  /**
+   * Validate cultural compatibility across multiple agent tokens.
+   *
+   * Subclasses can call this during multi-agent compilation to ensure
+   * all participating agents have compatible cultural profiles before
+   * proceeding with code generation.
+   *
+   * @param agentTokens - Map of agent name to JWT token
+   * @param normSets    - Optional map of agent name to norm_set arrays
+   * @returns Cultural compatibility result, or null if fewer than 2 agents
+   *          have cultural profiles
+   */
+  protected validateCulturalCompatibility(
+    agentTokens: Map<string, string>,
+    normSets?: Map<string, string[]>,
+  ): CulturalCompatibilityResult | null {
+    return this.rbac.validateCulturalCompatibility(agentTokens, normSets);
+  }
 }
 
 /**

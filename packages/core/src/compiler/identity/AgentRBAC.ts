@@ -16,8 +16,14 @@ import {
   AgentPermission,
   WorkflowStep,
   IntentTokenPayload,
+  type CulturalProfileMetadata,
 } from './AgentIdentity';
 import { AgentTokenIssuer, getTokenIssuer } from './AgentTokenIssuer';
+import {
+  CulturalCompatibilityChecker,
+  type AgentCulturalEntry,
+  type CulturalCompatibilityResult,
+} from '../CulturalCompatibilityChecker';
 
 /**
  * Resource types in the compiler pipeline
@@ -317,6 +323,63 @@ export class AgentRBAC {
   getWorkflowStep(token: string): WorkflowStep | null {
     const result = this.tokenIssuer.verifyToken(token);
     return result.valid && result.payload ? result.payload.intent.workflow_step : null;
+  }
+
+  // ===========================================================================
+  // CULTURAL PROFILE INTEGRATION
+  // ===========================================================================
+
+  /**
+   * Extract cultural profile metadata from an agent's JWT token.
+   *
+   * @param token - Agent JWT token
+   * @returns The cultural profile if present, or null
+   */
+  extractCulturalProfile(token: string): CulturalProfileMetadata | null {
+    const result = this.tokenIssuer.verifyToken(token);
+    if (!result.valid || !result.payload) return null;
+    return result.payload.cultural_profile ?? null;
+  }
+
+  /**
+   * Validate cultural compatibility across multiple agent tokens.
+   *
+   * Extracts cultural profiles from each provided token and runs them
+   * through the CulturalCompatibilityChecker.  Agents whose tokens
+   * do not contain cultural profiles are silently skipped.
+   *
+   * @param agentTokens - Map of agent name to JWT token
+   * @param normSets    - Optional map of agent name to norm_set arrays
+   *                      (norms are composition-level, not token-level)
+   * @returns Cultural compatibility result, or null if fewer than 2 agents
+   *          have cultural profiles
+   */
+  validateCulturalCompatibility(
+    agentTokens: Map<string, string>,
+    normSets?: Map<string, string[]>,
+  ): CulturalCompatibilityResult | null {
+    const entries: AgentCulturalEntry[] = [];
+
+    for (const [name, token] of agentTokens) {
+      const profile = this.extractCulturalProfile(token);
+      if (profile) {
+        entries.push({
+          name,
+          profile: {
+            cooperation_index: profile.cooperation_index,
+            cultural_family: profile.cultural_family,
+            prompt_dialect: profile.prompt_dialect,
+            norm_set: normSets?.get(name) ?? [],
+          },
+        });
+      }
+    }
+
+    // Need at least 2 agents for pairwise checking
+    if (entries.length < 2) return null;
+
+    const checker = new CulturalCompatibilityChecker();
+    return checker.check(entries);
   }
 }
 

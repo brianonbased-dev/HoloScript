@@ -11,7 +11,7 @@ describe('FluidSimulationSystem', () => {
   let fluid: FluidSimulationSystem;
 
   beforeEach(() => {
-    fluid = new FluidSimulationSystem({ smoothingLength: 0.5 });
+    fluid = new FluidSimulationSystem({ smoothingRadius: 0.5 });
   });
 
   // ── Construction ──────────────────────────────────────────────────────────
@@ -73,30 +73,25 @@ describe('FluidSimulationSystem', () => {
     expect(density).toBe(0);
   });
 
-  it('getDensityAt returns > 0 when particle is within smoothing length', () => {
-    fluid.addParticle({ x: 0, y: 0, z: 0 }, 1.0);
+  it('getDensityAt returns > 0 when particle is within smoothing radius', () => {
+    fluid.addParticle({ x: 0, y: 0, z: 0 });
     const density = fluid.getDensityAt({ x: 0.1, y: 0, z: 0 });
     expect(density).toBeGreaterThan(0);
   });
 
-  it('getPressureAt returns positive when above rest density', () => {
-    // Pack many particles close together to create pressure
+  it('density increases with more nearby particles', () => {
+    // Pack many particles close together to increase density
     for (let i = 0; i < 5; i++) {
-      fluid.addParticle({ x: i * 0.01, y: 0, z: 0 }, 1.0);
+      fluid.addParticle({ x: i * 0.01, y: 0, z: 0 });
     }
-    // One of them should be above rest density
-    fluid.computeDensities();
-    const pressure = fluid.getPressureAt({ x: 0.02, y: 0, z: 0 });
-    // Pressure should reflect SPH density calculation
-    expect(typeof pressure).toBe('number');
+    const densityNear = fluid.getDensityAt({ x: 0.02, y: 0, z: 0 });
+    const densityFar = fluid.getDensityAt({ x: 100, y: 0, z: 0 });
+    expect(densityNear).toBeGreaterThan(densityFar);
   });
 
-  it('getVelocityAt returns zero vector when no neighbors', () => {
+  it('isInsideFluid returns false when no nearby particles', () => {
     fluid.addParticle({ x: 100, y: 100, z: 100 });
-    const vel = fluid.getVelocityAt({ x: 0, y: 0, z: 0 });
-    expect(vel.x).toBe(0);
-    expect(vel.y).toBe(0);
-    expect(vel.z).toBe(0);
+    expect(fluid.isInsideFluid({ x: 0, y: 0, z: 0 })).toBe(false);
   });
 
   // ── Simulation ────────────────────────────────────────────────────────────
@@ -109,28 +104,33 @@ describe('FluidSimulationSystem', () => {
     expect(after.y).toBeLessThan(before.y); // gravity pulls down
   });
 
-  it('computeDensities sets densities on particles', () => {
+  it('step computes densities on particles', () => {
     const id = fluid.addParticle({ x: 0, y: 0, z: 0 });
-    fluid.computeDensities();
+    // step(0) computes densities/forces without moving particles
+    fluid.step(0);
     const p = fluid.getParticle(id)!;
     expect(p.density).toBeGreaterThan(0);
   });
 
-  it('computeForces applies gravity force', () => {
-    const id = fluid.addParticle({ x: 0, y: 0, z: 0 }, 1.0);
-    fluid.computeDensities();
-    fluid.computeForces();
+  it('step applies gravity force', () => {
+    const id = fluid.addParticle({ x: 0, y: 0, z: 0 });
+    // step(0) computes forces (including gravity) without integrating
+    fluid.step(0);
     const p = fluid.getParticle(id)!;
     // Gravity contribution: F = m * g.y (negative = downward)
     expect(p.force.y).toBeLessThan(0);
   });
 
-  it('boundary reflection prevents particles from escaping bounds', () => {
-    const customFluid = new FluidSimulationSystem({
-      bounds: { min: { x: -1, y: -1, z: -1 }, max: { x: 1, y: 1, z: 1 } },
+  it('box boundary prevents particles from escaping', () => {
+    const customFluid = new FluidSimulationSystem({ smoothingRadius: 0.5 });
+    customFluid.addBoundary({
+      type: 'box',
+      position: { x: 0, y: 0, z: 0 },
+      size: { x: 2, y: 2, z: 2 },
+      restitution: 0.5,
     });
     const id = customFluid.addParticle({ x: 0, y: 0.9, z: 0 });
-    // Step many times — particle should stay within bounds
+    // Step many times — particle should stay within box bounds
     for (let i = 0; i < 100; i++) customFluid.step(0.016);
     const p = customFluid.getParticle(id)!;
     expect(p.position.y).toBeGreaterThanOrEqual(-1);
@@ -155,8 +155,8 @@ describe('FluidSimulationSystem', () => {
     expect(fluid.getAverageDensity()).toBe(0);
   });
 
-  it('updateConfig changes settings', () => {
-    fluid.updateConfig({ viscosity: 0.1 });
+  it('setConfig changes settings', () => {
+    fluid.setConfig({ viscosity: 0.1 });
     expect(fluid.getConfig().viscosity).toBe(0.1);
   });
 
