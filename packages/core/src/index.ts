@@ -2426,3 +2426,109 @@ export type {
   CodecDetectOptions,
   RegisteredCodec,
 } from './gpu/codecs';
+
+// ═══════════════════════════════════════════════════════════════════
+// Compile-Time Safety System (Sprint CXXIV - 5-Layer Safety Stack)
+// ═══════════════════════════════════════════════════════════════════
+
+export { EffectRow } from './types/effects';
+export type { VREffect, VREffectCategory } from './types/effects';
+
+export { TRAIT_EFFECTS, inferFromTraits, inferFromBuiltins, knownTraits, knownBuiltins } from './compiler/safety/EffectInference';
+export type { InferredEffects } from './compiler/safety/EffectInference';
+
+export { checkEffects, isSafeTraitSet, dangerLevel } from './compiler/safety/EffectChecker';
+
+export { analyzeResourceBudget, PLATFORM_BUDGETS } from './compiler/safety/ResourceBudgetAnalyzer';
+export type { ResourceCategory, ResourceBudgetResult } from './compiler/safety/ResourceBudgetAnalyzer';
+
+export { checkCapabilities, TRUST_LEVELS } from './compiler/safety/CapabilityTypes';
+
+export { runSafetyPass, quickSafetyCheck } from './compiler/safety/CompilerSafetyPass';
+export type { SafetyPassResult, SafetyPassOptions, EffectASTNode } from './compiler/safety/CompilerSafetyPass';
+
+export type { SafetyReport, SafetyVerdict, SafetyCertificate } from './compiler/safety/SafetyReport';
+
+// ═══════════════════════════════════════════════════════════════════
+// @platform() Conditional Compilation (Cross-Reality)
+// ═══════════════════════════════════════════════════════════════════
+
+export {
+  PLATFORM_CATEGORIES as XR_PLATFORM_CATEGORIES,
+  ALL_PLATFORMS as XR_ALL_PLATFORMS,
+  PLATFORM_CAPABILITIES as XR_PLATFORM_CAPABILITIES,
+  platformCategory, embodimentFor, agentBudgetFor, hasCapability,
+  resolvePlatforms, matchesPlatform, selectBlock, eliminateDeadCode,
+  DEFAULT_EMBODIMENT,
+} from './compiler/platform/PlatformConditional';
+export type {
+  PlatformTarget as XRPlatformTarget,
+  PlatformCategory as XRPlatformCategory,
+  PlatformCapabilities as XRPlatformCapabilities,
+  EmbodimentType,
+  PlatformCondition,
+  PlatformBlock,
+} from './compiler/platform/PlatformConditional';
+
+// ═══════════════════════════════════════════════════════════════════
+// Culture Traits (Emergent Agent Culture)
+// ═══════════════════════════════════════════════════════════════════
+
+export {
+  BUILTIN_NORMS, getBuiltinNorm, normsByCategory, criticalMassForChange,
+} from './traits/CultureTraits';
+export type { CulturalNorm, NormCategory, NormEnforcement } from './traits/CultureTraits';
+
+export { CulturalMemory } from './agents/CulturalMemory';
+export type { EpisodicMemory, StigmergicTrace, SemanticSOP } from './agents/CulturalMemory';
+
+export { NormEngine } from './agents/NormEngine';
+export type { NormViolation, NormProposal } from './agents/NormEngine';
+
+// ═══════════════════════════════════════════════════════════════════
+// Cross-Reality Handoff + Authenticated CRDTs
+// ═══════════════════════════════════════════════════════════════════
+
+export {
+  negotiateHandoff, createMVCPayload, estimatePayloadSize, validatePayloadBudget,
+} from './agents/CrossRealityHandoff';
+export type {
+  MVCPayload, DecisionEntry, TaskState as AgentTaskState,
+  UserPreferences, SpatialContext, EvidenceEntry,
+  DeviceCapabilities, HandoffNegotiation,
+} from './agents/CrossRealityHandoff';
+
+export {
+  signOperation, verifyOperation, LWWRegister, GCounter, ORSet,
+  createAgentState, setRegister, getRegister, incrementCounter, getCounter, mergeStates,
+} from './agents/AuthenticatedCRDT';
+export type { DID, SignedOperation, AuthenticatedAgentState } from './agents/AuthenticatedCRDT';
+
+// ═══════════════════════════════════════════════════════════════════
+// Marketplace Pipeline
+// ═══════════════════════════════════════════════════════════════════
+
+export {
+  createSubmission, verifySubmission, publishSubmission, submissionSummary,
+} from './marketplace/MarketplaceSubmission';
+export type {
+  MarketplacePackage, MarketplaceSubmission as MarketplaceSubmissionType,
+  PackageMetadata as MarketplacePackageMetadata, Publisher, ContentCategory,
+  SemanticVersion, SubmissionStatus, SubmissionConfig,
+} from './marketplace/MarketplaceSubmission';
+
+export { MarketplaceRegistry } from './marketplace/MarketplaceRegistry';
+export type {
+  PackageListing, SearchFilters as MarketplaceSearchFilters,
+  SearchResult as MarketplaceSearchResult, InstallManifest,
+} from './marketplace/MarketplaceRegistry';
+
+// ═══════════════════════════════════════════════════════════════════
+// HoloLand Runtime Integration
+// ═══════════════════════════════════════════════════════════════════
+
+export { gateCheck, RuntimeMonitor } from './runtime/SafetyGate';
+export type { GateDecision, WorldSafetyPolicy, ResourceSnapshot } from './runtime/SafetyGate';
+
+export { CultureRuntime } from './runtime/CultureRuntime';
+export type { CultureEvent, CultureRuntimeConfig } from './runtime/CultureRuntime';

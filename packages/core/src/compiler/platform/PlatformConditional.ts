@@ -170,7 +170,7 @@ export function resolvePlatforms(condition: PlatformCondition): PlatformTarget[]
       const caps = PLATFORM_CAPABILITIES[p];
       return condition.requireCapabilities!.every(cap => {
         const val = caps[cap];
-        return typeof val === 'boolean' ? val : val > 0;
+        return typeof val === 'boolean' ? val : Number(val) > 0;
       });
     }));
   }
@@ -223,5 +223,5 @@ export function agentBudgetFor(target: PlatformTarget): number {
  */
 export function hasCapability(target: PlatformTarget, cap: keyof PlatformCapabilities): boolean {
   const val = PLATFORM_CAPABILITIES[target][cap];
-  return typeof val === 'boolean' ? val : val > 0;
+  return typeof val === 'boolean' ? val : Number(val) > 0;
 }
