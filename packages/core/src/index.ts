@@ -2518,6 +2518,14 @@ export type {
   CompilePlatformTarget,
 } from './compiler/PlatformConditionalCompilerMixin';
 
+// Cross-Reality Composition Validator (static analysis)
+export { CrossRealityValidator } from './compiler/CrossRealityValidator';
+export type {
+  CrossRealityValidationIssue,
+  CrossRealityValidationResult,
+  HandoffPathAnalysis,
+} from './compiler/CrossRealityValidator';
+
 // ═══════════════════════════════════════════════════════════════════
 // Culture Traits (Emergent Agent Culture)
 // ═══════════════════════════════════════════════════════════════════
