@@ -3,7 +3,7 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * 41 panels organized with domain-aware filtering, search, favorites,
+ * 44 panels organized with domain-aware filtering, search, favorites,
  * and category headers for cross-domain navigation.
  */
 
@@ -49,12 +49,15 @@ import { BusMonitorPanel } from './BusMonitorPanel';
 import { PresetsPanel } from './PresetsPanel';
 import { EventLogPanel } from './EventLogPanel';
 import { AgentCyclePanel } from './AgentCyclePanel';
+import { CharacterPanel } from './CharacterPanel';
+import { ModelViewerPanel } from './ModelViewerPanel';
+import { TemplateGalleryPanel } from './TemplateGalleryPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod' | 'statemachine' | 'input' | 'network' | 'culture' | 'timeline' | 'scene' | 'assets' | 'state' | 'viewport' | 'bus' | 'presets' | 'events' | 'agent';
+export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod' | 'statemachine' | 'input' | 'network' | 'culture' | 'timeline' | 'scene' | 'assets' | 'state' | 'viewport' | 'bus' | 'presets' | 'events' | 'agent' | 'character' | 'models' | 'templates';
 
 interface RightPanelSidebarProps {
   safetyNodes?: EffectASTNode[];
@@ -86,6 +89,7 @@ const TAB_CATEGORIES: TabCategory[] = [
       { id: 'marketplace', icon: '🛒', label: 'Store', title: 'Browse & install packages' },
       { id: 'platform', icon: '🎯', label: 'Platform', title: 'Target platform selection' },
       { id: 'traits', icon: '🧬', label: 'Traits', title: 'Trait inspector & culture norms' },
+      { id: 'templates', icon: '🎨', label: 'Templates', title: 'Scene & character template gallery' },
     ],
   },
   {
@@ -114,6 +118,7 @@ const TAB_CATEGORIES: TabCategory[] = [
       { id: 'lighting', icon: '💡', label: 'Lighting', title: 'Scene lighting manager' },
       { id: 'procgen', icon: '🌋', label: 'ProcGen', title: 'Procedural generation' },
       { id: 'lod', icon: '🔍', label: 'LOD', title: 'Level of Detail' },
+      { id: 'models', icon: '📐', label: 'Models', title: '3D model browser & preview' },
     ],
   },
   {
@@ -124,6 +129,7 @@ const TAB_CATEGORIES: TabCategory[] = [
       { id: 'pathfinding', icon: '🗺️', label: 'Path', title: 'A* pathfinding visualizer' },
       { id: 'statemachine', icon: '🔄', label: 'FSM', title: 'State machine editor' },
       { id: 'input', icon: '🕹️', label: 'Input', title: 'Input mapping' },
+      { id: 'character', icon: '🧑‍🎨', label: 'Character', title: 'Avatar & NPC customizer' },
     ],
   },
   {
@@ -258,6 +264,9 @@ export function RightPanelSidebar({
             {activeTab === 'presets' && <PresetsPanel />}
             {activeTab === 'events' && <EventLogPanel />}
             {activeTab === 'agent' && <AgentCyclePanel />}
+            {activeTab === 'character' && <CharacterPanel />}
+            {activeTab === 'models' && <ModelViewerPanel />}
+            {activeTab === 'templates' && <TemplateGalleryPanel />}
           </div>
         </div>
       )}

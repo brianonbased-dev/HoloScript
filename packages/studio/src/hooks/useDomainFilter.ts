@@ -21,27 +21,32 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
     'collaboration','security','scripting','saveload','profiler','compiler',
     'lod','statemachine','input','network','culture','timeline','scene',
     'assets','state','viewport','bus','presets','events','agent',
+    'character','models','templates',
   ]),
   game: new Set<PanelTab>([
     'safety','physics','ai','dialogue','ecs','animation','audio','combat',
     'pathfinding','particles','camera','inventory','terrain','lighting',
     'input','statemachine','compiler','lod','scene','assets','viewport',
     'profiler','saveload','timeline','scripting',
+    'character','models','templates',
   ]),
   vr: new Set<PanelTab>([
     'safety','physics','ecs','animation','audio','shader','camera',
     'lighting','input','collaboration','scene','assets','viewport',
     'profiler','multiplayer','platform','lod','compiler','saveload',
+    'models','templates',
   ]),
   iot: new Set<PanelTab>([
     'safety','ecs','network','state','compiler','assets','scene',
     'platform','traits','collaboration','security','profiler','saveload',
     'scripting','bus','events','agent',
+    'templates',
   ]),
   film: new Set<PanelTab>([
     'safety','animation','audio','shader','camera','lighting','cinematic',
     'particles','scene','assets','viewport','timeline','profiler',
     'saveload','compiler','lod',
+    'character','models','templates',
   ]),
 };
 
