@@ -1,12 +1,24 @@
 'use client';
-/** LODPanel — Level of Detail manager */
-import React from 'react';
+/** LODPanel — Level of Detail manager (bus-wired) */
+import React, { useCallback } from 'react';
 import { useLOD } from '../../hooks/useLOD';
+import { useStudioBus } from '../../hooks/useStudioBus';
 
 const LOD_COLORS = ['#22c55e', '#eab308', '#f97316', '#ef4444'];
 
 export function LODPanel() {
   const { objects, cameraPos, setCameraPos, buildDemo, update, reset } = useLOD();
+  const { emit } = useStudioBus();
+
+  const setCameraPosAndEmit = useCallback((pos: [number, number, number]) => {
+    setCameraPos(pos);
+    emit('lod:updated', { cameraPos: pos, objectCount: objects.length });
+  }, [setCameraPos, emit, objects.length]);
+
+  const updateAndEmit = useCallback(() => {
+    update();
+    emit('lod:updated', { action: 'recalculated', objectCount: objects.length });
+  }, [update, emit, objects.length]);
 
   return (
     <div className="p-3 space-y-3 text-xs">
@@ -17,7 +29,7 @@ export function LODPanel() {
 
       <div className="flex gap-1.5 flex-wrap">
         <button onClick={buildDemo} className="px-2 py-1 bg-studio-accent/20 text-studio-accent rounded hover:bg-studio-accent/30 transition">🌲 Demo</button>
-        <button onClick={update} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition">↻ Update</button>
+        <button onClick={updateAndEmit} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 transition">↻ Update</button>
         <button onClick={reset} className="px-2 py-1 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition">↺</button>
       </div>
 
@@ -29,7 +41,7 @@ export function LODPanel() {
             <div key={axis} className="flex items-center gap-1">
               <span className="text-studio-muted text-[10px] w-3">{axis}</span>
               <input type="range" min={-100} max={100} value={cameraPos[i]}
-                onChange={e => { const p = [...cameraPos] as [number, number, number]; p[i] = Number(e.target.value); setCameraPos(p); }}
+                onChange={e => { const p = [...cameraPos] as [number, number, number]; p[i] = Number(e.target.value); setCameraPosAndEmit(p); }}
                 className="flex-1 h-1 accent-studio-accent" />
               <span className="text-studio-text font-mono text-[10px] w-6 text-right">{cameraPos[i]}</span>
             </div>

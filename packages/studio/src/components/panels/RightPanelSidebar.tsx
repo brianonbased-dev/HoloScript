@@ -3,7 +3,7 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * Mounts 40 integration panels into a collapsible right drawer.
+ * Mounts 41 integration panels into a collapsible right drawer.
  * Each tab shows its panel content. Can be used on any page within the AppShell.
  */
 
@@ -45,11 +45,15 @@ import { ScenePanel } from './ScenePanel';
 import { AssetPanel } from './AssetPanel';
 import { ReactiveStatePanel } from './ReactiveStatePanel';
 import { ViewportPanel } from './ViewportPanel';
+import { BusMonitorPanel } from './BusMonitorPanel';
+import { PresetsPanel } from './PresetsPanel';
+import { EventLogPanel } from './EventLogPanel';
+import { AgentCyclePanel } from './AgentCyclePanel';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
 
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod' | 'statemachine' | 'input' | 'network' | 'culture' | 'timeline' | 'scene' | 'assets' | 'state' | 'viewport' | 'bus' | 'presets' | 'events';
+export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod' | 'statemachine' | 'input' | 'network' | 'culture' | 'timeline' | 'scene' | 'assets' | 'state' | 'viewport' | 'bus' | 'presets' | 'events' | 'agent';
 
 interface RightPanelSidebarProps {
   /** AST nodes for safety analysis (pass from editor) */
@@ -103,6 +107,7 @@ const TABS: { id: PanelTab; icon: string; label: string; title: string; separato
   { id: 'bus', icon: '📡', label: 'Bus', title: 'Event bus monitor' },
   { id: 'presets', icon: '💾', label: 'Presets', title: 'Panel layout presets' },
   { id: 'events', icon: '📋', label: 'Log', title: 'Event log' },
+  { id: 'agent', icon: '🧠', label: 'Agent', title: 'uAA2++ agent cycle viewer' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -187,9 +192,10 @@ export function RightPanelSidebar({
             {activeTab === 'assets' && <AssetPanel />}
             {activeTab === 'state' && <ReactiveStatePanel />}
             {activeTab === 'viewport' && <ViewportPanel />}
-            {activeTab === 'bus' && <div className="p-3 text-xs text-studio-muted"><h3 className="text-sm font-semibold text-studio-text mb-2">📡 Event Bus</h3><p>Studio event bus monitor — shows real-time panel communication.</p></div>}
-            {activeTab === 'presets' && <div className="p-3 text-xs text-studio-muted"><h3 className="text-sm font-semibold text-studio-text mb-2">💾 Panel Presets</h3><p>Save and restore panel layouts.</p></div>}
-            {activeTab === 'events' && <div className="p-3 text-xs text-studio-muted"><h3 className="text-sm font-semibold text-studio-text mb-2">📋 Event Log</h3><p>Real-time event log for debugging panel communication.</p></div>}
+            {activeTab === 'bus' && <BusMonitorPanel />}
+            {activeTab === 'presets' && <PresetsPanel />}
+            {activeTab === 'events' && <EventLogPanel />}
+            {activeTab === 'agent' && <AgentCyclePanel />}
           </div>
         </div>
       )}

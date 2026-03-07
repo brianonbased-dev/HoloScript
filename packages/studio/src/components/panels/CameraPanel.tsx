@@ -1,12 +1,18 @@
 'use client';
-/** CameraPanel — Camera controller modes and preview */
-import React from 'react';
+/** CameraPanel — Camera controller modes and preview (bus-wired) */
+import React, { useCallback } from 'react';
 import { useCamera } from '../../hooks/useCamera';
+import { useStudioBus } from '../../hooks/useStudioBus';
 
 const MODE_ICONS: Record<string, string> = { follow: '👤', orbit: '🔄', free: '🕊️', topDown: '⬇️', fixed: '📌' };
 
 export function CameraPanel() {
   const { state, mode, modes, setMode, setTarget, move, rotateOrbit, zoom, setFOV, step, reset } = useCamera();
+  const { emit } = useStudioBus();
+
+  const emitCamera = useCallback(() => {
+    setTimeout(() => emit('camera:moved', { position: state.position, mode, fov: state.fov, zoom: state.zoom }), 0);
+  }, [emit, state, mode]);
 
   return (
     <div className="p-3 space-y-3 text-xs">
