@@ -3,7 +3,7 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * 44 panels organized with domain-aware filtering, search, favorites,
+ * 43 panels organized with domain-aware filtering, search, favorites,
  * and category headers for cross-domain navigation.
  */
 
@@ -45,9 +45,8 @@ import { ScenePanel } from './ScenePanel';
 import { AssetPanel } from './AssetPanel';
 import { ReactiveStatePanel } from './ReactiveStatePanel';
 import { ViewportPanel } from './ViewportPanel';
-import { BusMonitorPanel } from './BusMonitorPanel';
+import { BusPanel } from './BusPanel';
 import { PresetsPanel } from './PresetsPanel';
-import { EventLogPanel } from './EventLogPanel';
 import { AgentCyclePanel } from './AgentCyclePanel';
 import { CharacterPanel } from './CharacterPanel';
 import { ModelViewerPanel } from './ModelViewerPanel';
@@ -55,9 +54,9 @@ import { TemplateGalleryPanel } from './TemplateGalleryPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
 
-// ═══════════════════════════════════════════════════════════════════
-
-export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod' | 'statemachine' | 'input' | 'network' | 'culture' | 'timeline' | 'scene' | 'assets' | 'state' | 'viewport' | 'bus' | 'presets' | 'events' | 'agent' | 'character' | 'models' | 'templates';
+// Re-export from shared types (breaks circular dependency)
+export type { PanelTab } from '../../types/panels';
+type PanelTab = import('../../types/panels').PanelTab;
 
 interface RightPanelSidebarProps {
   safetyNodes?: EffectASTNode[];
@@ -165,8 +164,7 @@ const TAB_CATEGORIES: TabCategory[] = [
     header: 'View', headerIcon: '👁',
     tabs: [
       { id: 'viewport', icon: '🎬', label: '3D', title: 'Live 3D viewport' },
-      { id: 'bus', icon: '📡', label: 'Bus', title: 'Event bus monitor' },
-      { id: 'events', icon: '📋', label: 'Log', title: 'Event log' },
+      { id: 'bus', icon: '📡', label: 'Bus', title: 'Event bus monitor & log' },
       { id: 'presets', icon: '💾', label: 'Presets', title: 'Panel layout presets' },
       { id: 'agent', icon: '🧠', label: 'Agent', title: 'uAA2++ agent cycle viewer' },
     ],
@@ -260,9 +258,8 @@ export function RightPanelSidebar({
             {activeTab === 'assets' && <AssetPanel />}
             {activeTab === 'state' && <ReactiveStatePanel />}
             {activeTab === 'viewport' && <ViewportPanel />}
-            {activeTab === 'bus' && <BusMonitorPanel />}
+            {activeTab === 'bus' && <BusPanel />}
             {activeTab === 'presets' && <PresetsPanel />}
-            {activeTab === 'events' && <EventLogPanel />}
             {activeTab === 'agent' && <AgentCyclePanel />}
             {activeTab === 'character' && <CharacterPanel />}
             {activeTab === 'models' && <ModelViewerPanel />}

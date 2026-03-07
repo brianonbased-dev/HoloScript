@@ -69,6 +69,7 @@ import { SemanticCompletionProvider } from './SemanticCompletionProvider';
 import { AICompletionProvider } from './ai/AICompletionProvider';
 import { TreeSitterManager, type ContentChange } from './TreeSitterManager';
 import { runSafetyDiagnostics } from './SafetyDiagnostics';
+import { TraitRecommendationProvider } from './providers/TraitRecommendationProvider';
 
 // Create connection and document manager
 const connection = createConnection(ProposedFeatures.all);
@@ -115,6 +116,9 @@ const treeSitter = new TreeSitterManager();
 // Semantic intelligence
 let semanticCompletion: SemanticCompletionProvider | null = null;
 let aiCompletion: AICompletionProvider | null = null;
+
+// Trait recommendation engine (vertical-aware, no external dependencies)
+const traitRecommendation = new TraitRecommendationProvider();
 
 // LRU Cache configuration
 const MAX_CACHED_DOCUMENTS = 50;
@@ -761,6 +765,10 @@ connection.onCompletion(async (params: TextDocumentPositionParams): Promise<Comp
       const aiItems = await semanticCompletion.getCompletions(query);
       items.push(...aiItems);
     }
+
+    // Vertical-aware trait recommendations based on metadata.category / metadata.tags
+    const recommendations = traitRecommendation.getRecommendations(document, linePrefix);
+    items.push(...recommendations);
   }
 
   // AI-powered completions (code gen, properties, events)

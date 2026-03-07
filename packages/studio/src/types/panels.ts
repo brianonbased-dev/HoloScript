@@ -1,0 +1,19 @@
+/**
+ * Shared panel types for HoloScript Studio
+ *
+ * Extracted to avoid circular dependencies between
+ * RightPanelSidebar ↔ useDomainFilter.
+ */
+
+export type PanelTab =
+  | 'safety' | 'marketplace' | 'platform' | 'traits'
+  | 'physics' | 'ai' | 'dialogue' | 'ecs'
+  | 'animation' | 'audio' | 'procgen' | 'multiplayer'
+  | 'shader' | 'combat' | 'pathfinding' | 'particles'
+  | 'camera' | 'inventory' | 'terrain' | 'lighting'
+  | 'cinematic' | 'collaboration' | 'security' | 'scripting'
+  | 'saveload' | 'profiler' | 'compiler' | 'lod'
+  | 'statemachine' | 'input' | 'network' | 'culture'
+  | 'timeline' | 'scene' | 'assets' | 'state'
+  | 'viewport' | 'bus' | 'presets' | 'agent'
+  | 'character' | 'models' | 'templates';

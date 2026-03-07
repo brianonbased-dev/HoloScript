@@ -6,7 +6,7 @@
  * panels based on relevance. Also manages favorites and search.
  */
 import { useState, useCallback, useMemo } from 'react';
-import type { PanelTab } from '../components/panels/RightPanelSidebar';
+import type { PanelTab } from '../types/panels';
 
 export type DomainProfile = 'all' | 'game' | 'vr' | 'iot' | 'film';
 
@@ -20,7 +20,7 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
     'particles','camera','inventory','terrain','lighting','cinematic',
     'collaboration','security','scripting','saveload','profiler','compiler',
     'lod','statemachine','input','network','culture','timeline','scene',
-    'assets','state','viewport','bus','presets','events','agent',
+    'assets','state','viewport','bus','presets','agent',
     'character','models','templates',
   ]),
   game: new Set<PanelTab>([
@@ -39,7 +39,7 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
   iot: new Set<PanelTab>([
     'safety','ecs','network','state','compiler','assets','scene',
     'platform','traits','collaboration','security','profiler','saveload',
-    'scripting','bus','events','agent',
+    'scripting','bus','agent',
     'templates',
   ]),
   film: new Set<PanelTab>([
@@ -51,11 +51,11 @@ const DOMAIN_TABS: Record<DomainProfile, Set<PanelTab>> = {
 };
 
 const DOMAIN_INFO: Record<DomainProfile, { icon: string; label: string; description: string }> = {
-  all:  { icon: '🌐', label: 'All',  description: 'Show all 41 panels' },
-  game: { icon: '🎮', label: 'Game', description: 'Game development focus (~25 panels)' },
-  vr:   { icon: '🥽', label: 'VR',   description: 'VR/XR development focus (~19 panels)' },
-  iot:  { icon: '📡', label: 'IoT',  description: 'IoT/Digital Twin focus (~17 panels)' },
-  film: { icon: '🎬', label: 'Film', description: 'Film/Cinematic focus (~16 panels)' },
+  all:  { icon: '🌐', label: 'All',  description: 'Show all 43 panels' },
+  game: { icon: '🎮', label: 'Game', description: 'Game development focus (28 panels)' },
+  vr:   { icon: '🥽', label: 'VR',   description: 'VR/XR development focus (21 panels)' },
+  iot:  { icon: '📡', label: 'IoT',  description: 'IoT/Digital Twin focus (17 panels)' },
+  film: { icon: '🎬', label: 'Film', description: 'Film/Cinematic focus (19 panels)' },
 };
 
 function loadFavorites(): Set<PanelTab> {
