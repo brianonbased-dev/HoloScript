@@ -3,11 +3,11 @@
 /**
  * RightPanelSidebar — Tabbed right sidebar for HoloScript Studio
  *
- * Mounts 41 integration panels into a collapsible right drawer.
- * Each tab shows its panel content. Can be used on any page within the AppShell.
+ * 41 panels organized with domain-aware filtering, search, favorites,
+ * and category headers for cross-domain navigation.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { SafetyPanel } from './SafetyPanel';
 import { MarketplacePanel } from './MarketplacePanel';
 import { PlatformPicker } from './PlatformPicker';
@@ -49,6 +49,7 @@ import { BusMonitorPanel } from './BusMonitorPanel';
 import { PresetsPanel } from './PresetsPanel';
 import { EventLogPanel } from './EventLogPanel';
 import { AgentCyclePanel } from './AgentCyclePanel';
+import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -56,59 +57,118 @@ import type { EffectASTNode } from '@holoscript/core';
 export type PanelTab = 'safety' | 'marketplace' | 'platform' | 'traits' | 'physics' | 'ai' | 'dialogue' | 'ecs' | 'animation' | 'audio' | 'procgen' | 'multiplayer' | 'shader' | 'combat' | 'pathfinding' | 'particles' | 'camera' | 'inventory' | 'terrain' | 'lighting' | 'cinematic' | 'collaboration' | 'security' | 'scripting' | 'saveload' | 'profiler' | 'compiler' | 'lod' | 'statemachine' | 'input' | 'network' | 'culture' | 'timeline' | 'scene' | 'assets' | 'state' | 'viewport' | 'bus' | 'presets' | 'events' | 'agent';
 
 interface RightPanelSidebarProps {
-  /** AST nodes for safety analysis (pass from editor) */
   safetyNodes?: EffectASTNode[];
-  /** Current world ID for marketplace install */
   worldId?: string;
-  /** Default active tab */
   defaultTab?: PanelTab;
-  /** Whether sidebar starts open */
   defaultOpen?: boolean;
 }
 
-const TABS: { id: PanelTab; icon: string; label: string; title: string; separator?: boolean }[] = [
-  { id: 'safety', icon: '🛡️', label: 'Safety', title: 'Compile-time safety analysis' },
-  { id: 'marketplace', icon: '🛒', label: 'Store', title: 'Browse & install packages' },
-  { id: 'platform', icon: '🎯', label: 'Platform', title: 'Target platform selection' },
-  { id: 'traits', icon: '🧬', label: 'Traits', title: 'Trait inspector & culture norms' },
-  { id: 'physics', icon: '⚡', label: 'Physics', title: 'Physics simulation preview', separator: true },
-  { id: 'ai', icon: '🧠', label: 'AI', title: 'Behavior tree editor & debugger' },
-  { id: 'dialogue', icon: '💬', label: 'Dialogue', title: 'Dialogue graph editor' },
-  { id: 'ecs', icon: '🔧', label: 'ECS', title: 'Entity-Component-System inspector' },
-  { id: 'animation', icon: '🎬', label: 'Anim', title: 'Animation timeline & easing', separator: true },
-  { id: 'audio', icon: '🔊', label: 'Audio', title: 'Spatial audio manager' },
-  { id: 'procgen', icon: '🌍', label: 'ProcGen', title: 'Procedural terrain generation' },
-  { id: 'multiplayer', icon: '🌐', label: 'Net', title: 'Multiplayer state simulation' },
-  { id: 'shader', icon: '✨', label: 'Shader', title: 'Visual shader graph editor', separator: true },
-  { id: 'combat', icon: '⚔️', label: 'Combat', title: 'Combat system designer' },
-  { id: 'pathfinding', icon: '🗺️', label: 'Path', title: 'A* pathfinding visualizer' },
-  { id: 'particles', icon: '🎆', label: 'FX', title: 'Particle system editor' },
-  { id: 'camera', icon: '📷', label: 'Cam', title: 'Camera controller', separator: true },
-  { id: 'inventory', icon: '🎒', label: 'Items', title: 'Inventory system' },
-  { id: 'terrain', icon: '🏔️', label: 'Terrain', title: 'Heightmap terrain editor' },
-  { id: 'lighting', icon: '💡', label: 'Light', title: 'Scene lighting manager' },
-  { id: 'cinematic', icon: '🎬', label: 'Cine', title: 'Cinematic director', separator: true },
-  { id: 'collaboration', icon: '👥', label: 'Collab', title: 'Collaboration session' },
-  { id: 'security', icon: '🔒', label: 'Sandbox', title: 'Security sandbox' },
-  { id: 'scripting', icon: '📝', label: 'REPL', title: 'HoloScript REPL' },
-  { id: 'saveload', icon: '💾', label: 'Save', title: 'Save/load manager', separator: true },
-  { id: 'profiler', icon: '📊', label: 'Perf', title: 'Performance profiler' },
-  { id: 'compiler', icon: '🔨', label: 'Build', title: 'Multi-target compiler' },
-  { id: 'lod', icon: '🔍', label: 'LOD', title: 'Level of Detail' },
-  { id: 'statemachine', icon: '🔄', label: 'FSM', title: 'State machine', separator: true },
-  { id: 'input', icon: '🎮', label: 'Input', title: 'Input manager' },
-  { id: 'network', icon: '📡', label: 'Net', title: 'Network manager' },
-  { id: 'culture', icon: '🏛️', label: 'Culture', title: 'Culture runtime' },
-  { id: 'timeline', icon: '⏱️', label: 'Time', title: 'Animation timeline', separator: true },
-  { id: 'scene', icon: '🎭', label: 'Scene', title: 'Scene manager' },
-  { id: 'assets', icon: '📦', label: 'Assets', title: 'Asset browser' },
-  { id: 'state', icon: '⚡', label: 'State', title: 'Reactive state' },
-  { id: 'viewport', icon: '🎬', label: '3D', title: 'Live 3D viewport', separator: true },
-  { id: 'bus', icon: '📡', label: 'Bus', title: 'Event bus monitor' },
-  { id: 'presets', icon: '💾', label: 'Presets', title: 'Panel layout presets' },
-  { id: 'events', icon: '📋', label: 'Log', title: 'Event log' },
-  { id: 'agent', icon: '🧠', label: 'Agent', title: 'uAA2++ agent cycle viewer' },
+// ─── Category-grouped tabs with headers ─────────────────────────────
+
+interface TabDef {
+  id: PanelTab;
+  icon: string;
+  label: string;
+  title: string;
+}
+
+interface TabCategory {
+  header: string;
+  headerIcon: string;
+  tabs: TabDef[];
+}
+
+const TAB_CATEGORIES: TabCategory[] = [
+  {
+    header: 'Core', headerIcon: '⬡',
+    tabs: [
+      { id: 'safety', icon: '🛡️', label: 'Safety', title: 'Compile-time safety analysis' },
+      { id: 'marketplace', icon: '🛒', label: 'Store', title: 'Browse & install packages' },
+      { id: 'platform', icon: '🎯', label: 'Platform', title: 'Target platform selection' },
+      { id: 'traits', icon: '🧬', label: 'Traits', title: 'Trait inspector & culture norms' },
+    ],
+  },
+  {
+    header: 'Engine', headerIcon: '⚙',
+    tabs: [
+      { id: 'physics', icon: '⚡', label: 'Physics', title: 'Physics simulation preview' },
+      { id: 'ai', icon: '🧠', label: 'AI', title: 'Behavior tree editor & debugger' },
+      { id: 'dialogue', icon: '💬', label: 'Dialogue', title: 'Dialogue graph editor' },
+      { id: 'ecs', icon: '🔧', label: 'ECS', title: 'Entity-Component-System inspector' },
+    ],
+  },
+  {
+    header: 'Media', headerIcon: '🎨',
+    tabs: [
+      { id: 'animation', icon: '🎬', label: 'Anim', title: 'Animation timeline & easing' },
+      { id: 'audio', icon: '🔊', label: 'Audio', title: 'Spatial audio manager' },
+      { id: 'shader', icon: '✨', label: 'Shader', title: 'Visual shader graph' },
+      { id: 'particles', icon: '🎆', label: 'FX', title: 'Particle system editor' },
+    ],
+  },
+  {
+    header: 'World', headerIcon: '🌍',
+    tabs: [
+      { id: 'camera', icon: '📷', label: 'Camera', title: 'Camera controller' },
+      { id: 'terrain', icon: '🏔️', label: 'Terrain', title: 'Heightmap terrain editor' },
+      { id: 'lighting', icon: '💡', label: 'Lighting', title: 'Scene lighting manager' },
+      { id: 'procgen', icon: '🌋', label: 'ProcGen', title: 'Procedural generation' },
+      { id: 'lod', icon: '🔍', label: 'LOD', title: 'Level of Detail' },
+    ],
+  },
+  {
+    header: 'Gameplay', headerIcon: '🎮',
+    tabs: [
+      { id: 'combat', icon: '⚔️', label: 'Combat', title: 'Combat system designer' },
+      { id: 'inventory', icon: '🎒', label: 'Items', title: 'Inventory system' },
+      { id: 'pathfinding', icon: '🗺️', label: 'Path', title: 'A* pathfinding visualizer' },
+      { id: 'statemachine', icon: '🔄', label: 'FSM', title: 'State machine editor' },
+      { id: 'input', icon: '🕹️', label: 'Input', title: 'Input mapping' },
+    ],
+  },
+  {
+    header: 'Scene', headerIcon: '🎭',
+    tabs: [
+      { id: 'scene', icon: '🎭', label: 'Scene', title: 'Scene graph manager' },
+      { id: 'assets', icon: '📦', label: 'Assets', title: 'Asset browser' },
+      { id: 'timeline', icon: '⏱️', label: 'Timeline', title: 'Animation timeline' },
+      { id: 'cinematic', icon: '🎥', label: 'Cinematic', title: 'Cinematic director' },
+      { id: 'state', icon: '⚡', label: 'State', title: 'Reactive state' },
+    ],
+  },
+  {
+    header: 'Network', headerIcon: '🌐',
+    tabs: [
+      { id: 'multiplayer', icon: '🌐', label: 'Multi', title: 'Multiplayer simulation' },
+      { id: 'network', icon: '📡', label: 'NetMgr', title: 'Network manager' },
+      { id: 'collaboration', icon: '👥', label: 'Collab', title: 'Collaboration session' },
+      { id: 'culture', icon: '🏛️', label: 'Culture', title: 'Culture runtime' },
+    ],
+  },
+  {
+    header: 'Tools', headerIcon: '🔨',
+    tabs: [
+      { id: 'compiler', icon: '🔨', label: 'Build', title: 'Multi-target compiler' },
+      { id: 'profiler', icon: '📊', label: 'Perf', title: 'Performance profiler' },
+      { id: 'scripting', icon: '📝', label: 'REPL', title: 'HoloScript REPL' },
+      { id: 'security', icon: '🔒', label: 'Sandbox', title: 'Security sandbox' },
+      { id: 'saveload', icon: '💾', label: 'Save', title: 'Save/load manager' },
+    ],
+  },
+  {
+    header: 'View', headerIcon: '👁',
+    tabs: [
+      { id: 'viewport', icon: '🎬', label: '3D', title: 'Live 3D viewport' },
+      { id: 'bus', icon: '📡', label: 'Bus', title: 'Event bus monitor' },
+      { id: 'events', icon: '📋', label: 'Log', title: 'Event log' },
+      { id: 'presets', icon: '💾', label: 'Presets', title: 'Panel layout presets' },
+      { id: 'agent', icon: '🧠', label: 'Agent', title: 'uAA2++ agent cycle viewer' },
+    ],
+  },
 ];
+
+// Flat list for lookups
+const ALL_TABS = TAB_CATEGORIES.flatMap(c => c.tabs);
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -120,6 +180,8 @@ export function RightPanelSidebar({
 }: RightPanelSidebarProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [activeTab, setActiveTab] = useState<PanelTab>(defaultTab);
+  const { domain, domains, setDomain, isVisible, visibleCount, toggleFavorite, isFavorite, search, setSearch, matchesSearch } = useDomainFilter();
+  const [showSearch, setShowSearch] = useState(false);
 
   const handleTabClick = (tab: PanelTab) => {
     if (activeTab === tab && isOpen) {
@@ -130,27 +192,27 @@ export function RightPanelSidebar({
     }
   };
 
+  // Filter tabs by domain + search
+  const filteredCategories = useMemo(() => {
+    return TAB_CATEGORIES.map(cat => ({
+      ...cat,
+      tabs: cat.tabs.filter(t => isVisible(t.id) && matchesSearch(t.label, t.title)),
+    })).filter(cat => cat.tabs.length > 0);
+  }, [isVisible, matchesSearch, search]);
+
+  const activeTabDef = ALL_TABS.find(t => t.id === activeTab);
+
   return (
     <div className="flex h-full flex-shrink-0">
       {/* Panel content */}
       {isOpen && (
-        <div
-          className="border-l border-studio-border bg-studio-bg overflow-y-auto"
-          style={{ width: 340 }}
-        >
+        <div className="border-l border-studio-border bg-studio-bg overflow-y-auto" style={{ width: 340 }}>
           {/* Panel header */}
           <div className="flex items-center justify-between border-b border-studio-border px-3 py-2">
             <span className="text-sm font-semibold text-studio-text">
-              {TABS.find(t => t.id === activeTab)?.icon}{' '}
-              {TABS.find(t => t.id === activeTab)?.label}
+              {activeTabDef?.icon} {activeTabDef?.label}
             </span>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-studio-muted hover:text-studio-text transition text-xs"
-              title="Close panel"
-            >
-              ✕
-            </button>
+            <button onClick={() => setIsOpen(false)} className="text-studio-muted hover:text-studio-text transition text-xs" title="Close panel">✕</button>
           </div>
 
           {/* Active panel */}
@@ -200,24 +262,82 @@ export function RightPanelSidebar({
         </div>
       )}
 
-      {/* Tab strip (always visible) */}
-      <div className="flex flex-col border-l border-studio-border bg-studio-bg w-10 flex-shrink-0 overflow-y-auto">
-        {TABS.map(tab => (
-          <React.Fragment key={tab.id}>
-            {tab.separator && <div className="border-t border-studio-border/40 mx-1.5 my-0.5" />}
+      {/* Tab strip with headers, domain filter, search, favorites */}
+      <div className="flex flex-col border-l border-studio-border bg-studio-bg w-12 flex-shrink-0 overflow-y-auto">
+
+        {/* Domain selector */}
+        <div className="flex flex-col items-center py-1 border-b border-studio-border/40">
+          {(Object.keys(domains) as DomainProfile[]).map(d => (
             <button
-              onClick={() => handleTabClick(tab.id)}
-              title={tab.title}
-              className={`
-                flex items-center justify-center h-9 w-10 text-sm transition flex-shrink-0
-                ${activeTab === tab.id && isOpen
-                  ? 'bg-studio-accent/10 text-studio-accent'
-                  : 'text-studio-muted hover:bg-studio-panel hover:text-studio-text'
-                }
-              `}
+              key={d}
+              onClick={() => setDomain(d)}
+              title={domains[d].description}
+              className={`w-10 h-5 text-[8px] font-bold tracking-wider transition rounded-sm
+                ${domain === d
+                  ? 'bg-studio-accent/20 text-studio-accent'
+                  : 'text-studio-muted hover:text-studio-text hover:bg-studio-panel/50'
+                }`}
             >
-              {tab.icon}
+              {domains[d].label.toUpperCase()}
             </button>
+          ))}
+          <div className="text-[7px] text-studio-muted mt-0.5">{visibleCount} tabs</div>
+        </div>
+
+        {/* Search toggle */}
+        <button
+          onClick={() => setShowSearch(!showSearch)}
+          title="Search panels (Ctrl+Shift+P)"
+          className={`flex items-center justify-center h-7 text-xs transition
+            ${showSearch ? 'bg-studio-accent/10 text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+        >
+          🔎
+        </button>
+
+        {showSearch && (
+          <div className="px-0.5 pb-1">
+            <input
+              type="text"
+              placeholder="..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              autoFocus
+              className="w-full px-1 py-0.5 bg-studio-panel/40 rounded text-[9px] text-studio-text placeholder-studio-muted border border-studio-border/30 focus:border-studio-accent/50 outline-none"
+            />
+          </div>
+        )}
+
+        {/* Category-grouped tabs */}
+        {filteredCategories.map(cat => (
+          <React.Fragment key={cat.header}>
+            {/* Category header */}
+            <div className="px-0.5 pt-1.5 pb-0.5" title={cat.header}>
+              <div className="text-[7px] font-bold text-studio-muted/60 tracking-widest text-center uppercase leading-none">
+                {cat.header}
+              </div>
+            </div>
+
+            {/* Category tabs */}
+            {cat.tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabClick(tab.id)}
+                onContextMenu={e => { e.preventDefault(); toggleFavorite(tab.id); }}
+                title={`${tab.title}${isFavorite(tab.id) ? ' ★' : ''}\nRight-click to ${isFavorite(tab.id) ? 'unpin' : 'pin'}`}
+                className={`
+                  relative flex items-center justify-center h-8 w-12 text-sm transition flex-shrink-0
+                  ${activeTab === tab.id && isOpen
+                    ? 'bg-studio-accent/15 text-studio-accent'
+                    : 'text-studio-muted hover:bg-studio-panel/50 hover:text-studio-text'
+                  }
+                `}
+              >
+                {tab.icon}
+                {isFavorite(tab.id) && (
+                  <span className="absolute top-0.5 right-0.5 text-[6px] text-amber-400">★</span>
+                )}
+              </button>
+            ))}
           </React.Fragment>
         ))}
 
@@ -228,7 +348,7 @@ export function RightPanelSidebar({
         <button
           onClick={() => setIsOpen(!isOpen)}
           title={isOpen ? 'Collapse panel' : 'Expand panel'}
-          className="flex items-center justify-center h-10 w-10 text-studio-muted hover:text-studio-text transition text-xs"
+          className="flex items-center justify-center h-10 w-12 text-studio-muted hover:text-studio-text transition text-xs border-t border-studio-border/30"
         >
           {isOpen ? '▸' : '◂'}
         </button>
