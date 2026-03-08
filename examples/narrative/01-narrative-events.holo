@@ -1,0 +1,552 @@
+/**
+ * Narrative Events Example
+ *
+ * Demonstrates cinematic storytelling: narrator triggers, cutscenes,
+ * flashbacks, and foreshadowing mechanics.
+ *
+ * Key Features:
+ * - Narrator: Context-triggered narration with voice, timing, subtitles
+ * - Cutscene: Camera paths, character actions, dialogue sequences
+ * - Flashback: Timeline transitions, visual filters, audio effects
+ * - Foreshadow: Subtle hints, prophecies, dream sequences
+ *
+ * @version 5.1.0
+ * @category Narrative
+ */
+
+composition NarrativeEventsShowcase {
+  // Scene environment
+  entity MainScene {
+    mesh: { type: "plane", width: 100.0, height: 100.0 },
+    advanced_pbr: { base_color: [0.2, 0.25, 0.2], metallic: 0.0, roughness: 0.9 },
+    transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
+  }
+
+  // 1. Narrator System
+  entity NarratorVoice {
+    narrator_trigger: {
+      enabled: true,
+      trigger_mode: "on_enter",          // Or "on_interact", "on_timer", "manual"
+
+      // Voice settings
+      voice: {
+        type: "omniscient",              // "omniscient", "character", "inner_monologue"
+        gender: "neutral",
+        pitch: 1.0,
+        rate: 1.0,                       // Speech rate (1.0 = normal)
+        volume: 0.8,
+        language: "en-US",
+      },
+
+      // Narration content
+      lines: [
+        {
+          text: "The hero stood at the precipice of destiny, unaware of the darkness that awaited...",
+          duration: 6.0,                 // Seconds
+          delay: 0.5,                    // Delay before speaking
+          emotion: "foreboding",
+        },
+        {
+          text: "Memories of a forgotten past began to surface...",
+          duration: 4.0,
+          delay: 1.0,
+          emotion: "mysterious",
+          trigger_flashback: "ChildhoodMemory",  // Links to flashback entity
+        },
+      ],
+
+      // Presentation
+      subtitles: {
+        enabled: true,
+        position: "bottom_center",       // Or "top", "middle", custom [x, y]
+        font_size: 24,
+        color: [1.0, 1.0, 1.0, 0.9],
+        background: [0.0, 0.0, 0.0, 0.7],
+        fade_in: 0.3,
+        fade_out: 0.5,
+      },
+
+      // Triggers
+      proximity_trigger: {
+        enabled: true,
+        radius: 10.0,                    // Meters
+        once_only: true,                 // Only trigger first time
+      },
+
+      // Audio ducking (lower other audio during narration)
+      audio_ducking: {
+        enabled: true,
+        music_volume: 0.3,               // Reduce to 30%
+        sfx_volume: 0.5,                 // Reduce to 50%
+      },
+    },
+
+    transform: {
+      position: [20.0, 0.0, 0.0],        // Trigger zone
+    },
+  }
+
+  // 2. Cutscene System
+  entity OpeningCutscene {
+    cutscene: {
+      enabled: false,                    // Triggered
+      duration: 30.0,                    // Total seconds
+      skippable: true,                   // Allow player to skip
+      skip_button: "Space",
+
+      // Camera sequence
+      camera_path: {
+        keyframes: [
+          {
+            time: 0.0,
+            position: [0.0, 50.0, 100.0],
+            target: [0.0, 10.0, 0.0],
+            fov: 60.0,
+            ease: "ease_in_out",
+          },
+          {
+            time: 10.0,
+            position: [50.0, 30.0, 50.0],
+            target: [0.0, 5.0, 0.0],
+            fov: 45.0,
+            ease: "ease_in_out",
+          },
+          {
+            time: 20.0,
+            position: [0.0, 10.0, 30.0],
+            target: [0.0, 2.0, 0.0],
+            fov: 70.0,
+            ease: "ease_in_out",
+          },
+        ],
+        interpolation: "catmull_rom",    // Smooth spline
+      },
+
+      // Character actions (synchronized)
+      character_actions: [
+        {
+          character: "Hero",
+          time: 5.0,
+          action: "walk_to",
+          target: [10.0, 0.0, 0.0],
+          duration: 5.0,
+        },
+        {
+          character: "Hero",
+          time: 12.0,
+          action: "look_at",
+          target: [0.0, 0.0, 20.0],
+          duration: 2.0,
+        },
+        {
+          character: "Villain",
+          time: 15.0,
+          action: "appear",              // Fade in or teleport
+          position: [0.0, 0.0, 20.0],
+        },
+      ],
+
+      // Dialogue sequence
+      dialogue: [
+        {
+          time: 6.0,
+          speaker: "Hero",
+          text: "This place... I remember it from my dreams.",
+          voice_file: "hero_line_01.wav",
+          duration: 3.0,
+        },
+        {
+          time: 16.0,
+          speaker: "Villain",
+          text: "You should have stayed asleep.",
+          voice_file: "villain_line_01.wav",
+          duration: 2.5,
+        },
+      ],
+
+      // Visual effects
+      effects: [
+        {
+          time: 0.0,
+          type: "fade_from_black",
+          duration: 2.0,
+        },
+        {
+          time: 28.0,
+          type: "fade_to_black",
+          duration: 2.0,
+        },
+        {
+          time: 15.0,
+          type: "screen_shake",
+          intensity: 0.3,
+          duration: 0.5,
+        },
+      ],
+
+      // Player control
+      disable_player_input: true,
+      hide_ui: true,
+      letterbox: {
+        enabled: true,
+        height: 0.15,                    // 15% top/bottom bars
+        color: [0.0, 0.0, 0.0],
+      },
+
+      // Completion
+      on_complete: "resume_gameplay",    // Or "load_scene", "trigger_event"
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 3. Flashback System
+  entity ChildhoodMemory {
+    flashback: {
+      enabled: false,                    // Triggered by narrator or event
+      trigger_type: "narrator",          // Or "item_pickup", "location", "dialogue"
+
+      // Timeline
+      duration: 15.0,                    // Seconds
+      transition_in: 2.0,                // Fade/blur transition
+      transition_out: 2.0,
+
+      // Visual style (distinguish from present)
+      visual_filter: {
+        sepia: 0.8,                      // Old photograph look
+        desaturation: 0.6,               // Less colorful
+        vignette: 0.4,                   // Darkened edges
+        blur: 0.2,                       // Soft focus
+        grain: 0.3,                      // Film grain
+        brightness: 0.9,                 // Slightly darker
+      },
+
+      // Audio effects
+      audio_filter: {
+        reverb: 0.5,                     // Echoey, dreamlike
+        lowpass_frequency: 8000.0,       // Hz (muffled)
+        volume: 0.7,
+      },
+
+      // Content
+      scene: {
+        environment: "childhood_home",   // Scene to load
+        characters: ["YoungHero", "Mother"],
+        time_of_day: "sunset",
+      },
+
+      // Narration during flashback
+      narration: {
+        enabled: true,
+        text: "Twenty years ago, before everything changed...",
+        voice_type: "inner_monologue",
+        timing: "start",                 // Or "end", "middle"
+      },
+
+      // Camera
+      camera_mode: "fixed",              // Or "follow_character", "cinematic"
+      camera_position: [5.0, 2.0, 5.0],
+      camera_target: [0.0, 1.5, 0.0],
+
+      // Player control
+      player_control: "limited",         // "none", "limited", "full"
+      can_skip: true,
+      skip_button: "Esc",
+
+      // Memory type
+      memory_type: "involuntary",        // Or "voluntary" (player-triggered)
+      emotional_tone: "bittersweet",
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 4. Foreshadowing System
+  entity PropheticVision {
+    foreshadow: {
+      enabled: true,
+      foreshadow_type: "prophecy",       // "prophecy", "dream", "omen", "warning"
+
+      // Trigger conditions
+      trigger: {
+        type: "random_event",            // Or "scripted", "conditional"
+        probability: 0.3,                // 30% chance when conditions met
+        conditions: [
+          { type: "player_level", min: 5 },
+          { type: "story_progress", min: 0.25 },  // 25% through story
+        ],
+      },
+
+      // Content
+      hints: [
+        {
+          type: "visual",
+          description: "A brief vision of a burning city",
+          visual_effect: {
+            type: "screen_flash",
+            image: "burning_city.jpg",
+            duration: 0.5,
+            intensity: 0.7,
+          },
+          relevance_time: 3600.0,        // Seconds until event (1 hour)
+        },
+        {
+          type: "audio",
+          description: "Distant screams carried on the wind",
+          audio_file: "distant_screams.wav",
+          volume: 0.4,
+          spatial: false,                // Non-diegetic (everywhere)
+        },
+        {
+          type: "dialogue",
+          speaker: "Oracle",
+          text: "Beware the red moon, for it brings calamity...",
+          cryptic_level: 0.7,            // 0-1 (how obvious)
+        },
+        {
+          type: "environmental",
+          description: "Ravens gathering in unusual numbers",
+          spawn_objects: {
+            object_type: "raven",
+            count: 20,
+            behavior: "circle_overhead",
+          },
+        },
+      ],
+
+      // Subtlety
+      subtlety: 0.6,                     // 0=obvious, 1=extremely subtle
+      allow_player_interpretation: true, // Don't explain directly
+
+      // Dream sequence (if type = "dream")
+      dream_sequence: {
+        enabled: true,
+        trigger_condition: "player_sleeps",
+        visual_style: "surreal",         // Distorted, symbolic
+        symbolism: [
+          { symbol: "crow", meaning: "death", apparitions: 3 },
+          { symbol: "fire", meaning: "destruction", intensity: 0.8 },
+          { symbol: "eclipse", meaning: "ending", duration: 5.0 },
+        ],
+        wake_up_transition: 1.5,
+      },
+
+      // Payoff tracking
+      payoff: {
+        event_id: "city_siege",          // Event this foreshadows
+        callback_on_event: true,         // Show "you were warned" message
+        player_journal_entry: true,      // Add cryptic note to journal
+      },
+
+      // Repetition
+      repeat_enabled: true,
+      repeat_count: 3,                   // Escalating hints
+      repeat_interval: 600.0,            // Seconds between hints
+      escalation: {
+        intensity_multiplier: 1.5,       // Each hint 50% more intense
+        clarity_increase: 0.1,           // Become less cryptic
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Camera
+  entity Camera {
+    camera: {
+      fov: 70.0,
+      near: 0.1,
+      far: 1000.0,
+      position: [0.0, 5.0, 15.0],
+      target: [0.0, 2.0, 0.0],
+    },
+  }
+
+  // Event handlers
+
+  on NarratorVoice.narrator_trigger.line_started -> (event) {
+    console.log(`Narrator: "${event.text}"`);
+    console.log(`  Duration: ${event.duration}s, Emotion: ${event.emotion}`);
+  }
+
+  on NarratorVoice.narrator_trigger.line_completed -> (event) {
+    console.log(`Narration completed. ${event.remaining_lines} lines remaining.`);
+  }
+
+  on OpeningCutscene.cutscene.started -> (event) {
+    console.log(`🎬 Cutscene started: duration=${event.duration}s, skippable=${event.skippable}`);
+  }
+
+  on OpeningCutscene.cutscene.camera_keyframe -> (event) {
+    console.log(`Camera keyframe ${event.index}: position=[${event.position}], fov=${event.fov}°`);
+  }
+
+  on OpeningCutscene.cutscene.dialogue_line -> (event) {
+    console.log(`${event.speaker}: "${event.text}"`);
+  }
+
+  on OpeningCutscene.cutscene.skipped -> (event) {
+    console.log(`⏩ Cutscene skipped at ${event.skip_time.toFixed(1)}s (${((event.skip_time / event.duration) * 100).toFixed(0)}% complete)`);
+  }
+
+  on OpeningCutscene.cutscene.completed -> (event) {
+    console.log(`Cutscene completed. Resuming gameplay.`);
+  }
+
+  on ChildhoodMemory.flashback.triggered -> (event) {
+    console.log(`💭 Flashback triggered: "${event.scene}" (${event.duration}s)`);
+    console.log(`  Memory type: ${event.memory_type}, Tone: ${event.emotional_tone}`);
+  }
+
+  on ChildhoodMemory.flashback.transition_started -> (event) {
+    console.log(`Flashback transition: ${event.direction} (${event.transition_duration}s)`);
+    console.log(`  Filters: sepia=${event.filters.sepia}, desaturation=${event.filters.desaturation}`);
+  }
+
+  on ChildhoodMemory.flashback.completed -> (event) {
+    console.log(`Flashback ended. Returning to present.`);
+  }
+
+  on PropheticVision.foreshadow.triggered -> (event) {
+    console.log(`🔮 Foreshadowing event: ${event.type} (subtlety=${event.subtlety})`);
+    console.log(`  Hints: ${event.hint_count} clues about future event "${event.payoff_event}"`);
+  }
+
+  on PropheticVision.foreshadow.hint_shown -> (event) {
+    console.log(`Hint revealed: ${event.hint_type} - "${event.description}"`);
+    console.log(`  Time until payoff: ${(event.relevance_time / 60).toFixed(1)} minutes`);
+  }
+
+  on PropheticVision.foreshadow.dream_started -> (event) {
+    console.log(`Dream sequence started: ${event.visual_style} style`);
+    console.log(`  Symbols: ${event.symbol_count} (${event.symbols.join(', ')})`);
+  }
+
+  on PropheticVision.foreshadow.payoff_occurred -> (event) {
+    console.log(`⚠️ Foreshadowed event occurred: "${event.event_id}"`);
+    console.log(`  Player was warned ${event.hint_count} times over ${(event.time_since_first_hint / 60).toFixed(0)} minutes`);
+  }
+}
+
+// Narrative controls
+ui NarrativeControls {
+  panel "Narrative Events" {
+    section "Narrator" {
+      button "Trigger Narration" -> () {
+        NarratorVoice.narrator_trigger.trigger_manual();
+      }
+
+      slider "Voice Pitch" {
+        min: 0.5, max: 2.0, value: 1.0, step: 0.1,
+        onChange: (v) => { NarratorVoice.narrator_trigger.voice.pitch = v; }
+      }
+
+      slider "Speech Rate" {
+        min: 0.5, max: 2.0, value: 1.0, step: 0.1,
+        onChange: (v) => { NarratorVoice.narrator_trigger.voice.rate = v; }
+      }
+
+      checkbox "Subtitles" {
+        value: true,
+        onChange: (v) => { NarratorVoice.narrator_trigger.subtitles.enabled = v; }
+      }
+
+      text "Status" {
+        value: () => {
+          if (NarratorVoice.narrator_trigger.is_speaking) {
+            return `Speaking (${NarratorVoice.narrator_trigger.current_line_progress.toFixed(0)}%)`;
+          }
+          return "Idle";
+        }
+      }
+    }
+
+    section "Cutscene" {
+      button "Play Cutscene" -> () {
+        OpeningCutscene.cutscene.enabled = true;
+      }
+
+      button "Skip Cutscene" -> () {
+        OpeningCutscene.cutscene.skip();
+      }
+
+      checkbox "Skippable" {
+        value: true,
+        onChange: (v) => { OpeningCutscene.cutscene.skippable = v; }
+      }
+
+      checkbox "Letterbox" {
+        value: true,
+        onChange: (v) => { OpeningCutscene.cutscene.letterbox.enabled = v; }
+      }
+
+      text "Progress" {
+        value: () => {
+          if (OpeningCutscene.cutscene.is_playing) {
+            return `${OpeningCutscene.cutscene.current_time.toFixed(1)}s / ${OpeningCutscene.cutscene.duration}s`;
+          }
+          return "Not playing";
+        }
+      }
+    }
+
+    section "Flashback" {
+      button "Trigger Flashback" -> () {
+        ChildhoodMemory.flashback.enabled = true;
+      }
+
+      slider "Sepia Intensity" {
+        min: 0.0, max: 1.0, value: 0.8, step: 0.05,
+        onChange: (v) => { ChildhoodMemory.flashback.visual_filter.sepia = v; }
+      }
+
+      slider "Desaturation" {
+        min: 0.0, max: 1.0, value: 0.6, step: 0.05,
+        onChange: (v) => { ChildhoodMemory.flashback.visual_filter.desaturation = v; }
+      }
+
+      slider "Film Grain" {
+        min: 0.0, max: 1.0, value: 0.3, step: 0.05,
+        onChange: (v) => { ChildhoodMemory.flashback.visual_filter.grain = v; }
+      }
+
+      dropdown "Memory Type" {
+        options: ["involuntary", "voluntary"],
+        value: "involuntary",
+        onChange: (v) => { ChildhoodMemory.flashback.memory_type = v; }
+      }
+    }
+
+    section "Foreshadowing" {
+      button "Trigger Foreshadow" -> () {
+        PropheticVision.foreshadow.trigger_manual();
+      }
+
+      slider "Subtlety" {
+        min: 0.0, max: 1.0, value: 0.6, step: 0.05,
+        onChange: (v) => { PropheticVision.foreshadow.subtlety = v; }
+      }
+
+      dropdown "Type" {
+        options: ["prophecy", "dream", "omen", "warning"],
+        value: "prophecy",
+        onChange: (v) => { PropheticVision.foreshadow.foreshadow_type = v; }
+      }
+
+      checkbox "Dream Sequence" {
+        value: true,
+        onChange: (v) => { PropheticVision.foreshadow.dream_sequence.enabled = v; }
+      }
+
+      text "Hint Count" {
+        value: () => `${PropheticVision.foreshadow.hints_shown} / ${PropheticVision.foreshadow.hints.length}`
+      }
+    }
+  }
+}
