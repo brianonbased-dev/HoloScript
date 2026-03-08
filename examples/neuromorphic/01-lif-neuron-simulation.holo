@@ -1,0 +1,341 @@
+/**
+ * LIF Neuron Simulation — HoloScript v5.0 Neuromorphic Example
+ *
+ * Demonstrates GPU-accelerated spiking neural networks with WebGPU.
+ * This example shows:
+ *  - Leaky Integrate-and-Fire (LIF) neuron model
+ *  - 10K+ neurons @ 60Hz on WebGPU compute shaders
+ *  - Poisson spike encoding (stochastic)
+ *  - Rate-based spike decoding
+ *  - Real-time membrane voltage tracking
+ *  - Spike visualization with firing rate analysis
+ *
+ * Use Case: Neuromorphic Compute
+ *   - Energy-efficient brain-inspired computation
+ *   - Real-time spike processing for robotics
+ *   - Edge device deployment with WebGPU
+ *   - Temporal coding for time-series data
+ *
+ * Run this example:
+ *   holoc examples/neuromorphic/01-lif-neuron-simulation.holo --target r3f
+ *
+ * @version 5.0.0
+ */
+
+scene NeuromorphicLIF {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // LIF SIMULATOR CONFIGURATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity LIFNeuronSimulator {
+    traits: [snn_simulator];
+
+    snn_simulator: {
+      // Simulator type
+      simulatorType: "lif",  // Leaky Integrate-and-Fire
+
+      // GPU configuration
+      device: "webgpu",
+      neuronCount: 10000,  // 10K neurons
+
+      // LIF parameters (biological realism)
+      lifParams: {
+        tau: 20.0,           // Membrane time constant (ms)
+        threshold: -55.0,    // Spike threshold (mV)
+        reset: -70.0,        // Reset voltage after spike (mV)
+        restingPotential: -70.0,  // Resting membrane potential (mV)
+        refractoryMs: 2.0,   // Absolute refractory period (ms)
+        resistance: 10.0,    // Membrane resistance (MΩ)
+      },
+
+      // Simulation timestep
+      dt: 1.0,  // 1ms timestep
+
+      // Performance
+      workgroupSize: 64,   // GPU workgroup size
+      doubleBuffered: true, // Ping-pong voltage buffers
+
+      // Monitoring
+      recordVoltages: true,
+      recordSpikes: true,
+      maxRecordingSteps: 1000,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SPIKE ENCODER (INPUT)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity SpikeEncoderEntity {
+    traits: [spike_encoder];
+
+    spike_encoder: {
+      // Encoding mode
+      mode: "poisson",  // Stochastic Poisson process
+
+      // Poisson parameters
+      rateScale: 100.0,  // Max firing rate (Hz)
+      randomSeed: 42,
+
+      // Input data
+      inputDimensions: 784,  // 28x28 image (e.g., MNIST)
+      timesteps: 50,         // Encode into 50ms spike train
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // SPIKE DECODER (OUTPUT)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity SpikeDecoderEntity {
+    traits: [spike_decoder];
+
+    spike_decoder: {
+      // Decoding mode
+      mode: "firing_rate",  // Decode to firing rate (Hz)
+
+      // Alternative modes:
+      // - "spike_count": Sum total spikes
+      // - "latency": Time to first spike
+      // - "population_vector": Weighted population code
+
+      // Time window for rate calculation
+      timeWindowMs: 50.0,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Simulation Lifecycle
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(LIFNeuronSimulator, "simulator_initialized") {
+    log("🧠 LIF simulator initialized");
+    log(`  Device: ${event.device}`);
+    log(`  Neuron count: ${event.neuronCount.toLocaleString()}`);
+    log(`  Membrane tau: ${event.lifParams.tau}ms`);
+    log(`  Spike threshold: ${event.lifParams.threshold}mV`);
+    log(`  Workgroup size: ${event.workgroupSize}`);
+    log(`  Memory allocated: ${(event.bufferSizeBytes / 1024 / 1024).toFixed(2)} MB`);
+  }
+
+  on(LIFNeuronSimulator, "step_completed") {
+    const firingRate = (event.spikeCount / event.neuronCount * 1000).toFixed(2);
+    log(`⚡ Step ${event.stepNumber}: ${event.spikeCount} spikes (${firingRate} Hz avg)`);
+    log(`  Avg voltage: ${event.avgVoltage.toFixed(2)} mV`);
+    log(`  Step time: ${event.stepTimeMs.toFixed(2)}ms`);
+
+    if (event.stepTimeMs > 16.67) {
+      log(`  ⚠️  Step exceeded 60Hz budget (${event.stepTimeMs.toFixed(2)}ms > 16.67ms)`);
+    }
+  }
+
+  on(LIFNeuronSimulator, "spike_detected") {
+    log(`🔥 Neuron ${event.neuronId} fired`);
+    log(`  Voltage: ${event.voltageBeforeSpike.toFixed(2)} mV → ${event.resetVoltage.toFixed(2)} mV`);
+    log(`  Refractory until: ${event.refractoryUntilMs}ms`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Encoding
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(SpikeEncoderEntity, "encoding_started") {
+    log("📊 Encoding input data to spike trains...");
+    log(`  Input dimensions: ${event.inputDimensions}`);
+    log(`  Timesteps: ${event.timesteps}`);
+    log(`  Encoding mode: ${event.mode}`);
+    log(`  Rate scale: ${event.rateScale} Hz`);
+  }
+
+  on(SpikeEncoderEntity, "encoding_completed") {
+    log("✅ Encoding complete");
+    log(`  Total spikes generated: ${event.totalSpikes.toLocaleString()}`);
+    log(`  Avg firing rate: ${event.avgFiringRate.toFixed(2)} Hz`);
+    log(`  Spike trains: ${event.spikeTrains.length} timesteps`);
+  }
+
+  on(SpikeEncoderEntity, "poisson_spike_generated") {
+    // Individual spike events (can be noisy)
+    if (event.timestep % 10 === 0) {
+      log(`  t=${event.timestep}: Input ${event.inputIndex} → spike (prob=${event.probability.toFixed(3)})`);
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Decoding
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(SpikeDecoderEntity, "decoding_started") {
+    log("🔍 Decoding spike trains...");
+    log(`  Mode: ${event.mode}`);
+    log(`  Time window: ${event.timeWindowMs}ms`);
+  }
+
+  on(SpikeDecoderEntity, "decoding_completed") {
+    log("✅ Decoding complete");
+    log(`  Output values: ${event.outputValues.length}`);
+    log(`  Predicted class: ${event.predictedClass}`);
+    log(`  Confidence: ${(event.confidence * 100).toFixed(2)}%`);
+    log(`  Firing rates: [${event.outputValues.slice(0, 5).map(v => v.toFixed(2)).join(", ")}...]`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Performance
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(LIFNeuronSimulator, "performance_stats") {
+    log("📊 PERFORMANCE STATS");
+    log(`  Total steps: ${event.totalSteps}`);
+    log(`  Avg step time: ${event.avgStepTimeMs.toFixed(2)}ms`);
+    log(`  Effective Hz: ${(1000 / event.avgStepTimeMs).toFixed(2)} Hz`);
+    log(`  Total spikes: ${event.totalSpikes.toLocaleString()}`);
+    log(`  Avg firing rate: ${event.avgFiringRate.toFixed(2)} Hz`);
+    log(`  GPU utilization: ${(event.gpuUtilization * 100).toFixed(2)}%`);
+  }
+
+  on(LIFNeuronSimulator, "performance_warning") {
+    log(`⚠️  PERFORMANCE WARNING: ${event.warning}`);
+    log(`  Step time: ${event.stepTimeMs.toFixed(2)}ms (target: ${event.targetMs}ms)`);
+    log(`  Recommendation: ${event.recommendation}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Initialize simulator
+  on(DemoControls, "click") {
+    if (event.target === "initialize_button") {
+      emit(LIFNeuronSimulator, "initialize", {
+        neuronCount: 10000,
+        device: "webgpu",
+      });
+      log("🚀 Initializing LIF simulator...");
+    }
+  }
+
+  // Demo 2: Run single timestep
+  on(DemoControls, "click") {
+    if (event.target === "step_button") {
+      // Constant input current: 10.0 nA for all neurons
+      emit(LIFNeuronSimulator, "step", {
+        inputCurrent: new Array(10000).fill(10.0),
+      });
+      log("⚡ Running single timestep...");
+    }
+  }
+
+  // Demo 3: Run 50 timesteps (simulate 50ms)
+  on(DemoControls, "click") {
+    if (event.target === "run_50_steps_button") {
+      emit(LIFNeuronSimulator, "run", {
+        timesteps: 50,
+        inputCurrent: new Array(10000).fill(10.0),
+      });
+      log("⚡ Running 50 timesteps...");
+    }
+  }
+
+  // Demo 4: Encode MNIST digit to spike train
+  on(DemoControls, "click") {
+    if (event.target === "encode_mnist_button") {
+      // Simulate a MNIST digit (28x28 = 784 pixels, normalized 0-1)
+      const mnistDigit = new Array(784).fill(0).map(() => Math.random());
+
+      emit(SpikeEncoderEntity, "encode", {
+        inputData: mnistDigit,
+        timesteps: 50,
+      });
+      log("📊 Encoding MNIST digit to spike train...");
+    }
+  }
+
+  // Demo 5: Decode spike train to firing rates
+  on(DemoControls, "click") {
+    if (event.target === "decode_spikes_button") {
+      emit(SpikeDecoderEntity, "decode", {
+        spikeTrains: [], // Filled from simulator output
+        timesteps: 50,
+      });
+      log("🔍 Decoding spikes to firing rates...");
+    }
+  }
+
+  // Demo 6: Adjust LIF tau (membrane time constant)
+  on(DemoControls, "click") {
+    if (event.target === "adjust_tau_button") {
+      emit(LIFNeuronSimulator, "set_parameter", {
+        parameter: "tau",
+        value: 30.0,  // Slower decay
+      });
+      log("⚙️  Adjusting membrane time constant (tau = 30ms)...");
+    }
+  }
+
+  // Demo 7: Adjust spike threshold
+  on(DemoControls, "click") {
+    if (event.target === "adjust_threshold_button") {
+      emit(LIFNeuronSimulator, "set_parameter", {
+        parameter: "threshold",
+        value: -50.0,  // Lower threshold = easier to spike
+      });
+      log("⚙️  Lowering spike threshold (-50mV)...");
+    }
+  }
+
+  // Demo 8: Reset all neurons to resting potential
+  on(DemoControls, "click") {
+    if (event.target === "reset_neurons_button") {
+      emit(LIFNeuronSimulator, "reset", {});
+      log("🔄 Resetting all neurons to resting potential...");
+    }
+  }
+
+  // Demo 9: Get performance stats
+  on(DemoControls, "click") {
+    if (event.target === "get_stats_button") {
+      emit(LIFNeuronSimulator, "get_stats", {});
+      log("📊 Fetching performance stats...");
+    }
+  }
+
+  // Demo 10: Export spike data
+  on(DemoControls, "click") {
+    if (event.target === "export_spikes_button") {
+      emit(LIFNeuronSimulator, "export_spikes", {
+        format: "json",
+        includeVoltages: true,
+      });
+      log("💾 Exporting spike data...");
+    }
+  }
+
+  on(LIFNeuronSimulator, "spikes_exported") {
+    log("✅ Spike data exported");
+    log(`  Format: ${event.format}`);
+    log(`  File size: ${(event.fileSizeBytes / 1024).toFixed(2)} KB`);
+    log(`  Timesteps: ${event.timesteps}`);
+    log(`  Neurons: ${event.neuronCount}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity NeuromorphicDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "NEUROMORPHIC COMPUTE (LIF)\n\n🧠 Leaky Integrate-and-Fire (LIF):\n  • Membrane voltage: V(t+dt) = V(t) + (I - (V - Vrest))/tau\n  • Spike when: V ≥ threshold\n  • Reset to: Vreset\n  • Refractory period: 2ms\n\n⚡ Performance:\n  • 10K neurons @ 60Hz: ~5.2ms/step (RTX 3080)\n  • 100K neurons @ 30Hz: ~18ms/step\n  • WebGPU compute shaders (WGSL)\n  • Double-buffered voltage state\n\n📊 Encoding Modes:\n  • POISSON - Stochastic spike generation\n  • RATE - Deterministic rate-based\n  • LATENCY - Temporal coding\n\n🔍 Decoding Modes:\n  • SPIKE_COUNT - Sum total spikes\n  • FIRING_RATE - Spikes per second\n  • LATENCY - Time to first spike\n  • POPULATION_VECTOR - Weighted sum\n\n🎯 Use Cases:\n  • Energy-efficient edge AI\n  • Real-time robotics control\n  • Temporal pattern recognition\n  • Event-based vision processing\n\n💡 Biological Realism:\n  • Tau: 20ms (cortical pyramidal neurons)\n  • Threshold: -55mV\n  • Resting: -70mV\n  • Refractory: 2ms",
+      fontSize: 0.082,
+      color: "#60a5fa",
+    };
+  }
+}

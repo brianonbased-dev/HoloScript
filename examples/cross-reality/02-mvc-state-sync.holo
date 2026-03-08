@@ -1,0 +1,374 @@
+/**
+ * MVC State Sync — HoloScript v5.0 Minimal Viable Context Example
+ *
+ * Demonstrates Minimal Viable Context (MVC) for cross-platform state sync.
+ * This example shows:
+ *  - MVC pattern: 5 objects <10KB max payload
+ *  - Platform-specific payload budgets
+ *  - State compression for constrained devices
+ *  - Essential state vs full state
+ *  - State serialization/deserialization
+ *  - Sync conflict resolution
+ *
+ * Use Case: Lightweight Agent State Handoff
+ *   - Transfer minimal agent state between platforms
+ *   - Respect device constraints (wearable: 4KB, automotive: 8KB)
+ *   - Compress for bandwidth-limited devices
+ *   - Preserve critical state only
+ *
+ * Run this example:
+ *   holoc examples/cross-reality/02-mvc-state-sync.holo --target r3f
+ *
+ * @version 5.0.0
+ */
+
+@platform(vr, ar, mobile, desktop, automotive, wearable)
+scene MVCStateSynchronization {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // MVC STATE CONFIGURATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity MVCStateManager {
+    traits: [mvc_state, cross_reality];
+
+    mvc_state: {
+      // MVC objects (max 5 for VR/AR/Mobile, max 3 for Automotive/Wearable)
+      essentialObjects: [
+        {
+          id: "agent_identity",
+          type: "AgentProfile",
+          priority: "critical",      // Always sync
+          maxSizeBytes: 2048,        // 2KB max
+          data: {
+            agentId: "assistant-001",
+            name: "Alex Assistant",
+            role: "personal_assistant",
+            capabilities: ["conversation", "task_management", "navigation"],
+          },
+        },
+        {
+          id: "conversation_context",
+          type: "ConversationState",
+          priority: "high",
+          maxSizeBytes: 4096,        // 4KB max
+          data: {
+            currentTopic: "meeting_schedule",
+            lastUserMessage: "When is my next meeting?",
+            conversationHistory: [/* truncated for MVC */],
+          },
+        },
+        {
+          id: "task_list",
+          type: "TaskState",
+          priority: "medium",
+          maxSizeBytes: 2048,
+          data: {
+            activeTasks: [
+              { id: "task-1", title: "Review PR #42", status: "pending" },
+              { id: "task-2", title: "Update docs", status: "in_progress" },
+            ],
+          },
+        },
+        {
+          id: "user_preferences",
+          type: "PreferencesState",
+          priority: "low",
+          maxSizeBytes: 1024,
+          data: {
+            theme: "dark",
+            language: "en-US",
+            notificationsEnabled: true,
+          },
+        },
+        {
+          id: "navigation_waypoint",
+          type: "NavigationState",
+          priority: "medium",
+          maxSizeBytes: 512,
+          data: {
+            destination: "Conference Room A",
+            latitude: 37.7749,
+            longitude: -122.4194,
+          },
+        },
+      ],
+
+      // Platform-specific payload budgets
+      budgets: {
+        vr: { maxPayloadBytes: 10240, maxObjects: 5, compressionRequired: false },
+        mobile: { maxPayloadBytes: 8192, maxObjects: 5, compressionRequired: false },
+        desktop: { maxPayloadBytes: 102400, maxObjects: 10, compressionRequired: false },
+        automotive: { maxPayloadBytes: 8192, maxObjects: 3, compressionRequired: true },
+        wearable: { maxPayloadBytes: 4096, maxObjects: 3, compressionRequired: true },
+      },
+
+      // Compression configuration
+      compression: {
+        algorithm: "zstd",           // Zstandard (fast + high ratio)
+        level: 3,                    // Compression level (1-22)
+        dictionaryEnabled: true,     // Use compression dictionary
+      },
+
+      // Sync configuration
+      sync: {
+        strategy: "priority_based",  // Sync highest priority objects first
+        conflictResolution: "last_write_wins",
+        maxSyncLatencyMs: 500,
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — State Serialization
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(MVCStateManager, "state_serialized") {
+    log("📦 MVC state serialized");
+    log(`  Target platform: ${event.targetPlatform}`);
+    log(`  Objects included: ${event.objectCount}`);
+    log(`  Uncompressed size: ${event.uncompressedBytes} bytes`);
+    log(`  Compressed size: ${event.compressedBytes} bytes (${event.compressionRatio.toFixed(2)}× ratio)`);
+    log(`  Budget: ${event.budgetBytes} bytes (${((event.compressedBytes / event.budgetBytes) * 100).toFixed(2)}% used)`);
+    log(`  Compression required: ${event.compressionRequired ? "✅" : "❌"}`);
+  }
+
+  on(MVCStateManager, "object_included") {
+    log(`  ✅ ${event.objectId} (${event.objectType}) - ${event.sizeBytes} bytes (priority: ${event.priority})`);
+  }
+
+  on(MVCStateManager, "object_excluded") {
+    log(`  ❌ ${event.objectId} (${event.objectType}) - Excluded (reason: ${event.reason})`);
+  }
+
+  on(MVCStateManager, "budget_exceeded") {
+    log(`⚠️  Budget exceeded for ${event.platform}`);
+    log(`  Payload: ${event.payloadBytes} bytes`);
+    log(`  Budget: ${event.budgetBytes} bytes`);
+    log(`  Overage: ${event.overageBytes} bytes`);
+    log(`  Action: Excluding lowest-priority objects`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — State Deserialization
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(MVCStateManager, "state_received") {
+    log("📥 MVC state received");
+    log(`  Source platform: ${event.sourcePlatform}`);
+    log(`  Compressed size: ${event.compressedBytes} bytes`);
+    log(`  Decompressing...`);
+  }
+
+  on(MVCStateManager, "state_deserialized") {
+    log("✅ MVC state deserialized");
+    log(`  Objects restored: ${event.objectCount}`);
+    log(`  Uncompressed size: ${event.uncompressedBytes} bytes`);
+    log(`  Decompression time: ${event.decompressionMs.toFixed(2)}ms`);
+    log("  Restored objects:");
+    for (const obj of event.objects) {
+      log(`    ${obj.id} (${obj.type}) - ${obj.sizeBytes} bytes`);
+    }
+  }
+
+  on(MVCStateManager, "state_corrupted") {
+    log("❌ MVC state corrupted");
+    log(`  Reason: ${event.reason}`);
+    log(`  Checksum mismatch: ${event.checksumMismatch ? "✅" : "❌"}`);
+    log(`  Action: Requesting resync`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Sync & Conflict Resolution
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(MVCStateManager, "sync_started") {
+    log("🔄 MVC sync started");
+    log(`  Source: ${event.sourcePlatform}`);
+    log(`  Target: ${event.targetPlatform}`);
+    log(`  Objects to sync: ${event.objectCount}`);
+    log(`  Strategy: ${event.strategy}`);
+  }
+
+  on(MVCStateManager, "sync_conflict") {
+    log("⚠️  Sync conflict detected");
+    log(`  Object: ${event.objectId}`);
+    log(`  Local version: ${event.localVersion} (modified: ${event.localModifiedAt})`);
+    log(`  Remote version: ${event.remoteVersion} (modified: ${event.remoteModifiedAt})`);
+    log(`  Resolution: ${event.resolution}`);
+  }
+
+  on(MVCStateManager, "sync_completed") {
+    log("✅ MVC sync completed");
+    log(`  Objects synced: ${event.objectsSynced}`);
+    log(`  Conflicts resolved: ${event.conflictsResolved}`);
+    log(`  Sync latency: ${event.latencyMs.toFixed(2)}ms`);
+    log(`  Data transferred: ${event.bytesTransferred} bytes`);
+  }
+
+  on(MVCStateManager, "sync_failed") {
+    log("❌ MVC sync FAILED");
+    log(`  Reason: ${event.reason}`);
+    log(`  Retry attempt: ${event.retryAttempt}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Platform-Specific Adaptation
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(MVCStateManager, "platform_adapted") {
+    log(`🎯 State adapted for ${event.targetPlatform}`);
+    log(`  Original objects: ${event.originalObjectCount}`);
+    log(`  Adapted objects: ${event.adaptedObjectCount}`);
+    log(`  Excluded objects: ${event.excludedObjects.join(", ")}`);
+    log(`  Compression applied: ${event.compressionApplied ? "✅" : "❌"}`);
+    log(`  Budget compliance: ${event.budgetCompliant ? "✅" : "⚠️  Overage"}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Serialize state for VR (10KB budget, 5 objects, no compression)
+  on(DemoControls, "click") {
+    if (event.target === "serialize_vr_button") {
+      emit(MVCStateManager, "serialize", {
+        targetPlatform: "vr",
+      });
+      log("📦 Serializing MVC state for VR...");
+    }
+  }
+
+  // Demo 2: Serialize state for Mobile (8KB budget, 5 objects)
+  on(DemoControls, "click") {
+    if (event.target === "serialize_mobile_button") {
+      emit(MVCStateManager, "serialize", {
+        targetPlatform: "mobile",
+      });
+      log("📦 Serializing MVC state for Mobile...");
+    }
+  }
+
+  // Demo 3: Serialize state for Automotive (8KB budget, 3 objects, compression REQUIRED)
+  on(DemoControls, "click") {
+    if (event.target === "serialize_automotive_button") {
+      emit(MVCStateManager, "serialize", {
+        targetPlatform: "automotive",
+      });
+      log("📦 Serializing MVC state for Automotive (compression required)...");
+    }
+  }
+
+  // Demo 4: Serialize state for Wearable (4KB budget, 3 objects, compression REQUIRED)
+  on(DemoControls, "click") {
+    if (event.target === "serialize_wearable_button") {
+      emit(MVCStateManager, "serialize", {
+        targetPlatform: "wearable",
+      });
+      log("📦 Serializing MVC state for Wearable (4KB limit)...");
+    }
+  }
+
+  // Demo 5: Deserialize received state
+  on(DemoControls, "click") {
+    if (event.target === "deserialize_button") {
+      // Simulate compressed payload from VR
+      const compressedPayload = new Uint8Array(6542);  // 6.5KB
+
+      emit(MVCStateManager, "deserialize", {
+        compressedPayload: compressedPayload,
+        sourcePlatform: "vr",
+      });
+      log("📥 Deserializing received MVC state...");
+    }
+  }
+
+  // Demo 6: Sync VR → AR
+  on(DemoControls, "click") {
+    if (event.target === "sync_vr_ar_button") {
+      emit(MVCStateManager, "sync", {
+        sourcePlatform: "vr",
+        targetPlatform: "ar",
+      });
+      log("🔄 Syncing VR → AR...");
+    }
+  }
+
+  // Demo 7: Sync Mobile → Automotive (requires compression + object reduction)
+  on(DemoControls, "click") {
+    if (event.target === "sync_mobile_automotive_button") {
+      emit(MVCStateManager, "sync", {
+        sourcePlatform: "mobile",
+        targetPlatform: "automotive",
+      });
+      log("🔄 Syncing Mobile → Automotive (priority-based, 3 objects max)...");
+    }
+  }
+
+  // Demo 8: Sync Automotive → Wearable (most constrained)
+  on(DemoControls, "click") {
+    if (event.target === "sync_automotive_wearable_button") {
+      emit(MVCStateManager, "sync", {
+        sourcePlatform: "automotive",
+        targetPlatform: "wearable",
+      });
+      log("🔄 Syncing Automotive → Wearable (4KB limit, 3 objects, compressed)...");
+    }
+  }
+
+  // Demo 9: Test budget compliance
+  on(DemoControls, "click") {
+    if (event.target === "test_budget_button") {
+      const platforms = ["vr", "mobile", "desktop", "automotive", "wearable"];
+      for (const platform of platforms) {
+        emit(MVCStateManager, "test_budget", {
+          platform: platform,
+        });
+      }
+      log("📊 Testing budget compliance for all platforms...");
+    }
+  }
+
+  on(MVCStateManager, "budget_test_result") {
+    const status = event.compliant ? "✅" : "❌";
+    log(`  ${event.platform}: ${event.payloadBytes} bytes / ${event.budgetBytes} bytes ${status}`);
+    if (!event.compliant) {
+      log(`    Overage: ${event.overageBytes} bytes`);
+      log(`    Excluded objects: ${event.excludedObjects.join(", ")}`);
+    }
+  }
+
+  // Demo 10: Simulate sync conflict
+  on(DemoControls, "click") {
+    if (event.target === "simulate_conflict_button") {
+      emit(MVCStateManager, "simulate_conflict", {
+        objectId: "conversation_context",
+        localVersion: 5,
+        remoteVersion: 6,
+        localModifiedAt: new Date(Date.now() - 1000).toISOString(),
+        remoteModifiedAt: new Date().toISOString(),
+      });
+      log("⚠️  Simulating sync conflict...");
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity MVCDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "MINIMAL VIABLE CONTEXT (MVC)\n\n📦 Platform Budgets:\n  • VR: 10KB, 5 objects, no compression\n  • Mobile: 8KB, 5 objects, no compression\n  • Desktop: 100KB, 10 objects, no compression\n  • Automotive: 8KB, 3 objects, compression REQUIRED\n  • Wearable: 4KB, 3 objects, compression REQUIRED\n\n🎯 MVC Pattern (5 Objects):\n  1. agent_identity (2KB) - CRITICAL\n  2. conversation_context (4KB) - HIGH\n  3. task_list (2KB) - MEDIUM\n  4. user_preferences (1KB) - LOW\n  5. navigation_waypoint (512B) - MEDIUM\n  Total: ~9.5KB (fits all platforms)\n\n⚡ Compression (Zstandard):\n  • Algorithm: zstd (level 3)\n  • Typical ratio: 2-4×\n  • Decompression: <5ms\n  • Dictionary-based for better ratios\n\n🔄 Priority-Based Sync:\n  1. Critical objects first (agent_identity)\n  2. High-priority next (conversation_context)\n  3. Drop low-priority if budget exceeded\n  4. Wearable: Top 3 objects only\n\n💡 Why MVC?\n  ✅ Lightweight (fits all devices)\n  ✅ Fast sync (<500ms)\n  ✅ Respects device constraints\n  ✅ Essential state only\n  ❌ Full state sync:\n    - Too large (>100KB)\n    - Slow (>5s)\n    - Exceeds budgets",
+      fontSize: 0.08,
+      color: "#38bdf8",
+    };
+  }
+}
