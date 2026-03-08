@@ -108,6 +108,7 @@ export default defineConfig({
       {
         text: 'Reference',
         items: [
+          { text: 'Language Reference', link: '/language/reference' },
           { text: 'Traits (1,800+)', link: '/traits/' },
           { text: 'Compilers (25+ targets)', link: '/compilers/' },
           { text: 'API Reference', link: '/api/' },
@@ -360,8 +361,42 @@ export default defineConfig({
         {
           text: 'Language Reference',
           items: [
+            { text: 'Overview', link: '/language/reference' },
             { text: 'Language Spec', link: '/language/holoscript-language-spec' },
             { text: 'Syntax Extensions', link: '/language/syntax-extensions' },
+          ],
+        },
+        {
+          text: 'Basic Syntax (.hs)',
+          collapsed: false,
+          items: [
+            { text: 'Basic Objects', link: '/language/reference-hs-basic' },
+          ],
+        },
+        {
+          text: 'Extended Syntax (.hsplus)',
+          collapsed: false,
+          items: [
+            { text: 'Templates & Decorators', link: '/language/reference-hsplus-templates' },
+            { text: 'State & Actions', link: '/language/reference-hsplus-state' },
+            { text: 'Event Handlers', link: '/language/reference-hsplus-events' },
+            { text: 'Modules & Imports', link: '/language/reference-hsplus-modules' },
+          ],
+        },
+        {
+          text: 'Advanced Compositions (.holo)',
+          collapsed: false,
+          items: [
+            { text: 'Entity-Trait Pattern', link: '/language/reference-holo-entity' },
+            { text: 'Object-Template Pattern', link: '/language/reference-holo-object' },
+          ],
+        },
+        {
+          text: 'Cross-Format Comparisons',
+          collapsed: false,
+          items: [
+            { text: 'Simple VR Scene', link: '/language/comparison-simple-scene' },
+            { text: 'Interactive Game', link: '/language/comparison-interactive-game' },
           ],
         },
       ],
