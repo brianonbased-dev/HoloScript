@@ -1,9 +1,11 @@
 // Aerospace Benchmark Composition
+// OpenXR Target Optimization: Meta Quest compatible (low-poly meshes, optimized physics)
 composition "Aerospace Benchmark" {
   metadata {
     name: 'Aerospace Cross-Compilation Benchmark'
     category: 'aerospace'
     platforms: ['unity', 'unreal', 'webxr', 'babylonjs', 'r3f', 'openxr', 'dtdl']
+    performance_target: 'mobile_vr'  // Meta Quest 2/3/Pro optimization
   }
 
   environment {

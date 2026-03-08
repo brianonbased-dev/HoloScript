@@ -25,6 +25,15 @@ function sepBy(rule, separator) {
 }
 
 /**
+ * Helper to create comma-separated lists (at least one item required)
+ * @param {RuleOrLiteral} rule
+ * @param {RuleOrLiteral} separator
+ */
+function sepBy1(rule, separator) {
+  return seq(rule, repeat(seq(separator, rule)));
+}
+
+/**
  * Helper to create comma-separated lists with trailing separator allowed
  * @param {RuleOrLiteral} rule
  * @param {RuleOrLiteral} separator
@@ -42,6 +51,7 @@ module.exports = grammar({
   // Handle parsing conflicts
   conflicts: ($) => [
     [$.object],
+    [$.platform_decorator, $.trait_inline],
   ],
 
   // External scanner for handling string interpolation (future)
@@ -119,6 +129,8 @@ module.exports = grammar({
         $.trait_definition,
         $.timeline,
         $.state_declaration,
+        // Cultural norms (v4.6 — emergent agent culture)
+        $.norm_block,
         // Linear resource types (v4.4 — compile-time safety)
         $.resource_definition,
         // Extensible: any unknown domain block
@@ -179,6 +191,7 @@ module.exports = grammar({
         $.annotation,
         $.test_block,
         $.codebase_block,
+        $.norm_block,
         $.custom_block
       ),
 
@@ -209,6 +222,7 @@ module.exports = grammar({
     // Spatial group for organizing objects
     spatial_group: ($) =>
       seq(
+        optional($.platform_decorator),
         'spatial_group',
         field('name', $.string),
         '{',
@@ -259,6 +273,7 @@ module.exports = grammar({
 
     template: ($) =>
       seq(
+        optional($.platform_decorator),
         'template',
         field('name', $.string),
         optional($.trait_list),
@@ -281,6 +296,7 @@ module.exports = grammar({
 
     object: ($) =>
       seq(
+        optional($.platform_decorator),
         choice('object', 'orb', 'cube', 'sphere', 'cylinder', 'cone', 'model',
                'npc', 'portal', 'audio', 'spawnpoint', 'ui_panel', 'text',
                'gesture', 'progress', 'button', 'text'),
@@ -367,6 +383,33 @@ module.exports = grammar({
         ':',
         $.block
       ),
+
+    // =========================================================================
+    // PLATFORM CONDITIONAL COMPILATION
+    // =========================================================================
+
+    // Platform decorator — @platform(vr) or @platform(quest3, android-xr) or @platform(not: web)
+    platform_decorator: ($) =>
+      prec(2, seq(
+        '@',
+        'platform',
+        '(',
+        choice(
+          seq('not', ':', $.platform_list),
+          $.platform_list
+        ),
+        ')'
+      )),
+
+    platform_list: ($) =>
+      sepBy1($.platform_name, ','),
+
+    // Platform name with optional hyphens (e.g., android-xr, visionos-ar)
+    platform_name: ($) =>
+      token(seq(
+        /[a-z][a-z0-9]*/,
+        repeat(seq('-', /[a-z][a-z0-9]*/))
+      )),
 
     // =========================================================================
     // STATE & NETWORKING
@@ -641,6 +684,7 @@ module.exports = grammar({
     custom_block: ($) =>
       prec(-1,
         seq(
+          optional($.platform_decorator),
           field('kind', $.identifier),
           field('name', choice($.string, $.identifier)),
           optional($.trait_list),
@@ -1041,6 +1085,7 @@ module.exports = grammar({
 
     light: ($) =>
       seq(
+        optional($.platform_decorator),
         choice('light', 'directional_light', 'point_light', 'spot_light'),
         optional(field('name', $.string)),
         '{',
@@ -1353,6 +1398,51 @@ module.exports = grammar({
     // Generic type — Map<string, SymbolInfo>, Promise<void>
     generic_type: ($) =>
       prec(2, seq(field('name', $.identifier), '<', sepBy($.type, ','), '>')),
+
+    // =========================================================================
+    // CULTURAL NORMS (v4.6 — Emergent Agent Culture)
+    // =========================================================================
+
+    // Norm block — first-class norm declaration with CRSEC lifecycle
+    // norm "PriorityDeferral" @enforceable {
+    //   description: "Agents yield to higher-priority tasks"
+    //   creation { author: "system" mechanism: "broadcast" }
+    //   compliance { violation_severity: "moderate" sanction: "warn" }
+    // }
+    norm_block: ($) =>
+      seq(
+        optional($.platform_decorator),
+        'norm',
+        field('name', choice($.string, $.identifier)),
+        optional($.trait_list),
+        '{',
+        repeat(choice(
+          $.norm_creation,
+          $.norm_representation,
+          $.norm_spreading,
+          $.norm_evaluation,
+          $.norm_compliance,
+          $.event_handler,
+          seq($.property, optional(','))
+        )),
+        '}'
+      ),
+
+    // CRSEC lifecycle sub-blocks
+    norm_creation: ($) =>
+      seq('creation', '{', repeat(seq($.property, optional(','))), '}'),
+
+    norm_representation: ($) =>
+      seq('representation', '{', repeat(seq($.property, optional(','))), '}'),
+
+    norm_spreading: ($) =>
+      seq('spreading', '{', repeat(seq($.property, optional(','))), '}'),
+
+    norm_evaluation: ($) =>
+      seq('evaluation', '{', repeat(seq($.property, optional(','))), '}'),
+
+    norm_compliance: ($) =>
+      seq('compliance', '{', repeat(seq($.property, optional(','))), '}'),
 
     // =========================================================================
     // COMPILE-TIME SAFETY ANNOTATIONS

@@ -1,0 +1,385 @@
+// AR Foundation - Plane Detection Example
+// Demonstrates horizontal and vertical plane detection with placement visualization
+// Compatible with iOS ARKit and Android ARCore
+// Compile: holoscript compile plane-detection.holo --target ios/android
+
+composition "AR Plane Detection & Placement" {
+  metadata {
+    description: "Complete AR plane detection example with horizontal/vertical plane support"
+    platform: ["ios", "android"]
+    ar_features: ["plane_detection", "surface_placement", "touch_input"]
+    author: "HoloScript AR Foundation Examples"
+    version: "1.0.0"
+  }
+
+  // === AR Environment Configuration ===
+  environment {
+    ar_mode: true
+    plane_detection: {
+      enabled: true
+      types: ["horizontal", "vertical"]
+      min_area: 0.25
+      visualize: true
+      update_rate: 60
+    }
+
+    camera {
+      clear_mode: "ar_background"
+      near_clip: 0.1
+      far_clip: 100
+    }
+  }
+
+  // === Plane Detection System ===
+  object "PlaneDetectionManager" @plane_detection {
+    plane_types: ["horizontal", "vertical"]
+    min_area: 0.25
+    visualize: true
+
+    state {
+      detected_planes: []
+      active_plane: null
+      total_horizontal: 0
+      total_vertical: 0
+    }
+
+    onPlaneDetected: {
+      const plane = event.plane;
+      this.state.detected_planes.push(plane);
+
+      if (plane.orientation === "horizontal") {
+        this.state.total_horizontal += 1;
+      } else if (plane.orientation === "vertical") {
+        this.state.total_vertical += 1;
+      }
+
+      emit("ui_update", {
+        horizontal: this.state.total_horizontal,
+        vertical: this.state.total_vertical
+      });
+
+      // Create visual indicator for plane
+      spawn("PlaneVisualizer", {
+        plane_id: plane.id,
+        orientation: plane.orientation,
+        bounds: plane.bounds
+      });
+    }
+
+    onPlaneUpdated: {
+      const plane = event.plane;
+      // Update plane visualizer with new boundaries
+      emit("update_plane_viz", {
+        plane_id: plane.id,
+        bounds: plane.bounds
+      });
+    }
+
+    onPlaneLost: {
+      const plane_id = event.plane_id;
+      this.state.detected_planes = this.state.detected_planes.filter(
+        p => p.id !== plane_id
+      );
+      emit("remove_plane_viz", { plane_id });
+    }
+  }
+
+  // === Plane Visualizer Template ===
+  template "PlaneVisualizer" {
+    @anchor
+    @dynamic_mesh
+
+    props {
+      plane_id: ""
+      orientation: "horizontal"
+      bounds: []
+    }
+
+    geometry: "plane_mesh"
+    material: "ar_plane_material"
+
+    // Color-coded by orientation
+    color: "${this.props.orientation === 'horizontal' ? '#4CAF50' : '#2196F3'}"
+    opacity: 0.3
+
+    state {
+      highlighted: false
+    }
+
+    onUpdate: {
+      // Animate plane mesh based on detection confidence
+      if (event.bounds && event.bounds !== this.props.bounds) {
+        this.props.bounds = event.bounds;
+        updateMeshFromBounds(this.props.bounds);
+      }
+    }
+
+    onHoverEnter: {
+      this.state.highlighted = true;
+      this.opacity = 0.5;
+    }
+
+    onHoverExit: {
+      this.state.highlighted = false;
+      this.opacity = 0.3;
+    }
+  }
+
+  // === Placement Reticle (Selection Indicator) ===
+  object "PlacementReticle" {
+    @anchor
+    @billboard
+
+    geometry: "torus"
+    scale: [0.15, 0.15, 0.02]
+    color: "#00FF00"
+    opacity: 0.7
+    visible: true
+
+    state {
+      tracking_plane: false
+      current_plane: null
+      placement_valid: false
+    }
+
+    animation "pulse" {
+      property: "scale"
+      from: [0.14, 0.14, 0.02]
+      to: [0.16, 0.16, 0.02]
+      duration: 1000
+      loop: infinite
+      easing: "easeInOutSine"
+    }
+
+    animation "rotate" {
+      property: "rotation.z"
+      from: 0
+      to: 360
+      duration: 2000
+      loop: infinite
+    }
+
+    onUpdate: {
+      // Raycast to find plane intersection
+      const hit = raycastToPlanes(camera.position, camera.forward);
+
+      if (hit && hit.plane) {
+        this.position = hit.point;
+        this.state.tracking_plane = true;
+        this.state.current_plane = hit.plane;
+        this.state.placement_valid = true;
+        this.color = "#00FF00"; // Green = valid
+      } else {
+        this.state.tracking_plane = false;
+        this.state.placement_valid = false;
+        this.color = "#FF0000"; // Red = invalid
+      }
+    }
+  }
+
+  // === Placeable Object Template ===
+  template "PlaceableObject" {
+    @anchor
+    @grabbable
+    @draggable(constrain_to: "detected_plane")
+    @scalable
+    @rotatable
+    @shadow_caster
+
+    state {
+      placed: false
+      plane_id: null
+      locked: false
+    }
+
+    onPlaced: {
+      this.state.placed = true;
+      this.state.plane_id = event.plane_id;
+      haptic_feedback("medium");
+      play_sound("place_object");
+
+      // Spawn placement animation
+      this.animate({
+        property: "scale",
+        from: [0, 0, 0],
+        to: this.scale,
+        duration: 300,
+        easing: "easeOutBack"
+      });
+    }
+
+    onDragStart: {
+      this.state.locked = false;
+      this.opacity = 0.7;
+    }
+
+    onDragEnd: {
+      this.opacity = 1.0;
+      haptic_feedback("light");
+    }
+  }
+
+  // === Example Placeable Objects ===
+  object "Chair" using "PlaceableObject" {
+    geometry: "model/chair.usdz"
+    scale: [0.5, 0.5, 0.5]
+    position: [0, 0, 0]
+    visible: false
+
+    metadata {
+      category: "furniture"
+      placement_type: "horizontal"
+    }
+  }
+
+  object "Painting" using "PlaceableObject" {
+    geometry: "model/painting.usdz"
+    scale: [0.4, 0.6, 0.05]
+    position: [0, 0, 0]
+    visible: false
+
+    metadata {
+      category: "decoration"
+      placement_type: "vertical"
+    }
+  }
+
+  object "Plant" using "PlaceableObject" {
+    geometry: "model/plant.usdz"
+    scale: [0.3, 0.3, 0.3]
+    position: [0, 0, 0]
+    visible: false
+
+    metadata {
+      category: "decoration"
+      placement_type: "horizontal"
+    }
+  }
+
+  // === Placement Logic ===
+  object "PlacementController" {
+    state {
+      selected_object: "Chair"
+      placement_mode: "scanning"
+    }
+
+    onTouchTap: {
+      const reticle = getObject("PlacementReticle");
+
+      if (reticle.state.placement_valid && this.state.placement_mode === "ready") {
+        // Place selected object at reticle position
+        const obj = spawn(this.state.selected_object, {
+          position: reticle.position,
+          rotation: reticle.rotation
+        });
+
+        obj.visible = true;
+        obj.emit("placed", {
+          plane_id: reticle.state.current_plane.id
+        });
+
+        // Haptic feedback
+        haptic_feedback("success");
+      }
+    }
+
+    onPlaneDetected: {
+      // Enable placement mode after first plane detected
+      if (this.state.placement_mode === "scanning") {
+        this.state.placement_mode = "ready";
+        emit("show_ui_hint", "Tap to place objects");
+      }
+    }
+  }
+
+  // === AR Lighting ===
+  light "AREnvironmentLight" @light_estimation {
+    type: "environment"
+    use_ar_estimation: true
+    apply_ambient: true
+    apply_directional: true
+    apply_reflections: true
+  }
+
+  light "SoftFill" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.2
+    rotation: [-30, 45, 0]
+    cast_shadows: false
+  }
+
+  // === Shadow Receiver (for realistic grounding) ===
+  object "ShadowPlane" {
+    @shadow_receiver
+    geometry: "plane"
+    scale: [50, 50, 1]
+    rotation: [-90, 0, 0]
+    material: "shadow_only"
+    receives_shadows: true
+    visible: true
+  }
+
+  // === Gestures ===
+  gesture "tap" {
+    action: "place_object"
+    target: "plane_surface"
+  }
+
+  gesture "pinch" {
+    action: "scale_object"
+    min_scale: 0.3
+    max_scale: 2.0
+  }
+
+  gesture "rotate" {
+    action: "rotate_object"
+    axis: "y"
+  }
+
+  gesture "drag" {
+    action: "move_object"
+    constrain_to: "detected_plane"
+  }
+
+  // === UI State Machine ===
+  state_machine "ARSession" {
+    initial: "initializing"
+
+    state "initializing" {
+      on_ar_ready: transition("scanning")
+    }
+
+    state "scanning" {
+      description: "Scanning environment for planes"
+      on_plane_detected: transition("ready")
+    }
+
+    state "ready" {
+      description: "Ready to place objects"
+      on_tap: transition("placing")
+    }
+
+    state "placing" {
+      description: "Placing object"
+      on_placed: transition("ready")
+    }
+
+    state "error" {
+      description: "AR not supported or permission denied"
+    }
+  }
+
+  // === Analytics Events ===
+  analytics {
+    track_event("plane_detected", {
+      orientation: "${event.orientation}",
+      area: "${event.area}"
+    })
+
+    track_event("object_placed", {
+      object_type: "${event.object_type}",
+      plane_type: "${event.plane_type}"
+    })
+  }
+}

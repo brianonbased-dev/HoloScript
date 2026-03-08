@@ -1,0 +1,40 @@
+{
+  "name": "@holoscript/crdt-performance-benchmarks",
+  "version": "1.0.0",
+  "description": "Performance benchmarks comparing Yjs, Automerge, and @holoscript/crdt implementations",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "bench": "node --experimental-vm-modules dist/index.js",
+    "bench:operations": "node --experimental-vm-modules dist/suites/operations.bench.js",
+    "bench:memory": "node --experimental-vm-modules dist/suites/memory.bench.js",
+    "bench:serialization": "node --experimental-vm-modules dist/suites/serialization.bench.js",
+    "bench:merge": "node --experimental-vm-modules dist/suites/merge.bench.js",
+    "bench:signing": "node --experimental-vm-modules dist/suites/signing.bench.js",
+    "bench:all": "node --experimental-vm-modules dist/index.js",
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@holoscript/crdt": "workspace:*",
+    "yjs": "^13.6.20",
+    "@automerge/automerge": "^2.2.8",
+    "tinybench": "^2.9.0",
+    "chalk": "^5.3.0",
+    "uuid": "^11.0.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "~5.9.3"
+  },
+  "keywords": [
+    "crdt",
+    "benchmark",
+    "performance",
+    "yjs",
+    "automerge",
+    "holoscript"
+  ],
+  "author": "HoloScript Team",
+  "license": "MIT"
+}

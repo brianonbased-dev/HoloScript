@@ -20,38 +20,32 @@ composition "Inferno Wyrm" {
   //  BODY CORE — Triple-sphere organic torso
   // ═════════════════════════════════════════════════════════════════════
 
-  object "TorsoMain" @physics {
-    geometry: "sphere"
+  object "TorsoHull" @physics {
+    geometry: "hull"
     position: [0, 2.5, 0]
-    scale: [1.8, 1.2, 2.4]
+    blobs: [
+      { center: [0, 0, 0], radius: [0.9, 0.6, 1.2] },
+      { center: [0, 0.3, 0.5], radius: [0.75, 0.5, 0.8] },
+      { center: [0, -0.2, -0.3], radius: [0.7, 0.45, 0.75] },
+      { center: [0, 0.45, 0.1], radius: [0.35, 0.2, 0.9] },
+      { center: [0, -0.35, 0.4], radius: [0.65, 0.18, 0.6] },
+      { center: [-0.5, 0.0, 0.1], radius: [0.3, 0.4, 0.7] },
+      { center: [0.5, 0.0, 0.1], radius: [0.3, 0.4, 0.7] }
+    ]
+    resolution: 48
+    threshold: 1.0
     color: "#1e0f3d"
     material: "skin_dark"
+    roughness: 0.7
+    metalness: 0.05
 
     keyframes "breathe" {
-      0%:   { scale: [1.8, 1.2, 2.4] }
-      50%:  { scale: [1.9, 1.28, 2.5] }
-      100%: { scale: [1.8, 1.2, 2.4] }
+      0%:   { scale: [1.0, 1.0, 1.0] }
+      50%:  { scale: [1.05, 1.07, 1.04] }
+      100%: { scale: [1.0, 1.0, 1.0] }
       duration: 4000
       easing: "ease-in-out"
       loop: true
-    }
-
-    // Upper torso bulge
-    object "TorsoUpper" {
-      geometry: "sphere"
-      position: [0, 0.3, 0.5]
-      scale: [1.5, 1.0, 1.6]
-      color: "#251548"
-      material: "skin_dark"
-    }
-
-    // Lower torso
-    object "TorsoLower" {
-      geometry: "sphere"
-      position: [0, -0.2, -0.3]
-      scale: [1.4, 0.9, 1.5]
-      color: "#1a0c35"
-      material: "skin_dark"
     }
 
     // Chest plate — armored
@@ -180,122 +174,46 @@ composition "Inferno Wyrm" {
   //  NECK — 6 vertebrae with spines and underbelly scales
   // ═════════════════════════════════════════════════════════════════════
 
-  object "Neck1" {
-    geometry: "cylinder"
-    position: [0, 3.1, 1.6]
-    rotation: [25, 0, 0]
-    scale: [0.45, 0.4, 0.45]
+  object "NeckSpline" {
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[0, 3.1, 1.6], [0, 3.5, 2.1], [0, 3.8, 2.6], [0, 4.0, 3.0], [0, 4.15, 3.4], [0, 4.25, 3.75]]
+    radii: [0.45, 0.42, 0.40, 0.38, 0.36, 0.35]
     color: "#1e0f3d"
     material: "skin_dark"
     keyframes "neckWave" {
-      0%:   { rotation: [25, -3, 0] }
-      50%:  { rotation: [25, 3, 0] }
-      100%: { rotation: [25, -3, 0] }
+      0%:   { rotation: [0, -3, 0] }
+      50%:  { rotation: [0, 3, 0] }
+      100%: { rotation: [0, -3, 0] }
       duration: 5000
       easing: "ease-in-out"
       loop: true
     }
   }
-  object "Neck1Spine" {
-    geometry: "cone"
-    position: [0, 3.4, 1.5]
-    scale: [0.06, 0.2, 0.06]
-    color: "#ff4400"
-    emissive: "#ff2200"
-    emissiveIntensity: 0.6
-  }
-  object "Neck1Scale" {
-    geometry: "sphere"
-    position: [0, 2.85, 1.7]
-    scale: [0.3, 0.06, 0.15]
-    color: "#3d2870"
-    material: "leather"
-  }
-
-  object "Neck2" {
-    geometry: "cylinder"
-    position: [0, 3.5, 2.1]
-    rotation: [20, 0, 0]
-    scale: [0.42, 0.38, 0.42]
-    color: "#1e0f3d"
-    material: "skin_dark"
-  }
-  object "Neck2Spine" {
-    geometry: "cone"
-    position: [0, 3.8, 2.0]
-    scale: [0.06, 0.22, 0.06]
-    color: "#ff4400"
-    emissive: "#ff2200"
-    emissiveIntensity: 0.6
-  }
-  object "Neck2Scale" {
-    geometry: "sphere"
-    position: [0, 3.25, 2.2]
-    scale: [0.28, 0.06, 0.14]
-    color: "#352260"
-    material: "leather"
-  }
-
-  object "Neck3" {
-    geometry: "cylinder"
-    position: [0, 3.8, 2.6]
-    rotation: [15, 0, 0]
-    scale: [0.4, 0.36, 0.4]
-    color: "#1e0f3d"
-    material: "skin_dark"
-  }
-  object "Neck3Spine" {
-    geometry: "cone"
-    position: [0, 4.1, 2.5]
-    scale: [0.06, 0.24, 0.06]
-    color: "#ff4400"
-    emissive: "#ff2200"
-    emissiveIntensity: 0.6
-  }
-
-  object "Neck4" {
-    geometry: "cylinder"
-    position: [0, 4.0, 3.0]
-    rotation: [10, 0, 0]
-    scale: [0.38, 0.34, 0.38]
-    color: "#1e0f3d"
-    material: "skin_dark"
-  }
-  object "Neck4Spine" {
-    geometry: "cone"
-    position: [0, 4.28, 2.95]
-    scale: [0.055, 0.2, 0.055]
-    color: "#ff4400"
-    emissive: "#ff2200"
-    emissiveIntensity: 0.6
-  }
-
-  object "Neck5" {
-    geometry: "cylinder"
-    position: [0, 4.15, 3.4]
-    rotation: [5, 0, 0]
-    scale: [0.36, 0.32, 0.36]
-    color: "#1e0f3d"
-    material: "skin_dark"
-  }
-
-  object "Neck6" {
-    geometry: "cylinder"
-    position: [0, 4.25, 3.75]
-    rotation: [0, 0, 0]
-    scale: [0.35, 0.3, 0.35]
-    color: "#251548"
-    material: "skin_dark"
-  }
+  // Neck spines (along the top of the spline)
+  object "NeckSpine1" { geometry: "cone" position: [0, 3.4, 1.5] scale: [0.06, 0.2, 0.06] color: "#ff4400" emissive: "#ff2200" emissiveIntensity: 0.6 }
+  object "NeckSpine2" { geometry: "cone" position: [0, 3.8, 2.0] scale: [0.06, 0.22, 0.06] color: "#ff4400" emissive: "#ff2200" emissiveIntensity: 0.6 }
+  object "NeckSpine3" { geometry: "cone" position: [0, 4.1, 2.5] scale: [0.06, 0.24, 0.06] color: "#ff4400" emissive: "#ff2200" emissiveIntensity: 0.6 }
+  object "NeckSpine4" { geometry: "cone" position: [0, 4.28, 2.95] scale: [0.055, 0.2, 0.055] color: "#ff4400" emissive: "#ff2200" emissiveIntensity: 0.6 }
+  // Neck underbelly scales
+  object "NeckScale1" { geometry: "sphere" position: [0, 2.85, 1.7] scale: [0.3, 0.06, 0.15] color: "#3d2870" material: "leather" }
+  object "NeckScale2" { geometry: "sphere" position: [0, 3.25, 2.2] scale: [0.28, 0.06, 0.14] color: "#352260" material: "leather" }
 
   // ═════════════════════════════════════════════════════════════════════
   //  HEAD — Skull, snout, jaw, eyes, teeth, horns, ear fins
   // ═════════════════════════════════════════════════════════════════════
 
-  object "Skull" {
-    geometry: "sphere"
+  object "SkullHull" {
+    geometry: "hull"
     position: [0, 4.5, 4.2]
-    scale: [0.7, 0.55, 0.8]
+    blobs: [
+      { center: [0, 0, 0], radius: [0.35, 0.275, 0.40] },
+      { center: [0, -0.05, 0.55], radius: [0.225, 0.175, 0.30] },
+      { center: [-0.25, 0.2, 0.35], radius: [0.10, 0.03, 0.075] },
+      { center: [0.25, 0.2, 0.35], radius: [0.10, 0.03, 0.075] }
+    ]
+    resolution: 48
+    threshold: 1.0
     color: "#251548"
     material: "skin_dark"
 
@@ -308,33 +226,6 @@ composition "Inferno Wyrm" {
       duration: 6000
       easing: "ease-in-out"
       loop: true
-    }
-
-    // Snout
-    object "Snout" {
-      geometry: "sphere"
-      position: [0, -0.05, 0.55]
-      scale: [0.45, 0.35, 0.6]
-      color: "#2a1a50"
-      material: "skin_dark"
-    }
-
-    // Brow ridges
-    object "BrowLeft" {
-      geometry: "cube"
-      position: [-0.25, 0.2, 0.35]
-      rotation: [0, 0, -15]
-      scale: [0.2, 0.06, 0.15]
-      color: "#1a0c35"
-      material: "bone"
-    }
-    object "BrowRight" {
-      geometry: "cube"
-      position: [0.25, 0.2, 0.35]
-      rotation: [0, 0, 15]
-      scale: [0.2, 0.06, 0.15]
-      color: "#1a0c35"
-      material: "bone"
     }
 
     // ─── LEFT EYE (4 layers) ──────────────────────────────────
@@ -509,56 +400,26 @@ composition "Inferno Wyrm" {
       material: "bone"
     }
 
-    // ─── HORNS — Main pair (3 segments each) ──────────────────
-    object "LeftHornBase" {
-      geometry: "cylinder"
-      position: [-0.3, 0.35, -0.15]
-      rotation: [15, 0, -25]
-      scale: [0.08, 0.2, 0.08]
+    // ─── HORNS — Smooth spline tubes ──────────────────────────
+    object "LeftHorn" {
+      geometry: "spline"
+      position: [0, 0, 0]
+      points: [[-0.3, 0.35, -0.15], [-0.42, 0.55, -0.22], [-0.55, 0.75, -0.3]]
+      radii: [0.08, 0.05, 0.02]
       color: "#0d0520"
       material: "bone"
+      roughness: 0.2
+      metalness: 0.4
     }
-    object "LeftHornMid" {
-      geometry: "cylinder"
-      position: [-0.42, 0.55, -0.22]
-      rotation: [20, 0, -30]
-      scale: [0.06, 0.2, 0.06]
-      color: "#0a0418"
-      material: "bone"
-    }
-    object "LeftHornTip" {
-      geometry: "cone"
-      position: [-0.55, 0.75, -0.3]
-      rotation: [25, 0, -35]
-      scale: [0.04, 0.2, 0.04]
-      color: "#ff4400"
-      emissive: "#ff2200"
-      emissiveIntensity: 0.4
-    }
-    object "RightHornBase" {
-      geometry: "cylinder"
-      position: [0.3, 0.35, -0.15]
-      rotation: [15, 0, 25]
-      scale: [0.08, 0.2, 0.08]
+    object "RightHorn" {
+      geometry: "spline"
+      position: [0, 0, 0]
+      points: [[0.3, 0.35, -0.15], [0.42, 0.55, -0.22], [0.55, 0.75, -0.3]]
+      radii: [0.08, 0.05, 0.02]
       color: "#0d0520"
       material: "bone"
-    }
-    object "RightHornMid" {
-      geometry: "cylinder"
-      position: [0.42, 0.55, -0.22]
-      rotation: [20, 0, 30]
-      scale: [0.06, 0.2, 0.06]
-      color: "#0a0418"
-      material: "bone"
-    }
-    object "RightHornTip" {
-      geometry: "cone"
-      position: [0.55, 0.75, -0.3]
-      rotation: [25, 0, 35]
-      scale: [0.04, 0.2, 0.04]
-      color: "#ff4400"
-      emissive: "#ff2200"
-      emissiveIntensity: 0.4
+      roughness: 0.2
+      metalness: 0.4
     }
 
     // Crown horns (4 smaller)
@@ -673,92 +534,104 @@ composition "Inferno Wyrm" {
   //  LEFT WING — Articulated bones + membrane planes
   // ═══════════════════════════════════════════════════════════════════
 
-  object "LeftWingHumerus" {
-    geometry: "cylinder"
-    position: [-1.6, 3.2, 0.2]
-    rotation: [0, 0, -40]
-    scale: [0.1, 0.8, 0.08]
+  // Left wing main bone (shoulder to elbow to wrist — smooth spline)
+  object "LeftWingBone" {
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[-1.2, 3.0, 0.2], [-1.6, 3.2, 0.2], [-2.2, 3.5, 0.2], [-2.6, 3.8, 0.2]]
+    radii: [0.12, 0.10, 0.08, 0.07]
     color: "#1a0c35"
     material: "bone"
-
     keyframes "flapLeft" {
-      0%:   { rotation: [0, 0, -40] }
-      50%:  { rotation: [0, 0, -10] }
-      100%: { rotation: [0, 0, -40] }
+      0%:   { rotation: [0, 0, -5] }
+      50%:  { rotation: [0, 0, 5] }
+      100%: { rotation: [0, 0, -5] }
       duration: 2000
       easing: "ease-in-out"
       loop: true
     }
   }
-  object "LeftWingRadius" {
-    geometry: "cylinder"
-    position: [-2.6, 3.8, 0.2]
-    rotation: [0, 10, -55]
-    scale: [0.07, 0.9, 0.06]
-    color: "#1a0c35"
-    material: "bone"
-  }
+  // Left wing fingers (4 spline "finger bones" radiating from wrist)
   object "LeftWingFinger1" {
-    geometry: "cylinder"
-    position: [-3.4, 4.3, 0.3]
-    rotation: [0, 15, -65]
-    scale: [0.04, 0.7, 0.03]
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[-2.6, 3.8, 0.2], [-3.0, 4.1, 0.3], [-3.4, 4.3, 0.3], [-3.8, 4.5, 0.3]]
+    radii: [0.06, 0.04, 0.03, 0.02]
     color: "#0d0520"
     material: "bone"
   }
   object "LeftWingFinger2" {
-    geometry: "cylinder"
-    position: [-3.3, 4.0, 0.1]
-    rotation: [0, 5, -70]
-    scale: [0.04, 0.65, 0.03]
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[-2.6, 3.8, 0.2], [-3.0, 3.9, 0.1], [-3.3, 4.0, 0.1], [-3.6, 4.1, 0.0]]
+    radii: [0.06, 0.04, 0.03, 0.02]
     color: "#0d0520"
     material: "bone"
   }
   object "LeftWingFinger3" {
-    geometry: "cylinder"
-    position: [-3.1, 3.7, -0.1]
-    rotation: [0, -5, -75]
-    scale: [0.04, 0.6, 0.03]
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[-2.6, 3.8, 0.2], [-2.9, 3.7, -0.0], [-3.1, 3.7, -0.1], [-3.4, 3.6, -0.2]]
+    radii: [0.06, 0.04, 0.03, 0.02]
     color: "#0d0520"
     material: "bone"
   }
   object "LeftWingFinger4" {
-    geometry: "cylinder"
-    position: [-2.8, 3.4, -0.3]
-    rotation: [0, -15, -80]
-    scale: [0.04, 0.5, 0.03]
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[-2.6, 3.8, 0.2], [-2.7, 3.5, -0.1], [-2.8, 3.4, -0.3], [-2.9, 3.2, -0.4]]
+    radii: [0.06, 0.04, 0.03, 0.02]
     color: "#0d0520"
     material: "bone"
   }
-  // Left wing membranes
-  object "LeftMembrane1" {
-    geometry: "plane"
-    position: [-2.5, 3.6, 0.25]
-    rotation: [0, 10, -50]
-    scale: [1.2, 1.5, 1]
-    color: "#1a0520"
-    material: "leather"
-    opacity: 0.6
+  // Left wing membrane — primary loft
+  object "LeftWingMembrane" {
+    geometry: "membrane"
+    position: [0, 0, 0]
+    anchors: [[-1.2, 2.8, -0.2], [-1.6, 3.2, 0.2], [-2.6, 3.8, 0.2], [-3.8, 4.5, 0.3], [-3.6, 4.1, 0.0], [-3.4, 3.6, -0.2], [-2.9, 3.2, -0.4]]
+    subdivisions: 20
+    bulge: 0.18
+    color: "#4a1525"
+    emissive: "#330a0a"
+    emissiveIntensity: 0.5
+    opacity: 0.8
     transparent: true
   }
-  object "LeftMembrane2" {
-    geometry: "plane"
-    position: [-2.7, 3.3, -0.05]
-    rotation: [0, 0, -60]
-    scale: [1.0, 1.3, 1]
-    color: "#150418"
-    material: "leather"
-    opacity: 0.5
+  // Left wing sub-membranes (between each pair of finger bones)
+  object "LeftSubMembrane12" {
+    geometry: "membrane"
+    position: [0, 0, 0]
+    anchors: [[-2.6, 3.8, 0.2], [-3.2, 4.2, 0.3], [-3.8, 4.5, 0.3], [-3.6, 4.1, 0.0], [-3.15, 3.95, 0.1]]
+    subdivisions: 12
+    bulge: 0.12
+    color: "#3d1020"
+    emissive: "#220505"
+    emissiveIntensity: 0.4
+    opacity: 0.75
     transparent: true
   }
-  object "LeftMembrane3" {
-    geometry: "plane"
-    position: [-2.3, 3.0, -0.25]
-    rotation: [0, -10, -70]
-    scale: [0.8, 1.0, 1]
-    color: "#1a0520"
-    material: "leather"
-    opacity: 0.5
+  object "LeftSubMembrane23" {
+    geometry: "membrane"
+    position: [0, 0, 0]
+    anchors: [[-2.6, 3.8, 0.2], [-3.15, 3.95, 0.1], [-3.6, 4.1, 0.0], [-3.4, 3.6, -0.2], [-3.0, 3.7, -0.05]]
+    subdivisions: 12
+    bulge: 0.10
+    color: "#3d1020"
+    emissive: "#220505"
+    emissiveIntensity: 0.35
+    opacity: 0.7
+    transparent: true
+  }
+  object "LeftSubMembrane34" {
+    geometry: "membrane"
+    position: [0, 0, 0]
+    anchors: [[-2.6, 3.8, 0.2], [-3.0, 3.7, -0.05], [-3.4, 3.6, -0.2], [-2.9, 3.2, -0.4], [-2.75, 3.5, -0.1]]
+    subdivisions: 12
+    bulge: 0.08
+    color: "#3d1020"
+    emissive: "#220505"
+    emissiveIntensity: 0.3
+    opacity: 0.65
     transparent: true
   }
   object "LeftWingClaw" {
@@ -774,91 +647,104 @@ composition "Inferno Wyrm" {
   //  RIGHT WING — Mirror of left
   // ═══════════════════════════════════════════════════════════════════
 
-  object "RightWingHumerus" {
-    geometry: "cylinder"
-    position: [1.6, 3.2, 0.2]
-    rotation: [0, 0, 40]
-    scale: [0.1, 0.8, 0.08]
+  // Right wing main bone (shoulder to elbow to wrist — smooth spline)
+  object "RightWingBone" {
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[1.2, 3.0, 0.2], [1.6, 3.2, 0.2], [2.2, 3.5, 0.2], [2.6, 3.8, 0.2]]
+    radii: [0.12, 0.10, 0.08, 0.07]
     color: "#1a0c35"
     material: "bone"
-
     keyframes "flapRight" {
-      0%:   { rotation: [0, 0, 40] }
-      50%:  { rotation: [0, 0, 10] }
-      100%: { rotation: [0, 0, 40] }
+      0%:   { rotation: [0, 0, 5] }
+      50%:  { rotation: [0, 0, -5] }
+      100%: { rotation: [0, 0, 5] }
       duration: 2000
       easing: "ease-in-out"
       loop: true
     }
   }
-  object "RightWingRadius" {
-    geometry: "cylinder"
-    position: [2.6, 3.8, 0.2]
-    rotation: [0, -10, 55]
-    scale: [0.07, 0.9, 0.06]
-    color: "#1a0c35"
-    material: "bone"
-  }
+  // Right wing fingers (mirrored)
   object "RightWingFinger1" {
-    geometry: "cylinder"
-    position: [3.4, 4.3, 0.3]
-    rotation: [0, -15, 65]
-    scale: [0.04, 0.7, 0.03]
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[2.6, 3.8, 0.2], [3.0, 4.1, 0.3], [3.4, 4.3, 0.3], [3.8, 4.5, 0.3]]
+    radii: [0.06, 0.04, 0.03, 0.02]
     color: "#0d0520"
     material: "bone"
   }
   object "RightWingFinger2" {
-    geometry: "cylinder"
-    position: [3.3, 4.0, 0.1]
-    rotation: [0, -5, 70]
-    scale: [0.04, 0.65, 0.03]
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[2.6, 3.8, 0.2], [3.0, 3.9, 0.1], [3.3, 4.0, 0.1], [3.6, 4.1, 0.0]]
+    radii: [0.06, 0.04, 0.03, 0.02]
     color: "#0d0520"
     material: "bone"
   }
   object "RightWingFinger3" {
-    geometry: "cylinder"
-    position: [3.1, 3.7, -0.1]
-    rotation: [0, 5, 75]
-    scale: [0.04, 0.6, 0.03]
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[2.6, 3.8, 0.2], [2.9, 3.7, -0.0], [3.1, 3.7, -0.1], [3.4, 3.6, -0.2]]
+    radii: [0.06, 0.04, 0.03, 0.02]
     color: "#0d0520"
     material: "bone"
   }
   object "RightWingFinger4" {
-    geometry: "cylinder"
-    position: [2.8, 3.4, -0.3]
-    rotation: [0, 15, 80]
-    scale: [0.04, 0.5, 0.03]
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[2.6, 3.8, 0.2], [2.7, 3.5, -0.1], [2.8, 3.4, -0.3], [2.9, 3.2, -0.4]]
+    radii: [0.06, 0.04, 0.03, 0.02]
     color: "#0d0520"
     material: "bone"
   }
-  object "RightMembrane1" {
-    geometry: "plane"
-    position: [2.5, 3.6, 0.25]
-    rotation: [0, -10, 50]
-    scale: [1.2, 1.5, 1]
-    color: "#1a0520"
-    material: "leather"
-    opacity: 0.6
+  // Right wing membrane — primary loft
+  object "RightWingMembrane" {
+    geometry: "membrane"
+    position: [0, 0, 0]
+    anchors: [[1.2, 2.8, -0.2], [1.6, 3.2, 0.2], [2.6, 3.8, 0.2], [3.8, 4.5, 0.3], [3.6, 4.1, 0.0], [3.4, 3.6, -0.2], [2.9, 3.2, -0.4]]
+    subdivisions: 20
+    bulge: 0.18
+    color: "#4a1525"
+    emissive: "#330a0a"
+    emissiveIntensity: 0.5
+    opacity: 0.8
     transparent: true
   }
-  object "RightMembrane2" {
-    geometry: "plane"
-    position: [2.7, 3.3, -0.05]
-    rotation: [0, 0, 60]
-    scale: [1.0, 1.3, 1]
-    color: "#150418"
-    material: "leather"
-    opacity: 0.5
+  // Right wing sub-membranes
+  object "RightSubMembrane12" {
+    geometry: "membrane"
+    position: [0, 0, 0]
+    anchors: [[2.6, 3.8, 0.2], [3.2, 4.2, 0.3], [3.8, 4.5, 0.3], [3.6, 4.1, 0.0], [3.15, 3.95, 0.1]]
+    subdivisions: 12
+    bulge: 0.12
+    color: "#3d1020"
+    emissive: "#220505"
+    emissiveIntensity: 0.4
+    opacity: 0.75
     transparent: true
   }
-  object "RightMembrane3" {
-    geometry: "plane"
-    position: [2.3, 3.0, -0.25]
-    rotation: [0, 10, 70]
-    scale: [0.8, 1.0, 1]
-    color: "#1a0520"
-    material: "leather"
-    opacity: 0.5
+  object "RightSubMembrane23" {
+    geometry: "membrane"
+    position: [0, 0, 0]
+    anchors: [[2.6, 3.8, 0.2], [3.15, 3.95, 0.1], [3.6, 4.1, 0.0], [3.4, 3.6, -0.2], [3.0, 3.7, -0.05]]
+    subdivisions: 12
+    bulge: 0.10
+    color: "#3d1020"
+    emissive: "#220505"
+    emissiveIntensity: 0.35
+    opacity: 0.7
+    transparent: true
+  }
+  object "RightSubMembrane34" {
+    geometry: "membrane"
+    position: [0, 0, 0]
+    anchors: [[2.6, 3.8, 0.2], [3.0, 3.7, -0.05], [3.4, 3.6, -0.2], [2.9, 3.2, -0.4], [2.75, 3.5, -0.1]]
+    subdivisions: 12
+    bulge: 0.08
+    color: "#3d1020"
+    emissive: "#220505"
+    emissiveIntensity: 0.3
+    opacity: 0.65
     transparent: true
   }
   object "RightWingClaw" {
@@ -874,199 +760,267 @@ composition "Inferno Wyrm" {
   //  FRONT LEFT LEG — Thigh + Shin + Foot + 3 Claws
   // ═══════════════════════════════════════════════════════════════════
 
-  object "FLThigh" {
-    geometry: "cylinder"
-    position: [-0.9, 1.6, 1.2]
-    rotation: [10, 0, 8]
-    scale: [0.2, 0.6, 0.2]
+  object "FrontLeftLeg" {
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[-0.85, 2.0, 1.1], [-0.88, 1.7, 1.15], [-0.92, 1.3, 1.2], [-0.95, 0.9, 1.28], [-0.96, 0.5, 1.35], [-0.95, 0.2, 1.4]]
+    radii: [0.32, 0.30, 0.22, 0.28, 0.18, 0.14]
     color: "#1e0f3d"
     material: "skin_dark"
+    roughness: 0.7
+    metalness: 0.05
   }
-  object "FLShin" {
-    geometry: "cylinder"
-    position: [-0.95, 0.7, 1.3]
-    rotation: [-5, 0, 5]
-    scale: [0.15, 0.55, 0.15]
+  // ── Front-Left Paw ────────────────────────────────────────────────
+  object "FLPaw" {
+    geometry: "hull"
+    position: [0, 0, 0]
+    blobs: [
+      { center: [-0.95, 0.12, 1.40], radius: [0.18, 0.09, 0.16] },
+      { center: [-1.02, 0.10, 1.50], radius: [0.10, 0.07, 0.10] },
+      { center: [-0.95, 0.10, 1.52], radius: [0.10, 0.07, 0.10] },
+      { center: [-0.88, 0.10, 1.50], radius: [0.10, 0.07, 0.10] }
+    ]
+    resolution: 20
     color: "#1a0c35"
     material: "skin_dark"
+    roughness: 0.8
   }
-  object "FLFoot" {
-    geometry: "sphere"
-    position: [-0.95, 0.15, 1.4]
-    scale: [0.2, 0.08, 0.25]
-    color: "#1a0c35"
-    material: "skin_dark"
-  }
+  object "FLToe1" { geometry: "sphere"  position: [-1.08, 0.06, 1.56]  scale: [0.06, 0.05, 0.08]  color: "#1a0c35"  material: "skin_dark" }
+  object "FLToe2" { geometry: "sphere"  position: [-0.95, 0.06, 1.60]  scale: [0.06, 0.05, 0.08]  color: "#1a0c35"  material: "skin_dark" }
+  object "FLToe3" { geometry: "sphere"  position: [-0.82, 0.06, 1.56]  scale: [0.06, 0.05, 0.08]  color: "#1a0c35"  material: "skin_dark" }
   object "FLClaw1" {
     geometry: "cone"
-    position: [-1.05, 0.05, 1.55]
-    rotation: [60, 10, 0]
-    scale: [0.025, 0.1, 0.025]
+    position: [-1.12, 0.02, 1.64]
+    rotation: [55, 25, 0]
+    scale: [0.04, 0.18, 0.03]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
   }
   object "FLClaw2" {
     geometry: "cone"
-    position: [-0.95, 0.05, 1.6]
+    position: [-0.95, 0.01, 1.70]
     rotation: [60, 0, 0]
-    scale: [0.025, 0.1, 0.025]
+    scale: [0.04, 0.20, 0.03]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
   }
   object "FLClaw3" {
     geometry: "cone"
-    position: [-0.85, 0.05, 1.55]
-    rotation: [60, -10, 0]
-    scale: [0.025, 0.1, 0.025]
+    position: [-0.78, 0.02, 1.64]
+    rotation: [55, -25, 0]
+    scale: [0.04, 0.18, 0.03]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
+  }
+  object "FLDewclaw" {
+    geometry: "cone"
+    position: [-0.95, 0.14, 1.30]
+    rotation: [-30, 0, 0]
+    scale: [0.03, 0.10, 0.025]
+    color: "#0d0520"
+    material: "bone"
+    metalness: 0.3
   }
 
   // ─── FRONT RIGHT LEG ──────────────────────────────────────────────
-  object "FRThigh" {
-    geometry: "cylinder"
-    position: [0.9, 1.6, 1.2]
-    rotation: [10, 0, -8]
-    scale: [0.2, 0.6, 0.2]
+  object "FrontRightLeg" {
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[0.85, 2.0, 1.1], [0.88, 1.7, 1.15], [0.92, 1.3, 1.2], [0.95, 0.9, 1.28], [0.96, 0.5, 1.35], [0.95, 0.2, 1.4]]
+    radii: [0.32, 0.30, 0.22, 0.28, 0.18, 0.14]
     color: "#1e0f3d"
     material: "skin_dark"
+    roughness: 0.7
+    metalness: 0.05
   }
-  object "FRShin" {
-    geometry: "cylinder"
-    position: [0.95, 0.7, 1.3]
-    rotation: [-5, 0, -5]
-    scale: [0.15, 0.55, 0.15]
+  // ── Front-Right Paw ───────────────────────────────────────────────
+  object "FRPaw" {
+    geometry: "hull"
+    position: [0, 0, 0]
+    blobs: [
+      { center: [0.95, 0.12, 1.40], radius: [0.18, 0.09, 0.16] },
+      { center: [1.02, 0.10, 1.50], radius: [0.10, 0.07, 0.10] },
+      { center: [0.95, 0.10, 1.52], radius: [0.10, 0.07, 0.10] },
+      { center: [0.88, 0.10, 1.50], radius: [0.10, 0.07, 0.10] }
+    ]
+    resolution: 20
     color: "#1a0c35"
     material: "skin_dark"
+    roughness: 0.8
   }
-  object "FRFoot" {
-    geometry: "sphere"
-    position: [0.95, 0.15, 1.4]
-    scale: [0.2, 0.08, 0.25]
-    color: "#1a0c35"
-    material: "skin_dark"
-  }
+  object "FRToe1" { geometry: "sphere"  position: [1.08, 0.06, 1.56]  scale: [0.06, 0.05, 0.08]  color: "#1a0c35"  material: "skin_dark" }
+  object "FRToe2" { geometry: "sphere"  position: [0.95, 0.06, 1.60]  scale: [0.06, 0.05, 0.08]  color: "#1a0c35"  material: "skin_dark" }
+  object "FRToe3" { geometry: "sphere"  position: [0.82, 0.06, 1.56]  scale: [0.06, 0.05, 0.08]  color: "#1a0c35"  material: "skin_dark" }
   object "FRClaw1" {
     geometry: "cone"
-    position: [0.85, 0.05, 1.55]
-    rotation: [60, 10, 0]
-    scale: [0.025, 0.1, 0.025]
+    position: [1.12, 0.02, 1.64]
+    rotation: [55, -25, 0]
+    scale: [0.04, 0.18, 0.03]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
   }
   object "FRClaw2" {
     geometry: "cone"
-    position: [0.95, 0.05, 1.6]
+    position: [0.95, 0.01, 1.70]
     rotation: [60, 0, 0]
-    scale: [0.025, 0.1, 0.025]
+    scale: [0.04, 0.20, 0.03]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
   }
   object "FRClaw3" {
     geometry: "cone"
-    position: [1.05, 0.05, 1.55]
-    rotation: [60, -10, 0]
-    scale: [0.025, 0.1, 0.025]
+    position: [0.78, 0.02, 1.64]
+    rotation: [55, 25, 0]
+    scale: [0.04, 0.18, 0.03]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
+  }
+  object "FRDewclaw" {
+    geometry: "cone"
+    position: [0.95, 0.14, 1.30]
+    rotation: [-30, 0, 0]
+    scale: [0.03, 0.10, 0.025]
+    color: "#0d0520"
+    material: "bone"
+    metalness: 0.3
   }
 
   // ─── BACK LEFT LEG ────────────────────────────────────────────────
-  object "BLThigh" {
-    geometry: "cylinder"
-    position: [-0.9, 1.5, -1.0]
-    rotation: [-10, 0, 8]
-    scale: [0.22, 0.65, 0.22]
+  object "BackLeftLeg" {
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[-0.85, 2.0, -0.9], [-0.88, 1.7, -0.95], [-0.92, 1.3, -1.0], [-0.95, 0.9, -1.06], [-0.96, 0.5, -1.1], [-0.95, 0.15, -1.15]]
+    radii: [0.35, 0.33, 0.24, 0.30, 0.20, 0.15]
     color: "#1e0f3d"
     material: "skin_dark"
+    roughness: 0.7
+    metalness: 0.05
   }
-  object "BLShin" {
-    geometry: "cylinder"
-    position: [-0.95, 0.6, -1.1]
-    rotation: [5, 0, 5]
-    scale: [0.16, 0.6, 0.16]
+  // ── Back-Left Paw ─────────────────────────────────────────────────
+  object "BLPaw" {
+    geometry: "hull"
+    position: [0, 0, 0]
+    blobs: [
+      { center: [-0.95, 0.10, -1.15], radius: [0.20, 0.10, 0.18] },
+      { center: [-1.06, 0.08, -1.04], radius: [0.11, 0.08, 0.11] },
+      { center: [-0.95, 0.08, -1.01], radius: [0.11, 0.08, 0.11] },
+      { center: [-0.84, 0.08, -1.04], radius: [0.11, 0.08, 0.11] }
+    ]
+    resolution: 20
     color: "#1a0c35"
     material: "skin_dark"
+    roughness: 0.8
   }
-  object "BLFoot" {
-    geometry: "sphere"
-    position: [-0.95, 0.1, -1.15]
-    scale: [0.22, 0.08, 0.28]
-    color: "#1a0c35"
-    material: "skin_dark"
-  }
+  object "BLToe1" { geometry: "sphere"  position: [-1.10, 0.04, -0.96]  scale: [0.07, 0.05, 0.09]  color: "#1a0c35"  material: "skin_dark" }
+  object "BLToe2" { geometry: "sphere"  position: [-0.95, 0.04, -0.92]  scale: [0.07, 0.05, 0.09]  color: "#1a0c35"  material: "skin_dark" }
+  object "BLToe3" { geometry: "sphere"  position: [-0.80, 0.04, -0.96]  scale: [0.07, 0.05, 0.09]  color: "#1a0c35"  material: "skin_dark" }
   object "BLClaw1" {
     geometry: "cone"
-    position: [-1.08, 0.02, -1.0]
-    rotation: [-60, 10, 0]
-    scale: [0.028, 0.11, 0.028]
+    position: [-1.14, 0.00, -0.88]
+    rotation: [-55, 25, 0]
+    scale: [0.045, 0.20, 0.035]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
   }
   object "BLClaw2" {
     geometry: "cone"
-    position: [-0.95, 0.02, -0.95]
+    position: [-0.95, -0.01, -0.82]
     rotation: [-60, 0, 0]
-    scale: [0.028, 0.11, 0.028]
+    scale: [0.045, 0.22, 0.035]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
   }
   object "BLClaw3" {
     geometry: "cone"
-    position: [-0.82, 0.02, -1.0]
-    rotation: [-60, -10, 0]
-    scale: [0.028, 0.11, 0.028]
+    position: [-0.76, 0.00, -0.88]
+    rotation: [-55, -25, 0]
+    scale: [0.045, 0.20, 0.035]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
+  }
+  object "BLDewclaw" {
+    geometry: "cone"
+    position: [-0.95, 0.14, -1.26]
+    rotation: [30, 0, 0]
+    scale: [0.035, 0.12, 0.028]
+    color: "#0d0520"
+    material: "bone"
+    metalness: 0.3
   }
 
   // ─── BACK RIGHT LEG ───────────────────────────────────────────────
-  object "BRThigh" {
-    geometry: "cylinder"
-    position: [0.9, 1.5, -1.0]
-    rotation: [-10, 0, -8]
-    scale: [0.22, 0.65, 0.22]
+  object "BackRightLeg" {
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[0.85, 2.0, -0.9], [0.88, 1.7, -0.95], [0.92, 1.3, -1.0], [0.95, 0.9, -1.06], [0.96, 0.5, -1.1], [0.95, 0.15, -1.15]]
+    radii: [0.35, 0.33, 0.24, 0.30, 0.20, 0.15]
     color: "#1e0f3d"
     material: "skin_dark"
+    roughness: 0.7
+    metalness: 0.05
   }
-  object "BRShin" {
-    geometry: "cylinder"
-    position: [0.95, 0.6, -1.1]
-    rotation: [5, 0, -5]
-    scale: [0.16, 0.6, 0.16]
+  // ── Back-Right Paw ────────────────────────────────────────────────
+  object "BRPaw" {
+    geometry: "hull"
+    position: [0, 0, 0]
+    blobs: [
+      { center: [0.95, 0.10, -1.15], radius: [0.20, 0.10, 0.18] },
+      { center: [1.06, 0.08, -1.04], radius: [0.11, 0.08, 0.11] },
+      { center: [0.95, 0.08, -1.01], radius: [0.11, 0.08, 0.11] },
+      { center: [0.84, 0.08, -1.04], radius: [0.11, 0.08, 0.11] }
+    ]
+    resolution: 20
     color: "#1a0c35"
     material: "skin_dark"
+    roughness: 0.8
   }
-  object "BRFoot" {
-    geometry: "sphere"
-    position: [0.95, 0.1, -1.15]
-    scale: [0.22, 0.08, 0.28]
-    color: "#1a0c35"
-    material: "skin_dark"
-  }
+  object "BRToe1" { geometry: "sphere"  position: [1.10, 0.04, -0.96]  scale: [0.07, 0.05, 0.09]  color: "#1a0c35"  material: "skin_dark" }
+  object "BRToe2" { geometry: "sphere"  position: [0.95, 0.04, -0.92]  scale: [0.07, 0.05, 0.09]  color: "#1a0c35"  material: "skin_dark" }
+  object "BRToe3" { geometry: "sphere"  position: [0.80, 0.04, -0.96]  scale: [0.07, 0.05, 0.09]  color: "#1a0c35"  material: "skin_dark" }
   object "BRClaw1" {
     geometry: "cone"
-    position: [0.82, 0.02, -1.0]
-    rotation: [-60, 10, 0]
-    scale: [0.028, 0.11, 0.028]
+    position: [1.14, 0.00, -0.88]
+    rotation: [-55, -25, 0]
+    scale: [0.045, 0.20, 0.035]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
   }
   object "BRClaw2" {
     geometry: "cone"
-    position: [0.95, 0.02, -0.95]
+    position: [0.95, -0.01, -0.82]
     rotation: [-60, 0, 0]
-    scale: [0.028, 0.11, 0.028]
+    scale: [0.045, 0.22, 0.035]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
   }
   object "BRClaw3" {
     geometry: "cone"
-    position: [1.08, 0.02, -1.0]
-    rotation: [-60, -10, 0]
-    scale: [0.028, 0.11, 0.028]
+    position: [0.76, 0.00, -0.88]
+    rotation: [-55, 25, 0]
+    scale: [0.045, 0.20, 0.035]
     color: "#0d0520"
     material: "bone"
+    metalness: 0.3
+  }
+  object "BRDewclaw" {
+    geometry: "cone"
+    position: [0.95, 0.14, -1.26]
+    rotation: [30, 0, 0]
+    scale: [0.035, 0.12, 0.028]
+    color: "#0d0520"
+    material: "bone"
+    metalness: 0.3
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -1174,77 +1128,21 @@ composition "Inferno Wyrm" {
   //  TAIL — 8 tapering segments with sway animation
   // ═══════════════════════════════════════════════════════════════════
 
-  object "Tail1" {
-    geometry: "cylinder"
-    position: [0, 2.2, -2.0]
-    rotation: [-12, 0, 0]
-    scale: [0.35, 0.6, 0.3]
+  object "TailSpline" {
+    geometry: "spline"
+    position: [0, 0, 0]
+    points: [[0, 2.2, -2.0], [0, 2.0, -2.6], [0, 1.7, -3.1], [0, 1.35, -3.5], [0, 0.95, -3.85], [0, 0.55, -4.15], [0, 0.2, -4.4], [0, -0.05, -4.6]]
+    radii: [0.35, 0.30, 0.25, 0.20, 0.16, 0.12, 0.09, 0.06]
     color: "#1e0f3d"
     material: "skin_dark"
-  }
-  object "Tail2" {
-    geometry: "cylinder"
-    position: [0, 2.0, -2.6]
-    rotation: [-18, 0, 0]
-    scale: [0.3, 0.55, 0.25]
-    color: "#1a0c35"
-    material: "skin_dark"
     keyframes "tailSway" {
-      0%:   { rotation: [-18, -12, 0] }
-      50%:  { rotation: [-18, 12, 0] }
-      100%: { rotation: [-18, -12, 0] }
+      0%:   { rotation: [0, -12, 0] }
+      50%:  { rotation: [0, 12, 0] }
+      100%: { rotation: [0, -12, 0] }
       duration: 3000
       easing: "ease-in-out"
       loop: true
     }
-  }
-  object "Tail3" {
-    geometry: "cylinder"
-    position: [0, 1.7, -3.1]
-    rotation: [-22, 0, 0]
-    scale: [0.25, 0.5, 0.2]
-    color: "#1e0f3d"
-    material: "skin_dark"
-  }
-  object "Tail4" {
-    geometry: "cylinder"
-    position: [0, 1.35, -3.5]
-    rotation: [-28, 0, 0]
-    scale: [0.2, 0.45, 0.17]
-    color: "#1a0c35"
-    material: "skin_dark"
-  }
-  object "Tail5" {
-    geometry: "cylinder"
-    position: [0, 0.95, -3.85]
-    rotation: [-32, 0, 0]
-    scale: [0.16, 0.4, 0.14]
-    color: "#1e0f3d"
-    material: "skin_dark"
-  }
-  object "Tail6" {
-    geometry: "cylinder"
-    position: [0, 0.55, -4.15]
-    rotation: [-35, 0, 0]
-    scale: [0.12, 0.35, 0.11]
-    color: "#1a0c35"
-    material: "skin_dark"
-  }
-  object "Tail7" {
-    geometry: "cylinder"
-    position: [0, 0.2, -4.4]
-    rotation: [-38, 0, 0]
-    scale: [0.09, 0.3, 0.08]
-    color: "#1e0f3d"
-    material: "skin_dark"
-  }
-  object "Tail8" {
-    geometry: "cylinder"
-    position: [0, -0.05, -4.6]
-    rotation: [-40, 0, 0]
-    scale: [0.06, 0.25, 0.06]
-    color: "#1a0c35"
-    material: "skin_dark"
   }
 
   // Tail spines (8)
@@ -1288,117 +1186,182 @@ composition "Inferno Wyrm" {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  //  FIRE BREATH — 5-layer flame system with embers & smoke
+  //  FIRE BREATH — 9-layer volumetric flame with tendrils
   // ═══════════════════════════════════════════════════════════════════
 
-  // Layer 1: White-hot core
+  // Layer 1: White-hot core — wider, brighter
   object "FireCore" {
     geometry: "cone"
     position: [0, 4.35, 5.5]
     rotation: [90, 0, 0]
-    scale: [0.15, 1.8, 0.15]
+    scale: [0.25, 2.2, 0.25]
     color: "#ffffff"
-    emissive: "#ffffcc"
-    emissiveIntensity: 5.0
-    opacity: 0.9
+    emissive: "#ffffdd"
+    emissiveIntensity: 8.0
+    opacity: 0.95
     transparent: true
 
     keyframes "firePulse" {
-      0%:   { scale: [0.15, 1.8, 0.15] }
-      25%:  { scale: [0.18, 2.0, 0.18] }
-      50%:  { scale: [0.13, 1.6, 0.13] }
-      75%:  { scale: [0.17, 1.9, 0.17] }
-      100%: { scale: [0.15, 1.8, 0.15] }
-      duration: 500
-      easing: "linear"
-      loop: true
-    }
-  }
-
-  // Layer 2: Inner orange
-  object "FireInner" {
-    geometry: "cone"
-    position: [0, 4.35, 5.8]
-    rotation: [90, 0, 0]
-    scale: [0.25, 1.5, 0.25]
-    color: "#ff6600"
-    emissive: "#ff4400"
-    emissiveIntensity: 3.5
-    opacity: 0.8
-    transparent: true
-
-    keyframes "fireFlicker1" {
-      0%:   { scale: [0.25, 1.5, 0.25] }
-      30%:  { scale: [0.3, 1.7, 0.3] }
-      60%:  { scale: [0.22, 1.3, 0.22] }
-      100%: { scale: [0.25, 1.5, 0.25] }
+      0%:   { scale: [0.25, 2.2, 0.25] }
+      25%:  { scale: [0.30, 2.5, 0.30] }
+      50%:  { scale: [0.20, 1.9, 0.20] }
+      75%:  { scale: [0.28, 2.3, 0.28] }
+      100%: { scale: [0.25, 2.2, 0.25] }
       duration: 400
       easing: "linear"
       loop: true
     }
   }
 
-  // Layer 3: Mid flame
-  object "FireMid" {
+  // Layer 2: Inner orange — wider spread
+  object "FireInner" {
     geometry: "cone"
-    position: [0, 4.35, 6.2]
+    position: [0, 4.35, 5.8]
     rotation: [90, 0, 0]
-    scale: [0.4, 1.2, 0.4]
-    color: "#ff8800"
-    emissive: "#ff6600"
-    emissiveIntensity: 2.5
-    opacity: 0.6
+    scale: [0.40, 2.0, 0.40]
+    color: "#ff6600"
+    emissive: "#ff4400"
+    emissiveIntensity: 6.0
+    opacity: 0.85
     transparent: true
 
-    keyframes "fireFlicker2" {
-      0%:   { scale: [0.4, 1.2, 0.4] }
-      40%:  { scale: [0.5, 1.4, 0.5] }
-      70%:  { scale: [0.35, 1.0, 0.35] }
-      100%: { scale: [0.4, 1.2, 0.4] }
+    keyframes "fireFlicker1" {
+      0%:   { scale: [0.40, 2.0, 0.40] }
+      30%:  { scale: [0.50, 2.3, 0.50] }
+      60%:  { scale: [0.35, 1.7, 0.35] }
+      100%: { scale: [0.40, 2.0, 0.40] }
       duration: 350
       easing: "linear"
       loop: true
     }
   }
 
-  // Layer 4: Outer glow
-  object "FireOuter" {
+  // Layer 3: Mid flame — big and bold
+  object "FireMid" {
     geometry: "cone"
-    position: [0, 4.35, 6.5]
+    position: [0, 4.35, 6.2]
     rotation: [90, 0, 0]
-    scale: [0.55, 0.9, 0.55]
-    color: "#ffaa00"
-    emissive: "#ff8800"
-    emissiveIntensity: 1.5
-    opacity: 0.4
+    scale: [0.60, 1.6, 0.60]
+    color: "#ff8800"
+    emissive: "#ff6600"
+    emissiveIntensity: 4.0
+    opacity: 0.7
     transparent: true
 
-    keyframes "fireFlicker3" {
-      0%:   { scale: [0.55, 0.9, 0.55] }
-      50%:  { scale: [0.65, 1.1, 0.65] }
-      100%: { scale: [0.55, 0.9, 0.55] }
+    keyframes "fireFlicker2" {
+      0%:   { scale: [0.60, 1.6, 0.60] }
+      40%:  { scale: [0.75, 1.9, 0.75] }
+      70%:  { scale: [0.50, 1.3, 0.50] }
+      100%: { scale: [0.60, 1.6, 0.60] }
       duration: 300
       easing: "linear"
       loop: true
     }
   }
 
-  // Layer 5: Heat haze
+  // Layer 4: Outer glow — wide envelope
+  object "FireOuter" {
+    geometry: "cone"
+    position: [0, 4.35, 6.5]
+    rotation: [90, 0, 0]
+    scale: [0.80, 1.2, 0.80]
+    color: "#ffaa00"
+    emissive: "#ff8800"
+    emissiveIntensity: 2.5
+    opacity: 0.45
+    transparent: true
+
+    keyframes "fireFlicker3" {
+      0%:   { scale: [0.80, 1.2, 0.80] }
+      50%:  { scale: [0.95, 1.5, 0.95] }
+      100%: { scale: [0.80, 1.2, 0.80] }
+      duration: 280
+      easing: "linear"
+      loop: true
+    }
+  }
+
+  // Fire tendril — upper left
+  object "FireTendrilUL" {
+    geometry: "cone"
+    position: [-0.15, 4.55, 5.6]
+    rotation: [85, 10, 0]
+    scale: [0.15, 1.4, 0.15]
+    color: "#ff7700"
+    emissive: "#ff5500"
+    emissiveIntensity: 5.0
+    opacity: 0.7
+    transparent: true
+    keyframes "tendrilUL" {
+      0%:   { scale: [0.15, 1.4, 0.15] }
+      50%:  { scale: [0.20, 1.7, 0.20] }
+      100%: { scale: [0.15, 1.4, 0.15] }
+      duration: 450
+      easing: "linear"
+      loop: true
+    }
+  }
+  // Fire tendril — upper right
+  object "FireTendrilUR" {
+    geometry: "cone"
+    position: [0.15, 4.55, 5.6]
+    rotation: [85, -10, 0]
+    scale: [0.15, 1.3, 0.15]
+    color: "#ff7700"
+    emissive: "#ff5500"
+    emissiveIntensity: 5.0
+    opacity: 0.7
+    transparent: true
+    keyframes "tendrilUR" {
+      0%:   { scale: [0.15, 1.3, 0.15] }
+      50%:  { scale: [0.18, 1.6, 0.18] }
+      100%: { scale: [0.15, 1.3, 0.15] }
+      duration: 500
+      easing: "linear"
+      loop: true
+    }
+  }
+  // Fire tendril — lower left
+  object "FireTendrilLL" {
+    geometry: "cone"
+    position: [-0.12, 4.15, 5.7]
+    rotation: [95, 8, 0]
+    scale: [0.12, 1.1, 0.12]
+    color: "#ff9900"
+    emissive: "#ff6600"
+    emissiveIntensity: 4.0
+    opacity: 0.6
+    transparent: true
+  }
+  // Fire tendril — lower right
+  object "FireTendrilLR" {
+    geometry: "cone"
+    position: [0.12, 4.15, 5.7]
+    rotation: [95, -8, 0]
+    scale: [0.12, 1.0, 0.12]
+    color: "#ff9900"
+    emissive: "#ff6600"
+    emissiveIntensity: 4.0
+    opacity: 0.6
+    transparent: true
+  }
+
+  // Layer 5: Heat haze — much larger volumetric envelope
   object "HeatHaze" {
     geometry: "sphere"
     position: [0, 4.35, 6.0]
-    scale: [0.8, 0.6, 1.5]
+    scale: [1.2, 1.0, 2.5]
     color: "#ff4400"
     emissive: "#ff2200"
-    emissiveIntensity: 0.5
-    opacity: 0.12
+    emissiveIntensity: 0.8
+    opacity: 0.10
     transparent: true
 
     keyframes "hazePulse" {
-      0%:   { scale: [0.8, 0.6, 1.5] }
-      50%:  { scale: [1.0, 0.8, 1.8] }
-      100%: { scale: [0.8, 0.6, 1.5] }
-      duration: 600
+      0%:   { scale: [1.2, 1.0, 2.5] }
+      50%:  { scale: [1.5, 1.2, 3.0] }
+      100%: { scale: [1.2, 1.0, 2.5] }
+      duration: 500
       easing: "ease-in-out"
       loop: true
     }

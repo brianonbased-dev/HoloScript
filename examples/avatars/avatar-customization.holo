@@ -1,0 +1,579 @@
+// Avatar Customization System
+// Runtime customization: body proportions, skin tones, hairstyles, clothing
+// Modular component system with real-time updates
+
+composition "AvatarCustomization" {
+  environment {
+    backgroundColor: "#0f0f1a"
+    ambient: 0.5
+  }
+
+  // ─── Customizable Avatar Base ────────────────────────────────────────────────
+
+  object "CustomAvatar" {
+    @skeleton {
+      rigType: "humanoid"
+      humanoidMap: {
+        hips: "Hips"
+        spine: "Spine"
+        chest: "Chest"
+        neck: "Neck"
+        head: "Head"
+        leftShoulder: "L_Shoulder"
+        leftUpperArm: "L_UpperArm"
+        leftLowerArm: "L_LowerArm"
+        leftHand: "L_Hand"
+        rightShoulder: "R_Shoulder"
+        rightUpperArm: "R_UpperArm"
+        rightLowerArm: "R_LowerArm"
+        rightHand: "R_Hand"
+        leftUpperLeg: "L_UpperLeg"
+        leftLowerLeg: "L_LowerLeg"
+        leftFoot: "L_Foot"
+        rightUpperLeg: "R_UpperLeg"
+        rightLowerLeg: "R_LowerLeg"
+        rightFoot: "R_Foot"
+      }
+
+      clips: [
+        { name: "Idle", duration: 3.0, loop: true }
+        { name: "Wave", duration: 2.0, loop: false }
+        { name: "Celebrate", duration: 2.5, loop: false }
+      ]
+    }
+
+    @morph {
+      // Body proportions (blend shapes)
+      targets: [
+        // Height variations
+        { name: "body_height_short", weight: 0, category: "body", min: -1, max: 1 }
+        { name: "body_height_tall", weight: 0, category: "body", min: -1, max: 1 }
+
+        // Body type
+        { name: "body_muscular", weight: 0, category: "body", min: 0, max: 1 }
+        { name: "body_thin", weight: 0, category: "body", min: 0, max: 1 }
+        { name: "body_heavy", weight: 0, category: "body", min: 0, max: 1 }
+
+        // Proportions
+        { name: "torso_length", weight: 0, category: "body", min: -0.5, max: 0.5 }
+        { name: "leg_length", weight: 0, category: "body", min: -0.5, max: 0.5 }
+        { name: "arm_length", weight: 0, category: "body", min: -0.5, max: 0.5 }
+        { name: "shoulder_width", weight: 0, category: "body", min: -0.5, max: 0.5 }
+        { name: "hip_width", weight: 0, category: "body", min: -0.5, max: 0.5 }
+
+        // Muscle definition
+        { name: "muscle_arms", weight: 0, category: "muscle", min: 0, max: 1 }
+        { name: "muscle_legs", weight: 0, category: "muscle", min: 0, max: 1 }
+        { name: "muscle_chest", weight: 0, category: "muscle", min: 0, max: 1 }
+        { name: "muscle_abs", weight: 0, category: "muscle", min: 0, max: 1 }
+
+        // Face customization
+        { name: "face_width", weight: 0, category: "face", min: -0.5, max: 0.5 }
+        { name: "face_length", weight: 0, category: "face", min: -0.5, max: 0.5 }
+        { name: "jaw_width", weight: 0, category: "face", min: -0.5, max: 0.5 }
+        { name: "cheekbones", weight: 0, category: "face", min: -0.5, max: 0.5 }
+        { name: "nose_size", weight: 0, category: "face", min: -0.5, max: 0.5 }
+        { name: "nose_width", weight: 0, category: "face", min: -0.5, max: 0.5 }
+        { name: "eye_size", weight: 0, category: "face", min: -0.5, max: 0.5 }
+        { name: "eye_spacing", weight: 0, category: "face", min: -0.5, max: 0.5 }
+        { name: "mouth_width", weight: 0, category: "face", min: -0.5, max: 0.5 }
+        { name: "mouth_height", weight: 0, category: "face", min: -0.5, max: 0.5 }
+
+        // Expressions
+        { name: "smile", weight: 0, category: "expression" }
+        { name: "frown", weight: 0, category: "expression" }
+        { name: "blink", weight: 0, category: "expression" }
+      ]
+
+      presets: {
+        athletic: {
+          body_muscular: 0.6
+          muscle_arms: 0.5
+          muscle_legs: 0.5
+          muscle_chest: 0.4
+          shoulder_width: 0.2
+          blendTime: 0.5
+        }
+        slim: {
+          body_thin: 0.8
+          torso_length: -0.1
+          shoulder_width: -0.2
+          blendTime: 0.5
+        }
+        tall: {
+          body_height_tall: 0.8
+          leg_length: 0.3
+          torso_length: 0.2
+          blendTime: 0.5
+        }
+        short: {
+          body_height_short: 0.8
+          leg_length: -0.2
+          blendTime: 0.5
+        }
+      }
+    }
+
+    @customizable {
+      // Customization categories
+      categories: [
+        {
+          name: "Body Type"
+          options: ["Default", "Athletic", "Slim", "Heavy", "Tall", "Short"]
+        }
+        {
+          name: "Skin Tone"
+          options: ["Fair", "Medium", "Tan", "Dark", "Custom"]
+        }
+        {
+          name: "Hair Style"
+          options: ["Short", "Medium", "Long", "Bald", "Ponytail", "Braids"]
+        }
+        {
+          name: "Hair Color"
+          options: ["Black", "Brown", "Blonde", "Red", "Gray", "Custom"]
+        }
+        {
+          name: "Eye Color"
+          options: ["Brown", "Blue", "Green", "Hazel", "Gray", "Custom"]
+        }
+        {
+          name: "Facial Hair"
+          options: ["None", "Stubble", "Beard", "Goatee", "Mustache"]
+        }
+        {
+          name: "Clothing Set"
+          options: ["Casual", "Formal", "Athletic", "Fantasy", "SciFi"]
+        }
+      ]
+
+      // Material customization
+      materials: {
+        skin: {
+          shader: "PBR"
+          properties: ["baseColor", "roughness", "subsurface"]
+          presets: {
+            fair: { baseColor: "#ffd5c8", roughness: 0.4, subsurface: 0.3 }
+            medium: { baseColor: "#e0ac9c", roughness: 0.35, subsurface: 0.35 }
+            tan: { baseColor: "#c68a65", roughness: 0.3, subsurface: 0.4 }
+            dark: { baseColor: "#8d5524", roughness: 0.25, subsurface: 0.45 }
+          }
+        }
+        hair: {
+          shader: "Hair"
+          properties: ["baseColor", "roughness", "specular", "anisotropy"]
+          presets: {
+            black: { baseColor: "#1a1a1a", roughness: 0.4, specular: 0.5, anisotropy: 0.8 }
+            brown: { baseColor: "#5c4033", roughness: 0.45, specular: 0.5, anisotropy: 0.8 }
+            blonde: { baseColor: "#f4d03f", roughness: 0.5, specular: 0.6, anisotropy: 0.7 }
+            red: { baseColor: "#c04000", roughness: 0.45, specular: 0.5, anisotropy: 0.8 }
+            gray: { baseColor: "#9e9e9e", roughness: 0.5, specular: 0.4, anisotropy: 0.7 }
+          }
+        }
+        eyes: {
+          shader: "Eye"
+          properties: ["irisColor", "pupilScale", "sclera"]
+          presets: {
+            brown: { irisColor: "#8b4513", pupilScale: 0.3, sclera: "#ffffff" }
+            blue: { irisColor: "#4682b4", pupilScale: 0.3, sclera: "#ffffff" }
+            green: { irisColor: "#228b22", pupilScale: 0.3, sclera: "#ffffff" }
+            hazel: { irisColor: "#8e7618", pupilScale: 0.3, sclera: "#ffffff" }
+            gray: { irisColor: "#708090", pupilScale: 0.3, sclera: "#ffffff" }
+          }
+        }
+      }
+
+      // Mesh swapping for major changes
+      meshSwaps: {
+        hair: [
+          { name: "Short", mesh: "Hair_Short.glb" }
+          { name: "Medium", mesh: "Hair_Medium.glb" }
+          { name: "Long", mesh: "Hair_Long.glb" }
+          { name: "Bald", mesh: null }
+          { name: "Ponytail", mesh: "Hair_Ponytail.glb" }
+          { name: "Braids", mesh: "Hair_Braids.glb" }
+        ]
+        facialHair: [
+          { name: "None", mesh: null }
+          { name: "Stubble", mesh: "FacialHair_Stubble.glb" }
+          { name: "Beard", mesh: "FacialHair_Beard.glb" }
+          { name: "Goatee", mesh: "FacialHair_Goatee.glb" }
+          { name: "Mustache", mesh: "FacialHair_Mustache.glb" }
+        ]
+        outfit: [
+          { name: "Casual", mesh: "Outfit_Casual.glb" }
+          { name: "Formal", mesh: "Outfit_Formal.glb" }
+          { name: "Athletic", mesh: "Outfit_Athletic.glb" }
+          { name: "Fantasy", mesh: "Outfit_Fantasy.glb" }
+          { name: "SciFi", mesh: "Outfit_SciFi.glb" }
+        ]
+      }
+    }
+
+    model: "/models/avatar_base.glb"
+    scale: [1, 1, 1]
+    position: [0, 0, 0]
+
+    state {
+      // Current customization values
+      bodyType: "Default"
+      skinTone: "Medium"
+      hairStyle: "Short"
+      hairColor: "Brown"
+      eyeColor: "Brown"
+      facialHair: "None"
+      clothingSet: "Casual"
+
+      // Custom color overrides
+      customSkinColor: null
+      customHairColor: null
+      customEyeColor: null
+
+      // Body sliders (0-1 normalized)
+      bodyHeight: 0.5      // 0=short, 1=tall
+      bodyBuild: 0.5       // 0=thin, 1=muscular
+      muscleMass: 0.3
+      shoulderWidth: 0.5
+      hipWidth: 0.5
+
+      // Face sliders
+      faceWidth: 0.5
+      jawWidth: 0.5
+      noseSize: 0.5
+      eyeSize: 0.5
+      mouthSize: 0.5
+
+      // UI state
+      selectedCategory: "Body Type"
+      isPreviewMode: false
+    }
+
+    on_init() {
+      // Apply default customization
+      this.applyBodyType("Default")
+      this.applySkinTone("Medium")
+      this.applyHairStyle("Short")
+      this.applyHairColor("Brown")
+      this.applyEyeColor("Brown")
+      this.applyClothing("Casual")
+
+      skeleton.play("Idle")
+    }
+
+    // ─── Customization Methods ───────────────────────────────────────────────
+
+    applyBodyType(type) {
+      state.bodyType = type
+
+      // Reset all body morphs
+      morph.setWeight("body_muscular", 0)
+      morph.setWeight("body_thin", 0)
+      morph.setWeight("body_heavy", 0)
+      morph.setWeight("body_height_tall", 0)
+      morph.setWeight("body_height_short", 0)
+
+      // Apply preset if exists
+      if (type.toLowerCase() in morph.getPresetNames()) {
+        morph.blendToPreset(type.toLowerCase(), 0.5)
+      }
+    }
+
+    applySkinTone(tone) {
+      state.skinTone = tone
+
+      const preset = customizable.materials.skin.presets[tone.toLowerCase()]
+      if (preset) {
+        material.setProperty("skin", "baseColor", preset.baseColor)
+        material.setProperty("skin", "roughness", preset.roughness)
+        material.setProperty("skin", "subsurface", preset.subsurface)
+      }
+    }
+
+    applyHairStyle(style) {
+      state.hairStyle = style
+
+      const hairMesh = customizable.meshSwaps.hair.find(h => h.name == style)
+      if (hairMesh) {
+        meshSwap("hair", hairMesh.mesh)
+      }
+    }
+
+    applyHairColor(color) {
+      state.hairColor = color
+
+      const preset = customizable.materials.hair.presets[color.toLowerCase()]
+      if (preset) {
+        material.setProperty("hair", "baseColor", preset.baseColor)
+        material.setProperty("hair", "roughness", preset.roughness)
+        material.setProperty("hair", "specular", preset.specular)
+        material.setProperty("hair", "anisotropy", preset.anisotropy)
+      }
+    }
+
+    applyEyeColor(color) {
+      state.eyeColor = color
+
+      const preset = customizable.materials.eyes.presets[color.toLowerCase()]
+      if (preset) {
+        material.setProperty("eyes", "irisColor", preset.irisColor)
+      }
+    }
+
+    applyFacialHair(style) {
+      state.facialHair = style
+
+      const facialHairMesh = customizable.meshSwaps.facialHair.find(f => f.name == style)
+      if (facialHairMesh) {
+        meshSwap("facialHair", facialHairMesh.mesh)
+      }
+    }
+
+    applyClothing(set) {
+      state.clothingSet = set
+
+      const outfit = customizable.meshSwaps.outfit.find(o => o.name == set)
+      if (outfit) {
+        meshSwap("outfit", outfit.mesh)
+      }
+    }
+
+    // ─── Body Slider Controls ────────────────────────────────────────────────
+
+    setBodyHeight(value) {
+      state.bodyHeight = value
+      if (value > 0.5) {
+        morph.setWeight("body_height_tall", (value - 0.5) * 2)
+        morph.setWeight("body_height_short", 0)
+        morph.setWeight("leg_length", (value - 0.5) * 0.6)
+      } else {
+        morph.setWeight("body_height_short", (0.5 - value) * 2)
+        morph.setWeight("body_height_tall", 0)
+        morph.setWeight("leg_length", (value - 0.5) * 0.4)
+      }
+    }
+
+    setBodyBuild(value) {
+      state.bodyBuild = value
+      if (value > 0.5) {
+        morph.setWeight("body_muscular", (value - 0.5) * 2)
+        morph.setWeight("body_thin", 0)
+      } else {
+        morph.setWeight("body_thin", (0.5 - value) * 2)
+        morph.setWeight("body_muscular", 0)
+      }
+    }
+
+    setMuscleMass(value) {
+      state.muscleMass = value
+      morph.setWeight("muscle_arms", value)
+      morph.setWeight("muscle_legs", value)
+      morph.setWeight("muscle_chest", value * 0.8)
+      morph.setWeight("muscle_abs", value * 0.6)
+    }
+
+    setShoulderWidth(value) {
+      state.shoulderWidth = value
+      morph.setWeight("shoulder_width", (value - 0.5))
+    }
+
+    setHipWidth(value) {
+      state.hipWidth = value
+      morph.setWeight("hip_width", (value - 0.5))
+    }
+
+    // ─── Face Slider Controls ────────────────────────────────────────────────
+
+    setFaceWidth(value) {
+      state.faceWidth = value
+      morph.setWeight("face_width", (value - 0.5))
+    }
+
+    setJawWidth(value) {
+      state.jawWidth = value
+      morph.setWeight("jaw_width", (value - 0.5))
+    }
+
+    setNoseSize(value) {
+      state.noseSize = value
+      morph.setWeight("nose_size", (value - 0.5))
+    }
+
+    setEyeSize(value) {
+      state.eyeSize = value
+      morph.setWeight("eye_size", (value - 0.5))
+    }
+
+    setMouthSize(value) {
+      state.mouthSize = value
+      morph.setWeight("mouth_width", (value - 0.5))
+    }
+
+    // ─── Event Handlers ──────────────────────────────────────────────────────
+
+    on_event("customize", data) {
+      if (data.category == "Body Type") {
+        this.applyBodyType(data.value)
+      } else if (data.category == "Skin Tone") {
+        this.applySkinTone(data.value)
+      } else if (data.category == "Hair Style") {
+        this.applyHairStyle(data.value)
+      } else if (data.category == "Hair Color") {
+        this.applyHairColor(data.value)
+      } else if (data.category == "Eye Color") {
+        this.applyEyeColor(data.value)
+      } else if (data.category == "Facial Hair") {
+        this.applyFacialHair(data.value)
+      } else if (data.category == "Clothing Set") {
+        this.applyClothing(data.value)
+      }
+    }
+
+    on_event("slider", data) {
+      if (data.name == "bodyHeight") {
+        this.setBodyHeight(data.value)
+      } else if (data.name == "bodyBuild") {
+        this.setBodyBuild(data.value)
+      } else if (data.name == "muscleMass") {
+        this.setMuscleMass(data.value)
+      } else if (data.name == "shoulderWidth") {
+        this.setShoulderWidth(data.value)
+      } else if (data.name == "hipWidth") {
+        this.setHipWidth(data.value)
+      } else if (data.name == "faceWidth") {
+        this.setFaceWidth(data.value)
+      } else if (data.name == "jawWidth") {
+        this.setJawWidth(data.value)
+      } else if (data.name == "noseSize") {
+        this.setNoseSize(data.value)
+      } else if (data.name == "eyeSize") {
+        this.setEyeSize(data.value)
+      } else if (data.name == "mouthSize") {
+        this.setMouthSize(data.value)
+      }
+    }
+
+    on_event("exportAvatar") {
+      const avatarData = {
+        bodyType: state.bodyType
+        skinTone: state.skinTone
+        hairStyle: state.hairStyle
+        hairColor: state.hairColor
+        eyeColor: state.eyeColor
+        facialHair: state.facialHair
+        clothingSet: state.clothingSet
+        bodySliders: {
+          height: state.bodyHeight
+          build: state.bodyBuild
+          muscleMass: state.muscleMass
+          shoulderWidth: state.shoulderWidth
+          hipWidth: state.hipWidth
+        }
+        faceSliders: {
+          faceWidth: state.faceWidth
+          jawWidth: state.jawWidth
+          noseSize: state.noseSize
+          eyeSize: state.eyeSize
+          mouthSize: state.mouthSize
+        }
+      }
+
+      // Export as VRM 1.0
+      export.vrm(avatarData, "custom_avatar.vrm")
+    }
+
+    on_event("randomize") {
+      this.applyBodyType(["Default", "Athletic", "Slim", "Tall", "Short"][Math.floor(Math.random() * 5)])
+      this.applySkinTone(["Fair", "Medium", "Tan", "Dark"][Math.floor(Math.random() * 4)])
+      this.applyHairStyle(["Short", "Medium", "Long", "Ponytail"][Math.floor(Math.random() * 4)])
+      this.applyHairColor(["Black", "Brown", "Blonde", "Red"][Math.floor(Math.random() * 4)])
+      this.applyEyeColor(["Brown", "Blue", "Green", "Hazel"][Math.floor(Math.random() * 4)])
+
+      this.setBodyHeight(Math.random())
+      this.setBodyBuild(Math.random())
+      this.setMuscleMass(Math.random() * 0.8)
+    }
+  }
+
+  // ─── Customization UI (3D Spatial UI) ───────────────────────────────────────
+
+  spatial_group "CustomizationUI" {
+    position: [2, 1.5, 0]
+
+    object "UIPanel" {
+      @ui_panel
+      geometry: "plane"
+      scale: [1.5, 2, 0.01]
+      color: "#1a1a2e"
+      opacity: 0.9
+
+      ui: {
+        layout: "vertical"
+        padding: 0.1
+        sections: [
+          {
+            title: "Body Type"
+            controls: [
+              { type: "dropdown", options: ["Default", "Athletic", "Slim", "Heavy", "Tall", "Short"] }
+              { type: "slider", label: "Height", min: 0, max: 1, value: 0.5 }
+              { type: "slider", label: "Build", min: 0, max: 1, value: 0.5 }
+              { type: "slider", label: "Muscle", min: 0, max: 1, value: 0.3 }
+            ]
+          }
+          {
+            title: "Appearance"
+            controls: [
+              { type: "dropdown", label: "Skin", options: ["Fair", "Medium", "Tan", "Dark"] }
+              { type: "dropdown", label: "Hair Style", options: ["Short", "Medium", "Long", "Bald"] }
+              { type: "color", label: "Hair Color", value: "#5c4033" }
+              { type: "color", label: "Eye Color", value: "#8b4513" }
+            ]
+          }
+          {
+            title: "Actions"
+            controls: [
+              { type: "button", label: "Randomize", event: "randomize" }
+              { type: "button", label: "Reset", event: "reset" }
+              { type: "button", label: "Export VRM", event: "exportAvatar" }
+            ]
+          }
+        ]
+      }
+    }
+  }
+
+  // ─── Preview Mirror ──────────────────────────────────────────────────────────
+
+  object "Mirror" {
+    @mirror
+    geometry: "plane"
+    position: [0, 1.5, -2]
+    rotation: [0, 0, 0]
+    scale: [2, 2.5, 0.1]
+  }
+
+  // ─── Lighting ────────────────────────────────────────────────────────────────
+
+  light "Key" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 1.0
+    position: [2, 3, 2]
+    cast_shadows: true
+  }
+
+  light "Fill" {
+    type: "point"
+    color: "#88aaff"
+    intensity: 0.6
+    position: [-1.5, 2, 1]
+    range: 5
+  }
+
+  light "Rim" {
+    type: "point"
+    color: "#ffaa88"
+    intensity: 0.4
+    position: [0, 2, -2]
+    range: 4
+  }
+}

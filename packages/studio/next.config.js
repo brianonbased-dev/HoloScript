@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   reactStrictMode: true,
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin)
@@ -17,6 +19,14 @@ const nextConfig = {
         fs: false,
         path: false,
         os: false,
+        net: false,
+        tls: false,
+        dns: false,
+        dgram: false,
+        child_process: false,
+        cluster: false,
+        http2: false,
+        crypto: false,
       };
     }
 
@@ -24,6 +34,7 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@pixiv/three-vrm': false,
+      ioredis: false,
       puppeteer: false,
       playwright: false,
       // Externalize blockchain/wallet packages that don't work in browser

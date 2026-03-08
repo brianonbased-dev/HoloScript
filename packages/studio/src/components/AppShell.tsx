@@ -3,7 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
-import { RightPanelSidebar } from './panels/RightPanelSidebar';
+import dynamic from 'next/dynamic';
+
+const RightPanelSidebar = dynamic(
+  () => import('./panels/RightPanelSidebar').then(m => ({ default: m.RightPanelSidebar })),
+  { ssr: false },
+);
 
 // ═══════════════════════════════════════════════════════════════════
 // Navigation Items
@@ -130,8 +135,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
 
-  // Don't show shell on the home page (it has its own layout)
-  if (pathname === '/') return <>{children}</>;
+  // Don't show shell on standalone POE pages (they have their own layouts)
+  const standalonePaths = ['/', '/play', '/learn'];
+  if (standalonePaths.includes(pathname)) return <>{children}</>;
 
   return (
     <div className="flex h-screen overflow-hidden">

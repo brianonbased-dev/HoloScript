@@ -4,9 +4,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode, createContext, useContext, useCallback } from 'react';
 import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { AppShell } from '../components/AppShell';
+import dynamic from 'next/dynamic';
 import { DevToolsInit } from '../components/DevToolsInit';
-import { PluginHostProvider } from '../hooks/usePluginHost';
+
+const AppShell = dynamic(
+  () => import('../components/AppShell').then(m => ({ default: m.AppShell })),
+  { ssr: false },
+);
+const PluginHostProvider = dynamic(
+  () => import('../hooks/usePluginHost').then(m => ({ default: m.PluginHostProvider })),
+  { ssr: false },
+);
 
 // ═══════════════════════════════════════════════════════════════════
 // Theme Context

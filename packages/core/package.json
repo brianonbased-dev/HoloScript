@@ -95,6 +95,7 @@
     "@gltf-transform/core": "^3.7.0",
     "@gltf-transform/extensions": "^3.7.0",
     "@gltf-transform/functions": "^3.7.0",
+    "@holoscript/crdt": "workspace:*",
     "@zoralabs/protocol-deployments": "^0.7.2",
     "basis_universal": "^1.0.0",
     "draco3d": "^1.5.6",

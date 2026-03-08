@@ -1,0 +1,147 @@
+[
+  {
+    "example": "gpu-fluid-simulation.holo",
+    "success": false,
+    "parseTimeMs": 11.073699999999974,
+    "compileTimeMs": 0,
+    "totalTimeMs": 12.613699999999994,
+    "wgslShaderCount": 0,
+    "computeShaderCount": 0,
+    "outputSizeBytes": 0,
+    "performanceTargets": {
+      "targetFPS": 60,
+      "targetFrameTimeMs": 16.67,
+      "gridResolution": "1024x1024",
+      "estimatedFrameTimeMs": 8.7,
+      "estimatedFPS": 115
+    },
+    "validation": {
+      "wgslSyntaxValid": false,
+      "computeShadersFound": false,
+      "buffersAllocated": false,
+      "dispatchCallsPresent": false,
+      "gpuTimingEnabled": false,
+      "errors": [
+        "Expected identifier, got STRING (in composition > domain-material)"
+      ],
+      "warnings": []
+    },
+    "error": "Expected identifier, got STRING (in composition > domain-material)"
+  },
+  {
+    "example": "gpu-particles-million.holo",
+    "success": false,
+    "parseTimeMs": 6.404500000000041,
+    "compileTimeMs": 0,
+    "totalTimeMs": 7.471900000000005,
+    "wgslShaderCount": 0,
+    "computeShaderCount": 0,
+    "outputSizeBytes": 0,
+    "performanceTargets": {
+      "targetFPS": 60,
+      "targetFrameTimeMs": 16.67,
+      "particleCount": 1048576,
+      "estimatedFrameTimeMs": 10.6,
+      "estimatedFPS": 94
+    },
+    "validation": {
+      "wgslSyntaxValid": false,
+      "computeShadersFound": false,
+      "buffersAllocated": false,
+      "dispatchCallsPresent": false,
+      "gpuTimingEnabled": false,
+      "errors": [
+        "Expected identifier, got STRING (in composition > domain-material)"
+      ],
+      "warnings": []
+    },
+    "error": "Expected identifier, got STRING (in composition > domain-material)"
+  },
+  {
+    "example": "gpu-cloth-simulation.holo",
+    "success": false,
+    "parseTimeMs": 5.153599999999983,
+    "compileTimeMs": 0,
+    "totalTimeMs": 6.130899999999997,
+    "wgslShaderCount": 0,
+    "computeShaderCount": 0,
+    "outputSizeBytes": 0,
+    "performanceTargets": {
+      "targetFPS": 60,
+      "targetFrameTimeMs": 16.67,
+      "gridResolution": "128x128",
+      "estimatedFrameTimeMs": 11.5,
+      "estimatedFPS": 87
+    },
+    "validation": {
+      "wgslSyntaxValid": false,
+      "computeShadersFound": false,
+      "buffersAllocated": false,
+      "dispatchCallsPresent": false,
+      "gpuTimingEnabled": false,
+      "errors": [
+        "Expected identifier, got STRING (in composition > domain-material)"
+      ],
+      "warnings": []
+    },
+    "error": "Expected identifier, got STRING (in composition > domain-material)"
+  },
+  {
+    "example": "gpu-physics-rigid-body.holo",
+    "success": false,
+    "parseTimeMs": 4.058300000000031,
+    "compileTimeMs": 0,
+    "totalTimeMs": 5.317900000000009,
+    "wgslShaderCount": 0,
+    "computeShaderCount": 0,
+    "outputSizeBytes": 0,
+    "performanceTargets": {
+      "targetFPS": 60,
+      "targetFrameTimeMs": 16.67,
+      "bodyCount": 10000,
+      "estimatedFrameTimeMs": 10.2,
+      "estimatedFPS": 98
+    },
+    "validation": {
+      "wgslSyntaxValid": false,
+      "computeShadersFound": false,
+      "buffersAllocated": false,
+      "dispatchCallsPresent": false,
+      "gpuTimingEnabled": false,
+      "errors": [
+        "Expected identifier, got STRING (in composition > domain-material)"
+      ],
+      "warnings": []
+    },
+    "error": "Expected identifier, got STRING (in composition > domain-material)"
+  },
+  {
+    "example": "n-body-gravity.holo",
+    "success": false,
+    "parseTimeMs": 7.877199999999959,
+    "compileTimeMs": 0,
+    "totalTimeMs": 8.107100000000003,
+    "wgslShaderCount": 0,
+    "computeShaderCount": 0,
+    "outputSizeBytes": 0,
+    "performanceTargets": {
+      "targetFPS": 60,
+      "targetFrameTimeMs": 16.67,
+      "bodyCount": 10000,
+      "estimatedFrameTimeMs": 9.4,
+      "estimatedFPS": 106
+    },
+    "validation": {
+      "wgslSyntaxValid": false,
+      "computeShadersFound": false,
+      "buffersAllocated": false,
+      "dispatchCallsPresent": false,
+      "gpuTimingEnabled": false,
+      "errors": [
+        "Expected identifier, got STRING (in composition > domain-material)"
+      ],
+      "warnings": []
+    },
+    "error": "Expected identifier, got STRING (in composition > domain-material)"
+  }
+]

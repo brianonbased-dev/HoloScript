@@ -6,24 +6,15 @@
  * Uses Three.js useFrame to interpolate position/rotation/scale/color/opacity
  * between keyframe stops at 60fps. Handles multiple named keyframe sequences
  * and supports easing functions.
- *
- * Keyframe data format (from parser → WASM bridge):
- *   {
- *     name: "rotate",
- *     stops: [{ percent: 0, rotation: [0,0,0] }, { percent: 100, rotation: [0,360,0] }],
- *     duration: 2000,
- *     easing: "ease-in-out",
- *     loop: true,
- *   }
  */
 
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { R3FNode } from '@holoscript/core';
-import { MATERIAL_PRESETS } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/store';
 import { useBuilderStore } from '@/lib/stores/builderStore';
 import * as THREE from 'three';
+import { getGeometry, getMaterialProps } from './materialUtils';
 
 // ── Easing Functions ─────────────────────────────────────────────────────────
 
@@ -86,14 +77,11 @@ function interpolateAtPercent(stops: KeyframeStop[], percent: number): KeyframeS
   if (stops.length === 0) return { percent: 0 };
   if (stops.length === 1) return stops[0];
 
-  // Sort by percent
   const sorted = [...stops].sort((a, b) => a.percent - b.percent);
 
-  // Clamp
   if (percent <= sorted[0].percent) return sorted[0];
   if (percent >= sorted[sorted.length - 1].percent) return sorted[sorted.length - 1];
 
-  // Find bounding stops
   let lower = sorted[0];
   let upper = sorted[sorted.length - 1];
   for (let i = 0; i < sorted.length - 1; i++) {
@@ -134,54 +122,6 @@ function interpolateAtPercent(stops: KeyframeStop[], percent: number): KeyframeS
   }
 
   return result;
-}
-
-// ── Geometry Helper ──────────────────────────────────────────────────────────
-
-function getGeometry(hsType: string, size: number) {
-  const s = size || 1;
-  switch (hsType) {
-    case 'sphere': case 'orb':
-      return <sphereGeometry args={[s * 0.5, 32, 32]} />;
-    case 'cube': case 'box':
-      return <boxGeometry args={[s, s, s]} />;
-    case 'cylinder':
-      return <cylinderGeometry args={[s * 0.5, s * 0.5, s, 32]} />;
-    case 'pyramid': case 'cone':
-      return <coneGeometry args={[s * 0.5, s, 4]} />;
-    case 'plane':
-      return <planeGeometry args={[s, s]} />;
-    case 'torus':
-      return <torusGeometry args={[s * 0.5, s * 0.15, 16, 32]} />;
-    case 'ring':
-      return <ringGeometry args={[s * 0.3, s * 0.5, 32]} />;
-    case 'capsule':
-      return <capsuleGeometry args={[s * 0.3, s * 0.5, 4, 16]} />;
-    default:
-      return <boxGeometry args={[s, s, s]} />;
-  }
-}
-
-// ── Material Helper ──────────────────────────────────────────────────────────
-
-function getMaterialProps(node: R3FNode) {
-  const props = node.props;
-  const materialName = props.material || props.materialPreset;
-  const preset = materialName
-    ? (MATERIAL_PRESETS as Record<string, Record<string, any>>)[materialName]
-    : undefined;
-
-  const matProps: Record<string, any> = { ...(preset || {}) };
-  if (props.color) matProps.color = props.color;
-  if (props.emissive) matProps.emissive = props.emissive;
-  if (props.emissiveIntensity !== undefined) matProps.emissiveIntensity = props.emissiveIntensity;
-  if (props.opacity !== undefined) matProps.opacity = props.opacity;
-  if (props.transparent !== undefined) matProps.transparent = props.transparent;
-  if (props.metalness !== undefined) matProps.metalness = props.metalness;
-  if (props.roughness !== undefined) matProps.roughness = props.roughness;
-  if (props.materialProps) Object.assign(matProps, props.materialProps);
-  if (!matProps.color) matProps.color = '#8888cc';
-  return matProps;
 }
 
 // ── Main Component ───────────────────────────────────────────────────────────
@@ -256,7 +196,6 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
       const percent = easedProgress * 100;
       const interpolated = interpolateAtPercent(seq.stops, percent);
 
-      // Apply interpolated transforms (additive to base)
       if (interpolated.position) {
         mesh.position.set(
           basePosition[0] + (interpolated.position[0] - (seq.stops[0]?.position?.[0] ?? 0)),
@@ -314,16 +253,16 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
           }
         }}
       >
-        {getGeometry(hsType, size)}
+        {getGeometry(hsType, size, props)}
         <meshPhysicalMaterial
           ref={matRef}
           {...matProps}
-          emissive={matProps.emissive || undefined}
+          emissive={matProps.emissive}
           color={matProps.color}
         />
         {isSelected && !isBreakMode && (
           <mesh>
-            {getGeometry(hsType, size * 1.05)}
+            {getGeometry(hsType, size * 1.05, props)}
             <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
           </mesh>
         )}
@@ -358,11 +297,11 @@ function StaticChildMesh({ node }: { node: R3FNode }) {
         setSelectedId(node.id || null);
       }}
     >
-      {getGeometry(hsType, size)}
-      <meshPhysicalMaterial {...matProps} emissive={matProps.emissive || undefined} color={matProps.color} />
+      {getGeometry(hsType, size, props)}
+      <meshPhysicalMaterial {...matProps} emissive={matProps.emissive} color={matProps.color} />
       {isSelected && (
         <mesh>
-          {getGeometry(hsType, size * 1.05)}
+          {getGeometry(hsType, size * 1.05, props)}
           <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
         </mesh>
       )}

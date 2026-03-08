@@ -1,0 +1,605 @@
+/**
+ * End-to-End Photogrammetry Workflow — HoloScript v4.1
+ *
+ * Complete capture-to-VR pipeline for film/entertainment production.
+ * Demonstrates:
+ *  - Multi-camera capture orchestration
+ *  - SfM + MVS reconstruction pipeline
+ *  - 3DGS training and optimization
+ *  - Real-time VR preview with LOD
+ *  - Export to film formats (USD, Alembic, FBX)
+ *  - Quality assurance and validation
+ *
+ * Use Case: Production Volumetric Workflow
+ *   - On-set actor/prop capture
+ *   - Virtual production asset pipeline
+ *   - VFX reference generation
+ *   - Real-time director previsualization
+ *   - Archival and reusability
+ *
+ * Workflow Stages:
+ *   1. CAPTURE: Multi-camera synchronized capture (64 cameras, 24 FPS)
+ *   2. PREPROCESS: Image alignment, color correction, HDR merge
+ *   3. SFM: Structure-from-Motion (sparse reconstruction)
+ *   4. MVS: Multi-View Stereo (dense depth maps)
+ *   5. 3DGS: Gaussian Splatting training (30K iterations)
+ *   6. OPTIMIZE: LOD generation, compression, quality validation
+ *   7. PREVIEW: Real-time VR rendering (Quest 3 @ 90 FPS)
+ *   8. EXPORT: USD/Alembic/FBX for film pipeline integration
+ *
+ * Performance Budget (VR Preview @ 90Hz):
+ *   - Render: 8-9ms (1.2M Gaussians, SH degree 2)
+ *   - Sort: 1.5-2ms (radix sort)
+ *   - Overhead: 1ms
+ *   - Total: ~11ms (11.1ms budget)
+ *
+ * Run:
+ *   holoc examples/volumetric-advanced/photogrammetry-workflow.holo --target webgpu
+ *
+ * @version 4.1.0
+ * @vertical film-entertainment
+ */
+
+scene ProductionWorkflow {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 1: MULTI-CAMERA CAPTURE
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity CaptureOrchestrator {
+    traits: [capture_controller];
+
+    capture_controller: {
+      // Camera array (64-camera dome)
+      camera_array: {
+        count: 64,
+        layout: "dome",
+        dome_radius: 3.5,         // 3.5m radius
+        dome_elevation_range: [15, 75],  // 15-75° elevation
+      },
+
+      // Capture settings
+      capture_mode: "synchronized",
+      sync_precision: 0.5,        // Sub-millisecond sync
+      frame_rate: 24,             // Film standard 24 FPS
+      resolution: [4096, 3072],   // 12MP per camera
+
+      // HDR exposure bracketing
+      exposure_bracketing: {
+        enabled: true,
+        brackets: [-1, 0, +1],    // ±1 EV
+        merge_mode: "hdr",        // hdr | auto-exposure
+      },
+
+      // Color management
+      color_space: "aces_cg",     // ACES color space (VFX standard)
+      white_balance: 5500,        // Daylight (K)
+      bit_depth: 16,              // 16-bit per channel
+
+      // Output format
+      output_format: "raw",       // RAW for maximum quality
+      output_path: "./capture/session_001/",
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 2: IMAGE PREPROCESSING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity ImagePreprocessor {
+    traits: [image_processing];
+
+    image_processing: {
+      // HDR merging (from exposure brackets)
+      hdr_merge: {
+        enabled: true,
+        algorithm: "debevec",     // debevec | robertson
+        ghost_removal: true,      // Remove moving objects
+      },
+
+      // Color correction
+      color_correction: {
+        enabled: true,
+        reference_chart: "macbeth",  // Macbeth ColorChecker calibration
+        white_balance_correction: true,
+        exposure_normalization: true,
+      },
+
+      // Lens distortion correction
+      lens_correction: {
+        enabled: true,
+        distortion_model: "brown-conrady",  // Brown-Conrady model
+        calibration_source: "exif",  // Use EXIF calibration data
+      },
+
+      // Image alignment (if cameras moved)
+      alignment: {
+        enabled: false,           // Cameras are fixed in dome
+      },
+
+      // Output
+      output_format: "exr",       // OpenEXR (16-bit float HDR)
+      output_color_space: "aces_cg",
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 3: STRUCTURE-FROM-MOTION (Sparse Reconstruction)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity SfMReconstruction {
+    traits: [structure_from_motion];
+
+    structure_from_motion: {
+      // Feature detection
+      feature_detector: "sift",   // SIFT (scale-invariant)
+      features_per_image: 8000,
+
+      // Feature matching
+      matcher: "exhaustive",      // Exhaustive pairwise (64 cameras)
+      match_threshold: 0.8,       // Lowe's ratio test
+      geometric_verification: "fundamental_matrix",
+
+      // Incremental reconstruction
+      reconstruction_mode: "incremental",
+      max_reprojection_error: 1.0,  // 1 pixel
+      min_triangulation_angle: 2.0,  // 2° minimum baseline
+
+      // Bundle adjustment
+      bundle_adjustment: "full",
+      ba_iterations: 100,
+      ba_loss_function: "huber",  // Robust loss
+
+      // Output
+      sparse_point_cloud: true,
+      camera_calibration: true,   // Intrinsic + extrinsic
+      depth_maps: true,           // For MVS initialization
+      output_path: "./reconstruction/sparse/",
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 4: MULTI-VIEW STEREO (Dense Reconstruction)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity MVSReconstruction {
+    traits: [multi_view_stereo];
+
+    multi_view_stereo: {
+      // Depth estimation
+      depth_estimation: {
+        algorithm: "patchmatch",  // PatchMatch stereo
+        patch_size: 11,
+        num_samples: 15,
+        depth_min: 0.1,           // 10cm minimum depth
+        depth_max: 10.0,          // 10m maximum depth
+      },
+
+      // Geometric consistency
+      geometric_consistency: {
+        enabled: true,
+        min_views: 3,             // 3-view consistency
+        max_depth_diff: 0.01,     // 1cm depth difference tolerance
+      },
+
+      // Depth map filtering
+      filtering: {
+        enabled: true,
+        min_consistent_views: 2,
+        bilateral_filter: true,   // Edge-preserving smoothing
+      },
+
+      // Fusion
+      fusion: {
+        algorithm: "tsdf",        // Truncated Signed Distance Function
+        voxel_size: 0.005,        // 5mm voxels
+        truncation_distance: 0.02,  // 2cm truncation
+      },
+
+      // Output
+      dense_point_cloud: true,
+      depth_maps_output: true,
+      mesh_output: false,         // Not needed for 3DGS
+      output_path: "./reconstruction/dense/",
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 5: 3D GAUSSIAN SPLATTING TRAINING
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity GaussianTraining {
+    traits: [gaussian_training];
+
+    gaussian_training: {
+      // Initialization (from MVS dense cloud or SfM sparse cloud)
+      init_mode: "mvs_dense",     // mvs_dense | sfm_sparse | random
+      init_scale: 1.0,
+
+      // Training hyperparameters (from 3DGS paper)
+      iterations: 30000,          // 30K iterations (4-8 hours on RTX 4090)
+      position_lr: 0.00016,
+      feature_lr: 0.0025,
+      opacity_lr: 0.05,
+      scaling_lr: 0.005,
+      rotation_lr: 0.001,
+
+      // Densification (adaptive splitting)
+      densify_from_iter: 500,
+      densify_until_iter: 15000,
+      densify_grad_threshold: 0.0002,
+      densify_size_threshold: 0.01,
+
+      // Pruning
+      prune_opacity_threshold: 0.005,
+      prune_from_iter: 3000,
+      prune_interval: 100,
+
+      // Spherical harmonics
+      sh_degree_interval: 1000,
+      sh_max_degree: 3,           // Full SH degree 3
+
+      // Regularization
+      opacity_reset_interval: 3000,
+
+      // Optimization
+      optimizer: "adam",
+      batch_size: 1,              // Full batch (all cameras)
+
+      // Validation
+      validation_split: 0.1,      // 10% validation set
+      validation_interval: 1000,
+
+      // Output
+      checkpoint_interval: 5000,
+      output_path: "./training/checkpoints/",
+      tensorboard: true,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 6: OPTIMIZATION & LOD GENERATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity AssetOptimizer {
+    traits: [gaussian_optimizer];
+
+    gaussian_optimizer: {
+      // LOD generation (distance-based decimation)
+      lod_generation: {
+        enabled: true,
+        lod_levels: [
+          { name: "LOD0", distance_range: [0, 5],   density: 1.0 },   // 100%
+          { name: "LOD1", distance_range: [5, 10],  density: 0.8 },   // 80%
+          { name: "LOD2", distance_range: [10, 25], density: 0.5 },   // 50%
+          { name: "LOD3", distance_range: [25, 50], density: 0.25 },  // 25%
+        ],
+      },
+
+      // Compression (SPZ v2.0)
+      compression: {
+        enabled: true,
+        format: "spz",
+        version: "2.0",
+        quaternion_encoding: "smallest_three",
+        position_quantization: 16,  // 16-bit quantization
+        color_quantization: 8,      // 8-bit RGB
+      },
+
+      // Quality validation
+      quality_validation: {
+        enabled: true,
+        psnr_threshold: 28.0,       // Min 28 dB PSNR
+        ssim_threshold: 0.90,       // Min 0.90 SSIM
+        lpips_threshold: 0.15,      // Max 0.15 LPIPS (perceptual loss)
+      },
+
+      // Output
+      output_formats: ["splat", "spz", "ply"],
+      output_path: "./assets/optimized/",
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 7: REAL-TIME VR PREVIEW
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity VRPreview {
+    traits: [gaussian_splat, vr_renderer];
+
+    gaussian_splat: {
+      source: "./assets/optimized/actor_capture.spz",
+      format: "spz",
+      quality: "high",
+      max_splats: 1200000,        // 1.2M Gaussians (Quest 3 target)
+
+      // Rendering
+      sort_mode: "radix",
+      sh_degree: 2,               // SH degree 2 for Quest 3
+      cull_invisible: true,
+      alpha_threshold: 0.01,
+      scale_modifier: 1.0,
+
+      // LOD (from AssetOptimizer)
+      lod: {
+        mode: "distance",
+        octree_depth: 8,
+        anchor_thresholds: [
+          { distance: 0.0,  splat_density: 1.0 },
+          { distance: 5.0,  splat_density: 0.8 },
+          { distance: 10.0, splat_density: 0.5 },
+          { distance: 25.0, splat_density: 0.25 },
+        ],
+      },
+
+      // Performance
+      gaussian_budget: {
+        total_cap: 1200000,
+        per_avatar_reservation: 0,
+      },
+
+      compression: true,
+      spz: {
+        version: "2.0",
+        quaternion_encoding: "smallest_three",
+      },
+    };
+
+    vr_renderer: {
+      // VR settings
+      target_headset: "quest3",
+      target_fps: 90,             // 90 FPS (11.1ms budget)
+      render_mode: "stereo",      // Stereo rendering
+
+      // Foveated rendering (Quest 3)
+      foveated_rendering: {
+        enabled: true,
+        peripheral_quality: 0.5,  // 50% resolution at periphery
+      },
+
+      // Performance monitoring
+      performance_overlay: true,
+      show_frame_time: true,
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STAGE 8: EXPORT TO FILM FORMATS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity FilmExporter {
+    traits: [format_exporter];
+
+    format_exporter: {
+      // USD export (Pixar Universal Scene Description)
+      usd: {
+        enabled: true,
+        variant: "usda",          // Human-readable ASCII
+        stage_metadata: {
+          metersPerUnit: 1.0,
+          upAxis: "Y",
+          defaultPrim: "ActorCapture",
+        },
+        point_instancer: true,    // Use UsdGeomPointInstancer for Gaussians
+        output_path: "./export/actor_capture.usda",
+      },
+
+      // Alembic export
+      alembic: {
+        enabled: true,
+        version: "1.8",
+        point_cloud_schema: true,
+        include_normals: false,   // Gaussians don't have normals
+        include_uvs: false,
+        output_path: "./export/actor_capture.abc",
+      },
+
+      // FBX export (for compatibility)
+      fbx: {
+        enabled: true,
+        version: "fbx2020",
+        point_cloud_as_particles: true,
+        include_cameras: true,    // Export capture camera rig
+        output_path: "./export/actor_capture.fbx",
+      },
+
+      // Metadata export
+      metadata: {
+        include_capture_settings: true,
+        include_camera_calibration: true,
+        include_quality_metrics: true,
+        output_path: "./export/metadata.json",
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // WORKFLOW ORCHESTRATOR
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity WorkflowManager {
+    traits: [workflow_controller];
+
+    workflow_controller: {
+      // Pipeline stages
+      stages: [
+        "capture",
+        "preprocess",
+        "sfm",
+        "mvs",
+        "training",
+        "optimize",
+        "preview",
+        "export",
+      ],
+
+      // Auto-progression
+      auto_progress: false,       // Manual approval between stages
+      parallel_execution: false,  // Sequential execution
+
+      // Error handling
+      retry_on_failure: true,
+      max_retries: 3,
+      rollback_on_critical_failure: true,
+
+      // Logging
+      log_level: "verbose",
+      log_path: "./logs/workflow.log",
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Workflow Lifecycle
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(WorkflowManager, "workflow_started") {
+    log("🚀 Production workflow started");
+    log(`  Stages: ${event.stages.join(" → ")}`);
+    log(`  Session: ${event.sessionId}`);
+  }
+
+  on(WorkflowManager, "stage_started") {
+    log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    log(`📍 STAGE ${event.stageIndex + 1}/${event.totalStages}: ${event.stageName.toUpperCase()}`);
+    log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  }
+
+  on(WorkflowManager, "stage_completed") {
+    log(`✅ Stage complete: ${event.stageName}`);
+    log(`  Duration: ${(event.durationSeconds / 60).toFixed(1)} minutes`);
+    log(`  Output: ${event.outputPath}`);
+  }
+
+  on(WorkflowManager, "stage_failed") {
+    log(`❌ Stage failed: ${event.stageName}`);
+    log(`  Error: ${event.error}`);
+    log(`  Retry attempt: ${event.retryAttempt}/${event.maxRetries}`);
+  }
+
+  on(WorkflowManager, "workflow_completed") {
+    log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    log(`🎉 WORKFLOW COMPLETED SUCCESSFULLY`);
+    log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    log(`  Total duration: ${(event.totalDurationSeconds / 3600).toFixed(2)} hours`);
+    log(`  Stages completed: ${event.completedStages}/${event.totalStages}`);
+    log(`  Output directory: ${event.outputDirectory}`);
+    log(`  Quality metrics:`);
+    log(`    - PSNR: ${event.qualityMetrics.psnr.toFixed(2)} dB`);
+    log(`    - SSIM: ${event.qualityMetrics.ssim.toFixed(4)}`);
+    log(`    - LPIPS: ${event.qualityMetrics.lpips.toFixed(4)}`);
+    log(`  Asset summary:`);
+    log(`    - Final Gaussians: ${event.assetSummary.gaussianCount.toLocaleString()}`);
+    log(`    - SH degree: ${event.assetSummary.shDegree}`);
+    log(`    - File size (SPZ): ${(event.assetSummary.fileSizeBytes / 1024 / 1024).toFixed(2)} MB`);
+    log(`    - LOD levels: ${event.assetSummary.lodLevels}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Individual Stage Events (delegated to stage entities)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(CaptureOrchestrator, "capture_completed") {
+    log(`📸 Capture completed`);
+    log(`  Frames captured: ${event.frameCount}`);
+    log(`  Cameras: ${event.cameraCount}`);
+    log(`  Total images: ${event.frameCount * event.cameraCount * event.exposureBrackets}`);
+    log(`  Storage: ${(event.totalStorageBytes / 1024 / 1024 / 1024).toFixed(2)} GB`);
+  }
+
+  on(ImagePreprocessor, "preprocessing_completed") {
+    log(`🎨 Image preprocessing completed`);
+    log(`  HDR merged images: ${event.mergedImageCount}`);
+    log(`  Color corrected: ${event.colorCorrectedCount}`);
+    log(`  Lens corrected: ${event.lensCorrectedCount}`);
+  }
+
+  on(SfMReconstruction, "sfm_completed") {
+    log(`🔬 Structure-from-Motion completed`);
+    log(`  Registered cameras: ${event.registeredCameras}/${event.totalCameras}`);
+    log(`  Sparse points: ${event.sparsePoints.toLocaleString()}`);
+    log(`  Mean reprojection error: ${event.meanReprojectionError.toFixed(3)} px`);
+    log(`  Processing time: ${(event.processingTimeSeconds / 60).toFixed(1)} minutes`);
+  }
+
+  on(MVSReconstruction, "mvs_completed") {
+    log(`🏔️  Multi-View Stereo completed`);
+    log(`  Dense points: ${event.densePoints.toLocaleString()}`);
+    log(`  Depth maps: ${event.depthMapCount}`);
+    log(`  Average depth confidence: ${(event.avgDepthConfidence * 100).toFixed(1)}%`);
+    log(`  Processing time: ${(event.processingTimeSeconds / 60).toFixed(1)} minutes`);
+  }
+
+  on(GaussianTraining, "training_completed") {
+    log(`🧠 3D Gaussian Splatting training completed`);
+    log(`  Final Gaussians: ${event.finalGaussians.toLocaleString()}`);
+    log(`  Final PSNR: ${event.finalPsnr.toFixed(2)} dB`);
+    log(`  Final SSIM: ${event.finalSsim.toFixed(4)}`);
+    log(`  Training time: ${(event.trainingTimeSeconds / 3600).toFixed(2)} hours`);
+  }
+
+  on(AssetOptimizer, "optimization_completed") {
+    log(`⚙️  Asset optimization completed`);
+    log(`  LOD levels generated: ${event.lodLevels}`);
+    log(`  Compression ratio: ${event.compressionRatio.toFixed(2)}×`);
+    log(`  File size: ${(event.fileSizeBytes / 1024 / 1024).toFixed(2)} MB`);
+    log(`  Quality: PSNR ${event.psnr.toFixed(2)} dB, SSIM ${event.ssim.toFixed(4)}`);
+  }
+
+  on(FilmExporter, "export_completed") {
+    log(`💾 Film format export completed`);
+    log(`  Formats: ${event.formats.join(", ")}`);
+    log(`  Output directory: ${event.outputDirectory}`);
+    log(`  File sizes:`);
+    event.fileSizes.forEach((size, format) => {
+      log(`    - ${format}: ${(size / 1024 / 1024).toFixed(2)} MB`);
+    });
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Start full workflow
+  on(DemoControls, "click") {
+    if (event.target === "start_workflow_button") {
+      emit(WorkflowManager, "start_workflow", {});
+      log("🚀 Starting full production workflow...");
+    }
+  }
+
+  // Start individual stage
+  on(DemoControls, "click") {
+    if (event.target === "start_capture_button") {
+      emit(WorkflowManager, "start_stage", { stage: "capture" });
+      log("📸 Starting capture stage...");
+    }
+  }
+
+  // Skip to preview (load pre-trained asset)
+  on(DemoControls, "click") {
+    if (event.target === "skip_to_preview_button") {
+      emit(WorkflowManager, "jump_to_stage", { stage: "preview" });
+      log("⏩ Skipping to VR preview...");
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION — Workflow Overview
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity WorkflowDashboard {
+    geometry: plane;
+    position: [0, 2.5, -5];
+    scale: [7, 4, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "END-TO-END PHOTOGRAMMETRY WORKFLOW\n\n📸 STAGE 1: CAPTURE (1-5 minutes)\n  • 64-camera dome array (synchronized)\n  • 24 FPS, 12MP per camera, HDR bracketing\n  • Raw 16-bit ACES color space\n  • Output: 192 images (64 cams × 3 brackets)\n\n🎨 STAGE 2: PREPROCESS (5-15 minutes)\n  • HDR merge (Debevec algorithm)\n  • Color correction (Macbeth chart)\n  • Lens distortion correction\n  • Output: 64 EXR images\n\n🔬 STAGE 3: SFM (30-60 minutes)\n  • SIFT feature detection (8K features/image)\n  • Exhaustive pairwise matching\n  • Incremental reconstruction + Bundle Adjustment\n  • Output: Sparse cloud (~100K points), camera poses\n\n🏔️  STAGE 4: MVS (1-3 hours)\n  • PatchMatch stereo depth estimation\n  • 3-view geometric consistency\n  • TSDF fusion (5mm voxels)\n  • Output: Dense cloud (~10-50M points)\n\n🧠 STAGE 5: 3DGS TRAINING (4-8 hours)\n  • 30K iterations (RTX 4090)\n  • Adaptive densification (500-15K iters)\n  • SH degree 3 (16 coefficients)\n  • Output: 1.5-2M Gaussians, PSNR 28-32 dB\n\n⚙️  STAGE 6: OPTIMIZE (15-30 minutes)\n  • LOD generation (4 levels)\n  • SPZ v2.0 compression (3-6× reduction)\n  • Quality validation (PSNR/SSIM/LPIPS)\n  • Output: Multi-LOD SPZ asset (~60 MB)\n\n🎮 STAGE 7: VR PREVIEW (Real-time)\n  • Quest 3 @ 90 FPS (11.1ms budget)\n  • 1.2M Gaussians, SH degree 2\n  • Distance-based LOD, foveated rendering\n  • Interactive director review\n\n💾 STAGE 8: EXPORT (5-10 minutes)\n  • USD (Pixar Universal Scene Description)\n  • Alembic (industry standard)\n  • FBX (compatibility)\n  • Metadata (capture settings, quality metrics)\n\n⏱️  TOTAL PIPELINE TIME: 6-12 hours\n  (Capture to VR-ready asset)\n\n🎬 PRODUCTION USE CASES:\n  • On-set actor/prop capture → VFX integration\n  • Virtual production → LED wall backgrounds\n  • Location scanning → Previsualization\n  • Digital preservation → Archival",
+      fontSize: 0.065,
+      color: "#fbbf24",
+    };
+  }
+}

@@ -15,6 +15,7 @@ import { WorkflowStep } from './identity/AgentIdentity';
 import type { CulturalProfileMetadata } from './identity/AgentIdentity';
 import type { CulturalCompatibilityResult } from './CulturalCompatibilityChecker';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
+import type { GLTFExportResult } from './GLTFPipeline';
 import {
   CapabilityRBAC,
   getCapabilityRBAC,
@@ -141,7 +142,7 @@ export interface ICompiler {
    * @returns Compiled code (string or multi-file object)
    * @throws UnauthorizedCompilerAccessError if token invalid or lacks permissions
    */
-  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string | Record<string, string>;
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string | Record<string, string> | GLTFExportResult;
 }
 
 /**
@@ -216,7 +217,7 @@ export abstract class CompilerBase implements ICompiler {
    * Compile HoloComposition AST to target platform code
    * MUST be implemented by subclasses
    */
-  abstract compile(composition: HoloComposition, agentToken: string, outputPath?: string): string | Record<string, string>;
+  abstract compile(composition: HoloComposition, agentToken: string, outputPath?: string): string | Record<string, string> | GLTFExportResult;
 
   // =========================================================================
   // P3 Migration Bridge: Dual-mode token support

@@ -47,10 +47,23 @@ function SceneContent({ r3fTree }: { r3fTree: R3FNode }) {
       {!hasLights && (
         <>
           <ambientLight intensity={0.4} color="#e8e0ff" />
-          <directionalLight position={[5, 10, 5]} intensity={1} castShadow />
+          <directionalLight
+            position={[5, 10, 5]}
+            intensity={1}
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+            shadow-camera-near={0.1}
+            shadow-camera-far={50}
+            shadow-camera-left={-10}
+            shadow-camera-right={10}
+            shadow-camera-top={10}
+            shadow-camera-bottom={-10}
+            shadow-bias={-0.0001}
+          />
         </>
       )}
-      {!hasEnv && <Environment preset="studio" background={false} />}
+      {!hasEnv && <Environment preset="apartment" background={false} />}
       <R3FNodeRenderer node={r3fTree} />
     </group>
   );
@@ -342,7 +355,12 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         camera={{ position: [3, 3, 5], fov: 60 }}
         shadows
         style={{ background: '#0a0a12' }}
-        gl={{ antialias: true, toneMapping: 3 }}
+        gl={{
+          antialias: true,
+          toneMapping: 4, // ACESFilmicToneMapping
+          toneMappingExposure: 1.0,
+          outputColorSpace: 'srgb',
+        }}
       >
         <Suspense fallback={null}>
           {r3fTree ? <SceneContent r3fTree={r3fTree} /> : <EmptyScene />}

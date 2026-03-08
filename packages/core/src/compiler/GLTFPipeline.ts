@@ -40,6 +40,13 @@ import {
   compileMaterialBlock,
   materialToGLTF,
 } from './DomainBlockCompilerMixin';
+import {
+  generateSplineGeometry,
+  generateHullGeometry,
+  generateMembraneGeometry,
+  type GeometryData,
+  type BlobDef,
+} from './ProceduralGeometry';
 
 // =============================================================================
 // TYPES
@@ -94,6 +101,7 @@ export interface GLTFNode {
   rotation?: [number, number, number, number]; // quaternion
   scale?: [number, number, number];
   mesh?: number;
+  skin?: number;
   children?: number[];
   camera?: number;
   extras?: Record<string, unknown>; // glTF spec allows custom data in extras
@@ -147,14 +155,6 @@ export interface GLTFBufferView {
   target?: number;
 }
 
-// Geometry data for built-in primitives
-interface GeometryData {
-  positions: Float32Array;
-  normals: Float32Array;
-  uvs: Float32Array;
-  indices: Uint16Array;
-}
-
 // =============================================================================
 // BUILT-IN PRIMITIVES
 // =============================================================================
@@ -170,6 +170,386 @@ const PRIMITIVE_GENERATORS: Record<string, (scale: [number, number, number]) => 
   plane: generatePlaneGeometry,
   ground: generatePlaneGeometry,
 };
+
+// =============================================================================
+// PROCEDURAL SCALE TEXTURE GENERATOR
+// =============================================================================
+
+/**
+ * Generate a hexagonal dragon-scale pattern as RGBA pixel data.
+ * Each scale is a rounded hexagon cell with a dark border and lighter center.
+ */
+export function generateScaleTexture(
+  size: number = 512,
+  baseColor: [number, number, number] = [30, 15, 61],   // #1e0f3d
+  borderColor: [number, number, number] = [20, 12, 40],  // softer — less contrast
+  highlightColor: [number, number, number] = [70, 50, 120]
+): Uint8Array {
+  const data = new Uint8Array(size * size * 4);
+
+  const scaleSize = size / 16;
+  const hexH = scaleSize;
+  const hexW = scaleSize * Math.sqrt(3);
+
+  // Simple hash for per-scale color jitter
+  function scaleHash(row: number, col: number): number {
+    let h = (row * 73856093) ^ (col * 19349663);
+    h = ((h >> 16) ^ h) * 0x45d9f3b;
+    h = ((h >> 16) ^ h) * 0x45d9f3b;
+    return ((h >> 16) ^ h) & 0xff;
+  }
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const row = Math.floor(y / (hexH * 0.75));
+      const isOddRow = row % 2 === 1;
+      const xOff = isOddRow ? hexW * 0.5 : 0;
+      const col = Math.floor((x + xOff) / hexW);
+
+      const cx = col * hexW - xOff + hexW * 0.5;
+      const cy = row * hexH * 0.75 + hexH * 0.5;
+
+      const dx = (x - cx) / (hexW * 0.5);
+      const dy = (y - cy) / (hexH * 0.5);
+
+      const q = Math.abs(dx);
+      const r = Math.abs(dy);
+      const hexDist = Math.max(q, (q + r * Math.sqrt(3)) / 2);
+
+      // Per-scale color variation: wider jitter range for organic feel
+      const jitter = (scaleHash(row, col) / 255 - 0.5) * 40;
+      const jR = Math.round(jitter * 0.4);
+      const jG = Math.round(jitter * 0.3);
+      const jB = Math.round(jitter * 0.6);
+
+      const idx = (y * size + x) * 4;
+
+      if (hexDist > 0.94) {
+        // Narrow groove — thin line between scales, not a thick border
+        data[idx]     = Math.max(0, borderColor[0] + jR);
+        data[idx + 1] = Math.max(0, borderColor[1] + jG);
+        data[idx + 2] = Math.max(0, borderColor[2] + jB);
+        data[idx + 3] = 255;
+      } else if (hexDist < 0.12) {
+        // Specular highlight — bright dot at center of each scale
+        const t = hexDist / 0.12;
+        const specR = 100, specG = 80, specB = 160;
+        data[idx]     = Math.min(255, Math.round(specR * (1 - t) + highlightColor[0] * t) + jR);
+        data[idx + 1] = Math.min(255, Math.round(specG * (1 - t) + highlightColor[1] * t) + jG);
+        data[idx + 2] = Math.min(255, Math.round(specB * (1 - t) + highlightColor[2] * t) + jB);
+        data[idx + 3] = 255;
+      } else if (hexDist < 0.35) {
+        // Highlight zone — raised center of scale
+        const t = (hexDist - 0.12) / 0.23;
+        data[idx]     = Math.min(255, Math.round(highlightColor[0] * (1 - t) + baseColor[0] * t) + jR);
+        data[idx + 1] = Math.min(255, Math.round(highlightColor[1] * (1 - t) + baseColor[1] * t) + jG);
+        data[idx + 2] = Math.min(255, Math.round(highlightColor[2] * (1 - t) + baseColor[2] * t) + jB);
+        data[idx + 3] = 255;
+      } else {
+        // Mid-scale — smooth gradient, mostly base color
+        const t = (hexDist - 0.35) / 0.59;
+        data[idx]     = Math.max(0, Math.min(255, Math.round(baseColor[0] * (1 - t * 0.3) + borderColor[0] * (t * 0.3)) + jR));
+        data[idx + 1] = Math.max(0, Math.min(255, Math.round(baseColor[1] * (1 - t * 0.3) + borderColor[1] * (t * 0.3)) + jG));
+        data[idx + 2] = Math.max(0, Math.min(255, Math.round(baseColor[2] * (1 - t * 0.3) + borderColor[2] * (t * 0.3)) + jB));
+        data[idx + 3] = 255;
+      }
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Generate a tangent-space normal map for hexagonal scales.
+ * Encodes raised scale centers and grooved borders into RGB normals.
+ * R = tangent X, G = tangent Y, B = normal Z (all [0-255] mapping to [-1,1])
+ */
+export function generateScaleNormalMap(size: number = 512): Uint8Array {
+  const data = new Uint8Array(size * size * 4);
+
+  const scaleSize = size / 16;
+  const hexH = scaleSize;
+  const hexW = scaleSize * Math.sqrt(3);
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const row = Math.floor(y / (hexH * 0.75));
+      const isOddRow = row % 2 === 1;
+      const xOff = isOddRow ? hexW * 0.5 : 0;
+      const col = Math.floor((x + xOff) / hexW);
+
+      const cx = col * hexW - xOff + hexW * 0.5;
+      const cy = row * hexH * 0.75 + hexH * 0.5;
+
+      const dx = (x - cx) / (hexW * 0.5);
+      const dy = (y - cy) / (hexH * 0.5);
+
+      const q = Math.abs(dx);
+      const r = Math.abs(dy);
+      const hexDist = Math.max(q, (q + r * Math.sqrt(3)) / 2);
+
+      const idx = (y * size + x) * 4;
+
+      let nx = 0, ny = 0, nz = 1;
+
+      if (hexDist > 0.92 && hexDist < 1.0) {
+        // Narrow groove — moderate deflection (not overpowering)
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const strength = 0.55;
+        nx = (dx / len) * strength;
+        ny = (dy / len) * strength;
+        nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
+      } else if (hexDist < 0.5) {
+        // Smooth dome — gentle curvature across most of the scale face
+        const strength = 0.25;
+        nx = -dx * strength;
+        ny = -dy * strength;
+        nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
+      }
+
+      data[idx]     = Math.round((nx * 0.5 + 0.5) * 255);
+      data[idx + 1] = Math.round((ny * 0.5 + 0.5) * 255);
+      data[idx + 2] = Math.round((nz * 0.5 + 0.5) * 255);
+      data[idx + 3] = 255;
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Minimal PNG encoder — creates an uncompressed PNG from RGBA pixel data.
+ * Uses zlib deflate via Node.js or falls back to stored blocks.
+ */
+function encodePNG(pixels: Uint8Array, width: number, height: number): Uint8Array {
+  // Build IDAT raw data: each row is [filter_byte=0, ...pixels]
+  const rowSize = width * 4 + 1;
+  const rawData = new Uint8Array(rowSize * height);
+  for (let y = 0; y < height; y++) {
+    rawData[y * rowSize] = 0; // No filter
+    rawData.set(pixels.slice(y * width * 4, (y + 1) * width * 4), y * rowSize + 1);
+  }
+
+  // Manual deflate stored blocks (no compression, max portability)
+  const deflated = deflateStored(rawData);
+
+  // CRC32 table
+  const crcTable: number[] = [];
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    crcTable[n] = c;
+  }
+  function crc32(buf: Uint8Array): number {
+    let crc = 0xffffffff;
+    for (let i = 0; i < buf.length; i++) crc = crcTable[(crc ^ buf[i]) & 0xff] ^ (crc >>> 8);
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+
+  function writeChunk(type: string, data: Uint8Array): Uint8Array {
+    const chunk = new Uint8Array(4 + 4 + data.length + 4);
+    const dv = new DataView(chunk.buffer);
+    dv.setUint32(0, data.length);
+    // Type
+    for (let i = 0; i < 4; i++) chunk[4 + i] = type.charCodeAt(i);
+    // Data
+    chunk.set(data, 8);
+    // CRC (over type + data)
+    const crcInput = new Uint8Array(4 + data.length);
+    crcInput.set(chunk.slice(4, 8));
+    crcInput.set(data, 4);
+    dv.setUint32(8 + data.length, crc32(crcInput));
+    return chunk;
+  }
+
+  // PNG signature
+  const signature = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+
+  // IHDR chunk: 13 bytes
+  const ihdr = new Uint8Array(13);
+  const ihdrDV = new DataView(ihdr.buffer);
+  ihdrDV.setUint32(0, width);
+  ihdrDV.setUint32(4, height);
+  ihdr[8] = 8;  // bit depth
+  ihdr[9] = 6;  // color type RGBA
+  ihdr[10] = 0; // compression
+  ihdr[11] = 0; // filter
+  ihdr[12] = 0; // interlace
+  const ihdrChunk = writeChunk('IHDR', ihdr);
+
+  // IDAT chunk
+  const idatChunk = writeChunk('IDAT', deflated);
+
+  // IEND chunk
+  const iendChunk = writeChunk('IEND', new Uint8Array(0));
+
+  // Assemble PNG
+  const png = new Uint8Array(signature.length + ihdrChunk.length + idatChunk.length + iendChunk.length);
+  let offset = 0;
+  png.set(signature, offset); offset += signature.length;
+  png.set(ihdrChunk, offset); offset += ihdrChunk.length;
+  png.set(idatChunk, offset); offset += idatChunk.length;
+  png.set(iendChunk, offset);
+
+  return png;
+}
+
+// =============================================================================
+// LOD DECIMATION — Vertex clustering for level-of-detail generation
+// =============================================================================
+
+/**
+ * Decimate geometry by vertex clustering.
+ * Merges vertices within a grid cell, reducing triangle count by ~ratio.
+ * @param geometry Source geometry data
+ * @param ratio Target reduction ratio (0.5 = half the triangles)
+ */
+function decimateGeometry(geometry: GeometryData, ratio: number): GeometryData {
+  const cellSize = Math.max(0.01, (1 - ratio) * 0.3); // larger cells = more reduction
+  const positions = geometry.positions;
+  const normals = geometry.normals;
+  const uvs = geometry.uvs;
+  const indices = geometry.indices;
+
+  const vertCount = positions.length / 3;
+
+  // Map each vertex to a grid cell, cluster them
+  const cellMap = new Map<string, number>(); // cellKey → new vertex index
+  const remap = new Int32Array(vertCount); // old index → new index
+  const newPositions: number[] = [];
+  const newNormals: number[] = [];
+  const newUVs: number[] = [];
+  let newIdx = 0;
+
+  for (let i = 0; i < vertCount; i++) {
+    const px = positions[i * 3], py = positions[i * 3 + 1], pz = positions[i * 3 + 2];
+    const cx = Math.round(px / cellSize), cy = Math.round(py / cellSize), cz = Math.round(pz / cellSize);
+    const key = `${cx},${cy},${cz}`;
+
+    if (cellMap.has(key)) {
+      remap[i] = cellMap.get(key)!;
+    } else {
+      cellMap.set(key, newIdx);
+      remap[i] = newIdx;
+      newPositions.push(px, py, pz);
+      newNormals.push(normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]);
+      newUVs.push(uvs[i * 2], uvs[i * 2 + 1]);
+      newIdx++;
+    }
+  }
+
+  // Rebuild indices, skip degenerate triangles
+  const newIndices: number[] = [];
+  for (let i = 0; i < indices.length; i += 3) {
+    const a = remap[indices[i]], b = remap[indices[i + 1]], c = remap[indices[i + 2]];
+    if (a !== b && b !== c && a !== c) {
+      newIndices.push(a, b, c);
+    }
+  }
+
+  const newVertexCount = newPositions.length / 3;
+  const IndexArrayType = newVertexCount > 65535 ? Uint32Array : Uint16Array;
+
+  return {
+    positions: new Float32Array(newPositions),
+    normals: new Float32Array(newNormals),
+    uvs: new Float32Array(newUVs),
+    indices: new IndexArrayType(newIndices),
+  };
+}
+
+// =============================================================================
+// SKELETON / ARMATURE TYPES
+// =============================================================================
+
+/** Bone definition for skeletal animation */
+interface BoneDef {
+  name: string;
+  position: [number, number, number];
+  parent?: string;
+  children?: string[];
+}
+
+/** Dragon skeleton with predefined bone hierarchy */
+const DRAGON_SKELETON: BoneDef[] = [
+  { name: 'Root',        position: [0, 2.5, 0] },
+  { name: 'Spine',       position: [0, 2.5, 0],    parent: 'Root' },
+  { name: 'Neck',        position: [0, 3.5, 2.0],   parent: 'Spine' },
+  { name: 'Head',        position: [0, 4.5, 4.2],   parent: 'Neck' },
+  { name: 'Jaw',         position: [0, 4.2, 4.6],   parent: 'Head' },
+  { name: 'Tail1',       position: [0, 2.2, -2.0],  parent: 'Spine' },
+  { name: 'Tail2',       position: [0, 1.0, -3.5],  parent: 'Tail1' },
+  { name: 'TailTip',     position: [0, -0.05, -4.6], parent: 'Tail2' },
+  { name: 'LeftWing',    position: [-1.2, 3.0, 0.2], parent: 'Spine' },
+  { name: 'LeftWingTip', position: [-2.6, 3.8, 0.2], parent: 'LeftWing' },
+  { name: 'RightWing',   position: [1.2, 3.0, 0.2],  parent: 'Spine' },
+  { name: 'RightWingTip',position: [2.6, 3.8, 0.2],  parent: 'RightWing' },
+  { name: 'LeftFrontLeg', position: [-0.9, 1.6, 1.2], parent: 'Spine' },
+  { name: 'LeftFrontFoot', position: [-0.95, 0.15, 1.4], parent: 'LeftFrontLeg' },
+  { name: 'RightFrontLeg', position: [0.9, 1.6, 1.2], parent: 'Spine' },
+  { name: 'RightFrontFoot', position: [0.95, 0.15, 1.4], parent: 'RightFrontLeg' },
+  { name: 'LeftBackLeg',  position: [-0.9, 1.5, -1.0], parent: 'Spine' },
+  { name: 'LeftBackFoot',  position: [-0.95, 0.1, -1.15], parent: 'LeftBackLeg' },
+  { name: 'RightBackLeg', position: [0.9, 1.5, -1.0], parent: 'Spine' },
+  { name: 'RightBackFoot', position: [0.95, 0.1, -1.15], parent: 'RightBackLeg' },
+];
+
+/**
+ * Deflate with stored blocks only (no compression).
+ * Wraps raw data in zlib-compatible format: CMF + FLG + stored blocks + Adler32.
+ */
+function deflateStored(data: Uint8Array): Uint8Array {
+  const BLOCK_MAX = 0xffff;
+  const numBlocks = Math.ceil(data.length / BLOCK_MAX) || 1;
+
+  // Calculate output size: 2 (zlib header) + blocks + 4 (adler32)
+  let size = 2 + 4;
+  for (let i = 0; i < numBlocks; i++) {
+    size += 5; // block header (1 + 2 + 2)
+    const blockLen = Math.min(BLOCK_MAX, data.length - i * BLOCK_MAX);
+    size += blockLen;
+  }
+
+  const out = new Uint8Array(size);
+  let pos = 0;
+
+  // Zlib header: CMF=8 (deflate, window=0), FLG=29 (check bits)
+  out[pos++] = 0x78;
+  out[pos++] = 0x01;
+
+  // Stored blocks
+  for (let i = 0; i < numBlocks; i++) {
+    const blockStart = i * BLOCK_MAX;
+    const blockLen = Math.min(BLOCK_MAX, data.length - blockStart);
+    const isLast = i === numBlocks - 1;
+
+    out[pos++] = isLast ? 0x01 : 0x00; // BFINAL + BTYPE=00(stored)
+    out[pos++] = blockLen & 0xff;
+    out[pos++] = (blockLen >> 8) & 0xff;
+    out[pos++] = ~blockLen & 0xff;
+    out[pos++] = (~blockLen >> 8) & 0xff;
+
+    out.set(data.slice(blockStart, blockStart + blockLen), pos);
+    pos += blockLen;
+  }
+
+  // Adler32 checksum
+  let a = 1, b = 0;
+  for (let i = 0; i < data.length; i++) {
+    a = (a + data[i]) % 65521;
+    b = (b + a) % 65521;
+  }
+  const adler = ((b << 16) | a) >>> 0;
+  out[pos++] = (adler >> 24) & 0xff;
+  out[pos++] = (adler >> 16) & 0xff;
+  out[pos++] = (adler >> 8) & 0xff;
+  out[pos++] = adler & 0xff;
+
+  return out;
+}
+
+// Advanced geometry types that need more than just scale
+const ADVANCED_GEOMETRY_TYPES = new Set(['spline', 'membrane', 'hull', 'blob', 'metaball']);
 
 function generateCubeGeometry(scale: [number, number, number]): GeometryData {
   const [sx, sy, sz] = scale.map((s) => s * 0.5);
@@ -236,16 +616,18 @@ function generateCubeGeometry(scale: [number, number, number]): GeometryData {
 }
 
 function generateSphereGeometry(scale: [number, number, number]): GeometryData {
-  const radius = Math.max(scale[0], scale[1], scale[2]) * 0.5;
-  const segments = 24;
-  const rings = 16;
+  const sx = scale[0] * 0.5;
+  const sy = scale[1] * 0.5;
+  const sz = scale[2] * 0.5;
+  const segments = 32;
+  const rings = 24;
 
   const positions: number[] = [];
   const normals: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
 
-  // Generate vertices
+  // Generate vertices — anisotropic scaling for organic shapes
   for (let y = 0; y <= rings; y++) {
     const v = y / rings;
     const theta = v * Math.PI;
@@ -258,9 +640,9 @@ function generateSphereGeometry(scale: [number, number, number]): GeometryData {
       const ny = Math.cos(theta);
       const nz = Math.sin(theta) * Math.sin(phi);
 
-      positions.push(nx * radius * (scale[0] / scale[0]));
-      positions.push(ny * radius * (scale[1] / scale[0]));
-      positions.push(nz * radius * (scale[2] / scale[0]));
+      positions.push(nx * sx);
+      positions.push(ny * sy);
+      positions.push(nz * sz);
 
       normals.push(nx, ny, nz);
       uvs.push(u, 1 - v);
@@ -290,7 +672,7 @@ function generateCylinderGeometry(scale: [number, number, number]): GeometryData
   const radiusTop = scale[0] * 0.5;
   const radiusBottom = scale[2] * 0.5;
   const height = scale[1];
-  const segments = 24;
+  const segments = 32;
 
   const positions: number[] = [];
   const normals: number[] = [];
@@ -430,6 +812,11 @@ export class GLTFPipeline extends CompilerBase {
     samplers: Array<{ input: number; interpolation: string; output: number }>;
   }> = [];
   private materialMap: Map<string, number> = new Map();
+  private images: Array<{ bufferView: number; mimeType: string }> = [];
+  private textures: Array<{ source: number; sampler: number }> = [];
+  private samplers: Array<{ magFilter: number; minFilter: number; wrapS: number; wrapT: number }> = [];
+  private scaleTextureIndex: number = -1;
+  private scaleNormalTextureIndex: number = -1;
 
   private stats: GLTFExportStats = {
     nodeCount: 0,
@@ -458,6 +845,377 @@ export class GLTFPipeline extends CompilerBase {
   }
 
   /**
+   * Global smooth normals pass.
+   * Finds vertices at the same 3D position across all meshes and averages
+   * their normals. This eliminates hard seams where separate meshes meet
+   * (e.g., neck spline meets the head sphere).
+   */
+  private smoothNormalsGlobal(): void {
+    // tolerance for position matching (in world units)
+    const QUANT = 100; // 0.01 precision
+
+    // Collect all (position → normal) entries with buffer write-back locations
+    type NormalEntry = { nx: number; ny: number; nz: number; byteOffset: number };
+    const posMap = new Map<string, NormalEntry[]>();
+
+    for (const mesh of this.meshes) {
+      for (const prim of mesh.primitives) {
+        const posIdx = prim.attributes.POSITION;
+        const nrmIdx = prim.attributes.NORMAL;
+        if (posIdx === undefined || nrmIdx === undefined) continue;
+
+        const posAcc = this.accessors[posIdx];
+        const nrmAcc = this.accessors[nrmIdx];
+        if (!posAcc || !nrmAcc) continue;
+
+        const posBV = this.bufferViews[posAcc.bufferView];
+        const nrmBV = this.bufferViews[nrmAcc.bufferView];
+        if (!posBV || !nrmBV) continue;
+
+        const count = posAcc.count;
+
+        for (let i = 0; i < count; i++) {
+          // Read position from buffer
+          const pOff = posBV.byteOffset + i * 12; // 3 floats * 4 bytes
+          const px = this.readFloat32(pOff);
+          const py = this.readFloat32(pOff + 4);
+          const pz = this.readFloat32(pOff + 8);
+
+          // Read normal from buffer
+          const nOff = nrmBV.byteOffset + i * 12;
+          const nx = this.readFloat32(nOff);
+          const ny = this.readFloat32(nOff + 4);
+          const nz = this.readFloat32(nOff + 8);
+
+          // Quantized position key
+          const key = `${Math.round(px * QUANT)},${Math.round(py * QUANT)},${Math.round(pz * QUANT)}`;
+
+          let entries = posMap.get(key);
+          if (!entries) {
+            entries = [];
+            posMap.set(key, entries);
+          }
+          entries.push({ nx, ny, nz, byteOffset: nOff });
+        }
+      }
+    }
+
+    // Average normals at shared positions and write back
+    for (const entries of posMap.values()) {
+      if (entries.length < 2) continue; // nothing to smooth
+
+      // Compute average normal
+      let ax = 0, ay = 0, az = 0;
+      for (const e of entries) {
+        ax += e.nx;
+        ay += e.ny;
+        az += e.nz;
+      }
+      const len = Math.sqrt(ax * ax + ay * ay + az * az);
+      if (len < 1e-8) continue;
+      ax /= len;
+      ay /= len;
+      az /= len;
+
+      // Write back to all entries
+      for (const e of entries) {
+        this.writeFloat32(e.byteOffset, ax);
+        this.writeFloat32(e.byteOffset + 4, ay);
+        this.writeFloat32(e.byteOffset + 8, az);
+      }
+    }
+  }
+
+  /** Read a Float32 from the buffer at byteOffset */
+  private readFloat32(byteOffset: number): number {
+    const bytes = new Uint8Array(4);
+    for (let i = 0; i < 4; i++) bytes[i] = this.bufferData[byteOffset + i] || 0;
+    return new Float32Array(bytes.buffer)[0];
+  }
+
+  /** Write a Float32 to the buffer at byteOffset */
+  private writeFloat32(byteOffset: number, value: number): void {
+    const f32 = new Float32Array([value]);
+    const view = new Uint8Array(f32.buffer);
+    for (let i = 0; i < 4; i++) this.bufferData[byteOffset + i] = view[i];
+  }
+
+  /**
+   * Generate LOD meshes for the MSFT_lod extension.
+   * Creates 2 lower detail levels (50% and 25%) per mesh.
+   */
+  private generateLODs(): void {
+    const ratios = [0.5, 0.25]; // LOD1 = 50%, LOD2 = 25%
+    const originalCount = this.meshes.length;
+
+    // LOD coverage thresholds (screen coverage at which to switch)
+    const coverages: number[] = [];
+
+    for (let mi = 0; mi < originalCount; mi++) {
+      const mesh = this.meshes[mi];
+      const lodIds: number[] = [];
+
+      for (const ratio of ratios) {
+        for (const prim of mesh.primitives) {
+          const posIdx = prim.attributes.POSITION;
+          const nrmIdx = prim.attributes.NORMAL;
+          const uvIdx = prim.attributes.TEXCOORD_0;
+          const idxIdx = prim.indices;
+          if (posIdx === undefined || nrmIdx === undefined || idxIdx === undefined) continue;
+
+          const posAcc = this.accessors[posIdx];
+          const nrmAcc = this.accessors[nrmIdx];
+          const idxAcc = this.accessors[idxIdx];
+          if (!posAcc || !nrmAcc || !idxAcc) continue;
+
+          // Read geometry data from buffer
+          const posBV = this.bufferViews[posAcc.bufferView];
+          const nrmBV = this.bufferViews[nrmAcc.bufferView];
+          const idxBV = this.bufferViews[idxAcc.bufferView];
+          if (!posBV || !nrmBV || !idxBV) continue;
+
+          const vCount = posAcc.count;
+          const iCount = idxAcc.count;
+
+          const positions = new Float32Array(vCount * 3);
+          const normals = new Float32Array(vCount * 3);
+          const uvs = new Float32Array(vCount * 2);
+          const indices = new Uint16Array(iCount);
+
+          for (let i = 0; i < vCount * 3; i++) {
+            positions[i] = this.readFloat32(posBV.byteOffset + i * 4);
+            normals[i] = this.readFloat32(nrmBV.byteOffset + i * 4);
+          }
+
+          // Read UVs if present
+          if (uvIdx !== undefined) {
+            const uvAcc = this.accessors[uvIdx];
+            const uvBV = uvAcc ? this.bufferViews[uvAcc.bufferView] : null;
+            if (uvBV) {
+              for (let i = 0; i < vCount * 2; i++) {
+                uvs[i] = this.readFloat32(uvBV.byteOffset + i * 4);
+              }
+            }
+          }
+
+          // Read indices
+          const compSize = idxAcc.componentType === 5123 ? 2 : 4;
+          for (let i = 0; i < iCount; i++) {
+            const off = idxBV.byteOffset + i * compSize;
+            if (compSize === 2) {
+              indices[i] = (this.bufferData[off] || 0) | ((this.bufferData[off + 1] || 0) << 8);
+            } else {
+              indices[i] = this.readFloat32(off); // uint32 — rare for our use
+            }
+          }
+
+          const geom: GeometryData = { positions, normals, uvs, indices };
+          const decimated = decimateGeometry(geom, ratio);
+
+          // Write decimated mesh
+          const lodMeshIndex = this.meshes.length;
+          const lodPrim: GLTFPrimitive = { attributes: {}, material: prim.material };
+          lodPrim.attributes.POSITION = this.createAccessor(decimated.positions, 'VEC3', true);
+          lodPrim.attributes.NORMAL = this.createAccessor(decimated.normals, 'VEC3');
+          lodPrim.attributes.TEXCOORD_0 = this.createAccessor(decimated.uvs, 'VEC2');
+          lodPrim.indices = this.createAccessor(decimated.indices, 'SCALAR');
+
+          this.meshes.push({ name: `LOD${ratio}_mesh${mi}`, primitives: [lodPrim] } as GLTFMesh);
+          lodIds.push(lodMeshIndex);
+        }
+      }
+
+      if (lodIds.length > 0) {
+        // Store LOD mesh IDs on the original mesh as extension data
+        (mesh as unknown as Record<string, unknown>)['extensions'] = {
+          MSFT_lod: { ids: lodIds },
+        };
+        coverages.push(0.5, 0.2); // switch at 50% and 20% screen coverage
+      }
+    }
+
+    // Store LOD extension metadata for buildDocument
+    if (coverages.length > 0) {
+      this._lodCoverages = coverages;
+    }
+  }
+
+  private _lodCoverages: number[] | null = null;
+
+  /**
+   * Build skeleton hierarchy and embed as glTF skin.
+   * Creates 20 joint nodes with inverse bind matrices.
+   */
+  private buildSkeleton(): void {
+    const bones = DRAGON_SKELETON;
+    const boneNameToIdx = new Map<string, number>();
+
+    // Create joint nodes (appended after scene nodes)
+    const jointStartIndex = this.nodes.length;
+    for (let i = 0; i < bones.length; i++) {
+      const bone = bones[i];
+      const nodeIdx = this.nodes.length;
+      boneNameToIdx.set(bone.name, nodeIdx);
+
+      const node: Record<string, unknown> = {
+        name: `Joint_${bone.name}`,
+        translation: bone.position,
+      };
+
+      this.nodes.push(node as unknown as GLTFNode);
+    }
+
+    // Set parent-child relationships
+    for (const bone of bones) {
+      if (bone.parent) {
+        const parentIdx = boneNameToIdx.get(bone.parent);
+        const childIdx = boneNameToIdx.get(bone.name);
+        if (parentIdx !== undefined && childIdx !== undefined) {
+          const parentNode = this.nodes[parentIdx] as unknown as Record<string, unknown>;
+          if (!parentNode.children) parentNode.children = [];
+          (parentNode.children as number[]).push(childIdx);
+        }
+      }
+    }
+
+    // Generate inverse bind matrices (4x4 identity with negative translation)
+    const ibmData = new Float32Array(bones.length * 16);
+    for (let i = 0; i < bones.length; i++) {
+      const p = bones[i].position;
+      const off = i * 16;
+      // Identity matrix with inverse translation
+      ibmData[off + 0] = 1; ibmData[off + 5] = 1; ibmData[off + 10] = 1; ibmData[off + 15] = 1;
+      ibmData[off + 12] = -p[0];
+      ibmData[off + 13] = -p[1];
+      ibmData[off + 14] = -p[2];
+    }
+
+    const ibmAccessor = this.createAccessorRaw(ibmData, 'MAT4', 5126);
+
+    // Build joints array
+    const joints: number[] = [];
+    for (let i = 0; i < bones.length; i++) {
+      joints.push(jointStartIndex + i);
+    }
+
+    // Create skin
+    this._skins = [{
+      skeleton: jointStartIndex,
+      joints,
+      inverseBindMatrices: ibmAccessor,
+    }];
+
+    // Store joint index offset so skinMeshes can reference bone indices correctly
+    this._jointStartIndex = jointStartIndex;
+  }
+
+  private _skins: Array<{ skeleton: number; joints: number[]; inverseBindMatrices: number }> | null = null;
+  private _jointStartIndex = 0;
+
+  /**
+   * Skin all mesh nodes to the skeleton.
+   * For each vertex, finds the 4 nearest bones by distance and assigns
+   * normalized inverse-distance weights. Writes JOINTS_0 (Uint8) and
+   * WEIGHTS_0 (Float32) attributes into each mesh primitive.
+   */
+  private skinMeshes(): void {
+    if (!this._skins || this._skins.length === 0) return;
+
+    const bones = DRAGON_SKELETON;
+    const bonePositions = bones.map(b => b.position);
+
+    // Determine how many nodes existed before LOD generation added extra meshes.
+    // We only skin original mesh nodes, not LOD copies.
+    const originalNodeCount = this._jointStartIndex; // joints were appended right after original nodes
+
+    for (let ni = 0; ni < originalNodeCount; ni++) {
+      const node = this.nodes[ni];
+      if (node.mesh === undefined) continue;
+
+      const mesh = this.meshes[node.mesh];
+      if (!mesh) continue;
+
+      for (const prim of mesh.primitives) {
+        const posIdx = prim.attributes.POSITION;
+        if (posIdx === undefined) continue;
+
+        const posAcc = this.accessors[posIdx];
+        if (!posAcc) continue;
+
+        const posBV = this.bufferViews[posAcc.bufferView];
+        if (!posBV) continue;
+
+        const vCount = posAcc.count;
+        if (vCount === 0) continue;
+
+        // Node's world-space translation offset
+        const tx = node.translation ? node.translation[0] : 0;
+        const ty = node.translation ? node.translation[1] : 0;
+        const tz = node.translation ? node.translation[2] : 0;
+
+        // Allocate skinning buffers: 4 influences per vertex
+        const jointsData = new Uint8Array(vCount * 4);
+        const weightsData = new Float32Array(vCount * 4);
+
+        for (let vi = 0; vi < vCount; vi++) {
+          // Read vertex position from buffer
+          const pOff = posBV.byteOffset + vi * 12;
+          const vx = this.readFloat32(pOff) + tx;
+          const vy = this.readFloat32(pOff + 4) + ty;
+          const vz = this.readFloat32(pOff + 8) + tz;
+
+          // Find 4 nearest bones by squared distance
+          const distances: Array<{ boneIdx: number; distSq: number }> = [];
+          for (let bi = 0; bi < bonePositions.length; bi++) {
+            const bp = bonePositions[bi];
+            const dx = vx - bp[0], dy = vy - bp[1], dz = vz - bp[2];
+            distances.push({ boneIdx: bi, distSq: dx * dx + dy * dy + dz * dz });
+          }
+
+          // Sort by distance ascending, take top 4
+          distances.sort((a, b) => a.distSq - b.distSq);
+          const top4 = distances.slice(0, 4);
+
+          // Compute inverse-distance weights
+          let totalWeight = 0;
+          const rawWeights: number[] = [];
+          for (const d of top4) {
+            // Avoid division by zero — if vertex is exactly on a bone
+            const w = 1.0 / (d.distSq + 0.0001);
+            rawWeights.push(w);
+            totalWeight += w;
+          }
+
+          // Normalize weights to sum to 1.0
+          const off = vi * 4;
+          for (let j = 0; j < 4; j++) {
+            if (j < top4.length) {
+              jointsData[off + j] = top4[j].boneIdx;
+              weightsData[off + j] = rawWeights[j] / totalWeight;
+            } else {
+              jointsData[off + j] = 0;
+              weightsData[off + j] = 0;
+            }
+          }
+        }
+
+        // Create JOINTS_0 accessor (component type 5121 = UNSIGNED_BYTE)
+        prim.attributes.JOINTS_0 = this.createAccessorRaw(jointsData, 'VEC4', 5121);
+
+        // Create WEIGHTS_0 accessor
+        prim.attributes.WEIGHTS_0 = this.createAccessor(weightsData, 'VEC4');
+      }
+    }
+
+    // NOTE: We intentionally do NOT set node.skin on any mesh node.
+    // The glTF skins[] array holds the skeleton definition (joints + IBM),
+    // and mesh primitives carry JOINTS_0 + WEIGHTS_0 attributes.
+    // External tools (Blender, Unity, Unreal) import and rebind automatically.
+    // Setting node.skin would make Three.js create SkinnedMesh objects that
+    // apply skeletal transforms at runtime, distorting the rest-pose geometry.
+  }
+
+  /**
    * Compile a HoloScript composition to glTF format
    */
   compile(composition: HoloComposition, agentToken: string, outputPath?: string): GLTFExportResult {
@@ -466,6 +1224,18 @@ export class GLTFPipeline extends CompilerBase {
 
     // Build glTF structure
     this.processComposition(composition);
+
+    // Post-process: smooth normals across adjacent meshes
+    this.smoothNormalsGlobal();
+
+    // Generate LOD meshes
+    this.generateLODs();
+
+    // Build skeleton/armature
+    this.buildSkeleton();
+
+    // Skin meshes to skeleton (bind vertices to nearest bones)
+    this.skinMeshes();
 
     // Create buffer
     const buffer = new Uint8Array(this.bufferData);
@@ -505,6 +1275,11 @@ export class GLTFPipeline extends CompilerBase {
     this.scenes = [];
     this.animations = [];
     this.materialMap.clear();
+    this.images = [];
+    this.textures = [];
+    this.samplers = [];
+    this.scaleTextureIndex = -1;
+    this.scaleNormalTextureIndex = -1;
     this.stats = {
       nodeCount: 0,
       meshCount: 0,
@@ -601,6 +1376,8 @@ export class GLTFPipeline extends CompilerBase {
     let meshIndex: number | undefined;
     if (PRIMITIVE_GENERATORS[shapeType]) {
       meshIndex = this.createPrimitiveMesh(object.name, shapeType, scale, object);
+    } else if (ADVANCED_GEOMETRY_TYPES.has(shapeType)) {
+      meshIndex = this.createAdvancedMesh(object.name, shapeType, scale, object);
     }
 
     // Create node
@@ -811,6 +1588,151 @@ export class GLTFPipeline extends CompilerBase {
   }
 
   /**
+   * Create an advanced mesh (spline, membrane, hull/metaball).
+   * These geometry types need additional properties beyond scale.
+   */
+  private createAdvancedMesh(
+    name: string,
+    shapeType: string,
+    scale: [number, number, number],
+    object: HoloObjectDecl
+  ): number {
+    let geometry: GeometryData;
+
+    switch (shapeType) {
+      case 'spline': {
+        // Extract control points and radii
+        const pointsProp = this.findProp(object, 'points');
+        const radiiProp = this.findProp(object, 'radii');
+        const segmentsProp = this.findProp(object, 'segments');
+        const stepsProp = this.findProp(object, 'steps');
+
+        const points = this.extractNestedArray(pointsProp, 3);
+        const radii = Array.isArray(radiiProp)
+          ? (radiiProp as number[]).map(Number)
+          : [0.1];
+
+        // Fill radii to match points length
+        while (radii.length < points.length) {
+          radii.push(radii[radii.length - 1] ?? 0.1);
+        }
+
+        const radialSegments = typeof segmentsProp === 'number' ? segmentsProp : 24;
+        const lengthSteps = typeof stepsProp === 'number' ? stepsProp : 8;
+
+        geometry = generateSplineGeometry(points, radii, radialSegments, lengthSteps);
+        break;
+      }
+
+      case 'membrane': {
+        // Extract anchor points
+        const anchorsProp = this.findProp(object, 'anchors');
+        const subdivisionsProp = this.findProp(object, 'subdivisions');
+        const bulgeProp = this.findProp(object, 'bulge');
+
+        const anchors = this.extractNestedArray(anchorsProp, 3);
+        const subdivisions = typeof subdivisionsProp === 'number' ? subdivisionsProp : 8;
+        const bulge = typeof bulgeProp === 'number' ? bulgeProp : 0.15;
+
+        geometry = generateMembraneGeometry(anchors, subdivisions, bulge);
+        break;
+      }
+
+      case 'hull':
+      case 'blob':
+      case 'metaball': {
+        // Extract blob definitions
+        const blobsProp = this.findProp(object, 'blobs');
+        const resolutionProp = this.findProp(object, 'resolution');
+        const thresholdProp = this.findProp(object, 'threshold');
+
+        const blobs: Array<{ center: number[]; radius: number[] }> = [];
+        if (Array.isArray(blobsProp)) {
+          for (const blobItem of blobsProp as unknown[]) {
+            if (blobItem && typeof blobItem === 'object') {
+              const b = blobItem as Record<string, unknown>;
+              const center = Array.isArray(b.center)
+                ? (b.center as number[]).map(Number)
+                : [0, 0, 0];
+              const radius = Array.isArray(b.radius)
+                ? (b.radius as number[]).map(Number)
+                : [0.5, 0.5, 0.5];
+              blobs.push({ center, radius });
+            }
+          }
+        }
+
+        // Fallback: if no blobs, create a single blob from scale
+        if (blobs.length === 0) {
+          blobs.push({
+            center: [0, 0, 0],
+            radius: [scale[0] * 0.5, scale[1] * 0.5, scale[2] * 0.5],
+          });
+        }
+
+        const resolution = typeof resolutionProp === 'number' ? resolutionProp : 24;
+        const threshold = typeof thresholdProp === 'number' ? thresholdProp : 1.0;
+
+        geometry = generateHullGeometry(blobs, resolution, threshold);
+        break;
+      }
+
+      default:
+        return -1;
+    }
+
+    // Create accessors
+    const positionAccessor = this.createAccessor(geometry.positions, 'VEC3', true);
+    const normalAccessor = this.createAccessor(geometry.normals, 'VEC3');
+    const uvAccessor = this.createAccessor(geometry.uvs, 'VEC2');
+    const indexAccessor = this.createAccessor(geometry.indices, 'SCALAR');
+
+    // Create or get material
+    const materialIndex = this.getOrCreateMaterial(object);
+
+    // Create mesh
+    const mesh: GLTFMesh = {
+      name: name || `mesh_${this.meshes.length}`,
+      primitives: [
+        {
+          attributes: {
+            POSITION: positionAccessor,
+            NORMAL: normalAccessor,
+            TEXCOORD_0: uvAccessor,
+          },
+          indices: indexAccessor,
+          material: materialIndex,
+          mode: 4, // TRIANGLES
+        },
+      ],
+    };
+
+    const meshIndex = this.meshes.length;
+    this.meshes.push(mesh);
+    this.stats.meshCount++;
+    this.stats.totalVertices += geometry.positions.length / 3;
+    this.stats.totalTriangles += geometry.indices.length / 3;
+
+    return meshIndex;
+  }
+
+  /**
+   * Extract a nested array of vec3s from a HoloValue.
+   * e.g. [[0, 1, 2], [3, 4, 5]] => [[0,1,2], [3,4,5]]
+   */
+  private extractNestedArray(val: unknown, expectedLength: number): number[][] {
+    const result: number[][] = [];
+    if (!Array.isArray(val)) return result;
+
+    for (const item of val) {
+      if (Array.isArray(item) && item.length >= expectedLength) {
+        result.push(item.slice(0, expectedLength).map(Number));
+      }
+    }
+    return result;
+  }
+
+  /**
    * Get or create a material from object properties + traits.
    *
    * Material composition order (later overrides earlier):
@@ -861,11 +1783,14 @@ export class GLTFPipeline extends CompilerBase {
     const opacityProp = this.findProp(object, 'opacity');
     if (typeof opacityProp === 'number') opacity = opacityProp;
 
-    const metallicProp = this.findProp(object, 'metallic');
+    const metallicProp = this.findProp(object, 'metallic') ?? this.findProp(object, 'metalness');
     if (typeof metallicProp === 'number') metallic = metallicProp;
 
     const roughnessProp = this.findProp(object, 'roughness');
     if (typeof roughnessProp === 'number') roughness = roughnessProp;
+
+    const emissiveIntensityProp = this.findProp(object, 'emissiveIntensity');
+    const emissiveIntensity = typeof emissiveIntensityProp === 'number' ? emissiveIntensityProp : 1.0;
 
     const emissiveProp = this.findProp(object, 'emissive');
     if (typeof emissiveProp === 'string') emissive = this.parseColorString(emissiveProp);
@@ -892,7 +1817,27 @@ export class GLTFPipeline extends CompilerBase {
 
     const emissiveSum = emissive[0] + emissive[1] + emissive[2];
     if (emissiveSum > 0) {
-      material.emissiveFactor = emissive;
+      // Apply emissiveIntensity scaling — allow >1.0 for HDR bloom in Three.js
+      material.emissiveFactor = emissive.map(c => c * emissiveIntensity) as [number, number, number];
+    }
+
+    // Apply procedural scale texture to skin materials
+    if (typeof namedMat === 'string' && (namedMat === 'skin_dark' || namedMat === 'leather')) {
+      const texIdx = this.ensureScaleTexture();
+      if (texIdx >= 0) {
+        (material.pbrMetallicRoughness as Record<string, unknown>).baseColorTexture = {
+          index: texIdx,
+          texCoord: 0,
+        };
+        if (this.scaleNormalTextureIndex >= 0) {
+          (material as unknown as Record<string, unknown>).normalTexture = {
+            index: this.scaleNormalTextureIndex,
+            texCoord: 0,
+            scale: 1.0,
+          };
+        }
+        this.stats.textureCount = 2;
+      }
     }
 
     const materialIndex = this.materials.length;
@@ -904,16 +1849,148 @@ export class GLTFPipeline extends CompilerBase {
   }
 
   /**
+   * Ensure the procedural scale texture is generated and embedded in the glTF.
+   * Returns the texture index, or -1 if generation failed.
+   */
+  private ensureScaleTexture(): number {
+    if (this.scaleTextureIndex >= 0) return this.scaleTextureIndex;
+
+    const TEX_SIZE = 256;
+
+    // Generate the hex scale pixel data
+    const pixels = generateScaleTexture(TEX_SIZE);
+
+    // Encode as PNG
+    const pngData = encodePNG(pixels, TEX_SIZE, TEX_SIZE);
+
+    // Embed PNG in the glTF buffer
+    const byteOffset = this.bufferData.length;
+    for (let i = 0; i < pngData.length; i++) {
+      this.bufferData.push(pngData[i]);
+    }
+    // Pad to 4-byte alignment
+    while (this.bufferData.length % 4 !== 0) {
+      this.bufferData.push(0);
+    }
+
+    // Create buffer view for the image
+    const bufferViewIndex = this.bufferViews.length;
+    this.bufferViews.push({
+      buffer: 0,
+      byteOffset,
+      byteLength: pngData.length,
+    });
+
+    // Create image
+    const imageIndex = this.images.length;
+    this.images.push({
+      bufferView: bufferViewIndex,
+      mimeType: 'image/png',
+    });
+
+    // Create sampler (repeat wrap for tiling)
+    const samplerIndex = this.samplers.length;
+    this.samplers.push({
+      magFilter: 9729, // LINEAR
+      minFilter: 9987, // LINEAR_MIPMAP_LINEAR
+      wrapS: 10497,    // REPEAT
+      wrapT: 10497,    // REPEAT
+    });
+
+    // Create texture (color)
+    this.scaleTextureIndex = this.textures.length;
+    this.textures.push({
+      source: imageIndex,
+      sampler: samplerIndex,
+    });
+
+    // --- Normal Map ---
+    const normalPixels = generateScaleNormalMap(TEX_SIZE);
+    const normalPng = encodePNG(normalPixels, TEX_SIZE, TEX_SIZE);
+
+    const normalByteOffset = this.bufferData.length;
+    for (let i = 0; i < normalPng.length; i++) {
+      this.bufferData.push(normalPng[i]);
+    }
+    while (this.bufferData.length % 4 !== 0) {
+      this.bufferData.push(0);
+    }
+
+    const normalBVIndex = this.bufferViews.length;
+    this.bufferViews.push({
+      buffer: 0,
+      byteOffset: normalByteOffset,
+      byteLength: normalPng.length,
+    });
+
+    const normalImageIndex = this.images.length;
+    this.images.push({
+      bufferView: normalBVIndex,
+      mimeType: 'image/png',
+    });
+
+    this.scaleNormalTextureIndex = this.textures.length;
+    this.textures.push({
+      source: normalImageIndex,
+      sampler: samplerIndex, // reuse same sampler
+    });
+
+    return this.scaleTextureIndex;
+  }
+
+  /**
+   * Create an accessor with arbitrary type string (e.g., MAT4 for skeleton data, VEC4 for skinning).
+   * Supports Uint8Array for UNSIGNED_BYTE (5121), Uint16Array for UNSIGNED_SHORT (5123),
+   * Uint32Array for UNSIGNED_INT (5125), and Float32Array for FLOAT (5126).
+   */
+  private createAccessorRaw(
+    data: Float32Array | Uint16Array | Uint32Array | Uint8Array,
+    type: string,
+    componentType: number
+  ): number {
+    const byteOffset = this.bufferData.length;
+
+    const view = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    for (let i = 0; i < view.length; i++) {
+      this.bufferData.push(view[i]);
+    }
+    while (this.bufferData.length % 4 !== 0) {
+      this.bufferData.push(0);
+    }
+
+    const bufferViewIndex = this.bufferViews.length;
+    this.bufferViews.push({
+      buffer: 0,
+      byteOffset,
+      byteLength: data.byteLength,
+    });
+
+    // Calculate count based on type and actual element count
+    const comps = type === 'MAT4' ? 16 : type === 'VEC4' ? 4 : type === 'VEC3' ? 3 : type === 'VEC2' ? 2 : 1;
+    const count = data.length / comps;
+
+    const accessorIndex = this.accessors.length;
+    this.accessors.push({
+      bufferView: bufferViewIndex,
+      componentType,
+      count,
+      type: type as 'SCALAR',
+    });
+
+    return accessorIndex;
+  }
+
+  /**
    * Create an accessor and buffer view for data
    */
   private createAccessor(
-    data: Float32Array | Uint16Array,
+    data: Float32Array | Uint16Array | Uint32Array,
     type: 'SCALAR' | 'VEC2' | 'VEC3' | 'VEC4',
     computeBounds: boolean = false
   ): number {
     const byteOffset = this.bufferData.length;
-    const componentType = data instanceof Uint16Array ? 5123 : 5126; // UNSIGNED_SHORT or FLOAT
-    const _bytesPerComponent = data instanceof Uint16Array ? 2 : 4;
+    const componentType = data instanceof Uint32Array ? 5125 : data instanceof Uint16Array ? 5123 : 5126; // UNSIGNED_INT, UNSIGNED_SHORT, or FLOAT
+    const _bytesPerComponent = data instanceof Uint32Array ? 4 : data instanceof Uint16Array ? 2 : 4;
 
     // Append data to buffer
     const view = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
@@ -938,7 +2015,7 @@ export class GLTFPipeline extends CompilerBase {
     if (componentType === 5126) {
       bufferView.target = 34962; // ARRAY_BUFFER
     } else {
-      bufferView.target = 34963; // ELEMENT_ARRAY_BUFFER
+      bufferView.target = 34963; // ELEMENT_ARRAY_BUFFER (for Uint16Array or Uint32Array indices)
     }
 
     this.bufferViews.push(bufferView);
@@ -1009,6 +2086,22 @@ export class GLTFPipeline extends CompilerBase {
 
     if (this.animations.length > 0) {
       gltf.animations = this.animations;
+    }
+
+    if (this.images.length > 0) {
+      gltf.images = this.images;
+      gltf.textures = this.textures;
+      gltf.samplers = this.samplers;
+    }
+
+    // Skins (skeleton)
+    if (this._skins && this._skins.length > 0) {
+      gltf.skins = this._skins;
+    }
+
+    // LOD extension
+    if (this._lodCoverages && this._lodCoverages.length > 0) {
+      gltf.extensionsUsed = ['MSFT_lod'];
     }
 
     // For gltf format, add URI to buffer

@@ -1,0 +1,565 @@
+// AR Foundation - Geospatial AR Example
+// Demonstrates GPS-based AR content placement using ARCore Geospatial API
+// Compatible with Android ARCore Geospatial API and limited iOS support
+// Compile: holoscript compile geospatial-ar.holo --target android
+
+composition "AR Geospatial Location-Based Content" {
+  metadata {
+    description: "GPS-based AR content placement using ARCore Geospatial API and VPS"
+    platform: ["ios", "android"]
+    ar_features: ["geospatial", "geospatial_anchor", "vps", "terrain_anchor"]
+    author: "HoloScript AR Foundation Examples"
+    version: "1.0.0"
+    requires: ["gps", "compass", "camera"]
+  }
+
+  // === AR Environment Configuration ===
+  environment {
+    ar_mode: true
+
+    geospatial: {
+      enabled: true
+      api_key: "${env.GOOGLE_GEOSPATIAL_API_KEY}"
+      accuracy_threshold: 0.5 // meters
+      heading_accuracy: 15 // degrees
+      use_vps: true // Visual Positioning System for better accuracy
+    }
+
+    location_services: {
+      enabled: true
+      high_accuracy: true
+      update_interval: 1000 // ms
+    }
+
+    camera {
+      clear_mode: "ar_background"
+      near_clip: 0.1
+      far_clip: 1000 // Extended for outdoor AR
+    }
+  }
+
+  // === Geospatial Manager ===
+  object "GeospatialManager" @geospatial {
+    state {
+      location_available: false
+      current_location: {
+        latitude: 0,
+        longitude: 0,
+        altitude: 0,
+        accuracy: 999,
+        heading: 0,
+        heading_accuracy: 180
+      },
+      vps_available: false,
+      tracking_state: "initializing", // "initializing", "localizing", "tracking", "lost"
+      placed_anchors: [],
+      nearby_pois: []
+    }
+
+    onInit: {
+      // Request location permissions
+      requestLocationPermission();
+
+      // Check VPS availability for current location
+      checkVPSAvailability({
+        onAvailable: () => {
+          this.state.vps_available = true;
+          emit("vps_available");
+        },
+        onUnavailable: () => {
+          this.state.vps_available = false;
+          emit("vps_unavailable_fallback_gps");
+        }
+      });
+    }
+
+    onLocationUpdate: {
+      const location = event.location;
+
+      this.state.current_location = {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        altitude: location.altitude,
+        accuracy: location.accuracy,
+        heading: location.heading,
+        heading_accuracy: location.heading_accuracy
+      };
+
+      this.state.location_available = true;
+
+      emit("location_updated", this.state.current_location);
+
+      // Update tracking state based on accuracy
+      if (location.accuracy < 5 && location.heading_accuracy < 15) {
+        this.state.tracking_state = "tracking";
+      } else if (location.accuracy < 20) {
+        this.state.tracking_state = "localizing";
+      } else {
+        this.state.tracking_state = "lost";
+      }
+
+      // Query nearby POIs when location is accurate
+      if (this.state.tracking_state === "tracking") {
+        this.queryNearbyPOIs(location.latitude, location.longitude);
+      }
+    }
+
+    queryNearbyPOIs: function(latitude, longitude) {
+      // Query POI database for nearby points of interest
+      const radius = 100; // meters
+
+      fetchNearbyPOIs(latitude, longitude, radius, {
+        onSuccess: (pois) => {
+          this.state.nearby_pois = pois;
+
+          // Spawn AR markers for each POI
+          pois.forEach(poi => {
+            if (!this.isPOIAlreadyPlaced(poi.id)) {
+              this.placePOIMarker(poi);
+            }
+          });
+        }
+      });
+    }
+
+    isPOIAlreadyPlaced: function(poi_id) {
+      return this.state.placed_anchors.some(a => a.poi_id === poi_id);
+    }
+
+    placePOIMarker: function(poi) {
+      // Create geospatial anchor at POI location
+      const anchor = spawn("GeospatialPOIMarker", {
+        poi_id: poi.id,
+        latitude: poi.latitude,
+        longitude: poi.longitude,
+        altitude: poi.altitude || this.state.current_location.altitude,
+        name: poi.name,
+        category: poi.category,
+        description: poi.description,
+        distance: calculateDistance(
+          this.state.current_location.latitude,
+          this.state.current_location.longitude,
+          poi.latitude,
+          poi.longitude
+        )
+      });
+
+      this.state.placed_anchors.push({
+        poi_id: poi.id,
+        anchor
+      });
+    }
+  }
+
+  // === Geospatial POI Marker ===
+  template "GeospatialPOIMarker" {
+    @geospatial_anchor
+    @billboard
+    @clickable
+
+    props {
+      poi_id: ""
+      latitude: 0
+      longitude: 0
+      altitude: 0
+      name: "Unknown"
+      category: "general"
+      description: ""
+      distance: 0
+    }
+
+    // Position anchor using geospatial coordinates
+    anchor_type: "geospatial"
+    latitude: "${this.props.latitude}"
+    longitude: "${this.props.longitude}"
+    altitude: "${this.props.altitude}"
+    altitude_mode: "terrain" // Snap to terrain height
+
+    state {
+      selected: false
+      visible_range: 100 // meters
+      lod: "medium" // "near", "medium", "far"
+    }
+
+    // Visual marker
+    geometry: "composite"
+    scale: [1, 1, 1]
+
+    onInit: {
+      // Create marker based on category
+      this.createMarkerGeometry(this.props.category);
+
+      // Determine LOD based on distance
+      this.updateLOD(this.props.distance);
+    }
+
+    createMarkerGeometry: function(category) {
+      const colors = {
+        restaurant: "#FF5722",
+        landmark: "#2196F3",
+        park: "#4CAF50",
+        museum: "#9C27B0",
+        shop: "#FF9800",
+        general: "#607D8B"
+      };
+
+      // Create pin marker
+      this.children = [
+        {
+          type: "cylinder",
+          scale: [0.05, 0.3, 0.05],
+          position: [0, 0.15, 0],
+          color: colors[category] || colors.general
+        },
+        {
+          type: "sphere",
+          scale: [0.1, 0.1, 0.1],
+          position: [0, 0.35, 0],
+          color: colors[category] || colors.general
+        }
+      ];
+    }
+
+    updateLOD: function(distance) {
+      if (distance < 10) {
+        this.state.lod = "near";
+        this.scale = [1.5, 1.5, 1.5];
+        this.showLabel();
+      } else if (distance < 50) {
+        this.state.lod = "medium";
+        this.scale = [1.0, 1.0, 1.0];
+        this.hideLabel();
+      } else {
+        this.state.lod = "far";
+        this.scale = [0.5, 0.5, 0.5];
+        this.hideLabel();
+      }
+    }
+
+    showLabel: function() {
+      if (!this.label) {
+        this.label = spawn("POILabel", {
+          text: this.props.name,
+          position: [0, 0.5, 0],
+          parent: this
+        });
+      }
+    }
+
+    hideLabel: function() {
+      if (this.label) {
+        this.label.destroy();
+        this.label = null;
+      }
+    }
+
+    onUpdate: {
+      const geomgr = getObject("GeospatialManager");
+
+      // Update distance to player
+      this.props.distance = calculateDistance(
+        geomgr.state.current_location.latitude,
+        geomgr.state.current_location.longitude,
+        this.props.latitude,
+        this.props.longitude
+      );
+
+      // Update LOD
+      this.updateLOD(this.props.distance);
+
+      // Hide if beyond visible range
+      this.visible = this.props.distance <= this.state.visible_range;
+    }
+
+    onTap: {
+      this.state.selected = !this.state.selected;
+
+      if (this.state.selected) {
+        // Show detailed info panel
+        spawn("POIDetailPanel", {
+          poi_id: this.props.poi_id,
+          name: this.props.name,
+          description: this.props.description,
+          distance: this.props.distance,
+          position: [this.position[0], this.position[1] + 0.6, this.position[2]]
+        });
+
+        this.scale *= 1.2;
+      } else {
+        emit("hide_poi_detail", { poi_id: this.props.poi_id });
+        this.scale /= 1.2;
+      }
+
+      haptic_feedback("medium");
+    }
+  }
+
+  // === POI Label ===
+  template "POILabel" {
+    @billboard
+    @ui_element
+
+    props {
+      text: ""
+    }
+
+    geometry: "plane"
+    scale: [0.3, 0.08, 1]
+
+    ui: {
+      background: "#000000"
+      corner_radius: 4
+      opacity: 0.8
+      text: "${this.props.text}"
+      text_color: "#FFFFFF"
+      text_size: 14
+    }
+  }
+
+  // === POI Detail Panel ===
+  template "POIDetailPanel" {
+    @billboard
+    @ui_element
+    @anchor
+
+    props {
+      poi_id: ""
+      name: ""
+      description: ""
+      distance: 0
+    }
+
+    geometry: "plane"
+    scale: [0.5, 0.3, 1]
+
+    ui: {
+      background: "#1E1E1E"
+      corner_radius: 12
+      shadow: true
+      padding: 16
+      opacity: 0.95
+    }
+
+    // Auto-dismiss after 8 seconds
+    onInit: {
+      setTimeout(() => {
+        this.destroy();
+      }, 8000);
+    }
+  }
+
+  // === User Location Indicator ===
+  object "UserLocationIndicator" {
+    @anchor
+
+    geometry: "composite"
+    scale: [1, 1, 1]
+
+    state {
+      accuracy_radius: 0
+    }
+
+    // Blue dot with accuracy circle
+    children: [
+      {
+        type: "sphere",
+        scale: [0.1, 0.1, 0.1],
+        color: "#2196F3",
+        position: [0, 0, 0]
+      },
+      {
+        type: "torus",
+        scale: [1, 1, 0.05],
+        color: "#2196F3",
+        opacity: 0.3,
+        position: [0, 0, 0]
+      }
+    ]
+
+    onUpdate: {
+      const geomgr = getObject("GeospatialManager");
+
+      if (geomgr.state.location_available) {
+        // Update accuracy circle size
+        const accuracy = geomgr.state.current_location.accuracy;
+        this.state.accuracy_radius = accuracy;
+
+        // Scale accuracy circle (1 unit = 1 meter)
+        this.children[1].scale = [accuracy, accuracy, 0.05];
+
+        // Color code by accuracy
+        if (accuracy < 5) {
+          this.children[1].color = "#4CAF50"; // Green = good
+        } else if (accuracy < 10) {
+          this.children[1].color = "#FF9800"; // Orange = medium
+        } else {
+          this.children[1].color = "#F44336"; // Red = poor
+        }
+      }
+    }
+  }
+
+  // === Compass Heading Indicator ===
+  object "CompassHeadingIndicator" {
+    @anchor
+    @billboard
+
+    geometry: "arrow"
+    scale: [0.1, 0.3, 0.05]
+    color: "#FF0000"
+    position: [0, 0.1, 0]
+
+    onUpdate: {
+      const geomgr = getObject("GeospatialManager");
+
+      if (geomgr.state.location_available) {
+        // Rotate arrow to point north
+        const heading = geomgr.state.current_location.heading;
+        this.rotation = [0, -heading, 0];
+      }
+    }
+  }
+
+  // === Terrain Anchor Example ===
+  object "TerrainAnchor" @terrain_anchor {
+    latitude: 37.7749
+    longitude: -122.4194
+    altitude_mode: "terrain" // Automatically snap to terrain height
+
+    geometry: "flag"
+    scale: [0.5, 0.5, 0.5]
+    color: "#4CAF50"
+
+    animation "wave" {
+      property: "rotation.z"
+      from: -5
+      to: 5
+      duration: 1500
+      loop: infinite
+      easing: "easeInOutSine"
+    }
+  }
+
+  // === Rooftop Anchor Example ===
+  object "RooftopAnchor" @rooftop_anchor {
+    latitude: 37.7749
+    longitude: -122.4194
+    building_id: "building_12345"
+    rooftop_offset: 2.0 // meters above rooftop
+
+    geometry: "beacon"
+    scale: [0.3, 0.3, 0.3]
+    color: "#FF5722"
+
+    animation "pulse" {
+      property: "scale"
+      from: [0.25, 0.25, 0.25]
+      to: [0.35, 0.35, 0.35]
+      duration: 1000
+      loop: infinite
+    }
+  }
+
+  // === Distance Calculator Helper ===
+  function "calculateDistance" {
+    params: ["lat1", "lon1", "lat2", "lon2"]
+
+    logic: {
+      // Haversine formula for great-circle distance
+      const R = 6371000; // Earth radius in meters
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+      return R * c;
+    }
+  }
+
+  // === AR Lighting ===
+  light "SunLight" {
+    type: "directional"
+    color: "#FFF8DC"
+    intensity: 1.2
+    rotation: [-45, 45, 0]
+    cast_shadows: true
+
+    // Update sun direction based on time and location
+    onUpdate: {
+      const geomgr = getObject("GeospatialManager");
+      if (geomgr.state.location_available) {
+        updateSunPosition(
+          geomgr.state.current_location.latitude,
+          geomgr.state.current_location.longitude,
+          Date.now()
+        );
+      }
+    }
+  }
+
+  light "SkyAmbient" {
+    type: "ambient"
+    color: "#87CEEB"
+    intensity: 0.4
+  }
+
+  // === Gestures ===
+  gesture "tap" {
+    action: "select_poi"
+  }
+
+  gesture "pinch" {
+    action: "zoom_map"
+  }
+
+  // === State Machine ===
+  state_machine "GeospatialSession" {
+    initial: "initializing"
+
+    state "initializing" {
+      on_location_permission_granted: transition("checking_vps")
+    }
+
+    state "checking_vps" {
+      description: "Checking VPS availability"
+      on_vps_available: transition("localizing_vps")
+      on_vps_unavailable: transition("localizing_gps")
+    }
+
+    state "localizing_vps" {
+      description: "Localizing with VPS"
+      on_vps_localized: transition("tracking")
+      on_vps_failed: transition("localizing_gps")
+    }
+
+    state "localizing_gps" {
+      description: "Localizing with GPS only"
+      on_gps_accurate: transition("tracking")
+    }
+
+    state "tracking" {
+      description: "Tracking with good accuracy"
+      on_tracking_lost: transition("localizing_gps")
+    }
+  }
+
+  // === Analytics ===
+  analytics {
+    track_event("geospatial_session_started", {
+      vps_available: "${vps_available}"
+    })
+
+    track_event("poi_viewed", {
+      poi_id: "${event.poi_id}",
+      distance: "${event.distance}"
+    })
+
+    track_metric("location_accuracy", "${location.accuracy}")
+    track_metric("heading_accuracy", "${location.heading_accuracy}")
+  }
+}

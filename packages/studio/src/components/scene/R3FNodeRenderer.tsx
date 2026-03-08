@@ -4,6 +4,7 @@ import type { R3FNode } from '@holoscript/core';
 import { Text, Sparkles, Environment } from '@react-three/drei';
 import { MeshNode } from './MeshNode';
 import { AnimatedMeshNode } from './AnimatedMeshNode';
+import { ShaderMeshNode, hasShaderTrait } from './ShaderMeshNode';
 
 interface R3FNodeRendererProps {
   node: R3FNode;
@@ -18,6 +19,8 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
   switch (node.type) {
     case 'mesh': {
+      // Check if this mesh has a custom shader trait
+      const isShaderMesh = hasShaderTrait(node);
       // Check if this mesh has keyframe animations
       const hasKeyframes = props.keyframes && Array.isArray(props.keyframes) && props.keyframes.length > 0;
       // Non-mesh children (lights, effects) still render via R3FNodeRenderer
@@ -28,9 +31,11 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
         ));
       return (
         <group>
-          {hasKeyframes
-            ? <AnimatedMeshNode node={node} />
-            : <MeshNode node={node} />
+          {isShaderMesh
+            ? <ShaderMeshNode node={node} />
+            : hasKeyframes
+              ? <AnimatedMeshNode node={node} />
+              : <MeshNode node={node} />
           }
           {nonMeshChildren}
         </group>

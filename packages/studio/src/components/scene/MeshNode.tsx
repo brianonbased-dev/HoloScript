@@ -1,74 +1,50 @@
 'use client';
 
+import { useRef, Suspense } from 'react';
 import type { R3FNode } from '@holoscript/core';
-import { MATERIAL_PRESETS } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/store';
 import { useBuilderStore } from '@/lib/stores/builderStore';
+import {
+  FireEmbers,
+  useKeyframeAnimation,
+} from './ProceduralMesh';
+import { getGeometry, getMaterialProps, isScaledBody, isFireMesh } from './materialUtils';
+import { useHoloTextures, hasTextures } from '@/hooks/useHoloTextures';
+import { useProceduralTexture } from '@/hooks/useProceduralTexture';
 
 interface MeshNodeProps {
   node: R3FNode;
 }
 
-function getGeometry(hsType: string, size: number) {
-  const s = size || 1;
-  switch (hsType) {
-    case 'sphere':
-    case 'orb':
-      return <sphereGeometry args={[s * 0.5, 32, 32]} />;
-    case 'cube':
-    case 'box':
-      return <boxGeometry args={[s, s, s]} />;
-    case 'cylinder':
-      return <cylinderGeometry args={[s * 0.5, s * 0.5, s, 32]} />;
-    case 'pyramid':
-    case 'cone':
-      return <coneGeometry args={[s * 0.5, s, 4]} />;
-    case 'plane':
-      return <planeGeometry args={[s, s]} />;
-    case 'torus':
-      return <torusGeometry args={[s * 0.5, s * 0.15, 16, 32]} />;
-    case 'ring':
-      return <ringGeometry args={[s * 0.3, s * 0.5, 32]} />;
-    case 'capsule':
-      return <capsuleGeometry args={[s * 0.3, s * 0.5, 4, 16]} />;
-    default:
-      return <boxGeometry args={[s, s, s]} />;
-  }
-}
+/**
+ * Inner material component that loads textures via useLoader (requires Suspense).
+ * Only rendered when external textures are detected in material props.
+ */
+function TexturedMaterial({
+  matProps,
+  proceduralMaps,
+  isBreakMode,
+}: {
+  matProps: Record<string, any>;
+  proceduralMaps: Record<string, any>;
+  isBreakMode: boolean;
+}) {
+  const textureMaps = useHoloTextures(matProps);
 
-function getMaterialProps(node: R3FNode) {
-  const props = node.props;
-  const materialName = props.material || props.materialPreset;
-  const preset = materialName
-    ? (MATERIAL_PRESETS as Record<string, Record<string, any>>)[materialName]
-    : undefined;
-
-  const matProps: Record<string, any> = {
-    ...(preset || {}),
-  };
-
-  // Override with explicit props
-  if (props.color) matProps.color = props.color;
-  if (props.emissive) matProps.emissive = props.emissive;
-  if (props.emissiveIntensity !== undefined) matProps.emissiveIntensity = props.emissiveIntensity;
-  if (props.opacity !== undefined) matProps.opacity = props.opacity;
-  if (props.transparent !== undefined) matProps.transparent = props.transparent;
-  if (props.metalness !== undefined) matProps.metalness = props.metalness;
-  if (props.roughness !== undefined) matProps.roughness = props.roughness;
-  if (props.wireframe !== undefined) matProps.wireframe = props.wireframe;
-
-  // Copy any materialProps from compilation
-  if (props.materialProps) {
-    Object.assign(matProps, props.materialProps);
-  }
-
-  // Default color if none set
-  if (!matProps.color) matProps.color = '#8888cc';
-
-  return matProps;
+  return (
+    <meshPhysicalMaterial
+      {...matProps}
+      {...proceduralMaps}
+      {...textureMaps}
+      emissive={isBreakMode ? '#ff4444' : matProps.emissive}
+      emissiveIntensity={isBreakMode ? 0.3 : matProps.emissiveIntensity}
+      color={matProps.color}
+    />
+  );
 }
 
 export function MeshNode({ node }: MeshNodeProps) {
+  const meshRef = useRef<any>(null);
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
   const removeNode = useSceneGraphStore((s) => s.removeNode);
@@ -85,6 +61,21 @@ export function MeshNode({ node }: MeshNodeProps) {
 
   const matProps = getMaterialProps(node);
 
+  // Generate procedural scale texture + normal map for hull/metaball meshes
+  const proceduralMaps = useProceduralTexture(
+    isScaledBody(hsType) ? 'scaleFull' : null,
+    { size: 512, tiling: [3, 3] }
+  );
+
+  // Keyframe animation
+  useKeyframeAnimation(meshRef, props.keyframes);
+
+  // Has fire effects?
+  const hasFire = isFireMesh(node) && (props.emissiveIntensity ?? 0) > 1.0;
+
+  // Check if we need external texture loading (triggers Suspense)
+  const needsTextures = hasTextures(matProps);
+
   // Recursively render nested children (native asset primitives)
   const childMeshes = node.children
     ?.filter((c: R3FNode) => c.type === 'mesh')
@@ -92,8 +83,19 @@ export function MeshNode({ node }: MeshNodeProps) {
       <MeshNode key={child.id || `child-${i}`} node={child} />
     ));
 
+  // Default material with procedural textures (no external texture loading)
+  const defaultMaterial = (
+    <meshPhysicalMaterial
+      {...matProps}
+      {...proceduralMaps}
+      emissive={isBreakMode ? '#ff4444' : matProps.emissive}
+      emissiveIntensity={isBreakMode ? 0.3 : matProps.emissiveIntensity}
+      color={matProps.color}
+    />
+  );
+
   return (
-    <group>
+    <group ref={meshRef}>
       <mesh
         position={position}
         rotation={rotation}
@@ -102,7 +104,6 @@ export function MeshNode({ node }: MeshNodeProps) {
         onClick={(e: any) => {
           e.stopPropagation();
           if (isBreakMode && node.id) {
-            // Break mode: delete on click
             removeNode(node.id);
           } else {
             setSelectedId(node.id || null);
@@ -120,20 +121,27 @@ export function MeshNode({ node }: MeshNodeProps) {
           }
         }}
       >
-        {getGeometry(hsType, size)}
-        <meshPhysicalMaterial
-          {...matProps}
-          emissive={isBreakMode ? '#ff4444' : (matProps.emissive || undefined)}
-          emissiveIntensity={isBreakMode ? 0.3 : (matProps.emissiveIntensity || 0)}
-          color={matProps.color}
-        />
+        {getGeometry(hsType, size, props)}
+        {needsTextures ? (
+          <Suspense fallback={defaultMaterial}>
+            <TexturedMaterial
+              matProps={matProps}
+              proceduralMaps={proceduralMaps}
+              isBreakMode={isBreakMode}
+            />
+          </Suspense>
+        ) : (
+          defaultMaterial
+        )}
         {isSelected && !isBreakMode && (
           <mesh>
-            {getGeometry(hsType, size * 1.05)}
+            {getGeometry(hsType, size * 1.05, props)}
             <meshBasicMaterial color="#3b82f6" wireframe transparent opacity={0.4} />
           </mesh>
         )}
       </mesh>
+      {/* Fire ember particles */}
+      {hasFire && <FireEmbers position={position} />}
       {childMeshes}
     </group>
   );

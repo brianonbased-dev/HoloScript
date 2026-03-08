@@ -1,0 +1,1035 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// GLTF 2.0 PBR EXPORT - Web3D & Real-time Rendering Pipeline
+// ═══════════════════════════════════════════════════════════════════════════
+// Demonstrates complete glTF 2.0 export for:
+// - Web browsers (Three.js, Babylon.js, WebGL)
+// - AR/VR platforms (WebXR, 8th Wall, Meta Quest Browser)
+// - Game engines (Unity, Unreal, Godot via glTF import)
+// - 3D viewers (Sketchfab, Google Model Viewer)
+// - E-commerce platforms (Shopify AR, Amazon AR View)
+//
+// glTF 2.0 Features Demonstrated:
+// - PBR Metallic-Roughness workflow
+// - KHR extensions (lights, materials, mesh optimization)
+// - Texture embedding vs. external references
+// - Draco mesh compression
+// - Animation clips with interpolation
+// - Morph targets (blend shapes)
+// - Multi-material meshes
+// - Scene hierarchy and transforms
+// - Cameras and lights (KHR_lights_punctual)
+//
+// Compilation:
+//   holoscript compile --target gltf gltf-pbr-export.holo
+//   holoscript compile --target glb gltf-pbr-export.holo  # Binary glTF
+//
+// Output:
+//   - model.gltf (JSON descriptor)
+//   - model.glb (Binary all-in-one package)
+//   - model.bin (Binary buffer data)
+//   - textures/*.png (PBR texture maps)
+//   - textures/*.jpg (Compressed variants)
+//
+// Compatible Platforms:
+//   - Three.js / React Three Fiber
+//   - Babylon.js
+//   - PlayCanvas
+//   - A-Frame
+//   - Google Model Viewer
+//   - Sketchfab
+//   - Unity (glTF importer)
+//   - Unreal Engine (glTF plugin)
+//   - Godot 4.0+
+// ═══════════════════════════════════════════════════════════════════════════
+
+composition "glTFPBRShowcase" {
+  metadata {
+    name: "glTF 2.0 PBR Export Pipeline"
+    description: "Complete glTF 2.0 export with PBR materials, animations, and web optimization"
+    version: "1.0.0"
+    author: "HoloScript Web3D"
+    export_target: "gltf-2.0"
+    copyright: "Copyright 2026 HoloScript"
+    generator: "HoloScript Compiler v3.43.0"
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  GLTF ASSET SETTINGS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  gltf_asset {
+    version: "2.0"
+    min_version: "2.0"
+    generator: "HoloScript glTF Exporter"
+    copyright: "© 2026 HoloScript Productions"
+
+    // Extensions used
+    extensions_used: [
+      "KHR_lights_punctual",           // Lights
+      "KHR_materials_unlit",           // Unlit materials
+      "KHR_materials_pbrSpecularGlossiness",  // Legacy PBR
+      "KHR_materials_clearcoat",       // Clearcoat layer
+      "KHR_materials_transmission",    // Transparency/refraction
+      "KHR_materials_ior",             // Index of refraction
+      "KHR_materials_specular",        // Specular color
+      "KHR_materials_sheen",           // Fabric sheen
+      "KHR_materials_emissive_strength",  // HDR emission
+      "KHR_draco_mesh_compression",    // Mesh compression
+      "KHR_texture_transform",         // UV tiling/offset
+      "KHR_mesh_quantization",         // Attribute compression
+      "EXT_meshopt_compression"        // Meshopt compression
+    ]
+
+    // Extensions required (fail gracefully if not supported)
+    extensions_required: [
+      "KHR_draco_mesh_compression"
+    ]
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  SCENE HIERARCHY - glTF Nodes
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // Default scene
+  object "Scene" {
+    @gltf_scene {
+      name: "MainScene"
+      default_scene: true
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  PBR MATERIALS - Metallic-Roughness Workflow
+    // ═════════════════════════════════════════════════════════════════════
+
+    spatial_group "PBRMaterials" {
+      // Metal sphere - Full metallic
+      object "MetalSphere" {
+        @gltf_mesh {
+          primitives: [
+            {
+              geometry: "sphere"
+              segments: 64
+              material_index: 0
+            }
+          ]
+
+          // Draco compression
+          compression: {
+            type: "draco"
+            quantization: {
+              position: 14,  // bits
+              normal: 10,
+              texcoord: 12,
+              color: 8,
+              generic: 12
+            }
+          }
+        }
+
+        position: [-2, 1, 0]
+        scale: [1, 1, 1]
+
+        // glTF PBR Metallic-Roughness material
+        material_gltf: {
+          name: "M_BrushedSteel"
+          pbr_metallic_roughness: {
+            // Base color
+            base_color_factor: [0.9, 0.9, 0.95, 1.0]  // RGBA
+            base_color_texture: {
+              index: 0  // Reference to textures array
+              tex_coord: 0  // UV channel
+              extensions: {
+                KHR_texture_transform: {
+                  offset: [0.0, 0.0]
+                  rotation: 0.0  // radians
+                  scale: [1.0, 1.0]
+                }
+              }
+            }
+
+            // Metallic-Roughness
+            metallic_factor: 1.0
+            roughness_factor: 0.3
+            metallic_roughness_texture: {
+              index: 1
+              tex_coord: 0
+            }
+          }
+
+          // Normal map
+          normal_texture: {
+            index: 2
+            tex_coord: 0
+            scale: 1.0
+          }
+
+          // Occlusion map
+          occlusion_texture: {
+            index: 3
+            tex_coord: 0
+            strength: 1.0
+          }
+
+          // Emissive
+          emissive_factor: [0.0, 0.0, 0.0]
+          emissive_texture: null
+
+          // Alpha
+          alpha_mode: "OPAQUE"  // or "MASK", "BLEND"
+          alpha_cutoff: 0.5  // Only for MASK mode
+
+          // Double-sided
+          double_sided: false
+        }
+      }
+
+      // Dielectric sphere - Non-metallic
+      object "PlasticSphere" {
+        @gltf_mesh {
+          primitives: [
+            {
+              geometry: "sphere"
+              segments: 64
+              material_index: 1
+            }
+          ]
+        }
+
+        position: [0, 1, 0]
+
+        material_gltf: {
+          name: "M_RedPlastic"
+          pbr_metallic_roughness: {
+            base_color_factor: [0.8, 0.1, 0.1, 1.0]
+            base_color_texture: {
+              index: 4
+              tex_coord: 0
+            }
+
+            metallic_factor: 0.0
+            roughness_factor: 0.5
+            metallic_roughness_texture: {
+              index: 5
+              tex_coord: 0
+            }
+          }
+
+          normal_texture: {
+            index: 6
+            scale: 1.0
+          }
+
+          alpha_mode: "OPAQUE"
+          double_sided: false
+        }
+      }
+
+      // Glass sphere - Transmission extension
+      object "GlassSphere" {
+        @gltf_mesh {
+          primitives: [
+            {
+              geometry: "sphere"
+              segments: 64
+              material_index: 2
+            }
+          ]
+        }
+
+        position: [2, 1, 0]
+
+        material_gltf: {
+          name: "M_Glass"
+          pbr_metallic_roughness: {
+            base_color_factor: [1.0, 1.0, 1.0, 0.3]
+            metallic_factor: 0.0
+            roughness_factor: 0.0
+          }
+
+          alpha_mode: "BLEND"
+
+          // KHR_materials_transmission extension
+          extensions: {
+            KHR_materials_transmission: {
+              transmission_factor: 1.0
+              transmission_texture: null
+            }
+
+            // KHR_materials_ior extension
+            KHR_materials_ior: {
+              ior: 1.5  // Glass index of refraction
+            }
+
+            // KHR_materials_specular extension
+            KHR_materials_specular: {
+              specular_factor: 1.0
+              specular_texture: null
+              specular_color_factor: [1.0, 1.0, 1.0]
+              specular_color_texture: null
+            }
+          }
+        }
+      }
+
+      // Car paint - Clearcoat extension
+      object "CarPaintCube" {
+        @gltf_mesh {
+          primitives: [
+            {
+              geometry: "cube"
+              material_index: 3
+            }
+          ]
+        }
+
+        position: [4, 1, 0]
+
+        material_gltf: {
+          name: "M_CarPaint"
+          pbr_metallic_roughness: {
+            base_color_factor: [0.8, 0.0, 0.0, 1.0]
+            metallic_factor: 0.0
+            roughness_factor: 0.6
+          }
+
+          // KHR_materials_clearcoat extension
+          extensions: {
+            KHR_materials_clearcoat: {
+              clearcoat_factor: 1.0
+              clearcoat_texture: null
+              clearcoat_roughness_factor: 0.03
+              clearcoat_roughness_texture: null
+              clearcoat_normal_texture: null
+            }
+          }
+        }
+      }
+
+      // Fabric - Sheen extension
+      object "FabricPlane" {
+        @gltf_mesh {
+          primitives: [
+            {
+              geometry: "plane"
+              material_index: 4
+            }
+          ]
+        }
+
+        position: [-2, 0.1, 2]
+        rotation: [-90, 0, 0]
+        scale: [1, 1, 1]
+
+        material_gltf: {
+          name: "M_Velvet"
+          pbr_metallic_roughness: {
+            base_color_factor: [0.3, 0.1, 0.5, 1.0]
+            metallic_factor: 0.0
+            roughness_factor: 1.0
+          }
+
+          // KHR_materials_sheen extension
+          extensions: {
+            KHR_materials_sheen: {
+              sheen_color_factor: [0.6, 0.4, 0.7]
+              sheen_color_texture: null
+              sheen_roughness_factor: 0.5
+              sheen_roughness_texture: null
+            }
+          }
+        }
+      }
+
+      // Emissive sphere - HDR emission
+      object "EmissiveSphere" {
+        @gltf_mesh {
+          primitives: [
+            {
+              geometry: "sphere"
+              segments: 32
+              material_index: 5
+            }
+          ]
+        }
+
+        position: [0, 3, 0]
+        scale: [0.5, 0.5, 0.5]
+
+        material_gltf: {
+          name: "M_Emissive"
+          pbr_metallic_roughness: {
+            base_color_factor: [0.1, 0.1, 0.1, 1.0]
+            metallic_factor: 0.0
+            roughness_factor: 0.9
+          }
+
+          emissive_factor: [1.0, 0.8, 0.2]
+          emissive_texture: {
+            index: 7
+            tex_coord: 0
+          }
+
+          // KHR_materials_emissive_strength extension
+          extensions: {
+            KHR_materials_emissive_strength: {
+              emissive_strength: 5.0  // HDR intensity multiplier
+            }
+          }
+        }
+      }
+
+      // Unlit material - KHR_materials_unlit
+      object "UnlitPlane" {
+        @gltf_mesh {
+          primitives: [
+            {
+              geometry: "plane"
+              material_index: 6
+            }
+          ]
+        }
+
+        position: [2, 0.1, 2]
+        rotation: [-90, 0, 0]
+
+        material_gltf: {
+          name: "M_Unlit"
+          pbr_metallic_roughness: {
+            base_color_factor: [1.0, 1.0, 1.0, 1.0]
+            base_color_texture: {
+              index: 8
+              tex_coord: 0
+            }
+          }
+
+          // KHR_materials_unlit extension
+          extensions: {
+            KHR_materials_unlit: {}
+          }
+        }
+      }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  ANIMATED CHARACTER - Skeletal Animation
+    // ═════════════════════════════════════════════════════════════════════
+
+    object "AnimatedCharacter" {
+      @gltf_node {
+        name: "Character"
+      }
+
+      position: [0, 0, -3]
+      rotation: [0, 0, 0]
+      scale: [1, 1, 1]
+
+      // Skinned mesh
+      @gltf_mesh {
+        primitives: [
+          {
+            geometry: "model/character.fbx"
+            material_index: 7
+
+            // Vertex attributes
+            attributes: {
+              POSITION: true
+              NORMAL: true
+              TANGENT: true
+              TEXCOORD_0: true
+              TEXCOORD_1: false
+              COLOR_0: false
+              JOINTS_0: true   // Skinning joints (vec4 of joint indices)
+              WEIGHTS_0: true  // Skinning weights (vec4 of weights)
+            }
+
+            // Morph targets (blend shapes)
+            morph_targets: [
+              {
+                name: "Smile"
+                attributes: {
+                  POSITION: true
+                  NORMAL: true
+                  TANGENT: false
+                }
+              },
+              {
+                name: "Blink"
+                attributes: {
+                  POSITION: true
+                  NORMAL: true
+                }
+              }
+            ]
+          }
+        ]
+      }
+
+      // Skin (skeleton binding)
+      @gltf_skin {
+        name: "CharacterSkin"
+
+        // Skeleton root
+        skeleton: 0  // Node index of skeleton root
+
+        // Joint nodes
+        joints: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+        // Inverse bind matrices (accessor index)
+        inverse_bind_matrices: 0
+      }
+
+      // Skeleton hierarchy (simplified)
+      object "Skeleton" {
+        @gltf_node {
+          name: "Root"
+        }
+
+        object "Hips" {
+          @gltf_node { name: "Hips" }
+          position: [0, 1.0, 0]
+
+          object "Spine" {
+            @gltf_node { name: "Spine" }
+            position: [0, 0.1, 0]
+
+            object "Spine1" {
+              @gltf_node { name: "Spine1" }
+              position: [0, 0.15, 0]
+
+              object "Spine2" {
+                @gltf_node { name: "Spine2" }
+                position: [0, 0.15, 0]
+
+                object "Neck" {
+                  @gltf_node { name: "Neck" }
+                  position: [0, 0.15, 0]
+
+                  object "Head" {
+                    @gltf_node { name: "Head" }
+                    position: [0, 0.1, 0]
+                  }
+                }
+
+                // Left arm chain
+                object "LeftShoulder" {
+                  @gltf_node { name: "LeftShoulder" }
+                  position: [-0.05, 0.1, 0]
+
+                  object "LeftArm" {
+                    @gltf_node { name: "LeftArm" }
+                    position: [-0.15, 0, 0]
+
+                    object "LeftForeArm" {
+                      @gltf_node { name: "LeftForeArm" }
+                      position: [-0.25, 0, 0]
+
+                      object "LeftHand" {
+                        @gltf_node { name: "LeftHand" }
+                        position: [-0.2, 0, 0]
+                      }
+                    }
+                  }
+                }
+
+                // Right arm chain (mirrored)
+                object "RightShoulder" {
+                  @gltf_node { name: "RightShoulder" }
+                  position: [0.05, 0.1, 0]
+
+                  object "RightArm" {
+                    @gltf_node { name: "RightArm" }
+                    position: [0.15, 0, 0]
+
+                    object "RightForeArm" {
+                      @gltf_node { name: "RightForeArm" }
+                      position: [0.25, 0, 0]
+
+                      object "RightHand" {
+                        @gltf_node { name: "RightHand" }
+                        position: [0.2, 0, 0]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          // Left leg chain
+          object "LeftUpLeg" {
+            @gltf_node { name: "LeftUpLeg" }
+            position: [-0.1, 0, 0]
+
+            object "LeftLeg" {
+              @gltf_node { name: "LeftLeg" }
+              position: [0, -0.4, 0]
+
+              object "LeftFoot" {
+                @gltf_node { name: "LeftFoot" }
+                position: [0, -0.4, 0]
+              }
+            }
+          }
+
+          // Right leg chain
+          object "RightUpLeg" {
+            @gltf_node { name: "RightUpLeg" }
+            position: [0.1, 0, 0]
+
+            object "RightLeg" {
+              @gltf_node { name: "RightLeg" }
+              position: [0, -0.4, 0]
+
+              object "RightFoot" {
+                @gltf_node { name: "RightFoot" }
+                position: [0, -0.4, 0]
+              }
+            }
+          }
+        }
+      }
+
+      // Animation clips
+      @gltf_animations {
+        animations: [
+          {
+            name: "Walk"
+
+            // Animation channels
+            channels: [
+              {
+                sampler: 0
+                target: {
+                  node: 1  // Hips node
+                  path: "translation"
+                }
+              },
+              {
+                sampler: 1
+                target: {
+                  node: 1  // Hips node
+                  path: "rotation"
+                }
+              },
+              {
+                sampler: 2
+                target: {
+                  node: 8  // LeftArm node
+                  path: "rotation"
+                }
+              },
+              {
+                sampler: 3
+                target: {
+                  node: 13  // RightArm node
+                  path: "rotation"
+                }
+              }
+              // ... more channels for all animated joints
+            ]
+
+            // Animation samplers (keyframe data)
+            samplers: [
+              {
+                input: 0   // Accessor for time values
+                output: 1  // Accessor for translation values
+                interpolation: "LINEAR"  // or "STEP", "CUBICSPLINE"
+              },
+              {
+                input: 0
+                output: 2  // Accessor for rotation quaternions
+                interpolation: "LINEAR"
+              },
+              {
+                input: 0
+                output: 3
+                interpolation: "LINEAR"
+              },
+              {
+                input: 0
+                output: 4
+                interpolation: "LINEAR"
+              }
+            ]
+          },
+          {
+            name: "Idle"
+            channels: [/* idle animation channels */]
+            samplers: [/* idle animation samplers */]
+          },
+          {
+            name: "Jump"
+            channels: [/* jump animation channels */]
+            samplers: [/* jump animation samplers */]
+          }
+        ]
+
+        // Morph target animation (blend shapes)
+        morph_animations: [
+          {
+            name: "FacialAnimation"
+            channels: [
+              {
+                sampler: 0
+                target: {
+                  node: 0  // Character mesh node
+                  path: "weights"  // Morph target weights
+                }
+              }
+            ]
+            samplers: [
+              {
+                input: 0   // Time accessor
+                output: 5  // Weights accessor (array of weight arrays)
+                interpolation: "LINEAR"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  LIGHTS - KHR_lights_punctual Extension
+    // ═════════════════════════════════════════════════════════════════════
+
+    object "Lights" {
+      @gltf_node {
+        name: "LightGroup"
+      }
+
+      // Directional light (sun)
+      object "DirectionalLight" {
+        @gltf_light {
+          extension: "KHR_lights_punctual"
+          type: "directional"
+          name: "Sun"
+
+          color: [1.0, 0.95, 0.9]
+          intensity: 5.0  // cd (candela) for point/spot, lux for directional
+        }
+
+        rotation: [-45, -30, 0]
+      }
+
+      // Point light
+      object "PointLight" {
+        @gltf_light {
+          extension: "KHR_lights_punctual"
+          type: "point"
+          name: "FillLight"
+
+          color: [0.9, 0.95, 1.0]
+          intensity: 10.0  // candela
+          range: 10.0  // meters (0 = infinite)
+        }
+
+        position: [-3, 2, 2]
+      }
+
+      // Spot light
+      object "SpotLight" {
+        @gltf_light {
+          extension: "KHR_lights_punctual"
+          type: "spot"
+          name: "AccentLight"
+
+          color: [1.0, 0.7, 0.4]
+          intensity: 15.0  // candela
+          range: 8.0
+
+          // Spot cone
+          spot: {
+            inner_cone_angle: 0.523599  // 30 degrees in radians
+            outer_cone_angle: 0.785398  // 45 degrees in radians
+          }
+        }
+
+        position: [3, 3, 2]
+        rotation: [-45, 180, 0]
+      }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  CAMERAS
+    // ═════════════════════════════════════════════════════════════════════
+
+    object "MainCamera" {
+      @gltf_camera {
+        type: "perspective"
+        name: "PerspectiveCamera"
+
+        perspective: {
+          aspect_ratio: 1.778  // 16:9 (optional, can be auto)
+          yfov: 0.785398  // Vertical FOV in radians (45 degrees)
+          zfar: 100.0  // Far clipping plane (optional, can be infinite)
+          znear: 0.1  // Near clipping plane
+        }
+      }
+
+      position: [0, 2, 5]
+      rotation: [-15, 0, 0]
+    }
+
+    object "OrthographicCamera" {
+      @gltf_camera {
+        type: "orthographic"
+        name: "OrthoCamera"
+
+        orthographic: {
+          xmag: 5.0   // Horizontal magnification
+          ymag: 5.0   // Vertical magnification
+          zfar: 100.0
+          znear: 0.1
+        }
+      }
+
+      position: [10, 10, 10]
+      rotation: [-45, 45, 0]
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEXTURES - glTF Texture Definitions
+// ═══════════════════════════════════════════════════════════════════════════
+
+gltf_textures {
+  textures: [
+    // Texture 0 - Metal base color
+    {
+      source: 0  // Image index
+      sampler: 0  // Sampler index
+    },
+    // Texture 1 - Metal metallic-roughness
+    {
+      source: 1
+      sampler: 0
+    },
+    // Texture 2 - Metal normal
+    {
+      source: 2
+      sampler: 0
+    },
+    // Texture 3 - Metal AO
+    {
+      source: 3
+      sampler: 0
+    },
+    // Texture 4 - Plastic base color
+    {
+      source: 4
+      sampler: 1  // Different sampler (e.g., clamped)
+    },
+    // Texture 5 - Plastic metallic-roughness
+    {
+      source: 5
+      sampler: 0
+    },
+    // Texture 6 - Plastic normal
+    {
+      source: 6
+      sampler: 0
+    },
+    // Texture 7 - Emissive texture
+    {
+      source: 7
+      sampler: 0
+    },
+    // Texture 8 - Unlit diffuse
+    {
+      source: 8
+      sampler: 0
+    }
+  ]
+
+  // Images
+  images: [
+    { uri: "textures/metal_basecolor.png" },
+    { uri: "textures/metal_metallicroughness.png" },
+    { uri: "textures/metal_normal.png" },
+    { uri: "textures/metal_ao.png" },
+    { uri: "textures/plastic_basecolor.png" },
+    { uri: "textures/plastic_metallicroughness.png" },
+    { uri: "textures/plastic_normal.png" },
+    { uri: "textures/emissive_pattern.png" },
+    { uri: "textures/unlit_diffuse.png" }
+  ]
+
+  // Samplers
+  samplers: [
+    {
+      name: "DefaultSampler"
+      mag_filter: 9729  // LINEAR
+      min_filter: 9987  // LINEAR_MIPMAP_LINEAR
+      wrap_s: 10497     // REPEAT
+      wrap_t: 10497     // REPEAT
+    },
+    {
+      name: "ClampedSampler"
+      mag_filter: 9729  // LINEAR
+      min_filter: 9987  // LINEAR_MIPMAP_LINEAR
+      wrap_s: 33071     // CLAMP_TO_EDGE
+      wrap_t: 33071     // CLAMP_TO_EDGE
+    }
+  ]
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPORT CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+export_config {
+  platform: "gltf"
+
+  // Output formats
+  output_formats: ["gltf", "glb"]
+
+  // File paths
+  output_directory: "./glTFExport"
+  gltf_file: "model.gltf"  // JSON + separate bins/textures
+  glb_file: "model.glb"    // Binary all-in-one
+  bin_file: "model.bin"    // Buffer data
+  textures_path: "textures"
+
+  // glTF options
+  gltf_options: {
+    version: "2.0"
+    embed_images: false  // True = data URIs, false = external files
+    embed_buffers: false  // True for single .gltf file
+    pretty_print: true  // Formatted JSON (false for production)
+
+    // Coordinate system
+    y_up: true  // glTF standard is Y-up, right-handed
+  }
+
+  // GLB options (binary)
+  glb_options: {
+    embed_all: true  // All resources in single .glb file
+    align_buffers: true
+  }
+
+  // Compression
+  compression: {
+    // Draco mesh compression
+    use_draco: true
+    draco_compression_level: 7  // 0-10 (higher = smaller but slower)
+    draco_quantization: {
+      position: 14,
+      normal: 10,
+      texcoord: 12,
+      color: 8,
+      generic: 12
+    }
+
+    // Meshopt compression (alternative to Draco)
+    use_meshopt: false
+    meshopt_compression_level: "medium"  // "low", "medium", "high"
+
+    // Texture compression
+    texture_compression: {
+      format: "png"  // or "jpg", "webp", "ktx2"
+      quality: 90  // For lossy formats
+      resize_to_pot: false  // Power-of-two dimensions
+      max_size: 2048
+      generate_mipmaps: true
+    }
+  }
+
+  // Material conversion
+  material_conversion: {
+    workflow: "metallic_roughness"  // glTF standard
+    pack_occlusion_roughness_metallic: true  // ORM texture packing
+    flip_normal_y: false  // DirectX vs OpenGL convention
+    convert_to_linear: true  // sRGB → Linear for non-color data
+  }
+
+  // Animation options
+  animation_options: {
+    bake_animations: false
+    sample_rate: 30  // fps
+    optimize_keyframes: true
+    remove_redundant_keyframes: true
+    keyframe_threshold: 0.001
+  }
+
+  // Optimization
+  optimization: {
+    remove_unused_vertices: true
+    remove_unused_materials: true
+    remove_unused_textures: true
+    merge_duplicate_vertices: true
+    vertex_threshold: 0.0001
+
+    // Mesh simplification
+    simplify_meshes: false
+    simplification_ratio: 0.5  // Target 50% of original triangles
+
+    // Attribute quantization
+    quantize_attributes: true
+    quantization_bits: {
+      position: 14,
+      normal: 10,
+      texcoord: 12,
+      color: 8
+    }
+  }
+
+  // Web optimization
+  web_optimization: {
+    split_large_files: false
+    max_file_size: 10485760  // 10 MB
+    progressive_loading: false
+    lod_generation: false
+  }
+
+  // Validation
+  validation: {
+    validate_output: true
+    strict_mode: false
+    check_external_references: true
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WEB INTEGRATION EXAMPLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/*
+// Three.js loader example
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+
+const loader = new GLTFLoader();
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('/draco/');
+loader.setDRACOLoader(dracoLoader);
+
+loader.load('model.glb', (gltf) => {
+  scene.add(gltf.scene);
+
+  // Access animations
+  const mixer = new THREE.AnimationMixer(gltf.scene);
+  gltf.animations.forEach((clip) => {
+    mixer.clipAction(clip).play();
+  });
+});
+
+// Babylon.js loader example
+BABYLON.SceneLoader.ImportMesh("", "./", "model.glb", scene, (meshes, particleSystems, skeletons, animationGroups) => {
+  // Meshes loaded
+  animationGroups[0].play(true);
+});
+
+// Google Model Viewer
+<model-viewer
+  src="model.glb"
+  alt="3D Model"
+  auto-rotate
+  camera-controls
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  environment-image="neutral"
+  shadow-intensity="1">
+</model-viewer>
+*/

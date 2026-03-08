@@ -62,6 +62,8 @@ export type CompileTimeEmbodiment =
   | 'FullAvatar'      // VR: full-body avatar
   | 'FloatingAgent'   // AR: floating assistant
   | 'UI2D'            // Phone/Desktop: 2D interface
+  | 'VoiceOnly'       // Car: voice-only (no visual distractions)
+  | 'UIMinimal'       // Wearable: minimal UI (small screen)
   | 'VoiceHUD'        // Car: voice + minimal HUD
   | 'Haptic'          // Watch: haptic-only
   | 'GlassOverlay';   // Glasses: AR overlay
@@ -69,16 +71,22 @@ export type CompileTimeEmbodiment =
 /** Maps form factor categories to their default embodiments */
 export const CATEGORY_DEFAULT_EMBODIMENT: Record<PlatformCategory, CompileTimeEmbodiment> = {
   vr: 'FullAvatar',
+  ar: 'FloatingAgent',
   mobile: 'UI2D',
   desktop: 'UI2D',
-  automotive: 'VoiceHUD',
-  wearable: 'Haptic',
+  automotive: 'VoiceOnly',
+  wearable: 'UIMinimal',
 };
 
 /** Maps specific platforms to embodiment overrides */
 export const PLATFORM_EMBODIMENT_OVERRIDES: Partial<Record<PlatformTarget, CompileTimeEmbodiment>> = {
-  visionos: 'FloatingAgent',  // visionOS uses floating agent, not full avatar
-  glass: 'GlassOverlay',      // Glasses use AR overlay, not haptic
+  visionos: 'FloatingAgent',      // visionOS uses floating agent, not full avatar
+  'visionos-ar': 'GlassOverlay',  // visionOS AR mode uses overlay
+  'android-xr-ar': 'GlassOverlay', // Android XR AR mode uses overlay
+  'android-auto': 'VoiceOnly',    // Android Auto uses voice-only for safety
+  'carplay': 'VoiceOnly',         // CarPlay uses voice-only for safety
+  'watchos': 'UIMinimal',         // watchOS uses minimal UI for small screen
+  'wearos': 'UIMinimal',          // WearOS uses minimal UI for small screen
 };
 
 // ============================================================================
@@ -143,9 +151,9 @@ export interface MVCBudgetConstraint {
 export const MVC_BUDGET_CONSTRAINTS: MVCBudgetConstraint[] = [
   { category: 'vr', maxPayloadBytes: 10240, maxObjects: 5, compressionRequired: false },
   { category: 'mobile', maxPayloadBytes: 8192, maxObjects: 5, compressionRequired: false },
-  { category: 'desktop', maxPayloadBytes: 10240, maxObjects: 5, compressionRequired: false },
-  { category: 'automotive', maxPayloadBytes: 4096, maxObjects: 3, compressionRequired: true },
-  { category: 'wearable', maxPayloadBytes: 2048, maxObjects: 3, compressionRequired: true },
+  { category: 'desktop', maxPayloadBytes: 102400, maxObjects: 10, compressionRequired: false },
+  { category: 'automotive', maxPayloadBytes: 8192, maxObjects: 3, compressionRequired: true },
+  { category: 'wearable', maxPayloadBytes: 4096, maxObjects: 3, compressionRequired: true },
 ];
 
 // ============================================================================
@@ -260,7 +268,7 @@ export class CrossRealityTraitRegistry {
       description: 'Override the default embodiment for this platform',
       applicablePlatforms: [], applicableCategories: [],
       required: false, defaultValue: null,
-      validate: (v) => ({ valid: v === null || ['FullAvatar', 'FloatingAgent', 'UI2D', 'VoiceHUD', 'Haptic', 'GlassOverlay'].includes(v as string) }),
+      validate: (v) => ({ valid: v === null || ['FullAvatar', 'FloatingAgent', 'UI2D', 'VoiceOnly', 'UIMinimal', 'VoiceHUD', 'Haptic', 'GlassOverlay'].includes(v as string) }),
     });
     this.register({
       id: 'crossreality.embodiment.reducedMotion',

@@ -1,0 +1,421 @@
+================================================================================
+Platform Decorator - Single Platform
+================================================================================
+
+@platform(vr)
+object "VRMenu" {
+  position: [0, 1, 0]
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (object
+    (platform_decorator
+      (platform_list
+        (platform_name)))
+    name: (string)
+    (property
+      key: (identifier)
+      value: (array
+        (number)
+        (number)
+        (number)))))
+
+================================================================================
+Platform Decorator - Multiple Platforms
+================================================================================
+
+@platform(quest3, android-xr)
+object "XRHandMenu" {
+  layout: "radial"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (object
+    (platform_decorator
+      (platform_list
+        (platform_name)
+        (platform_name)))
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))))
+
+================================================================================
+Platform Decorator - Category Form
+================================================================================
+
+@platform(mobile, desktop)
+object "FlatScreenUI" {
+  layout: "bottom-sheet"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (object
+    (platform_decorator
+      (platform_list
+        (platform_name)
+        (platform_name)))
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))))
+
+================================================================================
+Platform Decorator - Negation Form
+================================================================================
+
+@platform(not: web)
+object "NativeOnlyFeature" {
+  enabled: true
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (object
+    (platform_decorator
+      (platform_list
+        (platform_name)))
+    name: (string)
+    (property
+      key: (identifier)
+      value: (boolean))))
+
+================================================================================
+Platform Decorator - Negation with Multiple Platforms
+================================================================================
+
+@platform(not: automotive, wearable)
+object "FullInteractionModel" {
+  complexity: "high"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (object
+    (platform_decorator
+      (platform_list
+        (platform_name)
+        (platform_name)))
+    name: (string)
+    (property
+      key: (identifier)
+      value: (string))))
+
+================================================================================
+Platform Decorator - On Template
+================================================================================
+
+@platform(vr)
+template "VRController" @grabbable {
+  geometry: "controller"
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (template
+    (platform_decorator
+      (platform_list
+        (platform_name)))
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (identifier)
+      value: (string))))
+
+================================================================================
+Platform Decorator - On Spatial Group
+================================================================================
+
+@platform(ar)
+spatial_group "ARAnchors" {
+  object "Anchor1" {
+    position: [0, 0, 0]
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (spatial_group
+    (platform_decorator
+      (platform_list
+        (platform_name)))
+    name: (string)
+    (object
+      name: (string)
+      (property
+        key: (identifier)
+        value: (array
+          (number)
+          (number)
+          (number))))))
+
+================================================================================
+Platform Decorator - On Light
+================================================================================
+
+@platform(visionos)
+light "SunLight" {
+  intensity: 1.0
+  color: #ffffff
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (light
+    (platform_decorator
+      (platform_list
+        (platform_name)))
+    name: (string)
+    (property
+      key: (identifier)
+      value: (number))
+    (property
+      key: (identifier)
+      value: (color))))
+
+================================================================================
+Platform Decorator - On Norm Block
+================================================================================
+
+@platform(vr, ar)
+norm "SpatialEtiquette" @enforceable {
+  description: "Maintain personal space boundaries"
+  priority: "high"
+
+  creation {
+    author: "system"
+    mechanism: "broadcast"
+  }
+
+  compliance {
+    violation_severity: "moderate"
+    sanction: "warn"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (norm_block
+    (platform_decorator
+      (platform_list
+        (platform_name)
+        (platform_name)))
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (norm_creation
+      (property
+        key: (identifier)
+        value: (string))
+      (property
+        key: (identifier)
+        value: (string)))
+    (norm_compliance
+      (property
+        key: (identifier)
+        value: (string))
+      (property
+        key: (identifier)
+        value: (string)))))
+
+================================================================================
+Complex Platform Example - Multi-Platform Composition
+================================================================================
+
+composition "AdaptiveMenu" {
+  @platform(vr)
+  object "VRMenu" @hand_tracking {
+    position: [0, 1.5, -1]
+    layout: "radial"
+  }
+
+  @platform(mobile)
+  object "MobileMenu" {
+    position: [0, 0, 0]
+    layout: "bottom-sheet"
+  }
+
+  @platform(desktop)
+  object "DesktopMenu" {
+    position: [0, 0, 0]
+    layout: "sidebar"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (composition
+    name: (string)
+    (object
+      (platform_decorator
+        (platform_list
+          (platform_name)))
+      name: (string)
+      (trait_list
+        (trait_inline
+          name: (identifier)))
+      (property
+        key: (identifier)
+        value: (array
+          (number)
+          (number)
+          (number)))
+      (property
+        key: (identifier)
+        value: (string)))
+    (object
+      (platform_decorator
+        (platform_list
+          (platform_name)))
+      name: (string)
+      (property
+        key: (identifier)
+        value: (array
+          (number)
+          (number)
+          (number)))
+      (property
+        key: (identifier)
+        value: (string)))
+    (object
+      (platform_decorator
+        (platform_list
+          (platform_name)))
+      name: (string)
+      (property
+        key: (identifier)
+        value: (array
+          (number)
+          (number)
+          (number)))
+      (property
+        key: (identifier)
+        value: (string)))))
+
+================================================================================
+Norm Block - Full CRSEC Lifecycle
+================================================================================
+
+norm "PriorityDeferral" @enforceable @community_driven {
+  description: "Agents yield to higher-priority tasks"
+  category: "coordination"
+  priority: 85
+
+  creation {
+    author: "system"
+    proposed_at: 1709875200
+    mechanism: "broadcast"
+  }
+
+  representation {
+    rule: "IF agent.priority < task.priority THEN defer()"
+    formal_encoding: "deontic_logic"
+  }
+
+  spreading {
+    mechanism: "observation"
+    reach: "global"
+    decay_rate: 0.01
+  }
+
+  evaluation {
+    voting: "majority"
+    threshold: 0.6
+    deadline: 604800
+  }
+
+  compliance {
+    violation_severity: "moderate"
+    sanction: "warn"
+    monitoring: "continuous"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (norm_block
+    name: (string)
+    (trait_list
+      (trait_inline
+        name: (identifier))
+      (trait_inline
+        name: (identifier)))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (string))
+    (property
+      key: (identifier)
+      value: (number))
+    (norm_creation
+      (property
+        key: (identifier)
+        value: (string))
+      (property
+        key: (identifier)
+        value: (number))
+      (property
+        key: (identifier)
+        value: (string)))
+    (norm_representation
+      (property
+        key: (identifier)
+        value: (string))
+      (property
+        key: (identifier)
+        value: (string)))
+    (norm_spreading
+      (property
+        key: (identifier)
+        value: (string))
+      (property
+        key: (identifier)
+        value: (string))
+      (property
+        key: (identifier)
+        value: (number)))
+    (norm_evaluation
+      (property
+        key: (identifier)
+        value: (string))
+      (property
+        key: (identifier)
+        value: (number))
+      (property
+        key: (identifier)
+        value: (number)))
+    (norm_compliance
+      (property
+        key: (identifier)
+        value: (string))
+      (property
+        key: (identifier)
+        value: (string))
+      (property
+        key: (identifier)
+        value: (string)))))

@@ -2559,7 +2559,7 @@ export class HoloCompositionParser {
       } else if (this.check('STATE')) {
         // Handle state block in object
         state = this.parseState();
-      } else if (this.isDomainBlockToken()) {
+      } else if (this.isDomainBlockToken() && this.peek(1).type !== 'COLON') {
         // Structured physics sub-blocks directly inside objects:
         // collider box { ... }, rigidbody { ... }, force_field "name" { ... }, articulation "name" { ... }
         const domainBlock = this.parseDomainBlock();

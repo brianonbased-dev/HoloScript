@@ -44,6 +44,15 @@ export * from './performance';
 // Profiling (Sprint 7 - Performance Dashboard)
 export * from './profiling';
 
+// Procedural Geometry Generators (shared between GLTF pipeline and R3F renderer)
+export {
+  generateSplineGeometry,
+  generateHullGeometry,
+  generateMembraneGeometry,
+  type GeometryData,
+  type BlobDef,
+} from './compiler/ProceduralGeometry';
+
 // Parser
 export { HoloScriptParser } from './HoloScriptParser';
 export { HoloScript2DParser } from './HoloScript2DParser';
@@ -2130,6 +2139,8 @@ export { COMPOSITION_RULES } from './traits/visual/composition-rules';
 export {
   GLTFPipeline,
   createGLTFPipeline,
+  generateScaleTexture,
+  generateScaleNormalMap,
   type GLTFPipelineOptions,
   type GLTFExportResult,
   type GLTFExportStats,
@@ -2518,13 +2529,6 @@ export type {
   CompilePlatformTarget,
 } from './compiler/PlatformConditionalCompilerMixin';
 
-// Cross-Reality Composition Validator (static analysis)
-export { CrossRealityValidator } from './compiler/CrossRealityValidator';
-export type {
-  CrossRealityValidationIssue,
-  CrossRealityValidationResult,
-  HandoffPathAnalysis,
-} from './compiler/CrossRealityValidator';
 
 // ═══════════════════════════════════════════════════════════════════
 // Culture Traits (Emergent Agent Culture)

@@ -11,7 +11,7 @@ import {
   createSubmission, verifySubmission, publishSubmission,
   type MarketplacePackage, type MarketplaceSubmissionType,
 } from '@holoscript/core';
-import { seedMarketplace } from '../../data/marketplace-seeds';
+import { seedMarketplace } from '../data/marketplace-seeds';
 
 // ═══════════════════════════════════════════════════════════════════
 

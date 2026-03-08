@@ -160,6 +160,14 @@ Each example includes platform-specific instructions in its README.
 - ✅ IoT Digital Twin - Smart factory with predictive maintenance
 - ✅ Factory Visualization - Real-time telemetry and monitoring
 
+### Film/Entertainment (Advanced Volumetric)
+
+- ✅ **[Gaussian Splat Photogrammetry](volumetric-advanced/)** - Complete capture-to-3DGS pipeline, 64-camera dome, SfM/MVS, 30K training iterations
+- ✅ **[Real-Time NeRF](volumetric-advanced/)** - Instant-NGP, multi-resolution hash encoding, 30 FPS interactive rendering
+- ✅ **[Volumetric Video Streaming](volumetric-advanced/)** - 4D-MoDe compression, ABR streaming, DASH-style chunks, 50-200× compression
+- ✅ **[LiDAR Point Cloud](volumetric-advanced/)** - 500M points, octree LOD, ASPRS classification, measurement tools
+- ✅ **[Photogrammetry Workflow](volumetric-advanced/)** - End-to-end 8-stage pipeline (capture → SfM → MVS → 3DGS → VR → export to USD/Alembic/FBX)
+
 ### Platform-Specific
 
 - ✅ Unity Quest - Mobile VR optimization (ASTC, LODs, foveated rendering)

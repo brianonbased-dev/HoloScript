@@ -18,25 +18,27 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { performance } from 'perf_hooks';
-import { HoloCompositionParser } from '../../packages/core/src/parser/HoloCompositionParser';
-import { UnityCompiler } from '../../packages/core/src/compiler/UnityCompiler';
-import { UnrealCompiler } from '../../packages/core/src/compiler/UnrealCompiler';
-import { GodotCompiler } from '../../packages/core/src/compiler/GodotCompiler';
-import { VRChatCompiler } from '../../packages/core/src/compiler/VRChatCompiler';
-import { OpenXRCompiler } from '../../packages/core/src/compiler/OpenXRCompiler';
-import { VisionOSCompiler } from '../../packages/core/src/compiler/VisionOSCompiler';
-import { ARCompiler } from '../../packages/core/src/compiler/ARCompiler';
-import { AndroidXRCompiler } from '../../packages/core/src/compiler/AndroidXRCompiler';
-import { AndroidCompiler } from '../../packages/core/src/compiler/AndroidCompiler';
-import { IOSCompiler } from '../../packages/core/src/compiler/IOSCompiler';
-import { BabylonCompiler } from '../../packages/core/src/compiler/BabylonCompiler';
-import { WebGPUCompiler } from '../../packages/core/src/compiler/WebGPUCompiler';
-import { R3FCompiler } from '../../packages/core/src/compiler/R3FCompiler';
-import { PlayCanvasCompiler } from '../../packages/core/src/compiler/PlayCanvasCompiler';
-import { WASMCompiler } from '../../packages/core/src/compiler/WASMCompiler';
-import { URDFCompiler } from '../../packages/core/src/compiler/URDFCompiler';
-import { SDFCompiler } from '../../packages/core/src/compiler/SDFCompiler';
-import { DTDLCompiler } from '../../packages/core/src/compiler/DTDLCompiler';
+import {
+  HoloScriptPlusParser,
+  UnityCompiler,
+  UnrealCompiler,
+  GodotCompiler,
+  VRChatCompiler,
+  OpenXRCompiler,
+  VisionOSCompiler,
+  ARCompiler,
+  AndroidXRCompiler,
+  AndroidCompiler,
+  IOSCompiler,
+  BabylonCompiler,
+  WebGPUCompiler,
+  R3FCompiler,
+  PlayCanvasCompiler,
+  WASMCompiler,
+  URDFCompiler,
+  SDFCompiler,
+  DTDLCompiler,
+} from '@holoscript/core';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -127,7 +129,7 @@ async function main() {
   console.log(`\n📊 Found ${compositionFiles.length} compositions\n`);
 
   const allResults: BenchmarkResult[] = [];
-  const parser = new HoloCompositionParser();
+  const parser = new HoloScriptPlusParser();
 
   // Process each composition
   for (const file of compositionFiles) {

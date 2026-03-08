@@ -204,6 +204,36 @@ export const MATERIAL_PRESETS: Record<string, Record<string, any>> = {
     attenuationColor: '#661111',
     attenuationDistance: 0.3,
   },
+  // Dragon / creature material presets
+  bone: {
+    roughness: 0.35,
+    metalness: 0.15,
+    color: '#e8dcc8',
+  },
+  leather: {
+    roughness: 0.8,
+    metalness: 0.0,
+    color: '#5c3a21',
+  },
+  dragon_scale: {
+    roughness: 0.25,
+    metalness: 0.4,
+    color: '#1a0d3d',
+  },
+  obsidian: {
+    roughness: 0.05,
+    metalness: 0.1,
+    color: '#0d0d0d',
+    clearcoat: 0.9,
+    clearcoatRoughness: 0.1,
+  },
+  lava: {
+    roughness: 0.6,
+    metalness: 0.0,
+    color: '#ff4400',
+    emissive: '#ff2200',
+    emissiveIntensity: 2.0,
+  },
   skin_pale: {
     roughness: 0.55,
     metalness: 0.0,
