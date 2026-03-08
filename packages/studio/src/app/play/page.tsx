@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useCallback, useEffect, useMemo, Suspense } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, Suspense, type PointerEvent as ReactPointerEvent } from 'react';
 import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
 import {
   OrbitControls, GizmoHelper, GizmoViewport, Environment,
@@ -10,10 +10,43 @@ import {
   useGLTF,
 } from '@react-three/drei';
 import * as THREE from 'three';
+import { getProofOfPlayEngine, type ProofOfPlayStats } from './proofOfPlay';
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════
+
+type AnimationType = 'none' | 'spin' | 'bob' | 'pulse' | 'orbit';
+type ParticleType = 'none' | 'sparkles' | 'trail' | 'fire';
+
+interface SimulationConfig {
+  gravity: number;       // 0–20, default 9.81
+  wind: [number, number, number]; // directional force
+  friction: number;      // 0–1, default 0.35 (bounce damping)
+  timeScale: number;     // 0.1–3.0, default 1.0
+}
+
+const DEFAULT_SIM: SimulationConfig = {
+  gravity: 9.81,
+  wind: [0, 0, 0],
+  friction: 0.35,
+  timeScale: 1.0,
+};
+
+const ANIMATION_PRESETS: { id: AnimationType; label: string; emoji: string }[] = [
+  { id: 'none',  label: 'None',  emoji: '⏹️' },
+  { id: 'spin',  label: 'Spin',  emoji: '🔄' },
+  { id: 'bob',   label: 'Bob',   emoji: '🫧' },
+  { id: 'pulse', label: 'Pulse', emoji: '💓' },
+  { id: 'orbit', label: 'Orbit', emoji: '🪐' },
+];
+
+const PARTICLE_PRESETS: { id: ParticleType; label: string; emoji: string }[] = [
+  { id: 'none',     label: 'None',     emoji: '⏹️' },
+  { id: 'sparkles', label: 'Sparkles', emoji: '✨' },
+  { id: 'trail',    label: 'Trail',    emoji: '🌊' },
+  { id: 'fire',     label: 'Fire',     emoji: '🔥' },
+];
 
 interface SceneObject {
   id: string;
@@ -25,6 +58,8 @@ interface SceneObject {
   color: string;
   children?: CompoundChild[];
   velocity?: [number, number, number];
+  animation?: AnimationType;
+  particles?: ParticleType;
 }
 
 interface CompoundChild {
@@ -184,6 +219,10 @@ const SCENES: Record<string, { label: string; emoji: string; objects: Omit<Scene
       { type: 'snowman', label: 'Snowman', position: [6, 0.42, -4], rotation: [0, -0.5, 0], scale: [0.8, 0.8, 0.8], color: '#DFE6E9', children: COMPOUNDS.find(c => c.type === 'snowman')!.children },
     ],
   },
+  garden: {
+    label: 'Garden', emoji: '🥕',
+    objects: [],  // Garden uses its own interactive GardenScene component
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -245,35 +284,90 @@ const MODEL_SCALE_OVERRIDES: Record<string, number> = { dragon: 0.3 };
 function GLBModel({ type, isSelected, onClick }: { type: string; isSelected: boolean; onClick?: (e: ThreeEvent<MouseEvent>) => void }) {
   const { scene } = useGLTF(`/models/${type}.glb`);
   const modelScale = MODEL_SCALE_OVERRIDES[type] ?? 1;
+
+  // Clone scene once (only when the source scene changes)
   const cloned = useMemo(() => {
     const c = scene.clone(true);
-    // Traverse and update materials for selection highlight
     c.traverse((child: any) => {
       if (child.isMesh && child.material) {
         child.castShadow = true;
         child.receiveShadow = true;
-        // Clone materials so instances don't share state
         child.material = child.material.clone();
-        if (isSelected) {
-          child.material.emissive = new THREE.Color('#ffffff');
-          child.material.emissiveIntensity = 0.15;
-        }
       }
     });
     return c;
-  }, [scene, isSelected]);
+  }, [scene]);
+
+  // Apply selection highlight without recloning
+  useEffect(() => {
+    cloned.traverse((child: any) => {
+      if (child.isMesh && child.material) {
+        child.material.emissive = isSelected ? new THREE.Color('#ffffff') : new THREE.Color('#000000');
+        child.material.emissiveIntensity = isSelected ? 0.15 : 0;
+      }
+    });
+  }, [cloned, isSelected]);
 
   return <primitive object={cloned} scale={[modelScale, modelScale, modelScale]} onClick={onClick} />;
 }
 
 /** Renders an object — GLB model or primitive */
+/** Per-object particle effects */
+function ObjectParticles({ obj }: { obj: SceneObject }) {
+  if (obj.particles === 'none') return null;
+  const pos = obj.position;
+  if (obj.particles === 'sparkles') {
+    return <Sparkles count={30} size={4} scale={[2, 2, 2]} position={pos} speed={0.6} color="#FDCB6E" opacity={0.8} />;
+  }
+  if (obj.particles === 'trail') {
+    return <Sparkles count={50} size={2} scale={[1.5, 3, 1.5]} position={[pos[0], pos[1] + 0.5, pos[2]]} speed={1.5} color="#74B9FF" opacity={0.6} />;
+  }
+  if (obj.particles === 'fire') {
+    return (
+      <>
+        <pointLight position={pos} intensity={2} color="#FF6348" distance={5} />
+        <Sparkles count={40} size={3} scale={[1, 2, 1]} position={[pos[0], pos[1] + 0.8, pos[2]]} speed={2} color="#FF6348" opacity={0.9} />
+      </>
+    );
+  }
+  return null;
+}
+
 function ScenePrimitive({ obj, isSelected, onSelect }: { obj: SceneObject; isSelected: boolean; onSelect: (id: string) => void }) {
   const groupRef = useRef<THREE.Group>(null);
+  const spawnPos = useRef(obj.position);
 
-  // Gentle float animation
-  useFrame((state) => {
-    if (!groupRef.current || isSelected) return;
-    groupRef.current.position.y = obj.position[1] + Math.sin(state.clock.elapsedTime * 0.8 + obj.position[0]) * 0.04;
+  // Animation + gentle float
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    const anim = obj.animation || 'none';
+
+    switch (anim) {
+      case 'spin':
+        groupRef.current.rotation.y += delta * 1.5;
+        break;
+      case 'bob':
+        groupRef.current.position.y = obj.position[1] + Math.sin(t * 2) * 0.3;
+        break;
+      case 'pulse': {
+        const s = 1 + Math.sin(t * 3) * 0.15;
+        groupRef.current.scale.set(obj.scale[0] * s, obj.scale[1] * s, obj.scale[2] * s);
+        break;
+      }
+      case 'orbit': {
+        const radius = 1.5;
+        groupRef.current.position.x = spawnPos.current[0] + Math.cos(t * 0.8) * radius;
+        groupRef.current.position.z = spawnPos.current[2] + Math.sin(t * 0.8) * radius;
+        groupRef.current.rotation.y = t * 0.8;
+        break;
+      }
+      default:
+        if (!isSelected) {
+          groupRef.current.position.y = obj.position[1] + Math.sin(t * 0.8 + obj.position[0]) * 0.04;
+        }
+        break;
+    }
   });
 
   const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onSelect(obj.id); }, [obj.id, onSelect]);
@@ -283,6 +377,7 @@ function ScenePrimitive({ obj, isSelected, onSelect }: { obj: SceneObject; isSel
     return (
       <group ref={groupRef} position={obj.position} rotation={obj.rotation} scale={obj.scale}>
         <GLBModel type={obj.type} isSelected={isSelected} onClick={handleClick} />
+        <ObjectParticles obj={obj} />
       </group>
     );
   }
@@ -297,6 +392,7 @@ function ScenePrimitive({ obj, isSelected, onSelect }: { obj: SceneObject; isSel
             <RichMaterial color={child.color} isSelected={isSelected} emissive={child.emissive} emissiveIntensity={child.emissiveIntensity} metalness={child.metalness} roughness={child.roughness} />
           </mesh>
         ))}
+        <ObjectParticles obj={obj} />
       </group>
     );
   }
@@ -307,31 +403,56 @@ function ScenePrimitive({ obj, isSelected, onSelect }: { obj: SceneObject; isSel
         <PrimitiveGeometry type={obj.type} />
         <RichMaterial color={obj.color} isSelected={isSelected} />
       </mesh>
+      <ObjectParticles obj={obj} />
     </group>
   );
 }
 
 /** Physics object with gravity */
-function PhysicsObject({ obj, isSelected, onSelect, onUpdatePosition }: {
-  obj: SceneObject; isSelected: boolean; onSelect: (id: string) => void; onUpdatePosition: (id: string, y: number, vy: number) => void;
+function PhysicsObject({ obj, isSelected, onSelect, onUpdatePosition, simConfig }: {
+  obj: SceneObject; isSelected: boolean; onSelect: (id: string) => void; onUpdatePosition: (id: string, y: number, vy: number) => void; simConfig: SimulationConfig;
 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const velRef = useRef(obj.velocity?.[1] ?? 0);
-  const posRef = useRef(obj.position[1]);
+  const velRef = useRef<[number, number, number]>([
+    obj.velocity?.[0] ?? 0,
+    obj.velocity?.[1] ?? 0,
+    obj.velocity?.[2] ?? 0,
+  ]);
+  const posRef = useRef<[number, number, number]>([...obj.position]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (isSelected) return;
-    const dt = Math.min(delta, 0.05);
-    velRef.current -= 9.81 * dt;
-    posRef.current += velRef.current * dt;
+    const dt = Math.min(delta, 0.05) * simConfig.timeScale;
+    // Gravity
+    velRef.current[1] -= simConfig.gravity * dt;
+    // Wind force
+    velRef.current[0] += simConfig.wind[0] * dt * 0.5;
+    velRef.current[2] += simConfig.wind[2] * dt * 0.5;
+    // Integrate position
+    posRef.current[0] += velRef.current[0] * dt;
+    posRef.current[1] += velRef.current[1] * dt;
+    posRef.current[2] += velRef.current[2] * dt;
     const groundY = getGroundY(obj);
-    if (posRef.current <= groundY) {
-      posRef.current = groundY;
-      if (Math.abs(velRef.current) > 0.5) { velRef.current = -velRef.current * 0.35; playBounceSound(); }
-      else { velRef.current = 0; }
+    if (posRef.current[1] <= groundY) {
+      posRef.current[1] = groundY;
+      if (Math.abs(velRef.current[1]) > 0.5) { velRef.current[1] = -velRef.current[1] * simConfig.friction; playBounceSound(); }
+      else { velRef.current[1] = 0; }
+      // Ground friction on horizontal velocity
+      velRef.current[0] *= (1 - simConfig.friction * 0.5);
+      velRef.current[2] *= (1 - simConfig.friction * 0.5);
     }
-    if (groupRef.current) groupRef.current.position.y = posRef.current;
-    if (velRef.current === 0 && Math.abs(posRef.current - obj.position[1]) > 0.01) onUpdatePosition(obj.id, posRef.current, 0);
+    if (groupRef.current) {
+      groupRef.current.position.set(posRef.current[0], posRef.current[1], posRef.current[2]);
+      // Animation on physics objects
+      const anim = obj.animation || 'none';
+      const t = state.clock.elapsedTime;
+      if (anim === 'spin') groupRef.current.rotation.y += dt * 1.5;
+      else if (anim === 'pulse') {
+        const s = 1 + Math.sin(t * 3) * 0.15;
+        groupRef.current.scale.set(obj.scale[0] * s, obj.scale[1] * s, obj.scale[2] * s);
+      }
+    }
+    if (velRef.current[1] === 0 && Math.abs(posRef.current[1] - obj.position[1]) > 0.01) onUpdatePosition(obj.id, posRef.current[1], 0);
   });
 
   const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onSelect(obj.id); }, [obj.id, onSelect]);
@@ -339,8 +460,9 @@ function PhysicsObject({ obj, isSelected, onSelect, onUpdatePosition }: {
   // Use GLB model for compound types
   if (GLB_MODEL_TYPES.has(obj.type)) {
     return (
-      <group ref={groupRef} position={[obj.position[0], posRef.current, obj.position[2]]} rotation={obj.rotation} scale={obj.scale}>
+      <group ref={groupRef} position={[...obj.position]} rotation={obj.rotation} scale={obj.scale}>
         <GLBModel type={obj.type} isSelected={isSelected} onClick={handleClick} />
+        <ObjectParticles obj={obj} />
       </group>
     );
   }
@@ -348,22 +470,26 @@ function PhysicsObject({ obj, isSelected, onSelect, onUpdatePosition }: {
   // Fallback: inline children
   if (obj.children && obj.children.length > 0) {
     return (
-      <group ref={groupRef} position={[obj.position[0], posRef.current, obj.position[2]]} rotation={obj.rotation} scale={obj.scale} onClick={handleClick}>
+      <group ref={groupRef} position={[...obj.position]} rotation={obj.rotation} scale={obj.scale} onClick={handleClick}>
         {obj.children.map((child, i) => (
           <mesh key={i} position={child.offset} scale={child.scale} castShadow receiveShadow>
             <PrimitiveGeometry type={child.type} />
             <RichMaterial color={child.color} isSelected={isSelected} emissive={child.emissive} emissiveIntensity={child.emissiveIntensity} metalness={child.metalness} roughness={child.roughness} />
           </mesh>
         ))}
+        <ObjectParticles obj={obj} />
       </group>
     );
   }
 
   return (
-    <mesh ref={groupRef as any} position={[obj.position[0], posRef.current, obj.position[2]]} rotation={obj.rotation} scale={obj.scale} onClick={handleClick} castShadow receiveShadow>
-      <PrimitiveGeometry type={obj.type} />
-      <RichMaterial color={obj.color} isSelected={isSelected} />
-    </mesh>
+    <group ref={groupRef} position={[...obj.position]} rotation={obj.rotation} scale={obj.scale}>
+      <mesh onClick={handleClick} castShadow receiveShadow>
+        <PrimitiveGeometry type={obj.type} />
+        <RichMaterial color={obj.color} isSelected={isSelected} />
+      </mesh>
+      <ObjectParticles obj={obj} />
+    </group>
   );
 }
 
@@ -386,11 +512,29 @@ function getGroundY(obj: SceneObject): number {
 /** Ground plane */
 function StylizedGround({ onPlace, lightingId }: { onPlace: (p: THREE.Vector3) => void; lightingId: string }) {
   const isNeon = lightingId === 'neon';
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+
+  const handlePointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    // Only place if pointer didn't move much (click, not drag/orbit)
+    if (pointerDownPos.current) {
+      const dx = e.clientX - pointerDownPos.current.x;
+      const dy = e.clientY - pointerDownPos.current.y;
+      if (dx * dx + dy * dy > 25) return; // >5px = drag, skip
+    }
+    onPlace(e.point);
+  }, [onPlace]);
+
   return (
     <group>
       {/* Clickable invisible plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow
-        onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onPlace(e.point); }}>
+        onPointerDown={handlePointerDown}
+        onClick={handleClick}>
         <planeGeometry args={[50, 50]} />
         <meshStandardMaterial transparent opacity={0} />
       </mesh>
@@ -427,9 +571,17 @@ function SelectedTransform({ obj, mode, onUpdate, orbitRef }: {
     return () => { c.removeEventListener('change', onChange); c.removeEventListener('dragging-changed', onDrag); };
   }, [obj.id, onUpdate, orbitRef]);
 
+  // Zero out the child's transform — TransformControls handles positioning
+  const localObj = useMemo(() => ({
+    ...obj,
+    position: [0, 0, 0] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number],
+    scale: [1, 1, 1] as [number, number, number],
+  }), [obj]);
+
   return (
     <TransformControls ref={ref} mode={mode} position={obj.position} rotation={obj.rotation} scale={obj.scale} size={0.8}>
-      <ScenePrimitive obj={obj} isSelected={true} onSelect={() => {}} />
+      <ScenePrimitive obj={localObj} isSelected={true} onSelect={() => {}} />
     </TransformControls>
   );
 }
@@ -444,21 +596,411 @@ function NeonLights() {
     </>
   );
 }
+// ═══════════════════════════════════════════════════════════════════
+// Garden Demo — Interactive Showcase
+// ═══════════════════════════════════════════════════════════════════
+
+type GrowthStage = 'seed' | 'sprout' | 'growing' | 'ready' | 'withering' | 'dead' | 'washing';
+type GardenTool = 'river' | 'seed';
+const GROWTH_DURATION = 3; // seconds per stage
+const WATER_RADIUS = 3.0; // max distance from river centre for healthy growth
+const WASH_RADIUS = 1.0;  // too close — washes away
+const WITHER_TIME = 6;    // seconds until a dry seed dies
+
+interface GardenSeed {
+  id: string;
+  position: [number, number, number];
+  stage: GrowthStage;
+  stageTime: number;
+  waterDist: number; // cached distance to river
+}
+
+/** Animated flowing water river */
+function WaterRiver({ position }: { position: [number, number, number] }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    const t = state.clock.elapsedTime;
+    const geo = meshRef.current.geometry;
+    const posAttr = geo.getAttribute('position');
+    for (let i = 0; i < posAttr.count; i++) {
+      const x = posAttr.getX(i);
+      const z = posAttr.getZ(i);
+      posAttr.setY(i, Math.sin(x * 2 + t * 1.5) * 0.06 + Math.sin(z * 3 + t * 2) * 0.04);
+    }
+    posAttr.needsUpdate = true;
+  });
+  return (
+    <group position={position}>
+      {/* River bed (dark earth underneath) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
+        <planeGeometry args={[3.5, 18]} />
+        <meshStandardMaterial color="#3E2723" roughness={0.95} />
+      </mesh>
+      {/* River bank (gradient dirt edge) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
+        <planeGeometry args={[4.5, 20]} />
+        <meshStandardMaterial color="#795548" roughness={0.9} />
+      </mesh>
+      {/* Main water surface */}
+      <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
+        <planeGeometry args={[2.5, 16, 24, 24]} />
+        <meshStandardMaterial color="#1E88E5" transparent opacity={0.75} roughness={0.05} metalness={0.4} />
+      </mesh>
+      {/* Shallow water shimmer */}
+      <Sparkles count={40} size={2.5} scale={[3, 0.5, 16]} speed={0.5} color="#90CAF9" opacity={0.5} position={[0, 0.08, 0]} />
+      {/* Bank stones — more and varied */}
+      {[
+        [-1.8, 0.08, -5], [-1.6, 0.06, -2], [-1.9, 0.1, 1], [-1.5, 0.07, 3.5], [-1.7, 0.09, 6],
+        [1.8, 0.1, -4], [1.6, 0.08, -1], [1.9, 0.07, 2], [1.5, 0.09, 5], [1.7, 0.06, 7],
+      ].map((p, i) => (
+        <mesh key={i} position={p as [number, number, number]} castShadow>
+          <sphereGeometry args={[0.1 + (i % 3) * 0.05, 8, 6]} />
+          <meshStandardMaterial color={i % 2 === 0 ? '#78909C' : '#90A4AE'} roughness={0.85} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** A single seed/plant with proximity-based behaviour */
+function GardenPlant({ seed, onUpdate, onHarvest }: {
+  seed: GardenSeed;
+  onUpdate: (id: string, patch: Partial<GardenSeed>) => void;
+  onHarvest: () => void;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    const { stage, stageTime, waterDist } = seed;
+    const nextTime = stageTime + delta;
+
+    // Washing-away animation: shrink and disappear
+    if (stage === 'washing') {
+      if (groupRef.current) {
+        const s = Math.max(0, 1 - nextTime * 2);
+        groupRef.current.scale.setScalar(s);
+        groupRef.current.position.y = seed.position[1] - nextTime * 0.3;
+      }
+      if (nextTime > 0.8) onUpdate(seed.id, { stage: 'dead', stageTime: 0 });
+      else onUpdate(seed.id, { stageTime: nextTime });
+      return;
+    }
+
+    // Dead seeds don't animate
+    if (stage === 'dead') return;
+
+    // Withering: far from water
+    if (waterDist > WATER_RADIUS) {
+      if (stage !== 'withering' && stage !== 'dead') {
+        onUpdate(seed.id, { stage: 'withering', stageTime: 0 });
+        return;
+      }
+      if (stage === 'withering' && nextTime > WITHER_TIME) {
+        onUpdate(seed.id, { stage: 'dead', stageTime: 0 });
+        return;
+      }
+      onUpdate(seed.id, { stageTime: nextTime });
+      // Droop animation
+      if (groupRef.current) {
+        groupRef.current.rotation.z = Math.sin(nextTime) * 0.1 + (nextTime / WITHER_TIME) * 0.4;
+      }
+      return;
+    }
+
+    // Too close: wash away
+    if (waterDist < WASH_RADIUS) {
+      if (stage !== 'washing' && stage !== 'dead') {
+        onUpdate(seed.id, { stage: 'washing', stageTime: 0 });
+        return;
+      }
+    }
+
+    // Healthy growth
+    if (stage !== 'ready') {
+      if (nextTime >= GROWTH_DURATION) {
+        const nextStages: Record<string, GrowthStage> = { seed: 'sprout', sprout: 'growing', growing: 'ready' };
+        const nextStage = nextStages[stage];
+        if (nextStage) {
+          // ★ Proof-of-Play: run a compute job on each stage transition
+          getProofOfPlayEngine().runStageJob(stage);
+        }
+        onUpdate(seed.id, { stage: nextStage || stage, stageTime: 0 });
+      } else {
+        onUpdate(seed.id, { stageTime: nextTime });
+      }
+    }
+
+    // Gentle sway
+    if (groupRef.current && stage !== 'seed') {
+      groupRef.current.rotation.z = Math.sin(stageTime * 2) * 0.05;
+    }
+  });
+
+  const progress = seed.stageTime / GROWTH_DURATION;
+  const { stage } = seed;
+
+  const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    if (stage === 'ready') {
+      // ★ Proof-of-Play: run a harvest benchmark job
+      getProofOfPlayEngine().runStageJob('ready');
+      onHarvest();
+      onUpdate(seed.id, { stage: 'dead', stageTime: 0 });
+    }
+  }, [stage, seed.id, onHarvest, onUpdate]);
+
+  if (stage === 'dead') return null;
+
+  const witherTint = stage === 'withering' ? Math.min(seed.stageTime / WITHER_TIME, 1) : 0;
+
+  return (
+    <group ref={groupRef} position={seed.position} onClick={handleClick}>
+      {/* Soil disc */}
+      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.35, 16]} />
+        <meshStandardMaterial color={stage === 'withering' ? `rgb(${93 + witherTint * 50}, ${64 - witherTint * 20}, ${55 - witherTint * 20})` : '#5D4037'} roughness={0.9} />
+      </mesh>
+
+      {stage === 'seed' && (
+        <mesh position={[0, 0.08, 0]} castShadow>
+          <sphereGeometry args={[0.08, 12, 12]} />
+          <meshStandardMaterial color="#8D6E63" roughness={0.8} />
+        </mesh>
+      )}
+
+      {(stage === 'sprout' || stage === 'withering') && (
+        <group>
+          <mesh position={[0, 0.05 + progress * 0.15, 0]} castShadow>
+            <cylinderGeometry args={[0.02, 0.025, 0.1 + progress * 0.3, 8]} />
+            <meshStandardMaterial color={witherTint > 0.3 ? '#9E8B60' : '#27AE60'} roughness={0.6} />
+          </mesh>
+          <mesh position={[0.04, 0.15 + progress * 0.1, 0]} rotation={[0, 0, 0.4]} castShadow>
+            <sphereGeometry args={[0.04, 8, 8]} />
+            <meshStandardMaterial color={witherTint > 0.3 ? '#B8A060' : '#2ECC71'} roughness={0.5} />
+          </mesh>
+          {witherTint > 0.5 && (
+            <Sparkles count={8} size={2} scale={[0.6, 0.4, 0.6]} position={[0, 0.2, 0]} speed={0.3} color="#8B6914" opacity={0.5} />
+          )}
+        </group>
+      )}
+
+      {stage === 'growing' && (
+        <group>
+          <mesh position={[0, 0.2 + progress * 0.1, 0]} castShadow>
+            <cylinderGeometry args={[0.025, 0.03, 0.4 + progress * 0.2, 8]} />
+            <meshStandardMaterial color="#27AE60" roughness={0.6} />
+          </mesh>
+          {[0, 1.2, 2.4, 3.6, 4.8].map((angle, i) => (
+            <mesh key={i} position={[Math.cos(angle) * 0.08, 0.35 + progress * 0.1, Math.sin(angle) * 0.08]} rotation={[0.3, angle, 0.5]} castShadow>
+              <coneGeometry args={[0.03, 0.12, 4]} />
+              <meshStandardMaterial color="#2ECC71" roughness={0.5} />
+            </mesh>
+          ))}
+          <mesh position={[0, 0.05, 0]} castShadow>
+            <coneGeometry args={[0.06, 0.15 * (0.5 + progress * 0.5), 8]} />
+            <meshStandardMaterial color="#E67E22" roughness={0.4} />
+          </mesh>
+          {/* Water drops near river */}
+          <Sparkles count={6} size={2} scale={[0.5, 0.8, 0.5]} position={[0, 0.2, 0]} speed={0.5} color="#74B9FF" opacity={0.4} />
+        </group>
+      )}
+
+      {stage === 'ready' && (
+        <group>
+          <mesh position={[0, 0.15, 0]} castShadow>
+            <coneGeometry args={[0.1, 0.4, 12]} />
+            <meshStandardMaterial color="#E67E22" roughness={0.35} emissive="#E67E22" emissiveIntensity={0.15} />
+          </mesh>
+          <mesh position={[0, 0.38, 0]} castShadow>
+            <cylinderGeometry args={[0.03, 0.01, 0.06, 6]} />
+            <meshStandardMaterial color="#27AE60" roughness={0.5} />
+          </mesh>
+          {[0, 1.2, 2.4, 3.6, 4.8].map((angle, i) => (
+            <mesh key={i} position={[Math.cos(angle) * 0.06, 0.42, Math.sin(angle) * 0.06]} rotation={[0.4 + Math.sin(angle) * 0.2, angle, 0.6]} castShadow>
+              <coneGeometry args={[0.025, 0.15, 4]} />
+              <meshStandardMaterial color="#2ECC71" roughness={0.4} />
+            </mesh>
+          ))}
+          <Sparkles count={15} size={3} scale={[0.8, 1, 0.8]} position={[0, 0.3, 0]} speed={0.8} color="#FDCB6E" opacity={0.7} />
+          <pointLight position={[0, 0.3, 0]} intensity={0.5} color="#FDCB6E" distance={2} />
+        </group>
+      )}
+
+      {stage === 'washing' && (
+        <mesh position={[0, 0.06, 0]} castShadow>
+          <sphereGeometry args={[0.07, 8, 8]} />
+          <meshStandardMaterial color="#5D8AA8" transparent opacity={0.5} roughness={0.3} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+/** Self-contained interactive Garden scene */
+function GardenScene({ onHarvest, onStatsUpdate }: { onHarvest: () => void; onStatsUpdate: (stats: ProofOfPlayStats) => void }) {
+  const [gardenTool, setGardenTool] = useState<GardenTool>('river');
+  const [riverPos, setRiverPos] = useState<[number, number, number] | null>(null);
+  const [seeds, setSeeds] = useState<GardenSeed[]>([]);
+
+  // Distance from a point to the river axis (XZ plane)
+  const distToRiver = useCallback((pos: [number, number, number]) => {
+    if (!riverPos) return Infinity;
+    const dx = pos[0] - riverPos[0];
+    // River runs along Z axis, so only X distance matters for "nearness"
+    return Math.abs(dx);
+  }, [riverPos]);
+
+  const handleGroundClick = useCallback((e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    const p = e.point;
+    if (gardenTool === 'river') {
+      setRiverPos([Math.round(p.x * 2) / 2, 0.03, Math.round(p.z * 2) / 2]);
+      setGardenTool('seed');
+      // Recalculate water distance for existing seeds
+      setSeeds(prev => prev.map(s => {
+        const dx = Math.abs(s.position[0] - Math.round(p.x * 2) / 2);
+        return { ...s, waterDist: dx };
+      }));
+    } else {
+      const pos: [number, number, number] = [Math.round(p.x * 4) / 4, 0.01, Math.round(p.z * 4) / 4];
+      const wd = distToRiver(pos);
+      const newSeed: GardenSeed = {
+        id: `seed-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+        position: pos,
+        stage: wd < WASH_RADIUS ? 'washing' : 'seed',
+        stageTime: 0,
+        waterDist: wd,
+      };
+      setSeeds(prev => [...prev, newSeed]);
+    }
+  }, [gardenTool, distToRiver]);
+
+  const updateSeed = useCallback((id: string, patch: Partial<GardenSeed>) => {
+    setSeeds(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
+  }, []);
+
+  // Clean up dead seeds after a delay
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeeds(prev => prev.filter(s => s.stage !== 'dead'));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Poll proof-of-play stats and report upstream
+  useEffect(() => {
+    const poll = setInterval(() => {
+      onStatsUpdate(getProofOfPlayEngine().getStats());
+    }, 1000);
+    return () => clearInterval(poll);
+  }, [onStatsUpdate]);
+
+  return (
+    <group>
+      {/* === GREEN GRASS GROUND === */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.005, 0]} receiveShadow
+        onClick={handleGroundClick}>
+        <planeGeometry args={[60, 60]} />
+        <meshStandardMaterial color="#4CAF50" roughness={0.9} metalness={0} />
+      </mesh>
+      {/* Darker grass patches for natural variation */}
+      {[[-5, -5], [3, -8], [-8, 4], [7, 2], [-3, 7], [10, -3], [-10, -8]].map(([x, z], i) => (
+        <mesh key={`gp-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.001, z]} receiveShadow>
+          <circleGeometry args={[1.5 + i * 0.3, 16]} />
+          <meshStandardMaterial color={i % 2 === 0 ? '#388E3C' : '#66BB6A'} roughness={0.95} />
+        </mesh>
+      ))}
+      {/* Grass tufts (small cone clusters) */}
+      {Array.from({ length: 25 }, (_, i) => {
+        const gx = (Math.sin(i * 7.3) * 12);
+        const gz = (Math.cos(i * 5.1) * 12);
+        return (
+          <mesh key={`tuft-${i}`} position={[gx, 0.08, gz]} castShadow>
+            <coneGeometry args={[0.08, 0.2, 4]} />
+            <meshStandardMaterial color={i % 3 === 0 ? '#2E7D32' : '#43A047'} roughness={0.7} />
+          </mesh>
+        );
+      })}
+      {/* Small flower dots */}
+      {Array.from({ length: 12 }, (_, i) => {
+        const fx = Math.sin(i * 4.7) * 10 + Math.cos(i * 2.3) * 3;
+        const fz = Math.cos(i * 3.1) * 10 + Math.sin(i * 1.9) * 3;
+        const colors = ['#FFEB3B', '#E91E63', '#9C27B0', '#FF9800', '#FFFFFF'];
+        return (
+          <mesh key={`flower-${i}`} position={[fx, 0.06, fz]}>
+            <sphereGeometry args={[0.04, 6, 6]} />
+            <meshStandardMaterial color={colors[i % colors.length]} emissive={colors[i % colors.length]} emissiveIntensity={0.3} />
+          </mesh>
+        );
+      })}
+
+      {/* River — placed by user */}
+      {riverPos && <WaterRiver position={riverPos} />}
+
+      {/* Water radius indicator (subtle ring on grass) */}
+      {riverPos && (
+        <mesh position={[riverPos[0], 0.006, riverPos[2]]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[WATER_RADIUS - 0.05, WATER_RADIUS + 0.05, 64]} />
+          <meshBasicMaterial color="#81D4FA" transparent opacity={0.15} />
+        </mesh>
+      )}
+
+      {/* All seeds/plants */}
+      {seeds.map(s => (
+        <GardenPlant key={s.id} seed={s} onUpdate={updateSeed} onHarvest={onHarvest} />
+      ))}
+
+      {/* Decorative trees — more of them */}
+      {[
+        [-6, 0, -2], [8, 0, -7], [-9, 0, 5], [11, 0, 3], [-4, 0, 8],
+        [6, 0, 8], [-11, 0, -6], [9, 0, -1],
+      ].map(([x, y, z], i) => (
+        <group key={`tree-${i}`} position={[x, y, z]}>
+          <mesh position={[0, 0.4 + i * 0.05, 0]} castShadow>
+            <cylinderGeometry args={[0.12 + i * 0.01, 0.18 + i * 0.01, 0.8 + i * 0.1, 8]} />
+            <meshStandardMaterial color="#6D4C41" roughness={0.85} />
+          </mesh>
+          <mesh position={[0, 1.0 + i * 0.1, 0]} castShadow>
+            <coneGeometry args={[0.6 + i * 0.05, 1.2 + i * 0.1, 8]} />
+            <meshStandardMaterial color={i % 2 === 0 ? '#2E7D32' : '#388E3C'} roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Sun warmth light */}
+      <pointLight position={[0, 6, 0]} intensity={0.5} color="#FFF9C4" distance={20} />
+
+      {/* Garden tool HUD */}
+      <GardenToolHUD tool={gardenTool} setTool={setGardenTool} hasRiver={!!riverPos} seedCount={seeds.filter(s => s.stage !== 'dead').length} />
+    </group>
+  );
+}
+
+/** Garden tool indicator (positioned in 3D above the action area) */
+function GardenToolHUD({ tool, setTool, hasRiver, seedCount }: {
+  tool: GardenTool; setTool: (t: GardenTool) => void; hasRiver: boolean; seedCount: number;
+}) {
+  // We render this via the parent's HTML overlay, so this is a no-op in 3D
+  // The actual HUD is rendered by the PlayPage gardenActive check
+  return null;
+}
 
 /** The main 3D scene */
-function SceneContent({ objects, selectedId, transformMode, lighting, physicsEnabled, onSelect, onPlace, onUpdateTransform, onUpdatePhysicsPos, orbitRef }: {
+function SceneContent({ objects, selectedId, transformMode, lighting, physicsEnabled, simConfig, gardenActive, onSelect, onPlace, onUpdateTransform, onUpdatePhysicsPos, onGardenHarvest, onStatsUpdate, orbitRef }: {
   objects: SceneObject[]; selectedId: string | null; transformMode: 'translate' | 'rotate' | 'scale';
-  lighting: typeof LIGHTING_PRESETS[number]; physicsEnabled: boolean;
+  lighting: typeof LIGHTING_PRESETS[number]; physicsEnabled: boolean; simConfig: SimulationConfig;
+  gardenActive: boolean;
   onSelect: (id: string | null) => void; onPlace: (point: THREE.Vector3) => void;
   onUpdateTransform: (id: string, pos: [number, number, number], rot: [number, number, number], scl: [number, number, number]) => void;
-  onUpdatePhysicsPos: (id: string, y: number, vy: number) => void; orbitRef: React.RefObject<any>;
+  onUpdatePhysicsPos: (id: string, y: number, vy: number) => void; onGardenHarvest: () => void; onStatsUpdate: (stats: ProofOfPlayStats) => void; orbitRef: React.RefObject<any>;
 }) {
   return (
     <>
       {/* === LIGHTING === */}
       <ambientLight intensity={lighting.ambI} />
       <directionalLight position={[8, 12, 5]} intensity={lighting.dirI} castShadow
-        shadow-mapSize-width={2048} shadow-mapSize-height={2048}
+        shadow-mapSize-width={4096} shadow-mapSize-height={4096}
         shadow-camera-far={50} shadow-camera-left={-15} shadow-camera-right={15}
         shadow-camera-top={15} shadow-camera-bottom={-15} />
       <hemisphereLight intensity={0.3} color="#74B9FF" groundColor="#E17055" />
@@ -488,17 +1030,17 @@ function SceneContent({ objects, selectedId, transformMode, lighting, physicsEna
       {/* === GROUND === */}
       <StylizedGround onPlace={onPlace} lightingId={lighting.id} />
 
-      {/* Deselect on background click */}
-      <mesh visible={false} position={[0, 10, 0]} onClick={() => onSelect(null)}>
-        <sphereGeometry args={[100]} />
-      </mesh>
+      {/* Deselect handled via ground click in handlePlace */}
 
       {/* === OBJECTS === */}
       {objects.map(obj => {
         if (obj.id === selectedId) return <SelectedTransform key={obj.id} obj={obj} mode={transformMode} onUpdate={onUpdateTransform} orbitRef={orbitRef} />;
-        if (physicsEnabled) return <PhysicsObject key={obj.id} obj={obj} isSelected={false} onSelect={onSelect} onUpdatePosition={onUpdatePhysicsPos} />;
+        if (physicsEnabled) return <PhysicsObject key={obj.id} obj={obj} isSelected={false} onSelect={onSelect} onUpdatePosition={onUpdatePhysicsPos} simConfig={simConfig} />;
         return <ScenePrimitive key={obj.id} obj={obj} isSelected={false} onSelect={onSelect} />;
       })}
+
+      {/* === GARDEN DEMO === */}
+      {gardenActive && <GardenScene onHarvest={onGardenHarvest} onStatsUpdate={onStatsUpdate} />}
 
       {/* === CONTROLS === */}
       <OrbitControls ref={orbitRef} makeDefault maxPolarAngle={Math.PI / 2.05} minDistance={2} maxDistance={30} target={[0, 0, 0]} enableDamping dampingFactor={0.05} />
@@ -521,6 +1063,11 @@ export default function PlayPage() {
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
   const [lightingIdx, setLightingIdx] = useState(0);
   const [physicsEnabled, setPhysicsEnabled] = useState(false);
+  const [simConfig, setSimConfig] = useState<SimulationConfig>({ ...DEFAULT_SIM });
+  const [simPanelOpen, setSimPanelOpen] = useState(false);
+  const [gardenActive, setGardenActive] = useState(false);
+  const [harvestCount, setHarvestCount] = useState(0);
+  const [computeStats, setComputeStats] = useState<ProofOfPlayStats | null>(null);
   const orbitRef = useRef<any>(null);
 
   const selectedObj = selectedId ? objects.find(o => o.id === selectedId) : null;
@@ -537,6 +1084,8 @@ export default function PlayPage() {
       rotation: [0, 0, 0], scale: [1, 1, 1], color: activeColor,
       children: compound?.children,
       velocity: physicsEnabled ? [0, 0, 0] : undefined,
+      animation: 'none',
+      particles: 'none',
     };
     setObjects(prev => [...prev, newObj]);
     setSelectedId(newObj.id);
@@ -561,8 +1110,25 @@ export default function PlayPage() {
       return { ...o, color };
     }));
   }, [selectedId]);
-  const loadScene = useCallback((sceneId: string) => { const s = SCENES[sceneId]; if (!s) return; setObjects(s.objects.map((o, i) => ({ ...o, id: `s-${sceneId}-${i}-${Date.now()}` }))); setSelectedId(null); }, []);
+  const loadScene = useCallback((sceneId: string) => {
+    const s = SCENES[sceneId]; if (!s) return;
+    if (sceneId === 'garden') {
+      setGardenActive(true); setObjects([]); setSelectedId(null); setHarvestCount(0); setLightingIdx(1); // Day lighting
+      return;
+    }
+    setGardenActive(false);
+    setObjects(s.objects.map((o, i) => ({ ...o, id: `s-${sceneId}-${i}-${Date.now()}`, animation: 'none' as AnimationType, particles: 'none' as ParticleType })));
+    setSelectedId(null);
+  }, []);
   const clearAll = useCallback(() => { if (objects.length === 0) return; playDeleteSound(); setObjects([]); setSelectedId(null); }, [objects.length]);
+  const setAnimation = useCallback((anim: AnimationType) => {
+    if (!selectedId) return;
+    setObjects(prev => prev.map(o => o.id === selectedId ? { ...o, animation: anim } : o));
+  }, [selectedId]);
+  const setParticles = useCallback((p: ParticleType) => {
+    if (!selectedId) return;
+    setObjects(prev => prev.map(o => o.id === selectedId ? { ...o, particles: p } : o));
+  }, [selectedId]);
   const togglePhysics = useCallback(() => {
     setPhysicsEnabled(prev => {
       if (!prev) setObjects(objs => objs.map(o => ({ ...o, position: [o.position[0], o.position[1] + 0.1, o.position[2]] as [number, number, number], velocity: [0, 0, 0] as [number, number, number] })));
@@ -570,9 +1136,9 @@ export default function PlayPage() {
     });
   }, []);
   const exportScene = useCallback(() => {
-    const data = { version: 1, objects: objects.map(({ id, ...r }) => r), lighting: lighting.id };
+    const data = { version: 2, objects: objects.map(({ id, ...r }) => r), lighting: lighting.id, simulation: simConfig };
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-  }, [objects, lighting]);
+  }, [objects, lighting, simConfig]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -640,14 +1206,17 @@ export default function PlayPage() {
         </aside>
 
         <main className="play-canvas-3d">
-          <Canvas shadows camera={{ position: [6, 5, 8], fov: 50 }}
+          <Canvas shadows dpr={[1, 2]} camera={{ position: [6, 5, 8], fov: 50 }}
             gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2 }}
             style={{ background: lighting.bgGradient }}>
             <Suspense fallback={null}>
               <SceneContent objects={objects} selectedId={selectedId} transformMode={transformMode}
-                lighting={lighting} physicsEnabled={physicsEnabled}
+                lighting={lighting} physicsEnabled={physicsEnabled} simConfig={simConfig}
+                gardenActive={gardenActive}
                 onSelect={setSelectedId} onPlace={handlePlace}
                 onUpdateTransform={handleUpdateTransform} onUpdatePhysicsPos={handleUpdatePhysicsPos}
+                onGardenHarvest={() => { setHarvestCount(c => c + 1); playPlaceSound(); }}
+                onStatsUpdate={setComputeStats}
                 orbitRef={orbitRef} />
             </Suspense>
           </Canvas>
@@ -656,6 +1225,16 @@ export default function PlayPage() {
               <span className="play-hint-emoji">👆</span>
               <span>Click the ground to place a shape!</span>
               <span className="play-hint-sub">Or load a scene from the left panel</span>
+            </div>
+          )}
+          {gardenActive && (
+            <div className="play-garden-hud">
+              <span>🥕 Garden</span>
+              <span className="play-garden-counter">🌾 {harvestCount}</span>
+              {computeStats && computeStats.totalJobs > 0 && (
+                <span className="play-garden-gold">🪙 {computeStats.ecosystemValue.toFixed(0)} gold • {computeStats.totalJobs} jobs</span>
+              )}
+              <span className="play-garden-hint">① Place river 💧 ② Plant seeds 🌱 Growth fuels the ecosystem!</span>
             </div>
           )}
         </main>
@@ -678,6 +1257,26 @@ export default function PlayPage() {
                   style={{ background: c }} onClick={() => paintSelected(c)} />
               ))}
             </div>
+            <div className="play-toolbar-label" style={{ marginTop: 12 }}>ANIMATION</div>
+            <div className="play-anim-picker">
+              {ANIMATION_PRESETS.map(a => (
+                <button key={a.id} className={`play-anim-btn ${selectedObj.animation === a.id ? 'active' : ''}`}
+                  onClick={() => setAnimation(a.id)} title={a.label}>
+                  <span>{a.emoji}</span>
+                  <span className="play-anim-btn-label">{a.label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="play-toolbar-label" style={{ marginTop: 12 }}>PARTICLES</div>
+            <div className="play-anim-picker">
+              {PARTICLE_PRESETS.map(p => (
+                <button key={p.id} className={`play-anim-btn ${selectedObj.particles === p.id ? 'active' : ''}`}
+                  onClick={() => setParticles(p.id)} title={p.label}>
+                  <span>{p.emoji}</span>
+                  <span className="play-anim-btn-label">{p.label}</span>
+                </button>
+              ))}
+            </div>
             <div className="play-prop-actions">
               <button className="play-action-btn" onClick={duplicateSelected}>📋 Duplicate</button>
               <button className="play-action-btn play-delete-btn" onClick={deleteSelected}>🗑️ Delete</button>
@@ -697,6 +1296,7 @@ export default function PlayPage() {
         <div className="play-footer-hints">
           <span>🖱️ Click to place</span>
           <span>P Physics</span>
+          <button className={`play-sim-toggle ${simPanelOpen ? 'active' : ''}`} onClick={() => setSimPanelOpen(v => !v)}>⚙️ Simulation</button>
         </div>
         <div className="play-footer-actions">
           <button className="play-action-btn" onClick={exportScene} disabled={objects.length === 0}>📤 Export</button>
@@ -704,6 +1304,48 @@ export default function PlayPage() {
           <button className="play-action-btn" onClick={clearAll} disabled={objects.length === 0}>🗑️ Clear</button>
         </div>
       </footer>
+
+      {/* ── Simulation Panel (overlay, bottom-left) ── */}
+      {simPanelOpen && (
+        <div className="play-sim-panel">
+          <div className="play-sim-header">
+            <span>⚙️ Simulation</span>
+            <button className="play-sim-close" onClick={() => setSimPanelOpen(false)}>✕</button>
+          </div>
+          <label className="play-sim-row">
+            <span>Gravity</span>
+            <input type="range" min={0} max={20} step={0.1} value={simConfig.gravity}
+              onChange={e => setSimConfig(s => ({ ...s, gravity: +e.target.value }))} />
+            <span className="play-sim-val">{simConfig.gravity.toFixed(1)}</span>
+          </label>
+          <label className="play-sim-row">
+            <span>Wind X</span>
+            <input type="range" min={-5} max={5} step={0.1} value={simConfig.wind[0]}
+              onChange={e => setSimConfig(s => ({ ...s, wind: [+e.target.value, s.wind[1], s.wind[2]] }))} />
+            <span className="play-sim-val">{simConfig.wind[0].toFixed(1)}</span>
+          </label>
+          <label className="play-sim-row">
+            <span>Wind Z</span>
+            <input type="range" min={-5} max={5} step={0.1} value={simConfig.wind[2]}
+              onChange={e => setSimConfig(s => ({ ...s, wind: [s.wind[0], s.wind[1], +e.target.value] }))} />
+            <span className="play-sim-val">{simConfig.wind[2].toFixed(1)}</span>
+          </label>
+          <label className="play-sim-row">
+            <span>Friction</span>
+            <input type="range" min={0} max={1} step={0.01} value={simConfig.friction}
+              onChange={e => setSimConfig(s => ({ ...s, friction: +e.target.value }))} />
+            <span className="play-sim-val">{simConfig.friction.toFixed(2)}</span>
+          </label>
+          <label className="play-sim-row">
+            <span>Time Scale</span>
+            <input type="range" min={0.1} max={3} step={0.1} value={simConfig.timeScale}
+              onChange={e => setSimConfig(s => ({ ...s, timeScale: +e.target.value }))} />
+            <span className="play-sim-val">{simConfig.timeScale.toFixed(1)}×</span>
+          </label>
+          <button className="play-action-btn" style={{ marginTop: 8, width: '100%' }}
+            onClick={() => setSimConfig({ ...DEFAULT_SIM })}>🔄 Reset Defaults</button>
+        </div>
+      )}
     </div>
   );
 }

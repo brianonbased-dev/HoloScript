@@ -1446,3 +1446,227 @@ pre,
   .play-physics-toggle { font-size: 0.65rem; padding: 3px 8px; }
 }
 
+/* ── Animation & Particle Pickers ── */
+.play-anim-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.play-anim-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex: 1;
+  min-width: 0;
+}
+
+.play-anim-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.play-anim-btn.active {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #c4b5fd;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.15);
+}
+
+.play-anim-btn-label {
+  font-size: 0.45rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1;
+}
+
+.play-anim-btn.active .play-anim-btn-label {
+  color: rgba(196, 181, 253, 0.7);
+}
+
+/* ── Simulation Toggle (Footer) ── */
+.play-sim-toggle {
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.play-sim-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.play-sim-toggle.active {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+}
+
+/* ── Simulation Panel (Overlay) ── */
+.play-sim-panel {
+  position: fixed;
+  bottom: 56px;
+  left: 94px;
+  width: 260px;
+  padding: 14px;
+  background: rgba(10, 10, 30, 0.92);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px;
+  z-index: 20;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(139, 92, 246, 0.08);
+  animation: play-sim-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes play-sim-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.play-sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #c4b5fd;
+}
+
+.play-sim-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.play-sim-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.play-sim-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.play-sim-row > span:first-child {
+  width: 60px;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.play-sim-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.play-sim-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  border: 2px solid #c4b5fd;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
+  transition: transform 0.15s;
+}
+
+.play-sim-row input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.play-sim-val {
+  width: 34px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.65rem;
+}
+
+/* ── Responsive: sim panel ── */
+@media (max-width: 768px) {
+  .play-sim-panel { left: 66px; width: 220px; bottom: 50px; }
+  .play-anim-btn { font-size: 0.85rem; padding: 3px 4px; }
+}
+
+@media (max-width: 480px) {
+  .play-sim-panel { left: 54px; width: 190px; }
+}
+
+/* ── Garden Demo HUD ── */
+.play-garden-hud {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 20px;
+  background: rgba(10, 30, 10, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(46, 204, 113, 0.25);
+  border-radius: 24px;
+  z-index: 10;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #A3D9A5;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 12px rgba(46, 204, 113, 0.08);
+  animation: play-sim-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.play-garden-counter {
+  color: #FDCB6E;
+  font-variant-numeric: tabular-nums;
+}
+
+.play-garden-gold {
+  color: #F0B90B;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px rgba(240, 185, 11, 0.3);
+}
+
+.play-garden-hint {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: rgba(163, 217, 165, 0.6);
+}
+
+@media (max-width: 768px) {
+  .play-garden-hud { font-size: 0.72rem; gap: 10px; padding: 6px 14px; }
+  .play-garden-hint { display: none; }
+}

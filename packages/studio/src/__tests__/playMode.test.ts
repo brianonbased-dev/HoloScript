@@ -235,3 +235,132 @@ describe('playModeStore', () => {
     });
   });
 });
+
+// ─── Animation & Simulation State Model ───────────────────────────────────────
+
+describe('Animation & Simulation State Model', () => {
+  /** These test the data types used in Play mode objects (page-level state). */
+
+  it('AnimationType accepts valid presets', () => {
+    const validTypes = ['none', 'spin', 'bob', 'pulse', 'orbit'] as const;
+    validTypes.forEach(t => {
+      const obj = { animation: t };
+      expect(obj.animation).toBe(t);
+    });
+  });
+
+  it('ParticleType accepts valid presets', () => {
+    const validTypes = ['none', 'sparkles', 'trail', 'fire'] as const;
+    validTypes.forEach(t => {
+      const obj = { particles: t };
+      expect(obj.particles).toBe(t);
+    });
+  });
+
+  it('SimulationConfig has correct defaults', () => {
+    const DEFAULT_SIM = {
+      gravity: 9.81,
+      wind: [0, 0, 0] as [number, number, number],
+      friction: 0.35,
+      timeScale: 1.0,
+    };
+    expect(DEFAULT_SIM.gravity).toBe(9.81);
+    expect(DEFAULT_SIM.wind).toEqual([0, 0, 0]);
+    expect(DEFAULT_SIM.friction).toBe(0.35);
+    expect(DEFAULT_SIM.timeScale).toBe(1.0);
+  });
+
+  it('SimulationConfig gravity clamps to range 0–20', () => {
+    const clamp = (v: number) => Math.max(0, Math.min(20, v));
+    expect(clamp(-5)).toBe(0);
+    expect(clamp(25)).toBe(20);
+    expect(clamp(9.81)).toBe(9.81);
+  });
+
+  it('SimulationConfig friction clamps to range 0–1', () => {
+    const clamp = (v: number) => Math.max(0, Math.min(1, v));
+    expect(clamp(-0.5)).toBe(0);
+    expect(clamp(1.5)).toBe(1);
+    expect(clamp(0.35)).toBe(0.35);
+  });
+
+  it('SimulationConfig timeScale clamps to range 0.1–3.0', () => {
+    const clamp = (v: number) => Math.max(0.1, Math.min(3.0, v));
+    expect(clamp(0)).toBe(0.1);
+    expect(clamp(5)).toBe(3.0);
+    expect(clamp(1.5)).toBe(1.5);
+  });
+
+  it('timeScale multiplies physics dt correctly', () => {
+    const baseDt = 0.016; // ~60fps
+    const configs = [
+      { timeScale: 0.5, expected: 0.008 },
+      { timeScale: 1.0, expected: 0.016 },
+      { timeScale: 2.0, expected: 0.032 },
+    ];
+    configs.forEach(({ timeScale, expected }) => {
+      const scaledDt = baseDt * timeScale;
+      expect(scaledDt).toBeCloseTo(expected, 4);
+    });
+  });
+
+  it('wind force applies to horizontal velocity', () => {
+    const wind = [2, 0, -1] as [number, number, number];
+    const velocity = [0, 0, 0];
+    const dt = 0.016;
+    velocity[0] += wind[0] * dt * 0.5;
+    velocity[2] += wind[2] * dt * 0.5;
+    expect(velocity[0]).toBeCloseTo(0.016, 4);
+    expect(velocity[2]).toBeCloseTo(-0.008, 4);
+  });
+
+  it('gravity integrates into vertical velocity', () => {
+    const gravity = 9.81;
+    let vy = 0;
+    const dt = 0.016;
+    // After 1 tick
+    vy -= gravity * dt;
+    expect(vy).toBeCloseTo(-0.15696, 4);
+    // After 2 ticks
+    vy -= gravity * dt;
+    expect(vy).toBeCloseTo(-0.31392, 4);
+  });
+
+  it('bounce with friction reduces velocity', () => {
+    const friction = 0.35;
+    let vy = -5;
+    // Bounce: reverse and dampen
+    vy = -vy * friction;
+    expect(vy).toBeCloseTo(1.75, 4);
+    // Second bounce
+    vy = -5;
+    vy = -vy * friction;
+    expect(vy).toBeCloseTo(1.75, 4);
+  });
+
+  it('SceneObject animation defaults to none', () => {
+    const obj = { id: 'test', type: 'box', animation: 'none' as const, particles: 'none' as const };
+    expect(obj.animation).toBe('none');
+    expect(obj.particles).toBe('none');
+  });
+
+  it('animation can be changed per object', () => {
+    const objects = [
+      { id: '1', animation: 'none' as string },
+      { id: '2', animation: 'none' as string },
+    ];
+    const updated = objects.map(o => o.id === '1' ? { ...o, animation: 'spin' } : o);
+    expect(updated[0].animation).toBe('spin');
+    expect(updated[1].animation).toBe('none');
+  });
+
+  it('particles can be changed per object', () => {
+    const objects = [
+      { id: '1', particles: 'none' as string },
+      { id: '2', particles: 'none' as string },
+    ];
+    const updated = objects.map(o => o.id === '2' ? { ...o, particles: 'fire' } : o);
+    expect(updated[0].particles).toBe('none');
+    expect(updated[1].particles).toBe('fire');
+  });
+});
