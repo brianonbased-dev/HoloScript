@@ -21,7 +21,7 @@ if (!fs.existsSync(distDir)) {
 
 // Comprehensive type declaration - includes all major exports  
 const mainDTS = `/**
- * @fileoverview Type definitions for HoloScript Core (v3.0)
+ * @fileoverview Type definitions for HoloScript Core (v5.0)
  * @module @holoscript/core
  */
 
@@ -173,6 +173,7 @@ export interface VisualLayer {
 
 export const VISUAL_LAYER_PRIORITY: Record<string, number>;
 export const MATERIAL_PRESETS: Record<string, any>;
+export const ENVIRONMENT_PRESETS: Record<string, any>;
 
 // ============================================================================
 // MATERIAL SYSTEM
@@ -192,6 +193,137 @@ export type TextureChannel = string;
 export interface TextureMap {
   [key: string]: any;
 }
+
+export class MaterialTrait {
+  constructor(config: any);
+  toR3F(): Record<string, any>;
+  [key: string]: any;
+}
+export function createMaterialTrait(config: any): MaterialTrait;
+
+export class LightingTrait {
+  constructor(config: any);
+  [key: string]: any;
+}
+export function createLightingTrait(config: any): LightingTrait;
+export const LIGHTING_PRESETS: Record<string, any>;
+
+export class RenderingTrait {
+  constructor(config: any);
+  [key: string]: any;
+}
+export function createRenderingTrait(config: any): RenderingTrait;
+
+// ============================================================================
+// SHADER SYSTEM
+// ============================================================================
+
+export type ShaderType = 'vertex' | 'fragment' | 'compute';
+export type UniformType = 'float' | 'vec2' | 'vec3' | 'vec4' | 'mat3' | 'mat4' | 'sampler2D' | 'int' | 'bool';
+
+export interface UniformDefinition {
+  type: UniformType;
+  value: any;
+  [key: string]: any;
+}
+
+export interface ShaderConfig {
+  vertexShader?: string;
+  fragmentShader?: string;
+  uniforms?: Record<string, UniformDefinition>;
+  transparent?: boolean;
+  depthTest?: boolean;
+  depthWrite?: boolean;
+  side?: number;
+  [key: string]: any;
+}
+
+export class ShaderTrait {
+  constructor(config: any);
+  toThreeJSConfig(): ShaderConfig;
+  [key: string]: any;
+}
+export function createShaderTrait(config: any): ShaderTrait;
+export const SHADER_PRESETS: Record<string, any>;
+export const SHADER_CHUNKS: Record<string, string>;
+
+// ============================================================================
+// PROCEDURAL GEOMETRY
+// ============================================================================
+
+export interface GeometryData {
+  vertices: Float32Array;
+  normals: Float32Array;
+  indices: Uint32Array;
+  uvs?: Float32Array;
+}
+
+export interface BlobDef {
+  center: [number, number, number];
+  radius: number;
+  strength?: number;
+}
+
+export function generateSplineGeometry(
+  points: Array<[number, number, number]>,
+  radius?: number,
+  segments?: number,
+  radialSegments?: number
+): GeometryData;
+
+export function generateHullGeometry(
+  blobs: BlobDef[],
+  resolution?: number,
+  isoLevel?: number
+): GeometryData;
+
+export function generateMembraneGeometry(
+  profiles: Array<Array<[number, number, number]>>,
+  segments?: number
+): GeometryData;
+
+// ============================================================================
+// GLTF PIPELINE
+// ============================================================================
+
+export interface GLTFPipelineOptions {
+  format?: 'glb' | 'gltf';
+  dracoCompression?: boolean;
+  quantize?: boolean;
+  prune?: boolean;
+  dedupe?: boolean;
+  embedTextures?: boolean;
+  generator?: string;
+  copyright?: string;
+}
+
+export interface GLTFExportResult {
+  binary?: Uint8Array;
+  json?: object;
+  buffer?: Uint8Array;
+  stats: GLTFExportStats;
+}
+
+export interface GLTFExportStats {
+  meshCount: number;
+  materialCount: number;
+  textureCount: number;
+  animationCount: number;
+  fileSize: number;
+  [key: string]: any;
+}
+
+export class GLTFPipeline {
+  constructor(options?: GLTFPipelineOptions);
+  export(composition: any): Promise<GLTFExportResult>;
+  [key: string]: any;
+}
+export function createGLTFPipeline(options?: GLTFPipelineOptions): GLTFPipeline;
+
+/** Generate hexagonal scale texture (RGBA Uint8Array) */
+export function generateScaleTexture(size: number, baseColor?: [number, number, number]): Uint8Array;
+/** Generate tangent-space normal map for hexagonal scales (RGBA Uint8Array) */
+export function generateScaleNormalMap(size: number): Uint8Array;
 
 // ============================================================================
 // COMPILERS & GENERATORS
@@ -272,23 +404,68 @@ export class HoloScriptDebugger {
 }
 
 // ============================================================================
+// SAFETY & EFFECTS
+// ============================================================================
+
+export interface EffectASTNode {
+  [key: string]: any;
+}
+
+export interface SafetyReport {
+  [key: string]: any;
+}
+
+export type SafetyVerdict = 'safe' | 'caution' | 'unsafe';
+
+// ============================================================================
+// PLATFORM TYPES
+// ============================================================================
+
+export type XRPlatformTarget = string;
+export type XRPlatformCategory = string;
+
+export interface XRPlatformCapabilities {
+  [key: string]: any;
+}
+
+// ============================================================================
+// CULTURE TYPES
+// ============================================================================
+
+export interface CulturalNorm {
+  [key: string]: any;
+}
+export type NormCategory = string;
+
+// ============================================================================
+// MARKETPLACE
+// ============================================================================
+
+export type ContentCategory = string;
+
+export class MarketplaceRegistry {
+  [key: string]: any;
+}
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 
-export default {
-  parse,
-  parseHolo,
-  parseHoloStrict,
-  parseHoloScriptPlus,
-  HoloScriptPlusParser,
-  HoloCompositionParser,
-  HoloScriptCompiler,
-  HoloScriptRuntime,
-  HoloScriptTypeChecker,
-  HoloScriptDebugger,
-  TraitCompositor,
-  MATERIAL_PRESETS,
+declare const _default: {
+  parse: typeof parse;
+  parseHolo: typeof parseHolo;
+  parseHoloStrict: typeof parseHoloStrict;
+  parseHoloScriptPlus: typeof parseHoloScriptPlus;
+  HoloScriptPlusParser: typeof HoloScriptPlusParser;
+  HoloCompositionParser: typeof HoloCompositionParser;
+  HoloScriptCompiler: typeof HoloScriptCompiler;
+  HoloScriptRuntime: typeof HoloScriptRuntime;
+  HoloScriptTypeChecker: typeof HoloScriptTypeChecker;
+  HoloScriptDebugger: typeof HoloScriptDebugger;
+  TraitCompositor: typeof TraitCompositor;
+  MATERIAL_PRESETS: typeof MATERIAL_PRESETS;
 };
+export default _default;
 `;
 
 const parserDTS = `export class HoloScriptPlusParser {

@@ -8,13 +8,15 @@
  * and supports easing functions.
  */
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { R3FNode } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/store';
 import { useBuilderStore } from '@/lib/stores/builderStore';
 import * as THREE from 'three';
-import { getGeometry, getMaterialProps } from './materialUtils';
+import { getGeometry, getMaterialProps, isScaledBody } from './materialUtils';
+import { useHoloTextures, hasTextures } from '@/hooks/useHoloTextures';
+import { useProceduralTexture } from '@/hooks/useProceduralTexture';
 
 // ── Easing Functions ─────────────────────────────────────────────────────────
 
@@ -124,6 +126,31 @@ function interpolateAtPercent(stops: KeyframeStop[], percent: number): KeyframeS
   return result;
 }
 
+// ── Textured Material (Suspense-wrapped for async texture loading) ───────────
+
+function TexturedAnimatedMaterial({
+  matProps,
+  proceduralMaps,
+  matRef,
+}: {
+  matProps: Record<string, any>;
+  proceduralMaps: Record<string, any>;
+  matRef: React.RefObject<THREE.MeshPhysicalMaterial | null>;
+}) {
+  const textureMaps = useHoloTextures(matProps);
+
+  return (
+    <meshPhysicalMaterial
+      ref={matRef}
+      {...matProps}
+      {...proceduralMaps}
+      {...textureMaps}
+      emissive={matProps.emissive}
+      color={matProps.color}
+    />
+  );
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
 interface AnimatedMeshNodeProps {
@@ -148,6 +175,15 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
   const isBreakMode = builderMode === 'break';
 
   const matProps = getMaterialProps(node);
+
+  // Generate procedural textures for hull/metaball meshes
+  const proceduralMaps = useProceduralTexture(
+    isScaledBody(hsType) ? 'scaleFull' : null,
+    { size: 512, tiling: [3, 3] }
+  );
+
+  // Check if we need external texture loading
+  const needsTextures = hasTextures(matProps);
 
   // Parse keyframe sequences
   const sequences: KeyframeSequence[] = useMemo(() => {
@@ -254,12 +290,21 @@ export function AnimatedMeshNode({ node }: AnimatedMeshNodeProps) {
         }}
       >
         {getGeometry(hsType, size, props)}
-        <meshPhysicalMaterial
-          ref={matRef}
-          {...matProps}
-          emissive={matProps.emissive}
-          color={matProps.color}
-        />
+        {needsTextures ? (
+          <Suspense fallback={
+            <meshPhysicalMaterial ref={matRef} {...matProps} {...proceduralMaps} emissive={matProps.emissive} color={matProps.color} />
+          }>
+            <TexturedAnimatedMaterial matProps={matProps} proceduralMaps={proceduralMaps} matRef={matRef} />
+          </Suspense>
+        ) : (
+          <meshPhysicalMaterial
+            ref={matRef}
+            {...matProps}
+            {...proceduralMaps}
+            emissive={matProps.emissive}
+            color={matProps.color}
+          />
+        )}
         {isSelected && !isBreakMode && (
           <mesh>
             {getGeometry(hsType, size * 1.05, props)}
@@ -285,6 +330,15 @@ function StaticChildMesh({ node }: { node: R3FNode }) {
   const scale = props.scale || [1, 1, 1];
   const isSelected = node.id === selectedId;
   const matProps = getMaterialProps(node);
+  const proceduralMaps = useProceduralTexture(
+    isScaledBody(hsType) ? 'scaleFull' : null,
+    { size: 512, tiling: [3, 3] }
+  );
+  const needsTextures = hasTextures(matProps);
+
+  const defaultMaterial = (
+    <meshPhysicalMaterial {...matProps} {...proceduralMaps} emissive={matProps.emissive} color={matProps.color} />
+  );
 
   return (
     <mesh
@@ -298,7 +352,13 @@ function StaticChildMesh({ node }: { node: R3FNode }) {
       }}
     >
       {getGeometry(hsType, size, props)}
-      <meshPhysicalMaterial {...matProps} emissive={matProps.emissive} color={matProps.color} />
+      {needsTextures ? (
+        <Suspense fallback={defaultMaterial}>
+          <TexturedAnimatedMaterial matProps={matProps} proceduralMaps={proceduralMaps} matRef={{ current: null }} />
+        </Suspense>
+      ) : (
+        defaultMaterial
+      )}
       {isSelected && (
         <mesh>
           {getGeometry(hsType, size * 1.05, props)}

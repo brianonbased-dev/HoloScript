@@ -2667,7 +2667,7 @@ export { NavMesh } from './navigation/NavMesh';
 export type { NavPoint, NavPolygon } from './navigation/NavMesh';
 
 // ── Shader Graph (re-export rendering) ─────────────────────────────
-export { SHADER_NODES } from './rendering/ShaderGraph';
+export { ShaderGraph, SHADER_NODES } from './rendering/ShaderGraph';
 export type { ShaderNode, ShaderConnection, ShaderNodeDef, ShaderPort, ShaderDataType, CompiledShader, ShaderUniform } from './rendering/ShaderGraph';
 
 // ── Particles (value re-export) ────────────────────────────────────
