@@ -1,15 +1,21 @@
 {
   "name": "@holoscript/agent-sdk",
-  "version": "1.0.0",
+  "version": "5.0.0",
   "description": "uAA2++ Agent SDK — Mesh discovery, gossip protocol, signal service, MCP tools, and Agent Card schema",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "require": "./dist/index.cjs" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
   },
   "scripts": {
     "build": "tsup",
@@ -23,8 +29,20 @@
     "@types/node": "^24.10.1",
     "vitest": "^4.0.18"
   },
-  "keywords": ["uaa2", "agent", "sdk", "mesh", "gossip", "mcp", "a2a"],
+  "keywords": [
+    "uaa2",
+    "agent",
+    "sdk",
+    "mesh",
+    "gossip",
+    "mcp",
+    "a2a"
+  ],
   "author": "Brian X Base Team",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/brianonbased-dev/Holoscript.git", "directory": "packages/agent-sdk" }
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/Holoscript.git",
+    "directory": "packages/agent-sdk"
+  }
 }

@@ -1,13 +1,15 @@
 {
   "name": "@holoscript/agent-protocol",
-  "version": "1.0.0",
+  "version": "5.0.0",
   "description": "uAA2++ Agent Protocol — 7-Phase lifecycle, BaseService, PWG knowledge format, and task decomposition",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -27,7 +29,14 @@
     "@types/node": "^24.10.1",
     "vitest": "^4.0.18"
   },
-  "keywords": ["uaa2", "agent", "protocol", "7-phase", "pwg", "base-service"],
+  "keywords": [
+    "uaa2",
+    "agent",
+    "protocol",
+    "7-phase",
+    "pwg",
+    "base-service"
+  ],
   "author": "Brian X Base Team",
   "license": "MIT",
   "repository": {

@@ -6,6 +6,34 @@ All notable changes to HoloScript are documented here.
 
 ## [Unreleased]
 
+## [5.0.0] — 2026-03-04 (Autonomous Ecosystems)
+
+### Major Features
+
+**Autonomous Ecosystems Framework (v5.0)**
+- **AgentPortalTrait** — Cross-scene agent communication via WebSocket relay with scene discovery, heartbeat pruning, agent migration (serialize + transfer), federated queries, hop-count TTL, and outbox queueing for offline scenarios
+- **EconomyPrimitivesTrait** — In-scene compute credits, agent bounties with escrow, transfers, subscriptions with auto-charge, spend limits, and transaction history
+- **FeedbackLoopTrait** — Quality metrics with linear regression trend detection, auto-optimization signals on drift (e.g., reduce GS quality when FPS drops), user feedback aggregation, and report generation
+- 26 comprehensive tests covering messaging lifecycle, escrow flows, trend detection, optimization signals, migration, and federation queries
+
+**Enterprise Multi-Tenancy System**
+- **TenantTrait** — Multi-organization isolation with namespace enforcement, tenant-scoped resource limits, and hierarchical configuration
+- **RBACTrait** — Role-based access control with permission inheritance, dynamic role assignment, and capability tokens
+- **SSOTrait** — Single sign-on integration supporting SAML 2.0, OAuth 2.0, and OpenID Connect
+- **QuotaTrait** — Configurable resource quotas per tenant (storage, compute, API calls) with real-time tracking
+- **AuditLogTrait** — Comprehensive audit logging for compliance (GDPR, SOC 2, HIPAA) with tamper-proof signatures
+- **AnalyticsTrait** — Tenant-level analytics with custom dashboards, usage metrics, and anomaly detection
+- **ABTestTrait** — Multi-variate testing framework with statistical significance calculation and automatic winner selection
+- 2,100+ tests across 7 enterprise trait modules
+
+**Post-Quantum Cryptography**
+- **HybridCryptoProvider** — Dual-mode encryption supporting both classical (Ed25519, ECDSA) and post-quantum (ML-DSA-65, ML-KEM-768) algorithms
+- **Capability-Based Access Control (CBAC)** — Fine-grained permission system with capability tokens, fleet ANS overrides, and ML-DSA-65 Phase 2 signatures
+- **AgentTokenIssuer** — Secure token generation and validation for agent authentication across distributed scenes
+- 1,900+ lines of crypto infrastructure with 1,100+ test assertions
+
+---
+
 ## [4.2.0] — 2026-03-01 (Perception & Simulation Layer)
 
 ### tree-sitter-holoscript 2.0.0 (updated)

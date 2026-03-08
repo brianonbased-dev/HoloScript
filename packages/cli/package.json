@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/cli",
-  "version": "3.6.0",
+  "version": "5.0.0",
   "description": "Command-line interface for HoloScript",
   "main": "./dist/index.js",
   "sideEffects": false,
