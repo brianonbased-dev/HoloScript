@@ -16,7 +16,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { HoloScriptPlusParser } from '../parser/HoloScriptPlusParser';
-import type { ASTNode } from '../parser/types';
 
 // Mock RBAC for compiler tests
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
@@ -28,6 +27,32 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     }),
   };
 });
+
+/**
+ * Helper to extract composition and object nodes from parse result.
+ * AST structure: result.ast.children[0] = composition, .children[0] = object
+ */
+function getObjectFromResult(result: any, objectName?: string) {
+  const ast = result.ast as any;
+  const composition = ast?.children?.[0];
+  if (!composition) return { composition: null, object: null };
+  const objects = composition.children || [];
+  const object = objectName
+    ? objects.find((o: any) => o.name === objectName)
+    : objects[0];
+  return { composition, object };
+}
+
+/**
+ * Helper to find a trait/directive by name from an object node.
+ * Traits are stored in object.directives[] as { type: "trait", name, config }.
+ */
+function findTrait(object: any, traitName: string) {
+  if (!object?.directives) return undefined;
+  return object.directives.find(
+    (d: any) => d.type === 'trait' && d.name === traitName
+  );
+}
 
 describe('Avatar System - Ready Player Me Integration', () => {
   let parser: HoloScriptPlusParser;
@@ -79,15 +104,25 @@ describe('Avatar System - Ready Player Me Integration', () => {
     const result = parser.parse(code);
     expect(result).toBeDefined();
     expect(result.ast).toBeDefined();
-
-    // Verify no parse errors
     expect(result.errors?.length || 0).toBe(0);
-
-    // Parser creates AST structure - check if it parsed successfully
     expect(result.success).toBe(true);
+
+    const { object } = getObjectFromResult(result, 'Avatar');
+    expect(object).toBeDefined();
+
+    const skeleton = findTrait(object, 'skeleton');
+    expect(skeleton).toBeDefined();
+    expect(skeleton?.config?.rigType).toBe('humanoid');
+    expect(skeleton?.config?.humanoidMap).toBeDefined();
+    expect(skeleton?.config?.humanoidMap.hips).toBe('Hips');
+    expect(skeleton?.config?.humanoidMap.head).toBe('Head');
+    expect(skeleton?.config?.humanoidMap.leftHand).toBe('LeftHand');
+    expect(skeleton?.config?.humanoidMap.rightFoot).toBe('RightFoot');
+    expect(skeleton?.config?.clips).toHaveLength(2);
+    expect(skeleton?.config?.rootMotion).toBe(true);
   });
 
-  it('should parse VRM 1.0 standard 52 blend shapes', () => {
+  it('should parse VRM 1.0 standard blend shapes', () => {
     const code = `
       composition "VRMAvatar" {
         object "Avatar" {
@@ -147,8 +182,16 @@ describe('Avatar System - Ready Player Me Integration', () => {
     expect(result.errors?.length || 0).toBe(0);
     expect(result.success).toBe(true);
 
-    // Verify that complex blend shape structure parses without errors
-    // (Full AST validation would require traversing implementation-specific structure)
+    const { object } = getObjectFromResult(result, 'Avatar');
+    expect(object).toBeDefined();
+
+    const morph = findTrait(object, 'morph');
+    expect(morph).toBeDefined();
+    expect(morph?.config?.targets).toBeDefined();
+    expect(morph?.config?.targets.length).toBe(17);
+    expect(morph?.config?.presets).toBeDefined();
+    expect(morph?.config?.autoBlink?.enabled).toBe(true);
+    expect(morph?.config?.lipSync?.enabled).toBe(true);
   });
 
   it('should parse Quest 3 performance optimization settings', () => {
@@ -173,6 +216,12 @@ describe('Avatar System - Ready Player Me Integration', () => {
     expect(result.ast).toBeDefined();
     expect(result.errors?.length || 0).toBe(0);
     expect(result.success).toBe(true);
+
+    const { object } = getObjectFromResult(result, 'Avatar');
+    expect(object).toBeDefined();
+    expect(object?.properties?.performance?.maxTriangles).toBe(10000);
+    expect(object?.properties?.performance?.textureMaxSize).toBe(1024);
+    expect(object?.properties?.performance?.useGPUSkinning).toBe(true);
   });
 
   it('should parse VRM metadata for Ready Player Me export', () => {
@@ -217,6 +266,14 @@ describe('Avatar System - Ready Player Me Integration', () => {
     expect(result.ast).toBeDefined();
     expect(result.errors?.length || 0).toBe(0);
     expect(result.success).toBe(true);
+
+    const { object } = getObjectFromResult(result, 'Avatar');
+    expect(object).toBeDefined();
+    expect(object?.properties?.vrm?.version).toBe('1.0');
+    expect(object?.properties?.vrm?.meta?.name).toBe('Ready Player Me Avatar');
+    expect(object?.properties?.vrm?.meta?.commercialUsage).toBe('Allow');
+    expect(object?.properties?.vrm?.humanoid?.armStretch).toBe(0.05);
+    expect(object?.properties?.vrm?.lookAt?.type).toBe('bone');
   });
 });
 
@@ -256,11 +313,18 @@ describe('Avatar System - Locomotion', () => {
       }
     `;
 
-    const ast = parser.parse(code);
-    const composition = ast.compositions[0];
-    const character = composition.objects?.find(obj => obj.name === 'Character');
-    const characterTrait = character?.traits?.find(t => t.name === 'character');
+    const result = parser.parse(code);
+    expect(result).toBeDefined();
+    expect(result.ast).toBeDefined();
+    expect(result.errors?.length || 0).toBe(0);
+    expect(result.success).toBe(true);
 
+    const { object } = getObjectFromResult(result, 'Character');
+    expect(object).toBeDefined();
+
+    // @character is not in VR_TRAITS, so it falls through to generic trait handler
+    // and appears in directives
+    const characterTrait = findTrait(object, 'character');
     expect(characterTrait).toBeDefined();
     expect(characterTrait?.config?.walkSpeed).toBe(3.0);
     expect(characterTrait?.config?.runSpeed).toBe(5.0);
@@ -305,16 +369,23 @@ describe('Avatar System - Locomotion', () => {
       }
     `;
 
-    const ast = parser.parse(code);
-    const composition = ast.compositions[0];
-    const character = composition.objects?.find(obj => obj.name === 'Character');
-    const skeletonTrait = character?.traits?.find(t => t.name === 'skeleton');
+    const result = parser.parse(code);
+    expect(result).toBeDefined();
+    expect(result.ast).toBeDefined();
+    expect(result.errors?.length || 0).toBe(0);
+    expect(result.success).toBe(true);
 
+    const { object } = getObjectFromResult(result, 'Character');
+    expect(object).toBeDefined();
+
+    const skeletonTrait = findTrait(object, 'skeleton');
+    expect(skeletonTrait).toBeDefined();
     expect(skeletonTrait?.config?.blendTrees).toBeDefined();
     expect(skeletonTrait?.config?.blendTrees.GroundMovement).toBeDefined();
     expect(skeletonTrait?.config?.blendTrees.GroundMovement.type).toBe('2D-freeform');
     expect(skeletonTrait?.config?.blendTrees.GroundMovement.motions.length).toBe(4);
     expect(skeletonTrait?.config?.blendTrees.ClimbMovement).toBeDefined();
+    expect(skeletonTrait?.config?.blendTrees.ClimbMovement.type).toBe('2D-simple');
   });
 
   it('should parse IK chain for foot placement', () => {
@@ -342,11 +413,16 @@ describe('Avatar System - Locomotion', () => {
       }
     `;
 
-    const ast = parser.parse(code);
-    const composition = ast.compositions[0];
-    const character = composition.objects?.find(obj => obj.name === 'Character');
-    const ikTrait = character?.traits?.find(t => t.name === 'ik');
+    const result = parser.parse(code);
+    expect(result).toBeDefined();
+    expect(result.ast).toBeDefined();
+    expect(result.errors?.length || 0).toBe(0);
+    expect(result.success).toBe(true);
 
+    const { object } = getObjectFromResult(result, 'Character');
+    expect(object).toBeDefined();
+
+    const ikTrait = findTrait(object, 'ik');
     expect(ikTrait).toBeDefined();
     expect(ikTrait?.config?.chain).toBeDefined();
     expect(ikTrait?.config?.chain.name).toBe('LeftLeg');
@@ -398,10 +474,17 @@ describe('Avatar System - Customization', () => {
     expect(result.ast).toBeDefined();
     expect(result.errors?.length || 0).toBe(0);
     expect(result.success).toBe(true);
-    const morphTrait = avatar?.traits?.find(t => t.name === 'morph');
 
+    const { object } = getObjectFromResult(result, 'Avatar');
+    expect(object).toBeDefined();
+
+    const morphTrait = findTrait(object, 'morph');
+    expect(morphTrait).toBeDefined();
     expect(morphTrait?.config?.targets).toBeDefined();
-    const bodyTargets = morphTrait?.config?.targets.filter((t: any) => t.category === 'body');
+
+    const bodyTargets = morphTrait?.config?.targets.filter(
+      (t: any) => t.category === 'body'
+    );
     expect(bodyTargets.length).toBeGreaterThanOrEqual(6);
     expect(morphTrait?.config?.presets.athletic).toBeDefined();
     expect(morphTrait?.config?.presets.athletic.body_muscular).toBe(0.6);
@@ -441,8 +524,13 @@ describe('Avatar System - Customization', () => {
     expect(result.ast).toBeDefined();
     expect(result.errors?.length || 0).toBe(0);
     expect(result.success).toBe(true);
-    const customizableTrait = avatar?.traits?.find(t => t.name === 'customizable');
 
+    const { object } = getObjectFromResult(result, 'Avatar');
+    expect(object).toBeDefined();
+
+    // @customizable is not in VR_TRAITS, falls through to generic trait handler
+    const customizableTrait = findTrait(object, 'customizable');
+    expect(customizableTrait).toBeDefined();
     expect(customizableTrait?.config?.materials).toBeDefined();
     expect(customizableTrait?.config?.materials.skin).toBeDefined();
     expect(customizableTrait?.config?.materials.skin.shader).toBe('PBR');
@@ -477,6 +565,15 @@ describe('Avatar System - Customization', () => {
     expect(result.ast).toBeDefined();
     expect(result.errors?.length || 0).toBe(0);
     expect(result.success).toBe(true);
+
+    const { object } = getObjectFromResult(result, 'Avatar');
+    expect(object).toBeDefined();
+
+    const customizableTrait = findTrait(object, 'customizable');
+    expect(customizableTrait).toBeDefined();
+    expect(customizableTrait?.config?.meshSwaps).toBeDefined();
+    expect(customizableTrait?.config?.meshSwaps.hair).toHaveLength(3);
+    expect(customizableTrait?.config?.meshSwaps.outfit).toHaveLength(3);
   });
 });
 
@@ -509,6 +606,16 @@ describe('Avatar System - Avatar Embodiment', () => {
     expect(result.ast).toBeDefined();
     expect(result.errors?.length || 0).toBe(0);
     expect(result.success).toBe(true);
+
+    const { object } = getObjectFromResult(result, 'Companion');
+    expect(object).toBeDefined();
+
+    const embodiment = findTrait(object, 'avatar_embodiment');
+    expect(embodiment).toBeDefined();
+    expect(embodiment?.config?.tracking_source).toBe('ai');
+    expect(embodiment?.config?.ik_mode).toBe('full_body');
+    expect(embodiment?.config?.lip_sync).toBe(true);
+    expect(embodiment?.config?.personal_space_radius).toBe(0.5);
   });
 
   it('should parse body tracking configuration', () => {
@@ -532,6 +639,17 @@ describe('Avatar System - Avatar Embodiment', () => {
     expect(result.ast).toBeDefined();
     expect(result.errors?.length || 0).toBe(0);
     expect(result.success).toBe(true);
+
+    const { object } = getObjectFromResult(result, 'Player');
+    expect(object).toBeDefined();
+
+    const bodyTracking = findTrait(object, 'body_tracking');
+    expect(bodyTracking).toBeDefined();
+    expect(bodyTracking?.config?.mode).toBe('full_body');
+    expect(bodyTracking?.config?.joint_smoothing).toBe(0.3);
+    expect(bodyTracking?.config?.prediction).toBe(true);
+    expect(bodyTracking?.config?.calibrate_on_start).toBe(true);
+    expect(bodyTracking?.config?.tracking_confidence_threshold).toBe(0.6);
   });
 });
 
@@ -542,7 +660,7 @@ describe('Avatar System - Integration Tests', () => {
     parser = new HoloScriptPlusParser();
   });
 
-  it('should parse complete Ready Player Me avatar from example file', () => {
+  it('should parse complete Ready Player Me avatar with multiple traits', () => {
     const code = `
       composition "ReadyPlayerMeAvatar" {
         object "RPMAvatar" {
@@ -596,5 +714,32 @@ describe('Avatar System - Integration Tests', () => {
     expect(result.ast).toBeDefined();
     expect(result.errors?.length || 0).toBe(0);
     expect(result.success).toBe(true);
+
+    const { object } = getObjectFromResult(result, 'RPMAvatar');
+    expect(object).toBeDefined();
+
+    // Verify all traits are present
+    const skeleton = findTrait(object, 'skeleton');
+    const morph = findTrait(object, 'morph');
+    const ik = findTrait(object, 'ik');
+    const embodiment = findTrait(object, 'avatar_embodiment');
+
+    expect(skeleton).toBeDefined();
+    expect(skeleton?.config?.rigType).toBe('humanoid');
+    expect(skeleton?.config?.clips).toHaveLength(1);
+
+    expect(morph).toBeDefined();
+    expect(morph?.config?.targets).toHaveLength(2);
+
+    expect(ik).toBeDefined();
+    expect(ik?.config?.chain?.solver).toBe('fabrik');
+
+    expect(embodiment).toBeDefined();
+    expect(embodiment?.config?.tracking_source).toBe('headset');
+
+    // Verify inline properties
+    expect(object?.properties?.performance?.maxTriangles).toBe(10000);
+    expect(object?.properties?.vrm?.version).toBe('1.0');
+    expect(object?.properties?.vrm?.meta?.name).toBe('Ready Player Me Avatar');
   });
 });

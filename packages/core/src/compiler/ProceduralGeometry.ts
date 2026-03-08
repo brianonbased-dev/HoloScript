@@ -25,6 +25,27 @@ export interface BlobDef {
   radius: number[];
 }
 
+/**
+ * Level of Detail preset for procedural geometry generation.
+ *  - 'low'    : Fast generation, minimal polygons. Good for distant objects or previews.
+ *  - 'medium' : Balanced quality and performance. Default for most use cases.
+ *  - 'high'   : Maximum quality. Best for close-up views and offline export.
+ */
+export type LODPreset = 'low' | 'medium' | 'high';
+
+/** Resolved LOD parameters for each generator type. */
+interface LODParams {
+  hull: { resolution: number; boundsPadding: number };
+  spline: { radialSegments: number; lengthSteps: number };
+  membrane: { subdivisions: number };
+}
+
+const LOD_PRESETS: Record<LODPreset, LODParams> = {
+  low:    { hull: { resolution: 12, boundsPadding: 1.2 }, spline: { radialSegments: 8,  lengthSteps: 4  }, membrane: { subdivisions: 3 } },
+  medium: { hull: { resolution: 24, boundsPadding: 1.3 }, spline: { radialSegments: 32, lengthSteps: 12 }, membrane: { subdivisions: 8 } },
+  high:   { hull: { resolution: 48, boundsPadding: 1.4 }, spline: { radialSegments: 64, lengthSteps: 24 }, membrane: { subdivisions: 16 } },
+};
+
 // =============================================================================
 // VECTOR MATH HELPERS
 // =============================================================================
@@ -116,13 +137,22 @@ function fallbackBox(): GeometryData {
 
 /**
  * Generate a smooth tube mesh along a Catmull-Rom spline curve.
+ *
+ * @param lod - Optional LOD preset ('low' | 'medium' | 'high') that overrides
+ *              radialSegments and lengthSteps with balanced defaults.
  */
 export function generateSplineGeometry(
   points: number[][],
   radii: number[],
   radialSegments: number = 32,
-  lengthSteps: number = 12
+  lengthSteps: number = 12,
+  lod?: LODPreset
 ): GeometryData {
+  if (lod) {
+    const preset = LOD_PRESETS[lod].spline;
+    radialSegments = preset.radialSegments;
+    lengthSteps = preset.lengthSteps;
+  }
   if (points.length < 2) return fallbackBox();
 
   const positions: number[] = [];
@@ -540,23 +570,33 @@ const MC_TRI_TABLE: number[][] = [
 
 /**
  * Generate a smooth organic hull from blended sphere fields (metaballs).
+ *
+ * @param lod - Optional LOD preset ('low' | 'medium' | 'high') that overrides
+ *              resolution with balanced defaults and adjusts bounds padding.
  */
 export function generateHullGeometry(
   blobs: BlobDef[],
   resolution: number = 24,
-  threshold: number = 1.0
+  threshold: number = 1.0,
+  lod?: LODPreset
 ): GeometryData {
   if (blobs.length === 0) return fallbackBox();
+
+  const boundsPadding = lod ? LOD_PRESETS[lod].hull.boundsPadding : 1.3;
+  if (lod) {
+    const preset = LOD_PRESETS[lod].hull;
+    resolution = preset.resolution;
+  }
 
   let minX = Infinity, minY = Infinity, minZ = Infinity;
   let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
   for (const b of blobs) {
-    minX = Math.min(minX, b.center[0] - b.radius[0] * 1.3);
-    minY = Math.min(minY, b.center[1] - b.radius[1] * 1.3);
-    minZ = Math.min(minZ, b.center[2] - b.radius[2] * 1.3);
-    maxX = Math.max(maxX, b.center[0] + b.radius[0] * 1.3);
-    maxY = Math.max(maxY, b.center[1] + b.radius[1] * 1.3);
-    maxZ = Math.max(maxZ, b.center[2] + b.radius[2] * 1.3);
+    minX = Math.min(minX, b.center[0] - b.radius[0] * boundsPadding);
+    minY = Math.min(minY, b.center[1] - b.radius[1] * boundsPadding);
+    minZ = Math.min(minZ, b.center[2] - b.radius[2] * boundsPadding);
+    maxX = Math.max(maxX, b.center[0] + b.radius[0] * boundsPadding);
+    maxY = Math.max(maxY, b.center[1] + b.radius[1] * boundsPadding);
+    maxZ = Math.max(maxZ, b.center[2] + b.radius[2] * boundsPadding);
   }
 
   const positions: number[] = [];
@@ -576,8 +616,7 @@ export function generateHullGeometry(
     return sum;
   }
 
-  function evalGradient(x: number, y: number, z: number): number[] {
-    const eps = 0.01;
+  function evalGradient(x: number, y: number, z: number, eps: number = 0.01): number[] {
     return [
       evalField(x + eps, y, z) - evalField(x - eps, y, z),
       evalField(x, y + eps, z) - evalField(x, y - eps, z),
@@ -605,19 +644,30 @@ export function generateHullGeometry(
 
   const vertexMap = new Map<string, number>();
 
+  // Grid stride for collision-free vertex deduplication keys
+  const gridStride = nx + 1;
+  const gridSlice = gridStride * (ny + 1);
+
   function interpVertex(
     ix1: number, iy1: number, iz1: number, v1: number,
     ix2: number, iy2: number, iz2: number, v2: number
   ): number {
-    const key = `${Math.min(ix1 + iy1 * 1000 + iz1 * 1000000, ix2 + iy2 * 1000 + iz2 * 1000000)}_${Math.max(ix1 + iy1 * 1000 + iz1 * 1000000, ix2 + iy2 * 1000 + iz2 * 1000000)}`;
+    // Use grid-dimension-aware keys to prevent collisions at high resolutions
+    const k1 = ix1 + iy1 * gridStride + iz1 * gridSlice;
+    const k2 = ix2 + iy2 * gridStride + iz2 * gridSlice;
+    const key = k1 < k2 ? `${k1}_${k2}` : `${k2}_${k1}`;
     if (vertexMap.has(key)) return vertexMap.get(key)!;
 
-    const t = (threshold - v1) / (v2 - v1 + 1e-10);
+    // Clamp interpolation factor to [0, 1] for robustness near field boundaries
+    const dv = v2 - v1;
+    const t = Math.abs(dv) < 1e-10 ? 0.5 : Math.max(0, Math.min(1, (threshold - v1) / dv));
     const x = minX + (ix1 + t * (ix2 - ix1)) * dx;
     const y = minY + (iy1 + t * (iy2 - iy1)) * dy;
     const z = minZ + (iz1 + t * (iz2 - iz1)) * dz;
 
-    const grad = evalGradient(x, y, z);
+    // Adaptive gradient epsilon scaled to voxel size for better normals
+    const gradEps = Math.min(dx, dy, dz) * 0.5;
+    const grad = evalGradient(x, y, z, gradEps);
     const n = [-grad[0], -grad[1], -grad[2]];
     vec3Normalize(n);
 
@@ -709,12 +759,19 @@ export function generateHullGeometry(
 
 /**
  * Generate a smooth membrane mesh from anchor points.
+ *
+ * @param lod - Optional LOD preset ('low' | 'medium' | 'high') that overrides
+ *              subdivisions with balanced defaults.
  */
 export function generateMembraneGeometry(
   anchors: number[][],
   subdivisions: number = 8,
-  bulge: number = 0.15
+  bulge: number = 0.15,
+  lod?: LODPreset
 ): GeometryData {
+  if (lod) {
+    subdivisions = LOD_PRESETS[lod].membrane.subdivisions;
+  }
   if (anchors.length < 3) return fallbackBox();
 
   const positions: number[] = [];
