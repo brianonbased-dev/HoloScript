@@ -5,6 +5,7 @@ import { Text, Sparkles, Environment } from '@react-three/drei';
 import { MeshNode } from './MeshNode';
 import { AnimatedMeshNode } from './AnimatedMeshNode';
 import { ShaderMeshNode, hasShaderTrait } from './ShaderMeshNode';
+import { LODMeshNode, hasLOD } from './LODMeshNode';
 
 interface R3FNodeRendererProps {
   node: R3FNode;
@@ -21,6 +22,8 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
     case 'mesh': {
       // Check if this mesh has a custom shader trait
       const isShaderMesh = hasShaderTrait(node);
+      // Check if this mesh has LOD configuration
+      const isLODMesh = hasLOD(node);
       // Check if this mesh has keyframe animations
       const hasKeyframes = props.keyframes && Array.isArray(props.keyframes) && props.keyframes.length > 0;
       // Non-mesh children (lights, effects) still render via R3FNodeRenderer
@@ -29,14 +32,22 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
         .map((child: R3FNode, i: number) => (
           <R3FNodeRenderer key={child.id || `non-mesh-${i}`} node={child} />
         ));
+
+      let meshComponent;
+      if (isShaderMesh) {
+        meshComponent = <ShaderMeshNode node={node} />;
+      } else if (isLODMesh) {
+        const distances = props.lodDistances || [0, 25, 50];
+        meshComponent = <LODMeshNode node={node} distances={distances} />;
+      } else if (hasKeyframes) {
+        meshComponent = <AnimatedMeshNode node={node} />;
+      } else {
+        meshComponent = <MeshNode node={node} />;
+      }
+
       return (
         <group>
-          {isShaderMesh
-            ? <ShaderMeshNode node={node} />
-            : hasKeyframes
-              ? <AnimatedMeshNode node={node} />
-              : <MeshNode node={node} />
-          }
+          {meshComponent}
           {nonMeshChildren}
         </group>
       );

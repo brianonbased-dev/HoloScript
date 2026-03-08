@@ -14,42 +14,50 @@ import { ProceduralGeometryComponent } from './ProceduralMesh';
 // Geometry Factory
 // =============================================================================
 
-export function getGeometry(hsType: string, size: number, props: Record<string, any> = {}) {
+/** Segment counts for LOD levels: [high, medium, low] */
+const LOD_SEGMENTS = { high: 32, medium: 16, low: 8 } as const;
+export type LODDetail = keyof typeof LOD_SEGMENTS;
+
+export function getGeometry(hsType: string, size: number, props: Record<string, any> = {}, detail: LODDetail = 'high') {
   const s = size || 1;
+  const seg = LOD_SEGMENTS[detail];
+  const torusTube = detail === 'high' ? 16 : detail === 'medium' ? 8 : 4;
   switch (hsType) {
     case 'sphere':
     case 'orb':
-      return <sphereGeometry args={[s * 0.5, 32, 32]} />;
+      return <sphereGeometry args={[s * 0.5, seg, seg]} />;
     case 'cube':
     case 'box':
       return <boxGeometry args={[s, s, s]} />;
     case 'cylinder':
-      return <cylinderGeometry args={[s * 0.5, s * 0.5, s, 32]} />;
+      return <cylinderGeometry args={[s * 0.5, s * 0.5, s, seg]} />;
     case 'pyramid':
     case 'cone':
       return <coneGeometry args={[s * 0.5, s, 4]} />;
     case 'plane':
       return <planeGeometry args={[s, s]} />;
     case 'torus':
-      return <torusGeometry args={[s * 0.5, s * 0.15, 16, 32]} />;
+      return <torusGeometry args={[s * 0.5, s * 0.15, torusTube, seg]} />;
     case 'ring':
-      return <ringGeometry args={[s * 0.3, s * 0.5, 32]} />;
+      return <ringGeometry args={[s * 0.3, s * 0.5, seg]} />;
     case 'capsule':
-      return <capsuleGeometry args={[s * 0.3, s * 0.5, 4, 16]} />;
+      return <capsuleGeometry args={[s * 0.3, s * 0.5, detail === 'low' ? 2 : 4, seg / 2]} />;
     // ── Advanced procedural geometry ─────────────────────────
     case 'hull':
     case 'metaball':
+    case 'blob':
       if (props.blobs && Array.isArray(props.blobs)) {
+        const resolution = detail === 'high' ? (props.resolution || 24) : detail === 'medium' ? 12 : 8;
         return (
           <ProceduralGeometryComponent
             type="hull"
             blobs={props.blobs}
-            resolution={props.resolution || 24}
+            resolution={resolution}
             threshold={props.threshold || 1.0}
           />
         );
       }
-      return <sphereGeometry args={[s * 0.5, 32, 32]} />;
+      return <sphereGeometry args={[s * 0.5, seg, seg]} />;
     case 'spline':
       if (props.points && Array.isArray(props.points)) {
         return (
@@ -60,14 +68,15 @@ export function getGeometry(hsType: string, size: number, props: Record<string, 
           />
         );
       }
-      return <cylinderGeometry args={[s * 0.1, s * 0.1, s, 16]} />;
+      return <cylinderGeometry args={[s * 0.1, s * 0.1, s, seg / 2]} />;
     case 'membrane':
       if (props.anchors && Array.isArray(props.anchors)) {
+        const subdivisions = detail === 'high' ? (props.subdivisions || 8) : detail === 'medium' ? 4 : 2;
         return (
           <ProceduralGeometryComponent
             type="membrane"
             anchors={props.anchors}
-            subdivisions={props.subdivisions || 8}
+            subdivisions={subdivisions}
             bulge={props.bulge || 0.15}
           />
         );
@@ -130,7 +139,7 @@ export function getMaterialProps(node: R3FNode): Record<string, any> {
 
 /** Check if geometry type should get procedural scale texture */
 export function isScaledBody(hsType: string): boolean {
-  return hsType === 'hull' || hsType === 'metaball';
+  return hsType === 'hull' || hsType === 'metaball' || hsType === 'blob';
 }
 
 /** Check if a mesh represents fire effects */

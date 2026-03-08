@@ -205,12 +205,12 @@ export const MATERIAL_PRESETS: Record<string, Record<string, any>> = {
     attenuationDistance: 0.3,
   },
   // Dragon / creature material presets
-  bone: {
+  dragon_bone: {
     roughness: 0.35,
     metalness: 0.15,
     color: '#e8dcc8',
   },
-  leather: {
+  dragon_leather: {
     roughness: 0.8,
     metalness: 0.0,
     color: '#5c3a21',
@@ -226,13 +226,7 @@ export const MATERIAL_PRESETS: Record<string, Record<string, any>> = {
     color: '#0d0d0d',
     clearcoat: 0.9,
     clearcoatRoughness: 0.1,
-  },
-  lava: {
-    roughness: 0.6,
-    metalness: 0.0,
-    color: '#ff4400',
-    emissive: '#ff2200',
-    emissiveIntensity: 2.0,
+    envMapIntensity: 1.2,
   },
   skin_pale: {
     roughness: 0.55,
@@ -652,12 +646,6 @@ export const MATERIAL_PRESETS: Record<string, Record<string, any>> = {
     ior: 1.63,
     thickness: 0.8,
     transparent: true,
-  },
-  obsidian: {
-    roughness: 0.05,
-    metalness: 0.0,
-    color: '#0b0b0b',
-    envMapIntensity: 1.2,
   },
   turquoise: {
     roughness: 0.6,
@@ -1736,6 +1724,12 @@ const MESH_TYPES = new Set([
   'splat',
   'nerf',
   'volumetric_video',
+  // Procedural geometry types (hull/spline/membrane/blob/metaball)
+  'hull',
+  'spline',
+  'membrane',
+  'blob',
+  'metaball',
 ]);
 
 /**

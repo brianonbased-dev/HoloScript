@@ -47,6 +47,17 @@ import {
   type GeometryData,
   type BlobDef,
 } from './ProceduralGeometry';
+import {
+  createClearcoatExtension,
+  createTransmissionExtension,
+  createIORExtension,
+  createSheenExtension,
+  createAnisotropyExtension,
+  createVolumeExtension,
+  createIridescenceExtension,
+  createEmissiveStrengthExtension,
+  declareExtensions,
+} from './gltf/extensions';
 
 // =============================================================================
 // TYPES
@@ -65,6 +76,8 @@ export interface GLTFPipelineOptions {
   dedupe?: boolean;
   /** Embed textures as base64 (for glTF format) */
   embedTextures?: boolean;
+  /** Pre-loaded texture image data keyed by path/name (PNG or JPEG bytes) */
+  textureData?: Record<string, Uint8Array>;
   /** Generator string for metadata */
   generator?: string;
   /** Copyright string */
@@ -817,6 +830,7 @@ export class GLTFPipeline extends CompilerBase {
   private samplers: Array<{ magFilter: number; minFilter: number; wrapS: number; wrapT: number }> = [];
   private scaleTextureIndex: number = -1;
   private scaleNormalTextureIndex: number = -1;
+  private textureIndexMap: Map<string, number> = new Map();
 
   private stats: GLTFExportStats = {
     nodeCount: 0,
@@ -838,6 +852,7 @@ export class GLTFPipeline extends CompilerBase {
       prune: options.prune ?? true,
       dedupe: options.dedupe ?? true,
       embedTextures: options.embedTextures ?? true,
+      textureData: options.textureData ?? {},
       generator: options.generator ?? 'HoloScript GLTFPipeline v1.0.0',
       copyright: options.copyright ?? '',
     };
@@ -1280,6 +1295,7 @@ export class GLTFPipeline extends CompilerBase {
     this.samplers = [];
     this.scaleTextureIndex = -1;
     this.scaleNormalTextureIndex = -1;
+    this.textureIndexMap.clear();
     this.stats = {
       nodeCount: 0,
       meshCount: 0,
@@ -1558,8 +1574,8 @@ export class GLTFPipeline extends CompilerBase {
     const uvAccessor = this.createAccessor(geometry.uvs, 'VEC2');
     const indexAccessor = this.createAccessor(geometry.indices, 'SCALAR');
 
-    // Create or get material (trait-aware)
-    const materialIndex = this.getOrCreateMaterial(object);
+    // Create or get material (trait-aware, with geometry type for texture selection)
+    const materialIndex = this.getOrCreateMaterial(object, shapeType);
 
     // Create mesh
     const mesh: GLTFMesh = {
@@ -1687,8 +1703,8 @@ export class GLTFPipeline extends CompilerBase {
     const uvAccessor = this.createAccessor(geometry.uvs, 'VEC2');
     const indexAccessor = this.createAccessor(geometry.indices, 'SCALAR');
 
-    // Create or get material
-    const materialIndex = this.getOrCreateMaterial(object);
+    // Create or get material (with geometry type for texture selection)
+    const materialIndex = this.getOrCreateMaterial(object, shapeType);
 
     // Create mesh
     const mesh: GLTFMesh = {
@@ -1741,12 +1757,28 @@ export class GLTFPipeline extends CompilerBase {
    * 3. TraitCompositor output (PBR from visual presets)
    * 4. Direct property overrides (color, opacity)
    */
-  private getOrCreateMaterial(object: HoloObjectDecl): number {
+  private getOrCreateMaterial(object: HoloObjectDecl, shapeType?: string): number {
     let color: [number, number, number] = [1, 1, 1];
     let metallic = 0;
     let roughness = 0.5;
     let opacity = 1;
     let emissive: [number, number, number] = [0, 0, 0];
+
+    // Advanced PBR properties for KHR extensions
+    let transmission = 0;
+    let ior = 1.5;
+    let thickness = 0;
+    let clearcoat = 0;
+    let clearcoatRoughness = 0;
+    let sheen = 0;
+    let sheenRoughness = 0.5;
+    let sheenColor: [number, number, number] = [1, 1, 1];
+    let iridescence = 0;
+    let iridescenceIOR = 1.3;
+    let anisotropy = 0;
+    let anisotropyRotation = 0;
+    let attenuationColor: [number, number, number] | undefined;
+    let attenuationDistance: number | undefined;
 
     // 1. Named material preset (e.g., material: "glass")
     const namedMat = this.findProp(object, 'material');
@@ -1758,6 +1790,21 @@ export class GLTFPipeline extends CompilerBase {
       if (preset.opacity !== undefined) opacity = preset.opacity;
       if (preset.transparent && opacity >= 1) opacity = 0.99; // trigger BLEND mode
       if (preset.emissive) emissive = this.parseColorString(preset.emissive);
+      // Advanced PBR from preset
+      if (preset.transmission !== undefined) transmission = preset.transmission;
+      if (preset.ior !== undefined) ior = preset.ior;
+      if (preset.thickness !== undefined) thickness = preset.thickness;
+      if (preset.clearcoat !== undefined) clearcoat = preset.clearcoat;
+      if (preset.clearcoatRoughness !== undefined) clearcoatRoughness = preset.clearcoatRoughness;
+      if (preset.sheen !== undefined) sheen = preset.sheen;
+      if (preset.sheenRoughness !== undefined) sheenRoughness = preset.sheenRoughness;
+      if (preset.sheenColor) sheenColor = this.parseColorString(preset.sheenColor);
+      if (preset.iridescence !== undefined) iridescence = preset.iridescence;
+      if (preset.iridescenceIOR !== undefined) iridescenceIOR = preset.iridescenceIOR;
+      if (preset.anisotropy !== undefined) anisotropy = preset.anisotropy;
+      if (preset.anisotropyRotation !== undefined) anisotropyRotation = preset.anisotropyRotation;
+      if (preset.attenuationColor) attenuationColor = this.parseColorString(preset.attenuationColor);
+      if (preset.attenuationDistance !== undefined) attenuationDistance = preset.attenuationDistance;
     }
 
     // 2. TraitCompositor: compose PBR from visual trait presets
@@ -1770,6 +1817,21 @@ export class GLTFPipeline extends CompilerBase {
       if (composed.opacity !== undefined) opacity = composed.opacity;
       if (composed.emissive) emissive = this.parseColorString(composed.emissive);
       if (composed.transparent) opacity = Math.min(opacity, 0.9);
+      // Advanced PBR from trait composition
+      if (composed.transmission !== undefined) transmission = composed.transmission;
+      if (composed.ior !== undefined) ior = composed.ior;
+      if (composed.thickness !== undefined) thickness = composed.thickness;
+      if (composed.clearcoat !== undefined) clearcoat = composed.clearcoat;
+      if (composed.clearcoatRoughness !== undefined) clearcoatRoughness = composed.clearcoatRoughness;
+      if (composed.sheen !== undefined) sheen = composed.sheen;
+      if (composed.sheenRoughness !== undefined) sheenRoughness = composed.sheenRoughness;
+      if (composed.sheenColor) sheenColor = this.parseColorString(composed.sheenColor);
+      if (composed.iridescence !== undefined) iridescence = composed.iridescence;
+      if (composed.iridescenceIOR !== undefined) iridescenceIOR = composed.iridescenceIOR;
+      if (composed.anisotropy !== undefined) anisotropy = composed.anisotropy;
+      if (composed.anisotropyRotation !== undefined) anisotropyRotation = composed.anisotropyRotation;
+      if (composed.attenuationColor) attenuationColor = this.parseColorString(composed.attenuationColor);
+      if (composed.attenuationDistance !== undefined) attenuationDistance = composed.attenuationDistance;
     }
 
     // 3. Direct property overrides
@@ -1795,8 +1857,42 @@ export class GLTFPipeline extends CompilerBase {
     const emissiveProp = this.findProp(object, 'emissive');
     if (typeof emissiveProp === 'string') emissive = this.parseColorString(emissiveProp);
 
-    // Create material key for caching
-    const key = JSON.stringify({ color, metallic, roughness, opacity, emissive });
+    // Direct overrides for advanced PBR
+    const transmissionProp = this.findProp(object, 'transmission');
+    if (typeof transmissionProp === 'number') transmission = transmissionProp;
+
+    const iorProp = this.findProp(object, 'ior');
+    if (typeof iorProp === 'number') ior = iorProp;
+
+    const clearcoatProp = this.findProp(object, 'clearcoat');
+    if (typeof clearcoatProp === 'number') clearcoat = clearcoatProp;
+
+    // 4. Extract texture map references from object properties
+    const texturePaths: Record<string, string> = {};
+    const TEX_PROP_MAP: Record<string, string> = {
+      // HoloScript property name → glTF slot key
+      baseColorMap: 'baseColor', albedo_map: 'baseColor', colorMap: 'baseColor',
+      normalMap: 'normal', normal_map: 'normal',
+      roughnessMap: 'metallicRoughness', roughness_map: 'metallicRoughness',
+      metallicMap: 'metallicRoughness', metallic_map: 'metallicRoughness', metalnessMap: 'metallicRoughness',
+      occlusionMap: 'occlusion', ao_map: 'occlusion', ambientOcclusionMap: 'occlusion',
+      emissiveMap: 'emissive', emissive_map: 'emissive', emissionMap: 'emissive',
+    };
+    for (const [propName, slotKey] of Object.entries(TEX_PROP_MAP)) {
+      const val = this.findProp(object, propName);
+      if (typeof val === 'string' && val.length > 0 && !texturePaths[slotKey]) {
+        texturePaths[slotKey] = val;
+      }
+    }
+
+    // Create material key for caching (includes advanced PBR props + texture paths)
+    const key = JSON.stringify({
+      color, metallic, roughness, opacity, emissive,
+      transmission, ior, thickness, clearcoat, clearcoatRoughness,
+      sheen, sheenRoughness, sheenColor, iridescence, iridescenceIOR,
+      anisotropy, anisotropyRotation, attenuationColor, attenuationDistance,
+      texturePaths,
+    });
     if (this.materialMap.has(key)) {
       return this.materialMap.get(key)!;
     }
@@ -1808,10 +1904,10 @@ export class GLTFPipeline extends CompilerBase {
         metallicFactor: metallic,
         roughnessFactor: roughness,
       },
-      doubleSided: opacity < 1,
+      doubleSided: opacity < 1 || transmission > 0,
     };
 
-    if (opacity < 1) {
+    if (opacity < 1 || transmission > 0) {
       material.alphaMode = 'BLEND';
     }
 
@@ -1821,8 +1917,46 @@ export class GLTFPipeline extends CompilerBase {
       material.emissiveFactor = emissive.map(c => c * emissiveIntensity) as [number, number, number];
     }
 
-    // Apply procedural scale texture to skin materials
-    if (typeof namedMat === 'string' && (namedMat === 'skin_dark' || namedMat === 'leather')) {
+    // Build KHR material extensions from advanced PBR properties
+    const extensions: Record<string, unknown> = {};
+
+    if (transmission > 0) {
+      Object.assign(extensions, createTransmissionExtension(transmission));
+    }
+    if (ior !== 1.5) {
+      Object.assign(extensions, createIORExtension(ior));
+    }
+    if (clearcoat > 0) {
+      Object.assign(extensions, createClearcoatExtension({ factor: clearcoat, roughness: clearcoatRoughness }));
+    }
+    if (sheen > 0) {
+      Object.assign(extensions, createSheenExtension({ color: sheenColor, roughness: sheenRoughness }));
+    }
+    if (iridescence > 0) {
+      Object.assign(extensions, createIridescenceExtension({ factor: iridescence, ior: iridescenceIOR }));
+    }
+    if (anisotropy > 0) {
+      Object.assign(extensions, createAnisotropyExtension({ strength: anisotropy, rotation: anisotropyRotation }));
+    }
+    if (thickness > 0 || attenuationDistance !== undefined) {
+      Object.assign(extensions, createVolumeExtension({
+        thickness: thickness || 1,
+        attenuationDistance,
+        attenuationColor,
+      }));
+    }
+    if (emissiveIntensity > 1) {
+      Object.assign(extensions, createEmissiveStrengthExtension(emissiveIntensity));
+    }
+
+    if (Object.keys(extensions).length > 0) {
+      material.extensions = extensions;
+    }
+
+    // Apply procedural scale texture to hull/metaball meshes and skin materials
+    const isScaledGeometry = shapeType === 'hull' || shapeType === 'metaball';
+    const isScaledMaterial = typeof namedMat === 'string' && (namedMat === 'skin_dark' || namedMat === 'leather');
+    if (isScaledGeometry || isScaledMaterial) {
       const texIdx = this.ensureScaleTexture();
       if (texIdx >= 0) {
         (material.pbrMetallicRoughness as Record<string, unknown>).baseColorTexture = {
@@ -1840,12 +1974,115 @@ export class GLTFPipeline extends CompilerBase {
       }
     }
 
+    // Apply external texture maps from composition properties
+    if (Object.keys(texturePaths).length > 0) {
+      const pbr = material.pbrMetallicRoughness as Record<string, unknown>;
+
+      if (texturePaths.baseColor && !pbr.baseColorTexture) {
+        const idx = this.getOrCreateExternalTexture(texturePaths.baseColor);
+        if (idx >= 0) pbr.baseColorTexture = { index: idx, texCoord: 0 };
+      }
+
+      if (texturePaths.metallicRoughness && !pbr.metallicRoughnessTexture) {
+        const idx = this.getOrCreateExternalTexture(texturePaths.metallicRoughness);
+        if (idx >= 0) pbr.metallicRoughnessTexture = { index: idx, texCoord: 0 };
+      }
+
+      const matRecord = material as unknown as Record<string, unknown>;
+
+      if (texturePaths.normal && !matRecord.normalTexture) {
+        const idx = this.getOrCreateExternalTexture(texturePaths.normal);
+        if (idx >= 0) matRecord.normalTexture = { index: idx, texCoord: 0, scale: 1.0 };
+      }
+
+      if (texturePaths.occlusion && !matRecord.occlusionTexture) {
+        const idx = this.getOrCreateExternalTexture(texturePaths.occlusion);
+        if (idx >= 0) matRecord.occlusionTexture = { index: idx, texCoord: 0, strength: 1.0 };
+      }
+
+      if (texturePaths.emissive && !matRecord.emissiveTexture) {
+        const idx = this.getOrCreateExternalTexture(texturePaths.emissive);
+        if (idx >= 0) matRecord.emissiveTexture = { index: idx, texCoord: 0 };
+      }
+    }
+
     const materialIndex = this.materials.length;
     this.materials.push(material);
     this.materialMap.set(key, materialIndex);
     this.stats.materialCount++;
 
     return materialIndex;
+  }
+
+  /**
+   * Embed an external texture image in the glTF buffer. Returns the texture
+   * index, or -1 if the image data is not available in options.textureData.
+   * Caches by path so the same image is only embedded once.
+   */
+  private getOrCreateExternalTexture(path: string): number {
+    if (this.textureIndexMap.has(path)) {
+      return this.textureIndexMap.get(path)!;
+    }
+
+    const imageData = this.options.textureData[path];
+    if (!imageData || imageData.length === 0) {
+      return -1;
+    }
+
+    // Detect MIME type from magic bytes
+    const isPNG = imageData[0] === 0x89 && imageData[1] === 0x50;
+    const isJPEG = imageData[0] === 0xFF && imageData[1] === 0xD8;
+    const mimeType = isPNG ? 'image/png' : isJPEG ? 'image/jpeg' : 'image/png';
+
+    // Embed image bytes in the glTF buffer
+    const byteOffset = this.bufferData.length;
+    for (let i = 0; i < imageData.length; i++) {
+      this.bufferData.push(imageData[i]);
+    }
+    // Pad to 4-byte alignment
+    while (this.bufferData.length % 4 !== 0) {
+      this.bufferData.push(0);
+    }
+
+    // Create buffer view
+    const bufferViewIndex = this.bufferViews.length;
+    this.bufferViews.push({
+      buffer: 0,
+      byteOffset,
+      byteLength: imageData.length,
+    });
+
+    // Create image
+    const imageIndex = this.images.length;
+    this.images.push({
+      bufferView: bufferViewIndex,
+      mimeType,
+    });
+
+    // Create sampler (reuse if one already exists, otherwise create)
+    let samplerIndex: number;
+    if (this.samplers.length > 0) {
+      samplerIndex = 0; // reuse first sampler (LINEAR + REPEAT)
+    } else {
+      samplerIndex = this.samplers.length;
+      this.samplers.push({
+        magFilter: 9729, // LINEAR
+        minFilter: 9987, // LINEAR_MIPMAP_LINEAR
+        wrapS: 10497,    // REPEAT
+        wrapT: 10497,    // REPEAT
+      });
+    }
+
+    // Create texture
+    const textureIndex = this.textures.length;
+    this.textures.push({
+      source: imageIndex,
+      sampler: samplerIndex,
+    });
+
+    this.textureIndexMap.set(path, textureIndex);
+    this.stats.textureCount++;
+    return textureIndex;
   }
 
   /**
@@ -2099,10 +2336,8 @@ export class GLTFPipeline extends CompilerBase {
       gltf.skins = this._skins;
     }
 
-    // LOD extension
-    if (this._lodCoverages && this._lodCoverages.length > 0) {
-      gltf.extensionsUsed = ['MSFT_lod'];
-    }
+    // Auto-collect all extensions (KHR material extensions + MSFT_lod + etc.)
+    declareExtensions(gltf as Record<string, unknown>);
 
     // For gltf format, add URI to buffer
     if (this.options.format === 'gltf') {
