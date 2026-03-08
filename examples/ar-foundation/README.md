@@ -4,13 +4,15 @@ Complete working examples demonstrating AR Foundation capabilities in HoloScript
 
 ## Overview
 
-This directory contains 5 comprehensive AR Foundation examples showcasing core mobile AR features:
+This directory contains 7 comprehensive AR Foundation examples showcasing core mobile AR features:
 
 1. **Plane Detection** - Surface detection and object placement
 2. **Mesh Scanning** - Environment mesh reconstruction
 3. **Persistent Anchors** - Cloud-based cross-session anchors
 4. **Geospatial AR** - GPS-based AR content placement
 5. **Light Estimation** - Real-time lighting adaptation
+6. **Image Tracking** - 2D image target detection and augmented content overlay
+7. **Face Tracking** - Face mesh tracking, blend shapes, and AR face effects
 
 ## Examples
 

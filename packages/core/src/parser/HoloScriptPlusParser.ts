@@ -1698,7 +1698,12 @@ export class HoloScriptPlusParser {
         this.warn(`VR trait @${name} is disabled`);
         return null;
       }
-      const config = this.check('LPAREN') ? this.parseTraitConfig() : {};
+      let config: Record<string, unknown> = {};
+      if (this.check('LPAREN')) {
+        config = this.parseTraitConfig();
+      } else if (this.check('LBRACE')) {
+        config = this.parseBlockContent();
+      }
       return { type: 'trait' as const, name: name as VRTraitName, config } as any;
     }
 

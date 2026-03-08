@@ -66,6 +66,8 @@ EXPECTED_FILES=(
     "mesh-scanning.holo"
     "light-estimation.holo"
     "persistent-anchors.holo"
+    "image-tracking.holo"
+    "face-tracking.holo"
 )
 
 MISSING_FILES=()
@@ -134,6 +136,8 @@ declare -A TRAIT_USAGE=(
     ["mesh-scanning.holo"]="@mesh_detection|@dynamic_mesh|@occlusion"
     ["light-estimation.holo"]="@light_estimation"
     ["persistent-anchors.holo"]="@persistent_anchor|@cloud_anchor|@shared_anchor"
+    ["image-tracking.holo"]="@object_tracking|@anchor|@light_estimation"
+    ["face-tracking.holo"]="@face_tracking|@occlusion|@light_estimation"
 )
 
 for file in "${!TRAIT_USAGE[@]}"; do
