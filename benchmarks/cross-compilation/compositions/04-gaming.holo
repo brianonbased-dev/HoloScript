@@ -1,0 +1,64 @@
+// Gaming Benchmark Composition
+composition "Gaming Benchmark" {
+  metadata {
+    name: 'Gaming Cross-Compilation Benchmark'
+    category: 'gaming'
+    platforms: ['unity', 'unreal', 'godot', 'vrchat', 'webxr', 'r3f', 'babylonjs', 'playcanvas']
+  }
+
+  environment {
+    skybox: "fantasy_sky"
+    ambient_light: 0.4
+    physics_engine: "bullet"
+    gravity: [0, -9.81, 0]
+  }
+
+  template "Enemy" {
+    @ai_agent
+    @collidable
+    @destructible
+    geometry: "sphere"
+    state { hp: 100, speed: 2.0, aggressive: true }
+  }
+
+  template "Weapon" {
+    @grabbable
+    @throwable
+    @damage_dealer
+    geometry: "cube"
+    state { damage: 25, durability: 100 }
+  }
+
+  object "Player" {
+    @controllable
+    @physics
+    @health_system
+    geometry: "cube"
+    position: [0, 1, 0]
+    scale: [0.5, 1.8, 0.5]
+    state { hp: 100, mana: 50 }
+  }
+
+  spatial_group "Arena" {
+    origin: [0, 0, -5]
+    object "Enemy1" using "Enemy" {
+      position: [2, 1, 0]
+      color: "#ff0000"
+    }
+    object "Enemy2" using "Enemy" {
+      position: [-2, 1, 0]
+      color: "#ff0000"
+    }
+    object "Sword" using "Weapon" {
+      position: [0, 1, 2]
+      scale: [0.1, 0.8, 0.1]
+      color: "#cccccc"
+    }
+  }
+
+  light "MainLight" {
+    type: "directional"
+    intensity: 1.5
+    rotation: [-45, 30, 0]
+  }
+}

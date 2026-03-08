@@ -1,7 +1,20 @@
 # URDF/SDF Isaac Sim Optimization Guide
 
 > Compiler targets: `URDFCompiler` and `SDFCompiler` in `packages/core/src/compiler/`
-> Last updated: 2026-03-06
+> Last updated: 2026-03-07
+> Status: ✅ IMPLEMENTED (Priority 1-2 features complete)
+
+**Implementation Summary:**
+
+- ✅ Isaac Sim extension tags infrastructure (sensors, loop joints, fixed frames)
+- ✅ Unique material name generation (prevents Isaac Sim material merging)
+- ✅ Isaac Sim-compatible name sanitization (leading underscore handling)
+- ✅ `compileForIsaacSim()` convenience function
+- ✅ PhysX solver tuning configuration options
+- ✅ Example composition: `examples/robotics/isaac-sim-robot-arm.holo`
+- 🔄 Gazebo Harmonic plugin migration (partial - Classic plugins still default)
+- ⏳ SDF joint articulation (Priority 2 - not yet implemented)
+- ⏳ SDF proper inertia calculation (Priority 3 - not yet implemented)
 
 ---
 

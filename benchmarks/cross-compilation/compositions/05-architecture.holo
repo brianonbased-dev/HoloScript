@@ -1,0 +1,64 @@
+// Architecture Benchmark Composition
+composition "Architecture Benchmark" {
+  metadata {
+    name: 'Architecture Cross-Compilation Benchmark'
+    category: 'architecture'
+    platforms: ['unity', 'unreal', 'webxr', 'babylonjs', 'r3f', 'visionos', 'openxr']
+  }
+
+  environment {
+    skybox: "urban_courtyard"
+    ambient_light: 0.6
+    time_of_day: "dynamic"
+  }
+
+  template "BIMElement" {
+    @collidable
+    @hoverable
+    @metadata_display
+    state {
+      ifc_class: ""
+      material_spec: ""
+      installation_date: ""
+    }
+  }
+
+  spatial_group "Building" {
+    origin: [0, 0, -10]
+    object "Foundation" using "BIMElement" {
+      geometry: "cube"
+      position: [0, -0.5, 0]
+      scale: [10, 1, 10]
+      color: "#808080"
+      state: { ifc_class: "IfcSlab" }
+    }
+    object "Wall1" using "BIMElement" {
+      geometry: "cube"
+      position: [5, 1.5, 0]
+      scale: [0.3, 3, 10]
+      color: "#cccccc"
+      state: { ifc_class: "IfcWall" }
+    }
+    object "Wall2" using "BIMElement" {
+      geometry: "cube"
+      position: [-5, 1.5, 0]
+      scale: [0.3, 3, 10]
+      color: "#cccccc"
+      state: { ifc_class: "IfcWall" }
+    }
+  }
+
+  object "MeasurementTool" {
+    @anchor
+    @interactive
+    geometry: "plane"
+    scale: [0.2, 0.05, 1]
+    color: "#00ff00"
+  }
+
+  state ViewerState {
+    selectedElement: null
+    showDimensions: true
+    renderMode: "shaded"
+  }
+}

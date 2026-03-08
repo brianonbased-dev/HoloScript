@@ -1,0 +1,399 @@
+/**
+ * VR Budget Management — HoloScript v4.1 Quest 3 Optimization Example
+ *
+ * Demonstrates Gaussian budget management for VR hardware limits.
+ * This example shows:
+ *  - Quest 3 budget: 180K total Gaussians @ 72 FPS (W.034)
+ *  - Per-avatar reservation: 60K Gaussians (SqueezeMe UV-space reduction)
+ *  - Budget enforcement with 3-stage fallback
+ *  - Dynamic quality adjustment
+ *  - Avatar budget allocation
+ *  - Scene budget pooling
+ *
+ * Use Case: VR Social Platform (Quest 3)
+ *   - Multi-avatar scene with Gaussian splat avatars
+ *   - Maintain 72 FPS on Quest 3 hardware
+ *   - Fair budget allocation across avatars
+ *   - Graceful degradation when budget exceeded
+ *
+ * Run this example:
+ *   holoc examples/volumetric/04-vr-budget-management.holo --target r3f
+ *
+ * @version 4.1.0
+ */
+
+scene VRSocialSpace {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VR BUDGET CONFIGURATION (Quest 3 — W.034)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity BudgetManager {
+    traits: [gaussian_budget];
+
+    gaussian_budget: {
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // QUEST 3 BUDGET (W.034 — Research-Validated)
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+      // Total Gaussian budget for 72 FPS on Quest 3
+      total_cap: 180000,  // 180K Gaussians (W.034 validated target)
+
+      // Per-avatar reservation (after SqueezeMe compression)
+      per_avatar_reservation: 60000,  // 60K per avatar (W.034)
+
+      // Max avatars with full quality
+      max_avatars: 3,  // 3 avatars × 60K = 180K total
+
+      // Budget allocation strategy
+      allocation_strategy: "fair_share",  // fair_share | priority | distance
+
+      // Enforcement mode
+      enforcement_mode: "hard",  // hard | soft | warn_only
+
+      // Fallback stages (3-stage degradation)
+      fallback_stages: [
+        {
+          stage: 1,
+          name: "Reduce SH degree",
+          trigger_threshold: 0.90,  // 90% budget usage
+          action: "reduce_sh_degree",
+          params: { target_degree: 1 },  // SH 3 → SH 1
+        },
+        {
+          stage: 2,
+          name: "Reduce Gaussian count",
+          trigger_threshold: 0.95,  // 95% budget usage
+          action: "reduce_gaussian_count",
+          params: { reduction_factor: 0.7 },  // 30% reduction
+        },
+        {
+          stage: 3,
+          name: "Cull distant avatars",
+          trigger_threshold: 1.00,  // 100% budget usage
+          action: "cull_distant",
+          params: { distance_threshold: 10.0 },  // Cull avatars >10m away
+        },
+      ],
+
+      // Performance monitoring
+      performance_target: {
+        fps: 72,           // Quest 3 target FPS
+        frame_time_ms: 13.89,  // 1000ms / 72 = 13.89ms per frame
+        latency_budget_ms: 11.1,  // Render must complete in 11.1ms (80% of frame time)
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AVATAR ENTITIES (Gaussian Splat Avatars)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity Avatar1 {
+    traits: [gaussian_splat];
+    position: [0, 0, -2];
+
+    gaussian_splat: {
+      source: "./assets/avatar_alice.ply",
+      format: "ply",
+      quality: "high",
+      max_splats: 60000,  // Per-avatar reservation
+      sort_mode: "radix",
+      sh_degree: 3,
+      cull_invisible: true,
+      alpha_threshold: 0.01,
+      scale_modifier: 1.0,
+
+      lod: { mode: "none", octree_depth: 0, anchor_thresholds: [] },
+      temporal_mode: "static",
+      streaming: false,
+      compression: true,
+
+      gaussian_budget: {
+        total_cap: 180000,          // Shared pool
+        per_avatar_reservation: 60000,  // This avatar's allocation
+      },
+
+      spz: { version: "2.0", quaternion_encoding: "smallest_three" },
+    };
+  }
+
+  entity Avatar2 {
+    traits: [gaussian_splat];
+    position: [-1.5, 0, -3];
+
+    gaussian_splat: {
+      source: "./assets/avatar_bob.ply",
+      format: "ply",
+      quality: "high",
+      max_splats: 60000,
+      sort_mode: "radix",
+      sh_degree: 3,
+      cull_invisible: true,
+      alpha_threshold: 0.01,
+      scale_modifier: 1.0,
+
+      lod: { mode: "none", octree_depth: 0, anchor_thresholds: [] },
+      temporal_mode: "static",
+      streaming: false,
+      compression: true,
+
+      gaussian_budget: {
+        total_cap: 180000,
+        per_avatar_reservation: 60000,
+      },
+
+      spz: { version: "2.0", quaternion_encoding: "smallest_three" },
+    };
+  }
+
+  entity Avatar3 {
+    traits: [gaussian_splat];
+    position: [1.5, 0, -3];
+
+    gaussian_splat: {
+      source: "./assets/avatar_charlie.ply",
+      format: "ply",
+      quality: "high",
+      max_splats: 60000,
+      sort_mode: "radix",
+      sh_degree: 3,
+      cull_invisible: true,
+      alpha_threshold: 0.01,
+      scale_modifier: 1.0,
+
+      lod: { mode: "none", octree_depth: 0, anchor_thresholds: [] },
+      temporal_mode: "static",
+      streaming: false,
+      compression: true,
+
+      gaussian_budget: {
+        total_cap: 180000,
+        per_avatar_reservation: 60000,
+      },
+
+      spz: { version: "2.0", quaternion_encoding: "smallest_three" },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Budget Management
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(BudgetManager, "budget_initialized") {
+    log("💾 Gaussian budget initialized");
+    log(`  Total cap: ${event.totalCap.toLocaleString()} Gaussians`);
+    log(`  Per-avatar reservation: ${event.perAvatarReservation.toLocaleString()} Gaussians`);
+    log(`  Max avatars (full quality): ${event.maxAvatars}`);
+    log(`  Target FPS: ${event.targetFPS}`);
+  }
+
+  on(BudgetManager, "budget_allocated") {
+    log(`📊 Budget allocated to avatar ${event.avatarId}`);
+    log(`  Allocated: ${event.allocatedGaussians.toLocaleString()} Gaussians`);
+    log(`  Requested: ${event.requestedGaussians.toLocaleString()} Gaussians`);
+    log(`  Granted: ${event.granted ? "✅" : "❌"}`);
+  }
+
+  on(BudgetManager, "budget_usage_updated") {
+    const percent = (event.usedGaussians / event.totalCap * 100).toFixed(1);
+    log(`📈 Budget usage: ${event.usedGaussians.toLocaleString()} / ${event.totalCap.toLocaleString()} (${percent}%)`);
+    log(`  Active avatars: ${event.activeAvatars}`);
+    log(`  Remaining: ${event.remainingGaussians.toLocaleString()} Gaussians`);
+
+    if (percent >= 90) {
+      log(`  ⚠️  Budget usage high (${percent}%)`);
+    }
+  }
+
+  on(BudgetManager, "budget_exceeded") {
+    log("🚫 BUDGET EXCEEDED");
+    log(`  Total cap: ${event.totalCap.toLocaleString()}`);
+    log(`  Requested: ${event.requestedGaussians.toLocaleString()}`);
+    log(`  Overage: ${event.overageGaussians.toLocaleString()}`);
+    log(`  Triggering fallback stage ${event.fallbackStage}...`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Fallback Stages
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(BudgetManager, "fallback_stage_triggered") {
+    log(`⚠️  Fallback Stage ${event.stage}: ${event.stageName}`);
+    log(`  Budget usage: ${event.budgetUsagePercent.toFixed(1)}%`);
+    log(`  Trigger threshold: ${event.triggerThreshold * 100}%`);
+    log(`  Action: ${event.action}`);
+  }
+
+  on(BudgetManager, "sh_degree_reduced") {
+    log("  ✅ SH degree reduced");
+    log(`    Avatar: ${event.avatarId}`);
+    log(`    Old SH degree: ${event.oldDegree}`);
+    log(`    New SH degree: ${event.newDegree}`);
+    log(`    Gaussians saved: ${event.gaussiansSaved.toLocaleString()}`);
+  }
+
+  on(BudgetManager, "gaussian_count_reduced") {
+    log("  ✅ Gaussian count reduced");
+    log(`    Avatar: ${event.avatarId}`);
+    log(`    Old count: ${event.oldCount.toLocaleString()}`);
+    log(`    New count: ${event.newCount.toLocaleString()}`);
+    log(`    Reduction: ${((1 - event.newCount / event.oldCount) * 100).toFixed(1)}%`);
+  }
+
+  on(BudgetManager, "avatar_culled") {
+    log("  ✅ Distant avatar culled");
+    log(`    Avatar: ${event.avatarId}`);
+    log(`    Distance: ${event.distance.toFixed(2)}m`);
+    log(`    Threshold: ${event.distanceThreshold}m`);
+    log(`    Gaussians freed: ${event.gaussiansFreed.toLocaleString()}`);
+  }
+
+  on(BudgetManager, "fallback_complete") {
+    log("✅ Fallback complete, budget satisfied");
+    log(`  Budget usage: ${event.budgetUsagePercent.toFixed(1)}%`);
+    log(`  Used: ${event.usedGaussians.toLocaleString()} / ${event.totalCap.toLocaleString()}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Performance Monitoring
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(BudgetManager, "performance_measured") {
+    if (event.frameNumber % 72 === 0) {  // Log every second (72 frames)
+      log(`⚡ Performance (avg last second)`);
+      log(`  FPS: ${event.avgFPS.toFixed(1)} (target: ${event.targetFPS})`);
+      log(`  Frame time: ${event.avgFrameTimeMs.toFixed(2)}ms (target: ${event.targetFrameTimeMs.toFixed(2)}ms)`);
+      log(`  Render time: ${event.avgRenderTimeMs.toFixed(2)}ms (budget: ${event.latencyBudgetMs.toFixed(2)}ms)`);
+
+      if (event.avgFPS < event.targetFPS) {
+        log(`  ⚠️  FPS below target (${event.avgFPS.toFixed(1)} < ${event.targetFPS})`);
+      }
+    }
+  }
+
+  on(BudgetManager, "performance_warning") {
+    log(`⚠️  PERFORMANCE WARNING: ${event.warning}`);
+    log(`  Current FPS: ${event.currentFPS.toFixed(1)}`);
+    log(`  Target FPS: ${event.targetFPS}`);
+    log(`  Frame time: ${event.frameTimeMs.toFixed(2)}ms (target: ${event.targetFrameTimeMs.toFixed(2)}ms)`);
+    log(`  Recommendation: ${event.recommendation}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Add 4th avatar (exceeds budget)
+  on(DemoControls, "click") {
+    if (event.target === "add_avatar4_button") {
+      emit(BudgetManager, "allocate_budget", {
+        avatarId: "avatar_diana",
+        requestedGaussians: 60000,
+      });
+      log("👤 Adding 4th avatar (will exceed budget)...");
+    }
+  }
+
+  // Demo 2: Remove avatar (free budget)
+  on(DemoControls, "click") {
+    if (event.target === "remove_avatar3_button") {
+      emit(BudgetManager, "free_budget", {
+        avatarId: "avatar_charlie",
+        gaussiansFreed: 60000,
+      });
+      log("👋 Removing Avatar3 (freeing 60K Gaussians)...");
+    }
+  }
+
+  // Demo 3: Adjust allocation strategy
+  on(DemoControls, "click") {
+    if (event.target === "strategy_priority_button") {
+      emit(BudgetManager, "set_allocation_strategy", {
+        strategy: "priority",  // Prioritize nearby avatars
+      });
+      log("⚙️  Setting allocation strategy to PRIORITY (favor nearby avatars)...");
+    }
+  }
+
+  on(DemoControls, "click") {
+    if (event.target === "strategy_distance_button") {
+      emit(BudgetManager, "set_allocation_strategy", {
+        strategy: "distance",  // Distance-based allocation
+      });
+      log("⚙️  Setting allocation strategy to DISTANCE...");
+    }
+  }
+
+  // Demo 4: Force fallback stage
+  on(DemoControls, "click") {
+    if (event.target === "force_fallback_button") {
+      emit(BudgetManager, "force_fallback", {
+        stage: 2,  // Force Stage 2 (reduce Gaussian count)
+      });
+      log("⚠️  Forcing fallback Stage 2 (reduce Gaussian count)...");
+    }
+  }
+
+  // Demo 5: Reset to full quality
+  on(DemoControls, "click") {
+    if (event.target === "reset_quality_button") {
+      emit(BudgetManager, "reset_quality", {});
+      log("🔄 Resetting all avatars to full quality...");
+    }
+  }
+
+  on(BudgetManager, "quality_reset") {
+    log("✅ Quality reset complete");
+    log(`  All avatars restored to:`);
+    log(`    - 60K Gaussians`);
+    log(`    - SH degree 3`);
+  }
+
+  // Demo 6: Get budget statistics
+  on(DemoControls, "click") {
+    if (event.target === "get_budget_stats_button") {
+      emit(BudgetManager, "get_budget_statistics", {});
+      log("📊 Fetching budget statistics...");
+    }
+  }
+
+  on(BudgetManager, "budget_statistics_retrieved") {
+    log("📋 GAUSSIAN BUDGET STATISTICS");
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    log(`  Total cap: ${event.totalCap.toLocaleString()} Gaussians`);
+    log(`  Used: ${event.usedGaussians.toLocaleString()} (${event.usagePercent.toFixed(1)}%)`);
+    log(`  Remaining: ${event.remainingGaussians.toLocaleString()}`);
+    log(`  Active avatars: ${event.activeAvatars}`);
+    log(`  Per-avatar allocation:`);
+    for (const avatar of event.avatarAllocations) {
+      log(`    ${avatar.id}: ${avatar.gaussians.toLocaleString()} (${avatar.quality})`);
+    }
+    log(`  Fallback stages triggered: ${event.fallbackStagesTriggered}`);
+    log(`  Performance:`);
+    log(`    Avg FPS: ${event.avgFPS.toFixed(1)}`);
+    log(`    Avg frame time: ${event.avgFrameTimeMs.toFixed(2)}ms`);
+    log(`    Target met: ${event.performanceTargetMet ? "✅" : "❌"}`);
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity VRBudgetDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3.5, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "VR GAUSSIAN BUDGET (QUEST 3)\n\n💾 Budget (W.034 — Research-Validated):\n  • Total cap: 180K Gaussians @ 72 FPS\n  • Per-avatar: 60K Gaussians (SqueezeMe UV-space)\n  • Max avatars (full quality): 3\n  • Frame time budget: 13.89ms (72 FPS)\n  • Render budget: 11.1ms (80% of frame time)\n\n⚠️  3-Stage Fallback:\n  Stage 1 (90% usage): Reduce SH degree (3→1)\n  Stage 2 (95% usage): Reduce Gaussian count (30%)\n  Stage 3 (100% usage): Cull distant avatars (>10m)\n\n📊 Allocation Strategies:\n  • Fair share: Equal distribution\n  • Priority: Favor nearby/important avatars\n  • Distance: Allocate based on camera distance\n\n⚡ SqueezeMe Compression (W.034):\n  • UV-space Gaussian reduction\n  • 200K → 60K Gaussians (70% reduction)\n  • Preserves visual quality\n  • Enables 3 avatars @ 72 FPS\n\n🎯 Performance Targets (Quest 3):\n  • Resolution: 2064×2208 per eye\n  • Refresh rate: 72 Hz, 90 Hz, 120 Hz\n  • Foveated rendering enabled\n  • Reprojection as safety net\n\n💡 Best Practices:\n  • Limit avatars to 3 for full quality\n  • Use fallback stages for 4+ avatars\n  • Prioritize nearby avatars\n  • Monitor FPS continuously",
+      fontSize: 0.073,
+      color: "#a855f7",
+    };
+  }
+}

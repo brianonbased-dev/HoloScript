@@ -1,0 +1,72 @@
+// Fitness Benchmark Composition
+composition "Fitness Benchmark" {
+  metadata {
+    name: 'Fitness Cross-Compilation Benchmark'
+    category: 'fitness'
+    platforms: ['openxr', 'visionos', 'ar', 'webxr', 'babylonjs', 'r3f', 'unity']
+  }
+
+  environment {
+    hand_tracking: true
+    body_tracking: true
+  }
+
+  template "ExerciseZone" {
+    @interactive
+    @tracked
+    @performance_monitored
+    state { reps: 0, calories: 0, form_score: 100 }
+  }
+
+  object "VirtualTrainer" {
+    @ai_agent
+    @animated
+    @speech_enabled
+    geometry: "cube"
+    position: [0, 1.7, -2]
+    scale: [0.5, 1.8, 0.3]
+    color: "#00aaff"
+  }
+
+  spatial_group "WorkoutArea" {
+    origin: [0, 0, -1.5]
+    object "SquatZone" using "ExerciseZone" {
+      @collidable
+      geometry: "plane"
+      position: [0, 0, 0]
+      scale: [1.5, 1, 1.5]
+      color: "#44ff88"
+      opacity: 0.3
+    }
+    object "TargetMarker1" {
+      @glowing
+      geometry: "sphere"
+      position: [-0.3, 1.5, 0]
+      scale: 0.1
+      color: "#ff0000"
+    }
+    object "TargetMarker2" {
+      @glowing
+      geometry: "sphere"
+      position: [0.3, 1.5, 0]
+      scale: 0.1
+      color: "#ff0000"
+    }
+  }
+
+  object "StatsPanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    position: [1, 1.5, -1.5]
+    scale: [0.3, 0.4, 1]
+    color: "#222222"
+  }
+
+  state WorkoutState {
+    currentExercise: "squat"
+    repsCompleted: 0
+    caloriesBurned: 0
+    duration: 0
+  }
+}

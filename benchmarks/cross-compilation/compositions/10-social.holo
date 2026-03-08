@@ -1,0 +1,73 @@
+// Social Benchmark Composition
+composition "Social Benchmark" {
+  metadata {
+    name: 'Social Cross-Compilation Benchmark'
+    category: 'social'
+    platforms: ['vrchat', 'openxr', 'webxr', 'babylonjs', 'r3f', 'unity', 'visionos']
+    minPlayers: 1
+    maxPlayers: 8
+  }
+
+  environment {
+    skybox: "lounge"
+    ambient_light: 0.6
+  }
+
+  template "Avatar" {
+    @networked
+    @voice_enabled
+    @gestures
+    geometry: "cube"
+    state { username: "", status: "active" }
+  }
+
+  spatial_group "MeetingSpace" {
+    origin: [0, 0, -3]
+    object "CentralTable" {
+      @collidable
+      geometry: "cylinder"
+      position: [0, 0.4, 0]
+      scale: [1.5, 0.05, 1.5]
+      color: "#8b7355"
+    }
+    object "Seat1" {
+      @spawnable
+      @anchor
+      geometry: "cube"
+      position: [1.5, 0.25, 0]
+      scale: [0.5, 0.5, 0.5]
+      color: "#4a4a4a"
+    }
+    object "Seat2" {
+      @spawnable
+      @anchor
+      geometry: "cube"
+      position: [-1.5, 0.25, 0]
+      scale: [0.5, 0.5, 0.5]
+      color: "#4a4a4a"
+    }
+    object "Seat3" {
+      @spawnable
+      @anchor
+      geometry: "cube"
+      position: [0, 0.25, 1.5]
+      scale: [0.5, 0.5, 0.5]
+      color: "#4a4a4a"
+    }
+  }
+
+  object "SharedWhiteboard" {
+    @interactive
+    @networked
+    @drawing_surface
+    geometry: "plane"
+    position: [0, 1.5, -5]
+    scale: [3, 2, 1]
+    color: "#ffffff"
+  }
+
+  state RoomState {
+    activeUsers: []
+    voiceChatEnabled: true
+  }
+}

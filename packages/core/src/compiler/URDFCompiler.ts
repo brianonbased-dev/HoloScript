@@ -73,6 +73,8 @@ export interface URDFCompilerOptions {
   includeGazeboPlugins?: boolean;
   /** Include ros2_control hardware interface tags */
   includeROS2Control?: boolean;
+  /** Gazebo version target: 'classic' or 'harmonic' */
+  gazeboVersion?: 'classic' | 'harmonic';
   /** Gazebo physics engine (ode, bullet, dart, simbody) */
   gazeboPhysicsEngine?: 'ode' | 'bullet' | 'dart' | 'simbody';
   /** Default static friction coefficient */
@@ -87,6 +89,16 @@ export interface URDFCompilerOptions {
   enableSelfCollision?: boolean;
   /** ROS 2 package name (for mesh paths) */
   packageName?: string;
+  /** Include Isaac Sim-specific extension tags */
+  includeIsaacSimExtensions?: boolean;
+  /** Isaac Sim drive type: 'acceleration' or 'force' */
+  isaacSimDriveType?: 'acceleration' | 'force';
+  /** Isaac Sim target type: 'none', 'position', 'velocity' */
+  isaacSimTargetType?: 'none' | 'position' | 'velocity';
+  /** Isaac Sim PhysX solver position iterations */
+  isaacSimSolverPositionIterations?: number;
+  /** Isaac Sim PhysX solver velocity iterations */
+  isaacSimSolverVelocityIterations?: number;
 }
 
 export interface URDFLink {
@@ -229,6 +241,28 @@ export interface URDFROS2Control {
   parameters?: Record<string, string>;
 }
 
+export interface URDFIsaacSimSensor {
+  name: string;
+  type: string;
+  parentLink: string;
+  origin?: URDFOrigin;
+  /** Isaac Sim preconfigured sensor name or JSON path */
+  isaacSimConfig: string;
+}
+
+export interface URDFLoopJoint {
+  name: string;
+  type: 'spherical';
+  link1: { link: string; rpy: [number, number, number]; xyz: [number, number, number] };
+  link2: { link: string; rpy: [number, number, number]; xyz: [number, number, number] };
+}
+
+export interface URDFFixedFrame {
+  name: string;
+  parentLink: string;
+  origin: URDFOrigin;
+}
+
 // =============================================================================
 // URDF COMPILER
 // =============================================================================
@@ -249,6 +283,9 @@ export class URDFCompiler extends CompilerBase {
   private sensors: URDFSensor[] = [];
   private transmissions: URDFTransmission[] = [];
   private ros2Controls: URDFROS2Control[] = [];
+  private isaacSimSensors: URDFIsaacSimSensor[] = [];
+  private loopJoints: URDFLoopJoint[] = [];
+  private fixedFrames: URDFFixedFrame[] = [];
 
   constructor(options: URDFCompilerOptions = {}) {
     super();
@@ -262,6 +299,7 @@ export class URDFCompiler extends CompilerBase {
       includeHoloExtensions: options.includeHoloExtensions ?? true,
       includeGazeboPlugins: options.includeGazeboPlugins ?? false,
       includeROS2Control: options.includeROS2Control ?? false,
+      gazeboVersion: options.gazeboVersion ?? 'classic',
       gazeboPhysicsEngine: options.gazeboPhysicsEngine ?? 'ode',
       defaultMu1: options.defaultMu1 ?? 0.5,
       defaultMu2: options.defaultMu2 ?? 0.5,
@@ -269,6 +307,11 @@ export class URDFCompiler extends CompilerBase {
       defaultKd: options.defaultKd ?? 100,
       enableSelfCollision: options.enableSelfCollision ?? false,
       packageName: options.packageName ?? 'holoscript_robot',
+      includeIsaacSimExtensions: options.includeIsaacSimExtensions ?? false,
+      isaacSimDriveType: options.isaacSimDriveType ?? 'acceleration',
+      isaacSimTargetType: options.isaacSimTargetType ?? 'position',
+      isaacSimSolverPositionIterations: options.isaacSimSolverPositionIterations ?? 8,
+      isaacSimSolverVelocityIterations: options.isaacSimSolverVelocityIterations ?? 4,
     };
   }
 
@@ -295,7 +338,7 @@ export class URDFCompiler extends CompilerBase {
     if (!trait) return undefined;
     if (typeof trait === 'string') return {};
     // Return the trait object minus the name
-    const { name: _name, ...config } = trait as { name: string } & Record<string, unknown>;
+    const { name: _name, ...config } = trait as unknown as { name: string } & Record<string, unknown>;
     return config;
   }
 
@@ -324,9 +367,14 @@ export class URDFCompiler extends CompilerBase {
     }
   }
 
-  /** Sanitize name for URDF element names */
+  /** Sanitize name for URDF element names (Isaac Sim compatible) */
   private sanitizeName(name: string): string {
-    return name.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+    let sanitized = name.replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+    // Isaac Sim prepends 'a' to names starting with underscore after sanitization
+    if (sanitized.startsWith('_')) {
+      sanitized = 'a' + sanitized;
+    }
+    return sanitized;
   }
 
   /** Escape special characters for XML attribute values */
@@ -566,6 +614,9 @@ export class URDFCompiler extends CompilerBase {
     this.sensors = [];
     this.transmissions = [];
     this.ros2Controls = [];
+    this.isaacSimSensors = [];
+    this.loopJoints = [];
+    this.fixedFrames = [];
     this.indentLevel = 0;
 
     // Extract links, joints, sensors, etc. from composition
@@ -622,6 +673,11 @@ export class URDFCompiler extends CompilerBase {
       for (const sensor of this.sensors) {
         this.emitGazeboSensor(sensor);
       }
+    }
+
+    // Isaac Sim extensions
+    if (this.options.includeIsaacSimExtensions) {
+      this.emitIsaacSimExtensions();
     }
 
     // HoloScript extensions as comments
@@ -766,9 +822,10 @@ export class URDFCompiler extends CompilerBase {
     const rotation = this.extractRotation(obj);
     const color = this.extractColor(obj);
 
-    // Create material if color specified
+    // Create material if color specified with unique name (Isaac Sim merges same-name materials)
     if (color) {
-      const matName = `material_${linkName}`;
+      const colorHash = color.replace(/[^a-zA-Z0-9]/g, '');
+      const matName = `material_${linkName}_${colorHash}`;
       const rgba = this.parseColor(color);
       this.materials.set(matName, {
         name: matName,
@@ -1126,7 +1183,8 @@ export class URDFCompiler extends CompilerBase {
       this.emitGeometry(link.visual);
       // Use per-link material if color was specified, otherwise default
       if (link.visual.color) {
-        const matName = `material_${link.name}`;
+        const colorHash = link.visual.color.replace(/[^a-zA-Z0-9]/g, '');
+        const matName = `material_${link.name}_${colorHash}`;
         if (this.materials.has(matName)) {
           this.emit(`<material name="${matName}"/>`);
         } else {
@@ -1612,6 +1670,69 @@ export class URDFCompiler extends CompilerBase {
 
     return undefined;
   }
+
+  // ===========================================================================
+  // ISAAC SIM EXTENSION EMISSION
+  // ===========================================================================
+
+  /** Emit Isaac Sim sensor extension tag */
+  private emitIsaacSimSensor(sensor: URDFIsaacSimSensor): void {
+    this.emit(`<sensor name="${sensor.name}" type="${sensor.type}" isaac_sim_config="${sensor.isaacSimConfig}">`);
+    this.indentLevel++;
+    this.emit(`<parent link="${sensor.parentLink}"/>`);
+    if (sensor.origin) {
+      this.emitOrigin(sensor.origin);
+    }
+    this.indentLevel--;
+    this.emit('</sensor>');
+  }
+
+  /** Emit Isaac Sim loop joint extension tag */
+  private emitLoopJoint(loopJoint: URDFLoopJoint): void {
+    this.emit(`<loop_joint name="${loopJoint.name}" type="${loopJoint.type}">`);
+    this.indentLevel++;
+    this.emit(`<link1 link="${loopJoint.link1.link}" rpy="${loopJoint.link1.rpy.join(' ')}" xyz="${loopJoint.link1.xyz.join(' ')}"/>`);
+    this.emit(`<link1 link="${loopJoint.link2.link}" rpy="${loopJoint.link2.rpy.join(' ')}" xyz="${loopJoint.link2.xyz.join(' ')}"/>`);
+    this.indentLevel--;
+    this.emit('</loop_joint>');
+  }
+
+  /** Emit Isaac Sim fixed frame extension tag */
+  private emitFixedFrame(frame: URDFFixedFrame): void {
+    this.emit(`<fixed_frame name="${frame.name}">`);
+    this.indentLevel++;
+    this.emit(`<parent link="${frame.parentLink}"/>`);
+    this.emitOrigin(frame.origin);
+    this.indentLevel--;
+    this.emit('</fixed_frame>');
+  }
+
+  /** Emit Isaac Sim PhysX configuration comments */
+  private emitIsaacSimExtensions(): void {
+    if (!this.options.includeIsaacSimExtensions) return;
+
+    this.emitBlank();
+    this.emit('<!-- Isaac Sim Extensions -->');
+
+    // Emit Isaac Sim sensors
+    for (const sensor of this.isaacSimSensors) {
+      this.emitIsaacSimSensor(sensor);
+    }
+
+    // Emit loop joints
+    for (const loopJoint of this.loopJoints) {
+      this.emitLoopJoint(loopJoint);
+    }
+
+    // Emit fixed frames
+    for (const fixedFrame of this.fixedFrames) {
+      this.emitFixedFrame(fixedFrame);
+    }
+
+    // PhysX tuning as comments (for post-import configuration scripts)
+    this.emit(`<!-- isaac_sim_config: drive_type=${this.options.isaacSimDriveType} target_type=${this.options.isaacSimTargetType} -->`);
+    this.emit(`<!-- isaac_sim_config: solver_position_iterations=${this.options.isaacSimSolverPositionIterations} solver_velocity_iterations=${this.options.isaacSimSolverVelocityIterations} -->`);
+  }
 }
 
 // =============================================================================
@@ -1659,12 +1780,38 @@ export function compileForGazebo(
 ): string {
   const gazeboOptions: URDFCompilerOptions = {
     includeGazeboPlugins: true,
+    gazeboVersion: 'classic',
     includeVisual: true,
     includeCollision: true,
     includeInertial: true,
     ...options,
   };
   const compiler = new URDFCompiler(gazeboOptions);
+  return compiler.compile(composition);
+}
+
+/**
+ * Compile HoloScript composition for NVIDIA Isaac Sim
+ * Includes Isaac Sim extension tags, optimized for PhysX physics
+ */
+export function compileForIsaacSim(
+  composition: HoloComposition,
+  options?: Partial<URDFCompilerOptions>
+): string {
+  const isaacOptions: URDFCompilerOptions = {
+    includeVisual: true,
+    includeCollision: true,
+    includeInertial: true,
+    includeGazeboPlugins: false, // Isaac Sim uses PhysX, not Gazebo plugins
+    includeROS2Control: true,
+    includeIsaacSimExtensions: true,
+    isaacSimDriveType: 'acceleration',
+    isaacSimTargetType: 'position',
+    isaacSimSolverPositionIterations: 8,
+    isaacSimSolverVelocityIterations: 4,
+    ...options,
+  };
+  const compiler = new URDFCompiler(isaacOptions);
   return compiler.compile(composition);
 }
 

@@ -1,0 +1,86 @@
+// Robotics Benchmark Composition
+composition "Robotics Benchmark" {
+  metadata {
+    name: 'Robotics Cross-Compilation Benchmark'
+    category: 'robotics'
+    platforms: ['urdf', 'sdf', 'openxr', 'webgpu', 'unity', 'unreal', 'dtdl']
+  }
+
+  environment {
+    physics_engine: "ode"
+    gravity: [0, 0, -9.81]
+  }
+
+  template "RobotLink" {
+    @physics
+    @collidable
+    color: "#95a5a6"
+    material: "aluminum_alloy"
+  }
+
+  template "RevoluteJoint" {
+    @rotatable
+    geometry: "cylinder"
+    scale: [0.05, 0.04, 0.05]
+    color: "#e74c3c"
+    behavior "RevoluteJoint" {
+      axis: [0, 0, 1]
+      lowerLimit: -3.14159
+      upperLimit: 3.14159
+      maxVelocity: 2.094
+      maxTorque: 150.0
+    }
+  }
+
+  object "BasePedestal" {
+    @collidable
+    @physics { type: "static", mass: 25.0 }
+    geometry: "cylinder"
+    position: [0, 0.1, 0]
+    scale: [0.2, 0.2, 0.2]
+    color: "#2c3e50"
+  }
+
+  spatial_group "RobotArm" {
+    origin: [0, 0.2, 0]
+    object "J1" using "RevoluteJoint" {
+      behavior: { axis: [0, 1, 0], maxTorque: 150.0 }
+    }
+    object "UpperArm" using "RobotLink" {
+      geometry: "cube"
+      position: [0, 0.2, 0]
+      scale: [0.08, 0.4, 0.08]
+      physics: { mass: 3.5 }
+    }
+    object "J2" using "RevoluteJoint" {
+      position: [0, 0.4, 0]
+      behavior: { axis: [1, 0, 0], maxTorque: 120.0 }
+    }
+    object "Forearm" using "RobotLink" {
+      geometry: "cube"
+      position: [0, 0.55, 0]
+      scale: [0.06, 0.3, 0.06]
+      physics: { mass: 2.0 }
+    }
+  }
+
+  object "TargetObject" {
+    @grabbable
+    @physics
+    geometry: "cube"
+    position: [0.5, 0.5, 0]
+    scale: 0.08
+    color: "#e74c3c"
+  }
+
+  system "ROS2Bridge" {
+    nodeName: '/robot_benchmark'
+    publishRate: 125
+    topics: { jointStates: '/joint_states' }
+  }
+
+  state RobotState {
+    mode: "idle"
+    jointAngles: [0, 0]
+  }
+}

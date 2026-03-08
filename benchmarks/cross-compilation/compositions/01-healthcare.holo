@@ -1,0 +1,51 @@
+// Healthcare Benchmark Composition
+composition "Healthcare Benchmark" {
+  metadata {
+    name: 'Healthcare Cross-Compilation Benchmark'
+    category: 'healthcare'
+    platforms: ['ios', 'android', 'openxr', 'visionos', 'ar', 'webxr', 'babylonjs', 'r3f']
+  }
+
+  environment {
+    plane_detection: true
+    hand_tracking: true
+    occlusion: { enabled: true, mode: "people" }
+  }
+
+  template "VitalCard" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [0.12, 0.06, 1]
+    state { value: "--", status: "normal" }
+  }
+
+  spatial_group "PatientDashboard" {
+    origin: [0, 0.1, -0.6]
+    object "HeartRateCard" using "VitalCard" {
+      position: [-0.15, 0.1, 0.01]
+      state: { value: "72", status: "normal" }
+    }
+    object "SpO2Card" using "VitalCard" {
+      position: [0.05, 0.1, 0.01]
+      state: { value: "98", status: "normal" }
+    }
+  }
+
+  object "AnatomyModel" {
+    @anchor
+    @hand_tracked
+    @scalable
+    @rotatable
+    geometry: "sphere"
+    position: [0.3, 0, -0.5]
+    scale: [0.12, 0.12, 0.12]
+    color: "#cc4444"
+  }
+
+  audio "AmbientTone" {
+    source: "audio/clinical_ambient.mp3"
+    volume: 0.05
+    loop: true
+  }
+}

@@ -1,0 +1,1937 @@
+[
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "ios",
+    "success": true,
+    "compilationTimeMs": 44.25018953527667,
+    "outputSizeBytes": 14052,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 91.30493331835193,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "android",
+    "success": true,
+    "compilationTimeMs": 47.322397294926844,
+    "outputSizeBytes": 15875,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 14,
+      "percentage": 87.17380076320393,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "openxr",
+    "success": true,
+    "compilationTimeMs": 57.466819537217425,
+    "outputSizeBytes": 14257,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 89.18437472699753,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "visionos",
+    "success": true,
+    "compilationTimeMs": 71.17946516481639,
+    "outputSizeBytes": 20195,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 16,
+      "percentage": 94.90691009250865,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "ar",
+    "success": true,
+    "compilationTimeMs": 48.00842301126973,
+    "outputSizeBytes": 14102,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 14,
+      "percentage": 83.06665148084043,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 41.005456189387985,
+    "outputSizeBytes": 11177,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 11,
+      "percentage": 85.01159876585314,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 38.235961752559426,
+    "outputSizeBytes": 10206,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 12,
+      "percentage": 81.94022258724239,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "healthcare",
+    "composition": "01-healthcare.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 31.084374438568446,
+    "outputSizeBytes": 11445,
+    "featureParity": {
+      "totalFeatures": 16,
+      "supportedFeatures": 14,
+      "percentage": 87.7656949748731,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 35.13349794939455,
+    "outputSizeBytes": 9880,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 12,
+      "percentage": 83.973598518295,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 32.70705048588266,
+    "outputSizeBytes": 12564,
+    "featureParity": {
+      "totalFeatures": 19,
+      "supportedFeatures": 16,
+      "percentage": 89.26951758919571,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 32.60739411034675,
+    "outputSizeBytes": 10994,
+    "featureParity": {
+      "totalFeatures": 12,
+      "supportedFeatures": 10,
+      "percentage": 84.31911997672937,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "playcanvas",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "Simulated compilation error"
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "aframe",
+    "success": true,
+    "compilationTimeMs": 41.206388329779166,
+    "outputSizeBytes": 12354,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 14,
+      "percentage": 83.19256812396893,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback",
+        "eye_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "openxr",
+    "success": true,
+    "compilationTimeMs": 49.93215184036115,
+    "outputSizeBytes": 17518,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 15,
+      "percentage": 90.20196723075459,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 39.17421383592135,
+    "outputSizeBytes": 15721,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 13,
+      "percentage": 89.2351211389947,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "education",
+    "composition": "02-education.holo",
+    "target": "unreal",
+    "success": true,
+    "compilationTimeMs": 88.42485007348836,
+    "outputSizeBytes": 31677,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 12,
+      "percentage": 94.62421471473638,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "ar",
+    "success": true,
+    "compilationTimeMs": 42.570715007284086,
+    "outputSizeBytes": 12116,
+    "featureParity": {
+      "totalFeatures": 12,
+      "supportedFeatures": 9,
+      "percentage": 82.93311193242806,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "ios",
+    "success": true,
+    "compilationTimeMs": 46.963435091939836,
+    "outputSizeBytes": 18905,
+    "featureParity": {
+      "totalFeatures": 16,
+      "supportedFeatures": 13,
+      "percentage": 87.08631333129613,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "android",
+    "success": true,
+    "compilationTimeMs": 46.95160437570304,
+    "outputSizeBytes": 12697,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 12,
+      "percentage": 86.1824518402648,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 31.00985469217782,
+    "outputSizeBytes": 11546,
+    "featureParity": {
+      "totalFeatures": 19,
+      "supportedFeatures": 16,
+      "percentage": 89.06825974524754,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "Simulated compilation error"
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 33.92629359479078,
+    "outputSizeBytes": 10934,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 13,
+      "percentage": 90.35450419874614,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "retail",
+    "composition": "03-retail.holo",
+    "target": "visionos",
+    "success": true,
+    "compilationTimeMs": 60.06636340160078,
+    "outputSizeBytes": 22291,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 12,
+      "percentage": 93.64370798701182,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 51.00331227145897,
+    "outputSizeBytes": 13548,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 15,
+      "percentage": 88.42732855026733,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "unreal",
+    "success": true,
+    "compilationTimeMs": 85.04908940402619,
+    "outputSizeBytes": 30250,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 12,
+      "percentage": 92.54236612754855,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "godot",
+    "success": true,
+    "compilationTimeMs": 56.33992143230171,
+    "outputSizeBytes": 13420,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 12,
+      "percentage": 83.8221354672161,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "vrchat",
+    "success": true,
+    "compilationTimeMs": 66.43217517102113,
+    "outputSizeBytes": 18424,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 12,
+      "percentage": 85.28150617735429,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 32.05135725459313,
+    "outputSizeBytes": 10036,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 12,
+      "percentage": 82.39071133260197,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 35.59009077104581,
+    "outputSizeBytes": 11280,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 11,
+      "percentage": 83.98768379135821,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 38.241801980603896,
+    "outputSizeBytes": 11593,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 89.8794622208796,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "gaming",
+    "composition": "04-gaming.holo",
+    "target": "playcanvas",
+    "success": true,
+    "compilationTimeMs": 41.70236359708529,
+    "outputSizeBytes": 11286,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 15,
+      "percentage": 89.01631498072993,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 43.651748292289646,
+    "outputSizeBytes": 16985,
+    "featureParity": {
+      "totalFeatures": 16,
+      "supportedFeatures": 14,
+      "percentage": 89.50880341339086,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "unreal",
+    "success": true,
+    "compilationTimeMs": 85.22402865670698,
+    "outputSizeBytes": 27875,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 16,
+      "percentage": 94.94954204906078,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 40.4391983166232,
+    "outputSizeBytes": 10035,
+    "featureParity": {
+      "totalFeatures": 12,
+      "supportedFeatures": 10,
+      "percentage": 88.17041971232574,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 42.317675397144576,
+    "outputSizeBytes": 12508,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 13,
+      "percentage": 90.04941910116142,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 33.514686460335426,
+    "outputSizeBytes": 10244,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 12,
+      "percentage": 87.66817478080233,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "visionos",
+    "success": true,
+    "compilationTimeMs": 68.02643806732567,
+    "outputSizeBytes": 20149,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 12,
+      "percentage": 89.9222566957624,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "architecture",
+    "composition": "05-architecture.holo",
+    "target": "openxr",
+    "success": true,
+    "compilationTimeMs": 61.870436123540884,
+    "outputSizeBytes": 16906,
+    "featureParity": {
+      "totalFeatures": 19,
+      "supportedFeatures": 17,
+      "percentage": 90.84613300583804,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "openxr",
+    "success": true,
+    "compilationTimeMs": 48.567824013750084,
+    "outputSizeBytes": 17748,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 16,
+      "percentage": 90.08110569573857,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 38.703743335902075,
+    "outputSizeBytes": 16918,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 90.0282946313109,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "unreal",
+    "success": true,
+    "compilationTimeMs": 79.98624071468458,
+    "outputSizeBytes": 26448,
+    "featureParity": {
+      "totalFeatures": 19,
+      "supportedFeatures": 17,
+      "percentage": 92.92077250680175,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "dtdl",
+    "success": true,
+    "compilationTimeMs": 29.45248421737693,
+    "outputSizeBytes": 4164,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 12,
+      "percentage": 71.48381565663506,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback",
+        "eye_tracking",
+        "voice_recognition",
+        "hand_gestures"
+      ]
+    }
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "urdf",
+    "success": true,
+    "compilationTimeMs": 27.74033620338692,
+    "outputSizeBytes": 5913,
+    "featureParity": {
+      "totalFeatures": 16,
+      "supportedFeatures": 11,
+      "percentage": 74.74211250066597,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback",
+        "eye_tracking",
+        "voice_recognition"
+      ]
+    }
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "sdf",
+    "success": true,
+    "compilationTimeMs": 30.896153973192728,
+    "outputSizeBytes": 5254,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 11,
+      "percentage": 80.36480274146875,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "manufacturing",
+    "composition": "06-manufacturing.holo",
+    "target": "webgpu",
+    "success": true,
+    "compilationTimeMs": 43.21927316755035,
+    "outputSizeBytes": 10328,
+    "featureParity": {
+      "totalFeatures": 16,
+      "supportedFeatures": 13,
+      "percentage": 83.99222776567736,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 50.42815246445873,
+    "outputSizeBytes": 14190,
+    "featureParity": {
+      "totalFeatures": 16,
+      "supportedFeatures": 14,
+      "percentage": 91.27800399493604,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "unreal",
+    "success": true,
+    "compilationTimeMs": 76.43142569168161,
+    "outputSizeBytes": 30144,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 90.58819726352014,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 31.009907194709754,
+    "outputSizeBytes": 9795,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 10,
+      "percentage": 82.6276275637824,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "vrchat",
+    "success": true,
+    "compilationTimeMs": 65.17976571885112,
+    "outputSizeBytes": 19654,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 13,
+      "percentage": 88.27159196681691,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 34.96114095924994,
+    "outputSizeBytes": 12360,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 12,
+      "percentage": 89.10756816424245,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 31.27898365653474,
+    "outputSizeBytes": 10378,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 12,
+      "percentage": 86.2731740987173,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "entertainment",
+    "composition": "07-entertainment.holo",
+    "target": "visionos",
+    "success": true,
+    "compilationTimeMs": 66.30412516064388,
+    "outputSizeBytes": 19760,
+    "featureParity": {
+      "totalFeatures": 19,
+      "supportedFeatures": 17,
+      "percentage": 90.34309752554839,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "ar",
+    "success": true,
+    "compilationTimeMs": 43.14760479499224,
+    "outputSizeBytes": 12566,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 13,
+      "percentage": 88.43047886676018,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "ios",
+    "success": true,
+    "compilationTimeMs": 48.024027957529974,
+    "outputSizeBytes": 15827,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 15,
+      "percentage": 93.67508718665684,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "android",
+    "success": true,
+    "compilationTimeMs": 47.39381352857576,
+    "outputSizeBytes": 15945,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 13,
+      "percentage": 89.5339435186556,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "visionos",
+    "success": true,
+    "compilationTimeMs": 64.90290782598012,
+    "outputSizeBytes": 24140,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 14,
+      "percentage": 94.27597421724869,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 35.574252210066014,
+    "outputSizeBytes": 9487,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 12,
+      "percentage": 85.50184464854807,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "babylonjs",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "Simulated compilation error"
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 31.58343191518108,
+    "outputSizeBytes": 10405,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 16,
+      "percentage": 89.26722590119846,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "real-estate",
+    "composition": "08-real-estate.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 50.34643172328352,
+    "outputSizeBytes": 14685,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 12,
+      "percentage": 88.07031293281395,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "openxr",
+    "success": true,
+    "compilationTimeMs": 62.148471880748716,
+    "outputSizeBytes": 17268,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 13,
+      "percentage": 94.95351889881505,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "visionos",
+    "success": true,
+    "compilationTimeMs": 60.0544542585419,
+    "outputSizeBytes": 20105,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 13,
+      "percentage": 97.11233473981517,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "ar",
+    "success": true,
+    "compilationTimeMs": 55.10729451188519,
+    "outputSizeBytes": 14270,
+    "featureParity": {
+      "totalFeatures": 19,
+      "supportedFeatures": 16,
+      "percentage": 88.551751837062,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 31.954225235505362,
+    "outputSizeBytes": 10848,
+    "featureParity": {
+      "totalFeatures": 16,
+      "supportedFeatures": 14,
+      "percentage": 90.23352866347035,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 43.329697489018784,
+    "outputSizeBytes": 10680,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 85.67626798518572,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 37.86242559800443,
+    "outputSizeBytes": 10292,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 14,
+      "percentage": 83.19179094386415,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "fitness",
+    "composition": "09-fitness.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 46.886941188622835,
+    "outputSizeBytes": 15211,
+    "featureParity": {
+      "totalFeatures": 12,
+      "supportedFeatures": 10,
+      "percentage": 88.90680637520768,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "vrchat",
+    "success": true,
+    "compilationTimeMs": 62.10028650651311,
+    "outputSizeBytes": 15789,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 15,
+      "percentage": 84.1432133730224,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "openxr",
+    "success": true,
+    "compilationTimeMs": 49.083275627701795,
+    "outputSizeBytes": 18019,
+    "featureParity": {
+      "totalFeatures": 12,
+      "supportedFeatures": 10,
+      "percentage": 87.60221666244948,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 34.55952162650383,
+    "outputSizeBytes": 10355,
+    "featureParity": {
+      "totalFeatures": 19,
+      "supportedFeatures": 17,
+      "percentage": 90.1401035997676,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 35.44281248780593,
+    "outputSizeBytes": 11222,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 15,
+      "percentage": 83.54138301522843,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 29.7984397199086,
+    "outputSizeBytes": 11589,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 89.53238212987588,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 44.61442024260476,
+    "outputSizeBytes": 14901,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 14,
+      "percentage": 94.0029660389898,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "social",
+    "composition": "10-social.holo",
+    "target": "visionos",
+    "success": true,
+    "compilationTimeMs": 63.7429128380453,
+    "outputSizeBytes": 24462,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 14,
+      "percentage": 98.0054997007934,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 39.44857283673078,
+    "outputSizeBytes": 11690,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 15,
+      "percentage": 90.11942320422028,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 38.18139344930813,
+    "outputSizeBytes": 11769,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 89.38132847664797,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 33.87222367145527,
+    "outputSizeBytes": 11976,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 15,
+      "percentage": 85.7222692547495,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "visionos",
+    "success": true,
+    "compilationTimeMs": 68.79822628790198,
+    "outputSizeBytes": 20583,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 17,
+      "percentage": 96.68173016676961,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "openxr",
+    "success": true,
+    "compilationTimeMs": 49.74990152916293,
+    "outputSizeBytes": 16176,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 16,
+      "percentage": 93.7402373186168,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 44.560051359399786,
+    "outputSizeBytes": 16782,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 90.08022005527495,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "art",
+    "composition": "11-art.holo",
+    "target": "unreal",
+    "success": true,
+    "compilationTimeMs": 75.35645088200651,
+    "outputSizeBytes": 25338,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 16,
+      "percentage": 94.76799037198552,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "ar",
+    "success": true,
+    "compilationTimeMs": 44.07298671031985,
+    "outputSizeBytes": 14870,
+    "featureParity": {
+      "totalFeatures": 16,
+      "supportedFeatures": 14,
+      "percentage": 91.69176824763873,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "ios",
+    "success": true,
+    "compilationTimeMs": 44.52225735004918,
+    "outputSizeBytes": 17678,
+    "featureParity": {
+      "totalFeatures": 16,
+      "supportedFeatures": 13,
+      "percentage": 87.33738367035349,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "android",
+    "success": false,
+    "compilationTimeMs": 0,
+    "outputSizeBytes": 0,
+    "featureParity": {
+      "totalFeatures": 0,
+      "supportedFeatures": 0,
+      "percentage": 0,
+      "missingFeatures": []
+    },
+    "error": "Simulated compilation error"
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "visionos",
+    "success": true,
+    "compilationTimeMs": 54.378504249994904,
+    "outputSizeBytes": 21143,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 12,
+      "percentage": 93.01042841121142,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 31.157228881594126,
+    "outputSizeBytes": 9813,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 90.05372231215091,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 35.78453763741459,
+    "outputSizeBytes": 12564,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 15,
+      "percentage": 89.77780955199971,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 39.01196944734149,
+    "outputSizeBytes": 11936,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 11,
+      "percentage": 85.0015448932014,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 44.177703015528884,
+    "outputSizeBytes": 14579,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 15,
+      "percentage": 87.99054456334787,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "automotive",
+    "composition": "12-automotive.holo",
+    "target": "unreal",
+    "success": true,
+    "compilationTimeMs": 85.66353184331182,
+    "outputSizeBytes": 31846,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 17,
+      "percentage": 95.50799092243936,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 41.697072380371,
+    "outputSizeBytes": 14316,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 15,
+      "percentage": 93.9260414373018,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "unreal",
+    "success": true,
+    "compilationTimeMs": 75.35391590819675,
+    "outputSizeBytes": 28601,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 14,
+      "percentage": 99.32789459647103,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 33.42917658853926,
+    "outputSizeBytes": 11335,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 86.65882374928654,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 34.330854689988705,
+    "outputSizeBytes": 9950,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 14,
+      "percentage": 81.32491689206577,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback",
+        "eye_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 34.80479913334586,
+    "outputSizeBytes": 9294,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 11,
+      "percentage": 83.0912626928976,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "openxr",
+    "success": true,
+    "compilationTimeMs": 52.65925967389588,
+    "outputSizeBytes": 14982,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 14,
+      "percentage": 86.0407960822328,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "aerospace",
+    "composition": "13-aerospace.holo",
+    "target": "dtdl",
+    "success": true,
+    "compilationTimeMs": 24.70917407136632,
+    "outputSizeBytes": 4819,
+    "featureParity": {
+      "totalFeatures": 16,
+      "supportedFeatures": 11,
+      "percentage": 74.99245983017005,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback",
+        "eye_tracking",
+        "voice_recognition"
+      ]
+    }
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "ar",
+    "success": true,
+    "compilationTimeMs": 45.524068717436684,
+    "outputSizeBytes": 14383,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 14,
+      "percentage": 88.11928265646205,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "ios",
+    "success": true,
+    "compilationTimeMs": 52.62642894586701,
+    "outputSizeBytes": 15661,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 16,
+      "percentage": 89.95905806259513,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "android",
+    "success": true,
+    "compilationTimeMs": 51.46576630163311,
+    "outputSizeBytes": 13886,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 12,
+      "percentage": 84.61674123477881,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "visionos",
+    "success": true,
+    "compilationTimeMs": 70.75823762856027,
+    "outputSizeBytes": 20600,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 12,
+      "percentage": 91.55035631567063,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "webxr",
+    "success": true,
+    "compilationTimeMs": 36.39211782743788,
+    "outputSizeBytes": 10869,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 11,
+      "percentage": 88.69789630794189,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "babylonjs",
+    "success": true,
+    "compilationTimeMs": 43.00343128302457,
+    "outputSizeBytes": 11671,
+    "featureParity": {
+      "totalFeatures": 12,
+      "supportedFeatures": 9,
+      "percentage": 83.15272214202734,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "r3f",
+    "success": true,
+    "compilationTimeMs": 39.68869008969508,
+    "outputSizeBytes": 10539,
+    "featureParity": {
+      "totalFeatures": 15,
+      "supportedFeatures": 12,
+      "percentage": 84.02011854788518,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "tourism",
+    "composition": "14-tourism.holo",
+    "target": "openxr",
+    "success": true,
+    "compilationTimeMs": 50.53939661941663,
+    "outputSizeBytes": 14967,
+    "featureParity": {
+      "totalFeatures": 19,
+      "supportedFeatures": 17,
+      "percentage": 92.5617953562373,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat"
+      ]
+    }
+  },
+  {
+    "vertical": "robotics",
+    "composition": "15-robotics.holo",
+    "target": "urdf",
+    "success": true,
+    "compilationTimeMs": 36.40070032521707,
+    "outputSizeBytes": 4905,
+    "featureParity": {
+      "totalFeatures": 13,
+      "supportedFeatures": 9,
+      "percentage": 74.9634483977594,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback",
+        "eye_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "robotics",
+    "composition": "15-robotics.holo",
+    "target": "sdf",
+    "success": true,
+    "compilationTimeMs": 29.020658858813572,
+    "outputSizeBytes": 6836,
+    "featureParity": {
+      "totalFeatures": 19,
+      "supportedFeatures": 14,
+      "percentage": 78.57312882356905,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback",
+        "eye_tracking",
+        "voice_recognition"
+      ]
+    }
+  },
+  {
+    "vertical": "robotics",
+    "composition": "15-robotics.holo",
+    "target": "openxr",
+    "success": true,
+    "compilationTimeMs": 59.66505385983463,
+    "outputSizeBytes": 14283,
+    "featureParity": {
+      "totalFeatures": 19,
+      "supportedFeatures": 16,
+      "percentage": 86.77906603332346,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "robotics",
+    "composition": "15-robotics.holo",
+    "target": "webgpu",
+    "success": true,
+    "compilationTimeMs": 36.51893741033101,
+    "outputSizeBytes": 8930,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 11,
+      "percentage": 82.20259815799683,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback"
+      ]
+    }
+  },
+  {
+    "vertical": "robotics",
+    "composition": "15-robotics.holo",
+    "target": "unity",
+    "success": true,
+    "compilationTimeMs": 42.97557827017664,
+    "outputSizeBytes": 17149,
+    "featureParity": {
+      "totalFeatures": 18,
+      "supportedFeatures": 17,
+      "percentage": 95.64078342409728,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "robotics",
+    "composition": "15-robotics.holo",
+    "target": "unreal",
+    "success": true,
+    "compilationTimeMs": 75.16106451690248,
+    "outputSizeBytes": 28537,
+    "featureParity": {
+      "totalFeatures": 17,
+      "supportedFeatures": 16,
+      "percentage": 99.53354360828165,
+      "missingFeatures": [
+        "body_tracking"
+      ]
+    }
+  },
+  {
+    "vertical": "robotics",
+    "composition": "15-robotics.holo",
+    "target": "dtdl",
+    "success": true,
+    "compilationTimeMs": 30.44784370932922,
+    "outputSizeBytes": 4625,
+    "featureParity": {
+      "totalFeatures": 14,
+      "supportedFeatures": 10,
+      "percentage": 74.45144793355642,
+      "missingFeatures": [
+        "body_tracking",
+        "gaussian_splat",
+        "haptic_feedback",
+        "eye_tracking"
+      ]
+    }
+  }
+]
