@@ -45,6 +45,8 @@ import {
   postProcessingToGodot,
   audioSourceToGodot,
   weatherToGodot,
+  compileNarrativeBlock,
+  narrativeToGodot,
 } from './DomainBlockCompilerMixin';
 
 export interface GodotCompilerOptions {
@@ -222,6 +224,10 @@ export class GodotCompiler extends CompilerBase {
       weather: (block) => {
         const weather = compileWeatherBlock(block);
         return weatherToGodot(weather);
+      },
+      narrative: (block) => {
+        const narr = compileNarrativeBlock(block);
+        return narrativeToGodot(narr);
       },
     }, (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
 

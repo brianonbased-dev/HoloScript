@@ -309,6 +309,11 @@ type TokenType =
   | 'NORM_ADOPTION'
   | 'NORM_VIOLATION'
   | 'NORM_SANCTION'
+  // Narrative / StoryWeaver Protocol (v4.6)
+  | 'NARRATIVE_BLOCK'
+  | 'CHAPTER'
+  | 'DIALOGUE_TREE'
+  | 'CUTSCENE_SEQUENCE'
   // Spatial primitives
   | 'SPAWN_GROUP'
   | 'WAYPOINTS'
@@ -564,6 +569,12 @@ const KEYWORDS: Record<string, TokenType> = {
   norm_adoption: 'NORM_ADOPTION',
   norm_violation: 'NORM_VIOLATION',
   norm_sanction: 'NORM_SANCTION',
+  // Narrative / StoryWeaver Protocol (v4.6)
+  narrative: 'NARRATIVE_BLOCK',
+  chapter: 'CHAPTER',
+  dialogue_tree: 'DIALOGUE_TREE',
+  cutscene_sequence: 'CUTSCENE_SEQUENCE',
+  cutscene: 'CUTSCENE_SEQUENCE',
   true: 'BOOLEAN',
   false: 'BOOLEAN',
   null: 'NULL',
@@ -5004,6 +5015,8 @@ export class HoloCompositionParser {
     'SEMANTIC_SEARCH', 'GRAPH_QUERY',
     // Norm lifecycle / cultural engineering (v4.5)
     'NORM_PROPOSAL', 'NORM_VOTING', 'NORM_ADOPTION', 'NORM_VIOLATION', 'NORM_SANCTION',
+    // Narrative / StoryWeaver Protocol (v4.6)
+    'NARRATIVE_BLOCK', 'CHAPTER', 'DIALOGUE_TREE', 'CUTSCENE_SEQUENCE',
   ]);
 
   /** Token → domain type mapping */
@@ -5043,6 +5056,9 @@ export class HoloCompositionParser {
     // Norm lifecycle / cultural engineering (v4.5)
     NORM_PROPOSAL: 'norms', NORM_VOTING: 'norms', NORM_ADOPTION: 'norms',
     NORM_VIOLATION: 'norms', NORM_SANCTION: 'norms',
+    // Narrative / StoryWeaver Protocol (v4.6)
+    NARRATIVE_BLOCK: 'narrative', CHAPTER: 'narrative',
+    DIALOGUE_TREE: 'narrative', CUTSCENE_SEQUENCE: 'narrative',
   };
 
   /** Check if current token is a domain block token */

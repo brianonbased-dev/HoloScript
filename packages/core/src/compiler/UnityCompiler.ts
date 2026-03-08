@@ -45,6 +45,8 @@ import {
   postProcessingToUnity,
   audioSourceToUnity,
   weatherToUnity,
+  compileNarrativeBlock,
+  narrativeToUnity,
 } from './DomainBlockCompilerMixin';
 
 export interface UnityCompilerOptions {
@@ -248,6 +250,10 @@ export class UnityCompiler extends CompilerBase {
       weather: (block) => {
         const weather = compileWeatherBlock(block);
         return weatherToUnity(weather);
+      },
+      narrative: (block) => {
+        const narr = compileNarrativeBlock(block);
+        return narrativeToUnity(narr);
       },
     }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
 

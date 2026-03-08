@@ -29,6 +29,8 @@ import {
   postProcessingToUSD,
   audioSourceToUSD,
   weatherToUSD,
+  compileNarrativeBlock,
+  narrativeToUSDA,
 } from './DomainBlockCompilerMixin';
 import { MATERIAL_PRESETS } from './R3FCompiler';
 
@@ -1031,6 +1033,10 @@ export class USDZPipeline {
       weather: (block) => {
         const weather = compileWeatherBlock(block);
         return weatherToUSD(weather);
+      },
+      narrative: (block) => {
+        const narr = compileNarrativeBlock(block);
+        return narrativeToUSDA(narr);
       },
     }, (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
 

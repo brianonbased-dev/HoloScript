@@ -125,6 +125,13 @@ export type {
   HoloConditionalBlock,
   HoloForEachBlock,
   PlatformConstraint,
+  HoloDomainType,
+  HoloDomainBlock,
+  CompiledNarrative,
+  CompiledChapter,
+  CompiledDialogueLine,
+  CompiledChoice,
+  CompiledCutsceneAction,
 } from './parser/HoloCompositionTypes';
 
 // HoloScript+ Enhanced Parser with Trait Annotations (NEW - Phase 3)
@@ -660,6 +667,12 @@ export {
   materialToGLTF,
   physicsToURDF,
   compileDomainBlocks,
+  compileNarrativeBlock,
+  narrativeToUnity,
+  narrativeToGodot,
+  narrativeToVRChat,
+  narrativeToR3F,
+  narrativeToUSDA,
   type CompiledMaterial,
   type CompiledPhysics,
   type CompiledCollider,

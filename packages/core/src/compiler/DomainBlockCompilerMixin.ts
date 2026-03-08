@@ -1885,6 +1885,410 @@ function capitalizeFirst(s: string): string {
 }
 
 // =============================================================================
+// Narrative / StoryWeaver Protocol Compilation
+// =============================================================================
+
+import type {
+  CompiledNarrative,
+  CompiledChapter,
+  CompiledDialogueLine,
+  CompiledChoice,
+  CompiledCutsceneAction,
+} from '../parser/HoloCompositionTypes';
+
+export function compileNarrativeBlock(block: HoloDomainBlock): CompiledNarrative {
+  const chapters: CompiledChapter[] = [];
+  let hasChoices = false;
+
+  for (const child of (block.children || [])) {
+    const c = child as any;
+    if (c.type !== 'DomainBlock') continue;
+
+    const kw = c.keyword as string;
+    if (kw === 'chapter' || kw === 'act' || kw === 'scene') {
+      const chapter = compileChapterBlock(c);
+      if (chapter.choices && chapter.choices.length > 0) hasChoices = true;
+      chapters.push(chapter);
+    } else if (kw === 'dialogue_tree') {
+      // Dialogue tree as a virtual chapter
+      const dialogueLines: CompiledDialogueLine[] = [];
+      const choices: CompiledChoice[] = [];
+      for (const dc of (c.children || [])) {
+        const dck = (dc as any).keyword as string;
+        if (dck === 'line' || dck === 'dialogue') {
+          dialogueLines.push(compileDialogueLine(dc as any));
+        } else if (dck === 'choice') {
+          choices.push(compileChoiceNode(dc as any));
+          hasChoices = true;
+        }
+      }
+      chapters.push({
+        name: c.name || 'dialogue',
+        dialogueLines: dialogueLines.length > 0 ? dialogueLines : undefined,
+        choices: choices.length > 0 ? choices : undefined,
+      });
+    }
+  }
+
+  const props = block.properties || {};
+  const narrativeType: CompiledNarrative['type'] = hasChoices ? 'branching'
+    : (props.type as string) === 'open_world' ? 'open_world' : 'linear';
+
+  return {
+    name: block.name || 'unnamed',
+    type: narrativeType,
+    chapters,
+    startChapter: (props.start_chapter || props.startChapter) as string | undefined,
+    variables: props.variables as Record<string, any> | undefined,
+  };
+}
+
+function compileChapterBlock(block: any): CompiledChapter {
+  const props = block.properties || {};
+  const dialogueLines: CompiledDialogueLine[] = [];
+  const choices: CompiledChoice[] = [];
+  const cutsceneActions: CompiledCutsceneAction[] = [];
+
+  for (const child of (block.children || [])) {
+    const c = child as any;
+    const kw = c.keyword as string;
+    if (kw === 'line' || kw === 'dialogue') {
+      dialogueLines.push(compileDialogueLine(c));
+    } else if (kw === 'choice') {
+      choices.push(compileChoiceNode(c));
+    } else if (kw === 'cutscene' || kw === 'camera' || kw === 'action' || kw === 'wait' || kw === 'effect' || kw === 'audio') {
+      cutsceneActions.push(compileCutsceneAction(c));
+    }
+  }
+
+  return {
+    name: block.name || 'unnamed',
+    trigger: (props.trigger || props.on_enter) as string | undefined,
+    dialogueLines: dialogueLines.length > 0 ? dialogueLines : undefined,
+    choices: choices.length > 0 ? choices : undefined,
+    onComplete: (props.on_complete || props.next) as string | undefined,
+    cutsceneActions: cutsceneActions.length > 0 ? cutsceneActions : undefined,
+  };
+}
+
+function compileDialogueLine(block: any): CompiledDialogueLine {
+  const props = block.properties || {};
+  return {
+    speaker: (props.speaker || props.character) as string | undefined,
+    text: (props.text || props.content || block.name || '') as string,
+    emotion: props.emotion as string | undefined,
+    duration: props.duration as number | undefined,
+    voiceClip: (props.voice_clip || props.voiceClip || props.audio) as string | undefined,
+  };
+}
+
+function compileChoiceNode(block: any): CompiledChoice {
+  const props = block.properties || {};
+  return {
+    text: (props.text || block.name || '') as string,
+    condition: props.condition as string | undefined,
+    nextChapter: (props.next || props.next_chapter || props.goto) as string | undefined,
+    action: props.action as string | undefined,
+  };
+}
+
+function compileCutsceneAction(block: any): CompiledCutsceneAction {
+  const props = block.properties || {};
+  const kw = block.keyword as string;
+  const type: CompiledCutsceneAction['type'] =
+    kw === 'camera' || kw === 'camera_move' ? 'camera_move'
+    : kw === 'action' || kw === 'character_action' ? 'character_action'
+    : kw === 'wait' ? 'wait'
+    : kw === 'audio' ? 'audio'
+    : 'effect';
+
+  return {
+    type,
+    target: (props.target || block.name) as string | undefined,
+    params: { ...props },
+    duration: props.duration as number | undefined,
+  };
+}
+
+/** Generate Unity C# ScriptableObject + Timeline narrative code */
+export function narrativeToUnity(narrative: CompiledNarrative): string {
+  const lines: string[] = [];
+  const safeName = narrative.name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  lines.push(`// StoryWeaver Narrative: ${narrative.name}`);
+  lines.push(`[CreateAssetMenu(menuName = "StoryWeaver/${safeName}")]`);
+  lines.push(`public class ${safeName}Narrative : ScriptableObject {`);
+  lines.push(`    public NarrativeType type = NarrativeType.${capitalizeFirst(narrative.type)};`);
+  if (narrative.startChapter) {
+    lines.push(`    public string startChapter = "${narrative.startChapter}";`);
+  }
+  lines.push('');
+
+  for (const chapter of narrative.chapters) {
+    lines.push(`    [Header("${chapter.name}")]`);
+    lines.push(`    public Chapter ${chapter.name.replace(/[^a-zA-Z0-9_]/g, '_')} = new Chapter {`);
+    if (chapter.trigger) lines.push(`        trigger = "${chapter.trigger}",`);
+    if (chapter.onComplete) lines.push(`        onComplete = "${chapter.onComplete}",`);
+
+    if (chapter.dialogueLines && chapter.dialogueLines.length > 0) {
+      lines.push('        dialogueLines = new DialogueLine[] {');
+      for (const dl of chapter.dialogueLines) {
+        const parts = [`text = "${dl.text}"`];
+        if (dl.speaker) parts.push(`speaker = "${dl.speaker}"`);
+        if (dl.emotion) parts.push(`emotion = "${dl.emotion}"`);
+        if (dl.duration) parts.push(`duration = ${dl.duration}f`);
+        if (dl.voiceClip) parts.push(`voiceClip = "${dl.voiceClip}"`);
+        lines.push(`            new DialogueLine { ${parts.join(', ')} },`);
+      }
+      lines.push('        },');
+    }
+
+    if (chapter.choices && chapter.choices.length > 0) {
+      lines.push('        choices = new Choice[] {');
+      for (const ch of chapter.choices) {
+        const parts = [`text = "${ch.text}"`];
+        if (ch.nextChapter) parts.push(`nextChapter = "${ch.nextChapter}"`);
+        if (ch.condition) parts.push(`condition = "${ch.condition}"`);
+        if (ch.action) parts.push(`action = "${ch.action}"`);
+        lines.push(`            new Choice { ${parts.join(', ')} },`);
+      }
+      lines.push('        },');
+    }
+
+    lines.push('    };');
+  }
+
+  lines.push('}');
+  return lines.join('\n');
+}
+
+/** Generate Godot 4 GDScript signal-based narrative controller */
+export function narrativeToGodot(narrative: CompiledNarrative): string {
+  const lines: string[] = [];
+  const safeName = narrative.name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  lines.push(`# StoryWeaver Narrative: ${narrative.name}`);
+  lines.push('extends Node');
+  lines.push(`class_name ${safeName}Narrative`);
+  lines.push('');
+  lines.push('signal chapter_started(chapter_name: String)');
+  lines.push('signal chapter_complete(chapter_name: String)');
+  lines.push('signal dialogue_line(speaker: String, text: String, emotion: String)');
+  lines.push('signal choice_presented(choices: Array)');
+  lines.push('');
+  lines.push(`var narrative_type: String = "${narrative.type}"`);
+  lines.push(`var current_chapter: String = "${narrative.startChapter || (narrative.chapters[0]?.name || '')}"`);
+
+  // Chapter data dictionary
+  lines.push('');
+  lines.push('var chapters: Dictionary = {');
+  for (const chapter of narrative.chapters) {
+    const chKey = chapter.name.replace(/[^a-zA-Z0-9_]/g, '_');
+    lines.push(`    "${chKey}": {`);
+    if (chapter.trigger) lines.push(`        "trigger": "${chapter.trigger}",`);
+    if (chapter.onComplete) lines.push(`        "on_complete": "${chapter.onComplete}",`);
+
+    if (chapter.dialogueLines && chapter.dialogueLines.length > 0) {
+      lines.push('        "dialogue": [');
+      for (const dl of chapter.dialogueLines) {
+        lines.push(`            {"speaker": "${dl.speaker || ''}", "text": "${dl.text}", "emotion": "${dl.emotion || 'neutral'}"},`);
+      }
+      lines.push('        ],');
+    }
+
+    if (chapter.choices && chapter.choices.length > 0) {
+      lines.push('        "choices": [');
+      for (const ch of chapter.choices) {
+        lines.push(`            {"text": "${ch.text}", "next": "${ch.nextChapter || ''}"},`);
+      }
+      lines.push('        ],');
+    }
+
+    lines.push('    },');
+  }
+  lines.push('}');
+
+  // Advance function
+  lines.push('');
+  lines.push('func advance_chapter(chapter_name: String) -> void:');
+  lines.push('    current_chapter = chapter_name');
+  lines.push('    chapter_started.emit(chapter_name)');
+  lines.push('    if chapters.has(chapter_name):');
+  lines.push('        var ch = chapters[chapter_name]');
+  lines.push('        if ch.has("dialogue"):');
+  lines.push('            for line in ch["dialogue"]:');
+  lines.push('                dialogue_line.emit(line["speaker"], line["text"], line["emotion"])');
+  lines.push('        if ch.has("choices"):');
+  lines.push('            choice_presented.emit(ch["choices"])');
+  lines.push('        elif ch.has("on_complete"):');
+  lines.push('            chapter_complete.emit(chapter_name)');
+  lines.push('            advance_chapter(ch["on_complete"])');
+
+  return lines.join('\n');
+}
+
+/** Generate VRChat SDK3 UdonSharp narrative controller */
+export function narrativeToVRChat(narrative: CompiledNarrative): string {
+  const lines: string[] = [];
+  const safeName = narrative.name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  lines.push(`// StoryWeaver Narrative: ${narrative.name} (VRChat UdonSharp)`);
+  lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
+  lines.push(`public class ${safeName}Narrative : UdonSharpBehaviour {`);
+  lines.push('    [UdonSynced] public int currentChapter = 0;');
+  lines.push(`    private string[] chapterNames = new string[] { ${narrative.chapters.map(c => `"${c.name}"`).join(', ')} };`);
+  lines.push('');
+
+  // Trigger detection
+  for (let i = 0; i < narrative.chapters.length; i++) {
+    const chapter = narrative.chapters[i];
+    if (chapter.trigger) {
+      lines.push(`    // Trigger for chapter "${chapter.name}": ${chapter.trigger}`);
+    }
+  }
+
+  lines.push('');
+  lines.push('    public void AdvanceChapter() {');
+  lines.push('        if (!Networking.IsOwner(gameObject)) {');
+  lines.push('            Networking.SetOwner(Networking.LocalPlayer, gameObject);');
+  lines.push('        }');
+  lines.push('        currentChapter++;');
+  lines.push('        if (currentChapter >= chapterNames.Length) currentChapter = chapterNames.Length - 1;');
+  lines.push('        RequestSerialization();');
+  lines.push('    }');
+
+  lines.push('');
+  lines.push('    public override void OnDeserialization() {');
+  lines.push('        // Sync chapter state across all players');
+  lines.push('        UpdateNarrativeUI();');
+  lines.push('    }');
+
+  lines.push('');
+  lines.push('    private void UpdateNarrativeUI() {');
+  for (let i = 0; i < narrative.chapters.length; i++) {
+    const chapter = narrative.chapters[i];
+    if (chapter.dialogueLines && chapter.dialogueLines.length > 0) {
+      const dl = chapter.dialogueLines[0];
+      lines.push(`        if (currentChapter == ${i}) {`);
+      lines.push(`            // ${dl.speaker || 'Narrator'}: "${dl.text}"`);
+      lines.push('        }');
+    }
+  }
+  lines.push('    }');
+
+  lines.push('}');
+  return lines.join('\n');
+}
+
+/** Generate React-compatible narrative state for R3F renderer */
+export function narrativeToR3F(narrative: CompiledNarrative): string {
+  const lines: string[] = [];
+  const safeName = narrative.name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  lines.push(`// StoryWeaver Narrative: ${narrative.name} (R3F/React)`);
+  lines.push(`export const ${safeName}NarrativeData = {`);
+  lines.push(`  name: "${narrative.name}",`);
+  lines.push(`  type: "${narrative.type}",`);
+  if (narrative.startChapter) lines.push(`  startChapter: "${narrative.startChapter}",`);
+
+  lines.push('  chapters: [');
+  for (const chapter of narrative.chapters) {
+    lines.push('    {');
+    lines.push(`      name: "${chapter.name}",`);
+    if (chapter.trigger) lines.push(`      trigger: "${chapter.trigger}",`);
+    if (chapter.onComplete) lines.push(`      onComplete: "${chapter.onComplete}",`);
+
+    if (chapter.dialogueLines && chapter.dialogueLines.length > 0) {
+      lines.push('      dialogueLines: [');
+      for (const dl of chapter.dialogueLines) {
+        const parts: string[] = [`text: "${dl.text}"`];
+        if (dl.speaker) parts.push(`speaker: "${dl.speaker}"`);
+        if (dl.emotion) parts.push(`emotion: "${dl.emotion}"`);
+        if (dl.duration) parts.push(`duration: ${dl.duration}`);
+        lines.push(`        { ${parts.join(', ')} },`);
+      }
+      lines.push('      ],');
+    }
+
+    if (chapter.choices && chapter.choices.length > 0) {
+      lines.push('      choices: [');
+      for (const ch of chapter.choices) {
+        const parts: string[] = [`text: "${ch.text}"`];
+        if (ch.nextChapter) parts.push(`nextChapter: "${ch.nextChapter}"`);
+        if (ch.condition) parts.push(`condition: "${ch.condition}"`);
+        lines.push(`        { ${parts.join(', ')} },`);
+      }
+      lines.push('      ],');
+    }
+
+    lines.push('    },');
+  }
+  lines.push('  ],');
+  lines.push('};');
+
+  return lines.join('\n');
+}
+
+/** Generate USD customData annotations for AR narratives */
+export function narrativeToUSDA(narrative: CompiledNarrative): string {
+  const lines: string[] = [];
+  const safeName = narrative.name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  lines.push(`def Scope "Narrative_${safeName}" {`);
+  lines.push(`    custom string holoscript:narrativeType = "${narrative.type}"`);
+  if (narrative.startChapter) {
+    lines.push(`    custom string holoscript:startChapter = "${narrative.startChapter}"`);
+  }
+
+  for (const chapter of narrative.chapters) {
+    const chName = chapter.name.replace(/[^a-zA-Z0-9_]/g, '_');
+    lines.push(`    def Scope "Chapter_${chName}" {`);
+    lines.push(`        custom string holoscript:chapterName = "${chapter.name}"`);
+    if (chapter.trigger) lines.push(`        custom string holoscript:trigger = "${chapter.trigger}"`);
+    if (chapter.onComplete) lines.push(`        custom string holoscript:onComplete = "${chapter.onComplete}"`);
+
+    if (chapter.dialogueLines) {
+      for (let i = 0; i < chapter.dialogueLines.length; i++) {
+        const dl = chapter.dialogueLines[i];
+        lines.push(`        def Scope "Dialogue_${i}" {`);
+        lines.push(`            custom string holoscript:text = "${dl.text}"`);
+        if (dl.speaker) lines.push(`            custom string holoscript:speaker = "${dl.speaker}"`);
+        if (dl.emotion) lines.push(`            custom string holoscript:emotion = "${dl.emotion}"`);
+        if (dl.duration) lines.push(`            custom float holoscript:duration = ${dl.duration}`);
+        lines.push('        }');
+      }
+    }
+
+    if (chapter.choices) {
+      for (let i = 0; i < chapter.choices.length; i++) {
+        const ch = chapter.choices[i];
+        lines.push(`        def Scope "Choice_${i}" {`);
+        lines.push(`            custom string holoscript:text = "${ch.text}"`);
+        if (ch.nextChapter) lines.push(`            custom string holoscript:nextChapter = "${ch.nextChapter}"`);
+        if (ch.condition) lines.push(`            custom string holoscript:condition = "${ch.condition}"`);
+        lines.push('        }');
+      }
+    }
+
+    if (chapter.cutsceneActions) {
+      for (let i = 0; i < chapter.cutsceneActions.length; i++) {
+        const ca = chapter.cutsceneActions[i];
+        lines.push(`        def Scope "CutsceneAction_${i}" {`);
+        lines.push(`            custom string holoscript:actionType = "${ca.type}"`);
+        if (ca.target) lines.push(`            custom string holoscript:target = "${ca.target}"`);
+        if (ca.duration) lines.push(`            custom float holoscript:duration = ${ca.duration}`);
+        lines.push('        }');
+      }
+    }
+
+    lines.push('    }');
+  }
+
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
 // Domain Block Router
 // =============================================================================
 

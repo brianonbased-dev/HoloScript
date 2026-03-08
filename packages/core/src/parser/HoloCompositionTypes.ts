@@ -1224,6 +1224,8 @@ export type HoloDomainType =
   | 'navigation'  // navmesh, nav_agent, behavior_tree
   | 'input'       // input, interaction, gesture_profile
   | 'codebase'  // codebase absorption: codebase, module_map, dependency_graph, call_graph
+  // Narrative / StoryWeaver Protocol (v4.6)
+  | 'narrative'  // narrative, chapter, dialogue_tree, choice, cutscene_sequence
   // Norm lifecycle / cultural engineering (v4.5)
   | 'norms'     // norm, metanorm, norm_proposal, norm_voting, norm_adoption, norm_violation, norm_sanction
   | 'custom';  // any user-defined block keyword
@@ -1244,6 +1246,49 @@ export interface HoloDomainBlock extends HoloNode {
   children?: HoloObjectDecl[];
   /** Event handlers inside the block */
   eventHandlers?: HoloEventHandler[];
+}
+
+// =============================================================================
+// COMPILED NARRATIVE IR (StoryWeaver Protocol v4.6)
+// =============================================================================
+
+export interface CompiledCutsceneAction {
+  type: 'camera_move' | 'character_action' | 'wait' | 'effect' | 'audio';
+  target?: string;
+  params: Record<string, any>;
+  duration?: number;
+}
+
+export interface CompiledChoice {
+  text: string;
+  condition?: string;
+  nextChapter?: string;
+  action?: string;
+}
+
+export interface CompiledDialogueLine {
+  speaker?: string;
+  text: string;
+  emotion?: string;
+  duration?: number;
+  voiceClip?: string;
+}
+
+export interface CompiledChapter {
+  name: string;
+  trigger?: string;
+  dialogueLines?: CompiledDialogueLine[];
+  choices?: CompiledChoice[];
+  onComplete?: string;
+  cutsceneActions?: CompiledCutsceneAction[];
+}
+
+export interface CompiledNarrative {
+  name: string;
+  type: 'linear' | 'branching' | 'open_world';
+  chapters: CompiledChapter[];
+  variables?: Record<string, HoloValue>;
+  startChapter?: string;
 }
 
 // =============================================================================
