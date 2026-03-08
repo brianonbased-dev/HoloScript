@@ -6,6 +6,8 @@ import { MeshNode } from './MeshNode';
 import { AnimatedMeshNode } from './AnimatedMeshNode';
 import { ShaderMeshNode, hasShaderTrait } from './ShaderMeshNode';
 import { LODMeshNode, hasLOD } from './LODMeshNode';
+import { PostProcessingNode } from './PostProcessingNode';
+import { GLTFModelNode } from './GLTFModelNode';
 
 interface R3FNodeRendererProps {
   node: R3FNode;
@@ -25,7 +27,8 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
       // Check if this mesh has LOD configuration
       const isLODMesh = hasLOD(node);
       // Check if this mesh has keyframe animations
-      const hasKeyframes = props.keyframes && Array.isArray(props.keyframes) && props.keyframes.length > 0;
+      const hasKeyframes =
+        props.keyframes && Array.isArray(props.keyframes) && props.keyframes.length > 0;
       // Non-mesh children (lights, effects) still render via R3FNodeRenderer
       const nonMeshChildren = node.children
         ?.filter((c: R3FNode) => c.type !== 'mesh')
@@ -136,11 +139,34 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
       );
 
     case 'fog':
-      return null; // Fog is applied at Canvas level
+      return (
+        <fog attach="fog" args={[props.color || '#cccccc', props.near ?? 10, props.far ?? 100]} />
+      );
 
     case 'EffectComposer':
-      // Post-processing — skip for MVP, render children only
-      return <>{children}</>;
+      return <PostProcessingNode node={node} />;
+
+    case 'gltfModel':
+      return (
+        <GLTFModelNode
+          src={props.src || props.model || ''}
+          position={props.position}
+          rotation={props.rotation}
+          scale={props.scale}
+        />
+      );
+
+    case 'rectAreaLight':
+      return (
+        <rectAreaLight
+          color={props.color || '#ffffff'}
+          intensity={props.intensity ?? 1}
+          width={props.width ?? 4}
+          height={props.height ?? 4}
+          position={props.position || [0, 5, 0]}
+          rotation={props.rotation}
+        />
+      );
 
     default:
       // Unknown type — wrap in group and render children
