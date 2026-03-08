@@ -1,0 +1,463 @@
+/**
+ * Interactive Lights Example
+ *
+ * Demonstrates interactive and controllable light features: flickering,
+ * dimming, color temperature adjustment, strobes, and dynamic lighting.
+ *
+ * Key Features:
+ * - Flickering: Perlin noise, fire patterns, electrical flicker
+ * - Dimmable: Smooth logarithmic dimming curves
+ * - Color Temperature: Kelvin-based color adjustment (1000K-12000K)
+ * - Strobe: High-frequency flashing with BPM sync
+ * - Dynamic Lighting: User-controlled intensity and color
+ *
+ * Interaction Methods:
+ * - UI sliders and buttons
+ * - Voice commands (optional)
+ * - Hand gestures (optional in VR)
+ * - Automation triggers (time of day, sensors)
+ *
+ * @version 5.1.0
+ * @category Lighting
+ */
+
+composition InteractiveLightsShowcase {
+  // Environment
+  entity Floor {
+    mesh: { type: "plane", width: 20.0, height: 20.0 },
+    advanced_pbr: { base_color: [0.3, 0.3, 0.3], metallic: 0.0, roughness: 0.8 },
+    transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
+  }
+
+  // 1. Flickering Light - Broken electrical light
+  entity ElectricalFlicker {
+    point_light: {
+      color: [0.9, 0.95, 1.0],        // Cool white
+      intensity: 1000.0,
+      radius: 0.1,
+    },
+
+    flickering: {
+      enabled: true,
+      pattern: "electrical",          // "electrical", "fire", "perlin", "custom"
+      frequency: 15.0,                // Hz (rapid flicker)
+      amount: 0.6,                    // 60% intensity variation
+
+      // Electrical characteristics
+      random_cutouts: true,           // Occasional blackouts
+      cutout_duration: 0.05,          // 50ms blackout
+      cutout_probability: 0.1,        // 10% chance per second
+
+      // Noise parameters
+      noise_octaves: 3,
+      noise_persistence: 0.5,
+      noise_seed: 12345,
+    },
+
+    transform: {
+      position: [-6.0, 2.0, 0.0],
+    },
+  }
+
+  // Visual indicator
+  entity FlickerBulb {
+    mesh: { type: "sphere", radius: 0.1, segments: 16 },
+    advanced_pbr: {
+      base_color: [0.0, 0.0, 0.0],
+      emissive_color: [0.9, 0.95, 1.0],
+      emissive_intensity: 2.0,
+    },
+    transform: { position: [-6.0, 2.0, 0.0] },
+  }
+
+  // 2. Dimmable Light - Smooth dimming control
+  entity DimmableLight {
+    point_light: {
+      color: [1.0, 0.9, 0.7],         // Warm white
+      intensity: 1500.0,
+      radius: 0.08,
+    },
+
+    dimmable: {
+      enabled: true,
+      brightness: 1.0,                // 0.0 - 1.0 (100%)
+      min_brightness: 0.01,           // Minimum 1% (prevents full off)
+      dimming_curve: "logarithmic",   // "linear", "logarithmic", "s_curve"
+
+      // Smooth transitions
+      transition_time: 0.5,           // Seconds to reach target
+      easing: "ease_in_out",          // "linear", "ease_in", "ease_out", "ease_in_out"
+
+      // Preset memory
+      presets: [
+        { name: "Night", brightness: 0.05 },
+        { name: "Reading", brightness: 0.4 },
+        { name: "Full", brightness: 1.0 },
+      ],
+    },
+
+    transform: {
+      position: [-3.0, 2.0, 0.0],
+    },
+  }
+
+  // 3. Color Temperature Light - Tunable white
+  entity TunableWhite {
+    point_light: {
+      color: [1.0, 1.0, 1.0],
+      intensity: 1200.0,
+      radius: 0.08,
+    },
+
+    color_temperature: {
+      enabled: true,
+      temperature: 3000.0,            // Kelvin
+      min_temperature: 1800.0,        // Candle
+      max_temperature: 12000.0,       // Blue sky
+
+      // Presets
+      presets: [
+        { name: "Candle", temperature: 1800.0 },
+        { name: "Warm White", temperature: 2700.0 },
+        { name: "Neutral", temperature: 4000.0 },
+        { name: "Cool White", temperature: 5000.0 },
+        { name: "Daylight", temperature: 6500.0 },
+        { name: "Sky", temperature: 10000.0 },
+      ],
+
+      // Smooth transitions
+      transition_time: 1.0,           // Seconds
+      tint_adjustment: [1.0, 1.0, 1.0], // RGB multiplier for creative control
+    },
+
+    transform: {
+      position: [0.0, 2.0, 0.0],
+    },
+  }
+
+  // 4. Strobe Light - High-frequency flashing
+  entity StrobeLight {
+    spotlight: {
+      color: [1.0, 1.0, 1.0],
+      intensity: 5000.0,
+      inner_cone_angle: 20.0,
+      outer_cone_angle: 40.0,
+      radius: 0.15,
+    },
+
+    strobe: {
+      enabled: false,                 // Start disabled
+      frequency: 8.0,                 // Flashes per second (Hz)
+      duty_cycle: 0.1,                // 10% on, 90% off
+      intensity: 1.0,
+
+      // Timing modes
+      mode: "frequency",              // "frequency", "bpm", "manual"
+      bpm: 120.0,                     // Beats per minute (for music sync)
+      beats_per_flash: 0.25,          // Flash every quarter beat
+
+      // Photosensitivity safety
+      max_frequency: 25.0,            // Safety limit (< 30Hz per WCAG)
+      red_reduction: true,            // Reduce red component
+      warning_enabled: true,          // Show warning before enabling
+    },
+
+    transform: {
+      position: [3.0, 3.0, 0.0],
+      rotation: [-45.0, 0.0, 0.0],
+    },
+  }
+
+  // 5. Dynamic RGB Light - Full color control
+  entity DynamicRGB {
+    point_light: {
+      color: [1.0, 0.0, 0.5],         // Start pink
+      intensity: 1000.0,
+      radius: 0.1,
+    },
+
+    // Full RGB color control
+    color_control: {
+      mode: "rgb",                    // "rgb", "hsv", or "temperature"
+      rgb: [1.0, 0.0, 0.5],
+      hsv: [330.0, 1.0, 1.0],         // Hue, Saturation, Value
+
+      // Animation
+      animation_enabled: false,
+      animation_speed: 0.5,           // Cycles per second
+      animation_pattern: "rainbow",   // "rainbow", "pulse", "flicker", "custom"
+
+      // Presets
+      presets: [
+        { name: "Red", rgb: [1.0, 0.0, 0.0] },
+        { name: "Green", rgb: [0.0, 1.0, 0.0] },
+        { name: "Blue", rgb: [0.0, 0.0, 1.0] },
+        { name: "Cyan", rgb: [0.0, 1.0, 1.0] },
+        { name: "Magenta", rgb: [1.0, 0.0, 1.0] },
+        { name: "Yellow", rgb: [1.0, 1.0, 0.0] },
+        { name: "White", rgb: [1.0, 1.0, 1.0] },
+      ],
+    },
+
+    transform: {
+      position: [6.0, 2.0, 0.0],
+    },
+  }
+
+  // Camera
+  entity Camera {
+    camera: {
+      fov: 70.0,
+      near: 0.1,
+      far: 100.0,
+      position: [0.0, 2.5, 10.0],
+      target: [0.0, 2.0, 0.0],
+      exposure: 1.0,
+    },
+  }
+
+  // Event handlers
+
+  on ElectricalFlicker.flickering.flicker -> (event) {
+    console.log(`Electrical flicker: intensity=${event.intensity.toFixed(3)}`);
+
+    if (event.cutout) {
+      console.log('  ⚡ Blackout!');
+    }
+  }
+
+  on DimmableLight.dimmable.brightness_changed -> (event) {
+    console.log(`Dimmed to ${(event.brightness * 100).toFixed(1)}%, effective=${event.effective_lumens.toFixed(0)}lm`);
+  }
+
+  on DimmableLight.dimmable.preset_loaded -> (event) {
+    console.log(`Preset loaded: "${event.preset_name}" (${(event.brightness * 100).toFixed(0)}%)`);
+  }
+
+  on TunableWhite.color_temperature.changed -> (event) {
+    console.log(`Color temp: ${event.temperature.toFixed(0)}K, RGB=[${event.rgb.map(c => c.toFixed(3))}]`);
+  }
+
+  on StrobeLight.strobe.flash -> (event) {
+    console.log(`Strobe flash: frequency=${event.frequency}Hz, duty=${event.duty_cycle}`);
+  }
+
+  on StrobeLight.strobe.enabled_changed -> (event) {
+    if (event.enabled && StrobeLight.strobe.warning_enabled) {
+      console.warn('⚠ PHOTOSENSITIVITY WARNING: Strobe light enabled');
+    }
+  }
+
+  on DynamicRGB.color_control.color_changed -> (event) {
+    console.log(`RGB: [${event.rgb.map(c => c.toFixed(2))}], HSV: [${event.hsv.map(v => v.toFixed(1))}]`);
+  }
+}
+
+// Interactive light controls
+ui InteractiveLightControls {
+  panel "Interactive Lights" {
+    section "Electrical Flicker" {
+      checkbox "Enable Flicker" {
+        value: true,
+        onChange: (checked) => {
+          ElectricalFlicker.flickering.enabled = checked;
+        }
+      }
+
+      slider "Frequency (Hz)" {
+        min: 1.0, max: 30.0, value: 15.0, step: 0.5,
+        onChange: (value) => {
+          ElectricalFlicker.flickering.frequency = value;
+        }
+      }
+
+      slider "Amount" {
+        min: 0.0, max: 1.0, value: 0.6, step: 0.05,
+        onChange: (value) => {
+          ElectricalFlicker.flickering.amount = value;
+        }
+      }
+
+      checkbox "Random Cutouts" {
+        value: true,
+        onChange: (checked) => {
+          ElectricalFlicker.flickering.random_cutouts = checked;
+        }
+      }
+    }
+
+    section "Dimmable Light" {
+      slider "Brightness (%)" {
+        min: 1.0, max: 100.0, value: 100.0, step: 1.0,
+        onChange: (value) => {
+          DimmableLight.dimmable.brightness = value / 100.0;
+        }
+      }
+
+      dropdown "Curve" {
+        options: ["linear", "logarithmic", "s_curve"],
+        value: "logarithmic",
+        onChange: (value) => {
+          DimmableLight.dimmable.dimming_curve = value;
+        }
+      }
+
+      button "Night (5%)" -> () {
+        DimmableLight.dimmable.brightness = 0.05;
+      }
+
+      button "Reading (40%)" -> () {
+        DimmableLight.dimmable.brightness = 0.4;
+      }
+
+      button "Full (100%)" -> () {
+        DimmableLight.dimmable.brightness = 1.0;
+      }
+    }
+
+    section "Color Temperature" {
+      slider "Temperature (K)" {
+        min: 1800.0, max: 12000.0, value: 3000.0, step: 100.0,
+        onChange: (value) => {
+          TunableWhite.color_temperature.temperature = value;
+        }
+      }
+
+      button "Candle (1800K)" -> () {
+        TunableWhite.color_temperature.temperature = 1800.0;
+      }
+
+      button "Warm White (2700K)" -> () {
+        TunableWhite.color_temperature.temperature = 2700.0;
+      }
+
+      button "Neutral (4000K)" -> () {
+        TunableWhite.color_temperature.temperature = 4000.0;
+      }
+
+      button "Daylight (6500K)" -> () {
+        TunableWhite.color_temperature.temperature = 6500.0;
+      }
+
+      button "Sky (10000K)" -> () {
+        TunableWhite.color_temperature.temperature = 10000.0;
+      }
+
+      text "RGB Value" {
+        value: () => {
+          const rgb = TunableWhite.color_temperature.computed_rgb;
+          return `[${rgb.map(c => c.toFixed(3)).join(', ')}]`;
+        }
+      }
+    }
+
+    section "Strobe Light" {
+      checkbox "⚠ Enable Strobe" {
+        value: false,
+        onChange: (checked) => {
+          if (checked) {
+            alert('WARNING: Strobe light may cause seizures in photosensitive individuals');
+          }
+          StrobeLight.strobe.enabled = checked;
+        }
+      }
+
+      dropdown "Mode" {
+        options: ["frequency", "bpm", "manual"],
+        value: "frequency",
+        onChange: (value) => {
+          StrobeLight.strobe.mode = value;
+        }
+      }
+
+      slider "Frequency (Hz)" {
+        min: 1.0, max: 25.0, value: 8.0, step: 0.5,
+        onChange: (value) => {
+          StrobeLight.strobe.frequency = value;
+        }
+      }
+
+      slider "BPM" {
+        min: 60.0, max: 180.0, value: 120.0, step: 1.0,
+        onChange: (value) => {
+          StrobeLight.strobe.bpm = value;
+        }
+      }
+
+      slider "Duty Cycle" {
+        min: 0.05, max: 0.5, value: 0.1, step: 0.05,
+        onChange: (value) => {
+          StrobeLight.strobe.duty_cycle = value;
+        }
+      }
+
+      checkbox "Red Reduction" {
+        value: true,
+        onChange: (checked) => {
+          StrobeLight.strobe.red_reduction = checked;
+        }
+      }
+    }
+
+    section "Dynamic RGB" {
+      color_picker "RGB Color" {
+        value: [1.0, 0.0, 0.5],
+        onChange: (color) => {
+          DynamicRGB.color_control.rgb = color;
+          DynamicRGB.point_light.color = color;
+        }
+      }
+
+      slider "Hue (°)" {
+        min: 0.0, max: 360.0, value: 330.0, step: 1.0,
+        onChange: (value) => {
+          DynamicRGB.color_control.hsv[0] = value;
+          const rgb = hsvToRgb(value, DynamicRGB.color_control.hsv[1], DynamicRGB.color_control.hsv[2]);
+          DynamicRGB.point_light.color = rgb;
+        }
+      }
+
+      slider "Saturation" {
+        min: 0.0, max: 1.0, value: 1.0, step: 0.01,
+        onChange: (value) => {
+          DynamicRGB.color_control.hsv[1] = value;
+          const rgb = hsvToRgb(DynamicRGB.color_control.hsv[0], value, DynamicRGB.color_control.hsv[2]);
+          DynamicRGB.point_light.color = rgb;
+        }
+      }
+
+      slider "Value" {
+        min: 0.0, max: 1.0, value: 1.0, step: 0.01,
+        onChange: (value) => {
+          DynamicRGB.color_control.hsv[2] = value;
+          const rgb = hsvToRgb(DynamicRGB.color_control.hsv[0], DynamicRGB.color_control.hsv[1], value);
+          DynamicRGB.point_light.color = rgb;
+        }
+      }
+
+      checkbox "Animate" {
+        value: false,
+        onChange: (checked) => {
+          DynamicRGB.color_control.animation_enabled = checked;
+        }
+      }
+
+      dropdown "Pattern" {
+        options: ["rainbow", "pulse", "flicker"],
+        value: "rainbow",
+        onChange: (value) => {
+          DynamicRGB.color_control.animation_pattern = value;
+        }
+      }
+
+      // Preset buttons
+      button "Red" -> () { DynamicRGB.point_light.color = [1.0, 0.0, 0.0]; }
+      button "Green" -> () { DynamicRGB.point_light.color = [0.0, 1.0, 0.0]; }
+      button "Blue" -> () { DynamicRGB.point_light.color = [0.0, 0.0, 1.0]; }
+      button "Cyan" -> () { DynamicRGB.point_light.color = [0.0, 1.0, 1.0]; }
+      button "Magenta" -> () { DynamicRGB.point_light.color = [1.0, 0.0, 1.0]; }
+      button "Yellow" -> () { DynamicRGB.point_light.color = [1.0, 1.0, 0.0]; }
+      button "White" -> () { DynamicRGB.point_light.color = [1.0, 1.0, 1.0]; }
+    }
+  }
+}

@@ -1,0 +1,489 @@
+/**
+ * Post-Processing Stack Example
+ *
+ * Demonstrates modern screen-space effects and temporal techniques
+ * for photorealistic real-time rendering.
+ *
+ * Key Features:
+ * - SSAO: Screen-Space Ambient Occlusion (contact shadows)
+ * - SSR: Screen-Space Reflections (planar/curved surfaces)
+ * - SSGI: Screen-Space Global Illumination (1-bounce indirect)
+ * - SSDO: Screen-Space Directional Occlusion (directional AO)
+ * - TAA: Temporal Anti-Aliasing (jittered sampling + history)
+ *
+ * Performance Budget (4K @ 60 FPS):
+ * - SSAO: ~2ms (bilateral filter, 16 samples)
+ * - SSR: ~4ms (hierarchical Z, temporal filter)
+ * - SSGI: ~6ms (1-bounce, importance sampling)
+ * - TAA: ~1ms (3×3 Catmull-Rom, history clamp)
+ * - Total: ~13ms (77% of 16.67ms budget)
+ *
+ * @version 5.1.0
+ * @category Rendering
+ * @research Jimenez 2016 (SSAO), Stachowiak 2015 (SSR), Majercik 2019 (DDGI)
+ */
+
+composition PostProcessingShowcase {
+  // Complex scene to showcase post-processing
+  entity RoomInterior {
+    mesh: {
+      type: "custom",
+      source: "./assets/room.glb",
+    },
+
+    advanced_pbr: {
+      base_color: [0.8, 0.8, 0.8],
+      metallic: 0.0,
+      roughness: 0.5,
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Glossy floor for SSR
+  entity Floor {
+    mesh: {
+      type: "plane",
+      width: 10.0,
+      height: 10.0,
+    },
+
+    advanced_pbr: {
+      base_color: [0.2, 0.2, 0.25],
+      metallic: 0.8,
+      roughness: 0.1,  // Very glossy for clear reflections
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+      rotation: [-90.0, 0.0, 0.0],
+    },
+  }
+
+  // Furniture for AO testing
+  entity Table {
+    mesh: {
+      type: "custom",
+      source: "./assets/table.glb",
+    },
+
+    advanced_pbr: {
+      base_color: [0.6, 0.4, 0.2],  // Wood
+      metallic: 0.0,
+      roughness: 0.6,
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Post-processing configuration
+  entity PostProcessing {
+    // SSAO - Screen-Space Ambient Occlusion
+    ssao: {
+      enabled: true,
+      intensity: 1.0,
+      radius: 0.5,               // AO radius in world space
+      bias: 0.025,               // Depth bias to prevent acne
+      samples: 16,               // Hemisphere samples (8, 16, 32)
+
+      // Quality settings
+      blur_enabled: true,        // Bilateral blur
+      blur_radius: 4,            // Blur kernel size
+      blur_sharpness: 10.0,      // Depth-aware sharpness
+
+      // Advanced
+      falloff: 0.1,              // Distance falloff
+      fade_start: 50.0,          // Fade start distance
+      fade_end: 100.0,           // Fade end distance
+    },
+
+    // SSR - Screen-Space Reflections
+    ssr: {
+      enabled: true,
+      intensity: 1.0,
+      max_distance: 100.0,       // Max ray march distance
+      stride: 1.0,               // Ray march stride
+      max_steps: 128,            // Ray march iterations
+
+      // Hierarchical Z
+      use_hi_z: true,            // Use HiZ for acceleration
+      mip_levels: 5,             // HiZ pyramid levels
+
+      // Quality
+      thickness: 0.5,            // Surface thickness
+      jitter: 0.25,              // Temporal jitter
+      brdf_bias: 0.7,            // Roughness cutoff
+
+      // Temporal filter
+      temporal_weight: 0.9,      // History blend weight
+      variance_clamp: true,      // Clamp by variance
+    },
+
+    // SSGI - Screen-Space Global Illumination
+    ssgi: {
+      enabled: true,
+      intensity: 1.0,
+      samples: 8,                // Indirect samples per pixel
+      ray_steps: 32,             // Steps per indirect ray
+
+      // Importance sampling
+      use_importance_sampling: true,
+      cosine_weighted: true,     // Cosine-weighted hemisphere
+
+      // Spatial + temporal filtering
+      spatial_filter: true,
+      spatial_radius: 8,
+      temporal_weight: 0.95,
+
+      // Distance
+      max_distance: 10.0,        // Indirect bounce distance
+      thickness: 0.1,
+    },
+
+    // SSDO - Screen-Space Directional Occlusion
+    ssdo: {
+      enabled: false,            // Disable (expensive, use SSGI instead)
+      intensity: 1.0,
+      samples: 16,
+      radius: 0.5,
+      bias: 0.025,
+    },
+
+    // TAA - Temporal Anti-Aliasing
+    taa: {
+      enabled: true,
+      jitter_pattern: "halton",  // "halton" or "r2"
+      sample_count: 8,           // Jitter samples (2, 4, 8, 16)
+
+      // History blending
+      feedback_min: 0.88,        // Min history weight
+      feedback_max: 0.97,        // Max history weight
+      motion_amplification: 100.0,
+
+      // Ghosting reduction
+      use_variance_clipping: true,
+      use_ycocg: true,           // YCoCg color space
+      clamp_mode: "rgb",         // "rgb" or "variance"
+
+      // Sharpening
+      sharpen_strength: 0.2,     // Post-TAA sharpening
+      catmull_rom_samples: 9,    // 3×3 Catmull-Rom filter
+    },
+  }
+
+  // Directional light
+  entity SunLight {
+    light_source: {
+      type: "directional",
+      color: [1.0, 0.98, 0.95],
+      intensity: 3.0,
+      cast_shadows: true,
+    },
+
+    shadow_caster: {
+      resolution: 4096,
+      cascade_count: 4,
+      cascade_splits: [0.067, 0.133, 0.267, 1.0],
+      bias: 0.0005,
+    },
+
+    transform: {
+      rotation: [-45.0, 30.0, 0.0],
+    },
+  }
+
+  // Point light for SSGI testing
+  entity PointLight {
+    point_light: {
+      color: [1.0, 0.7, 0.4],
+      intensity: 100.0,
+      radius: 0.1,
+      falloff: "inverse_square",
+    },
+
+    transform: {
+      position: [2.0, 2.0, 0.0],
+    },
+  }
+
+  // Camera with TAA jitter
+  entity Camera {
+    camera: {
+      fov: 60.0,
+      near: 0.1,
+      far: 1000.0,
+      position: [0.0, 2.0, 5.0],
+      target: [0.0, 1.0, 0.0],
+
+      // TAA camera jitter
+      jitter_enabled: true,
+      jitter_spread: 1.0,
+    },
+  }
+
+  // Event handlers for performance monitoring
+
+  on PostProcessing.ssao.rendered -> (event) {
+    console.log(`SSAO: ${event.time_ms.toFixed(2)}ms, samples=${event.samples}`);
+
+    if (event.time_ms > 3.0) {
+      console.warn(`⚠ SSAO exceeds 3ms budget: ${event.time_ms.toFixed(2)}ms`);
+    }
+  }
+
+  on PostProcessing.ssr.rendered -> (event) {
+    console.log(`SSR: ${event.time_ms.toFixed(2)}ms, rays=${event.ray_count}, hit_rate=${(event.hit_rate * 100).toFixed(1)}%`);
+
+    if (event.time_ms > 5.0) {
+      console.warn(`⚠ SSR exceeds 5ms budget: ${event.time_ms.toFixed(2)}ms`);
+    }
+  }
+
+  on PostProcessing.ssgi.rendered -> (event) {
+    console.log(`SSGI: ${event.time_ms.toFixed(2)}ms, samples=${event.samples}, bounces=${event.bounce_count}`);
+
+    if (event.time_ms > 7.0) {
+      console.warn(`⚠ SSGI exceeds 7ms budget: ${event.time_ms.toFixed(2)}ms`);
+    }
+  }
+
+  on PostProcessing.taa.resolved -> (event) {
+    console.log(`TAA: ${event.time_ms.toFixed(2)}ms, jitter=[${event.jitter_x.toFixed(4)}, ${event.jitter_y.toFixed(4)}], history_weight=${event.history_weight.toFixed(3)}`);
+
+    if (event.ghosting_detected) {
+      console.warn(`⚠ TAA ghosting detected, reducing history weight`);
+    }
+  }
+
+  on frame_rendered -> (event) {
+    const totalPostFXTime = PostProcessing.ssao.time_ms +
+                            PostProcessing.ssr.time_ms +
+                            PostProcessing.ssgi.time_ms +
+                            PostProcessing.taa.time_ms;
+
+    const frameBudget = 16.67;  // 60 FPS
+    const postFXPercent = (totalPostFXTime / frameBudget) * 100;
+
+    if (postFXPercent > 80.0) {
+      console.warn(`⚠ Post-FX using ${postFXPercent.toFixed(1)}% of frame budget`);
+    }
+  }
+}
+
+// Post-processing controls
+ui PostFXControls {
+  panel "Post-Processing Stack" {
+    section "SSAO Settings" {
+      checkbox "Enable SSAO" {
+        value: true,
+        onChange: (checked) => {
+          PostProcessing.ssao.enabled = checked;
+        }
+      }
+
+      slider "Intensity" {
+        min: 0.0, max: 2.0, value: 1.0, step: 0.1,
+        onChange: (value) => {
+          PostProcessing.ssao.intensity = value;
+        }
+      }
+
+      slider "Radius" {
+        min: 0.1, max: 2.0, value: 0.5, step: 0.05,
+        onChange: (value) => {
+          PostProcessing.ssao.radius = value;
+        }
+      }
+
+      dropdown "Samples" {
+        options: ["8", "16", "32"],
+        value: "16",
+        onChange: (value) => {
+          PostProcessing.ssao.samples = parseInt(value);
+        }
+      }
+
+      checkbox "Bilateral Blur" {
+        value: true,
+        onChange: (checked) => {
+          PostProcessing.ssao.blur_enabled = checked;
+        }
+      }
+    }
+
+    section "SSR Settings" {
+      checkbox "Enable SSR" {
+        value: true,
+        onChange: (checked) => {
+          PostProcessing.ssr.enabled = checked;
+        }
+      }
+
+      slider "Intensity" {
+        min: 0.0, max: 1.0, value: 1.0, step: 0.01,
+        onChange: (value) => {
+          PostProcessing.ssr.intensity = value;
+        }
+      }
+
+      slider "Max Steps" {
+        min: 32, max: 256, value: 128, step: 16,
+        onChange: (value) => {
+          PostProcessing.ssr.max_steps = value;
+        }
+      }
+
+      checkbox "Use Hi-Z" {
+        value: true,
+        onChange: (checked) => {
+          PostProcessing.ssr.use_hi_z = checked;
+        }
+      }
+
+      slider "Temporal Weight" {
+        min: 0.0, max: 1.0, value: 0.9, step: 0.01,
+        onChange: (value) => {
+          PostProcessing.ssr.temporal_weight = value;
+        }
+      }
+    }
+
+    section "SSGI Settings" {
+      checkbox "Enable SSGI" {
+        value: true,
+        onChange: (checked) => {
+          PostProcessing.ssgi.enabled = checked;
+        }
+      }
+
+      slider "Intensity" {
+        min: 0.0, max: 2.0, value: 1.0, step: 0.1,
+        onChange: (value) => {
+          PostProcessing.ssgi.intensity = value;
+        }
+      }
+
+      slider "Samples" {
+        min: 4, max: 16, value: 8, step: 2,
+        onChange: (value) => {
+          PostProcessing.ssgi.samples = value;
+        }
+      }
+
+      slider "Ray Steps" {
+        min: 16, max: 64, value: 32, step: 8,
+        onChange: (value) => {
+          PostProcessing.ssgi.ray_steps = value;
+        }
+      }
+
+      checkbox "Importance Sampling" {
+        value: true,
+        onChange: (checked) => {
+          PostProcessing.ssgi.use_importance_sampling = checked;
+        }
+      }
+    }
+
+    section "TAA Settings" {
+      checkbox "Enable TAA" {
+        value: true,
+        onChange: (checked) => {
+          PostProcessing.taa.enabled = checked;
+        }
+      }
+
+      dropdown "Jitter Pattern" {
+        options: ["halton", "r2"],
+        value: "halton",
+        onChange: (value) => {
+          PostProcessing.taa.jitter_pattern = value;
+        }
+      }
+
+      dropdown "Sample Count" {
+        options: ["2", "4", "8", "16"],
+        value: "8",
+        onChange: (value) => {
+          PostProcessing.taa.sample_count = parseInt(value);
+        }
+      }
+
+      slider "Feedback Min" {
+        min: 0.5, max: 1.0, value: 0.88, step: 0.01,
+        onChange: (value) => {
+          PostProcessing.taa.feedback_min = value;
+        }
+      }
+
+      slider "Sharpen Strength" {
+        min: 0.0, max: 1.0, value: 0.2, step: 0.05,
+        onChange: (value) => {
+          PostProcessing.taa.sharpen_strength = value;
+        }
+      }
+
+      checkbox "Variance Clipping" {
+        value: true,
+        onChange: (checked) => {
+          PostProcessing.taa.use_variance_clipping = checked;
+        }
+      }
+    }
+
+    section "Performance" {
+      text "SSAO" {
+        value: () => `${PostProcessing.ssao.time_ms.toFixed(2)} ms`
+      }
+
+      text "SSR" {
+        value: () => `${PostProcessing.ssr.time_ms.toFixed(2)} ms`
+      }
+
+      text "SSGI" {
+        value: () => `${PostProcessing.ssgi.time_ms.toFixed(2)} ms`
+      }
+
+      text "TAA" {
+        value: () => `${PostProcessing.taa.time_ms.toFixed(2)} ms`
+      }
+
+      text "Total Post-FX" {
+        value: () => {
+          const total = PostProcessing.ssao.time_ms +
+                       PostProcessing.ssr.time_ms +
+                       PostProcessing.ssgi.time_ms +
+                       PostProcessing.taa.time_ms;
+          return `${total.toFixed(2)} ms (${((total / 16.67) * 100).toFixed(1)}%)`;
+        }
+      }
+    }
+
+    section "Presets" {
+      button "Quality: Low" -> () {
+        PostProcessing.ssao.samples = 8;
+        PostProcessing.ssr.max_steps = 64;
+        PostProcessing.ssgi.samples = 4;
+        PostProcessing.taa.sample_count = 4;
+      }
+
+      button "Quality: Medium" -> () {
+        PostProcessing.ssao.samples = 16;
+        PostProcessing.ssr.max_steps = 128;
+        PostProcessing.ssgi.samples = 8;
+        PostProcessing.taa.sample_count = 8;
+      }
+
+      button "Quality: High" -> () {
+        PostProcessing.ssao.samples = 32;
+        PostProcessing.ssr.max_steps = 256;
+        PostProcessing.ssgi.samples = 16;
+        PostProcessing.taa.sample_count = 16;
+      }
+    }
+  }
+}

@@ -1,0 +1,398 @@
+/**
+ * Subsurface Scattering (SSS) Example
+ *
+ * Demonstrates three industry-standard SSS models for realistic skin,
+ * wax, marble, and translucent materials.
+ *
+ * Key Features:
+ * - Burley SSS: Fast approximation, good for real-time (Pixar 2015)
+ * - Christensen-Burley: Physical dipole model (2015)
+ * - Random Walk SSS: Path-traced ground truth (Chiang et al. 2016)
+ *
+ * SSS Models:
+ * - Burley: Normalized diffusion, artist-friendly
+ * - Christensen: Better Burley, improved accuracy
+ * - Random Walk: Most accurate, volumetric path tracing
+ *
+ * Performance:
+ * - Burley: ~1ms @ 4K (real-time)
+ * - Christensen: ~2ms @ 4K (real-time)
+ * - Random Walk: ~50ms @ 4K (offline/high-end)
+ *
+ * @version 5.1.0
+ * @category Rendering
+ * @research Burley 2015, Christensen 2015, Chiang 2016
+ */
+
+composition SubsurfaceScatteringShowcase {
+  // Burley SSS - Human skin (fast real-time approximation)
+  entity SkinHead {
+    mesh: {
+      type: "custom",
+      source: "./assets/head.glb",
+    },
+
+    subsurface_scattering: {
+      model: "burley",
+      enabled: true,
+
+      // Skin scattering parameters
+      radius: [4.82, 3.05, 1.75],  // RGB scattering radius (mm)
+      color: [1.0, 0.8, 0.7],      // SSS tint (peachy skin tone)
+      scale: 1.0,                  // Overall SSS scale
+
+      // Burley-specific parameters
+      transmission: 0.5,           // Backscattering amount
+      thickness: 2.0,              // Object thickness (mm)
+      thickness_map: "./assets/head_thickness.png",
+    },
+
+    advanced_pbr: {
+      base_color: [0.95, 0.82, 0.76],  // Skin albedo
+      metallic: 0.0,
+      roughness: 0.4,
+      normal_map: "./assets/head_normal.png",
+    },
+
+    transform: {
+      position: [-3.0, 1.5, 0.0],
+      scale: [1.0, 1.0, 1.0],
+    },
+  }
+
+  // Christensen-Burley SSS - Wax candle (improved Burley)
+  entity WaxCandle {
+    mesh: {
+      type: "custom",
+      source: "./assets/candle.glb",
+    },
+
+    sss_christensen: {
+      enabled: true,
+
+      // Wax scattering parameters
+      mean_free_path: [2.5, 2.0, 1.5],  // MFP instead of radius
+      albedo: [0.95, 0.93, 0.85],       // Scattering albedo
+      scale: 1.0,
+
+      // Christensen improvements
+      anisotropy: 0.0,             // Phase function anisotropy [-1, 1]
+      ior: 1.45,                   // Wax IOR
+    },
+
+    advanced_pbr: {
+      base_color: [0.98, 0.96, 0.88],
+      metallic: 0.0,
+      roughness: 0.2,
+    },
+
+    transform: {
+      position: [0.0, 0.5, 0.0],
+      scale: [1.0, 1.0, 1.0],
+    },
+  }
+
+  // Random Walk SSS - Marble (ground truth path tracing)
+  entity MarbleSculpture {
+    mesh: {
+      type: "custom",
+      source: "./assets/sculpture.glb",
+    },
+
+    sss_random_walk: {
+      enabled: true,
+
+      // Marble volumetric properties
+      scattering_coefficient: [0.8, 0.9, 0.95],  // Sigma_s
+      absorption_coefficient: [0.1, 0.05, 0.02], // Sigma_a
+      extinction_coefficient: null,              // Auto: sigma_s + sigma_a
+
+      // Random walk parameters
+      max_steps: 128,              // Path tracing steps
+      step_size: 0.01,             // Step size (cm)
+      anisotropy: 0.8,             // Henyey-Greenstein g parameter
+
+      // Volumetric heterogeneity
+      density_map: "./assets/marble_density.vdb",  // OpenVDB volume
+      density_scale: 1.0,
+    },
+
+    advanced_pbr: {
+      base_color: [0.95, 0.95, 0.98],  // White marble
+      metallic: 0.0,
+      roughness: 0.1,
+    },
+
+    transform: {
+      position: [3.0, 1.0, 0.0],
+      scale: [1.0, 1.0, 1.0],
+    },
+  }
+
+  // Burley SSS - Jade gemstone
+  entity JadeGemstone {
+    mesh: {
+      type: "sphere",
+      radius: 0.5,
+      segments: 128,
+    },
+
+    subsurface_scattering: {
+      model: "burley",
+      enabled: true,
+
+      // Jade scattering
+      radius: [1.2, 3.5, 2.8],     // Green-dominated scattering
+      color: [0.3, 0.8, 0.6],      // Jade green
+      scale: 1.5,
+      transmission: 0.8,
+      thickness: 5.0,
+    },
+
+    advanced_pbr: {
+      base_color: [0.4, 0.9, 0.7],
+      metallic: 0.0,
+      roughness: 0.15,
+    },
+
+    transform: {
+      position: [-1.5, 0.5, 1.5],
+    },
+  }
+
+  // Ground plane
+  entity Ground {
+    mesh: {
+      type: "plane",
+      width: 20.0,
+      height: 20.0,
+    },
+
+    advanced_pbr: {
+      base_color: [0.15, 0.15, 0.15],
+      metallic: 0.0,
+      roughness: 0.8,
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+      rotation: [-90.0, 0.0, 0.0],
+    },
+  }
+
+  // Key light (warm rim light for skin)
+  entity KeyLight {
+    area_light: {
+      type: "rect",
+      width: 2.0,
+      height: 2.0,
+      color: [1.0, 0.95, 0.85],  // Warm white
+      intensity: 100.0,
+      cast_shadows: true,
+    },
+
+    transform: {
+      position: [-2.0, 3.0, 2.0],
+      rotation: [-45.0, -30.0, 0.0],
+    },
+  }
+
+  // Fill light (cool soft light)
+  entity FillLight {
+    area_light: {
+      type: "rect",
+      width: 3.0,
+      height: 3.0,
+      color: [0.85, 0.9, 1.0],   // Cool white
+      intensity: 30.0,
+      cast_shadows: false,
+    },
+
+    transform: {
+      position: [3.0, 2.0, 3.0],
+      rotation: [-30.0, 45.0, 0.0],
+    },
+  }
+
+  // Back light (show transmission)
+  entity BackLight {
+    point_light: {
+      color: [1.0, 1.0, 1.0],
+      intensity: 200.0,
+      radius: 0.1,
+      cast_shadows: true,
+    },
+
+    transform: {
+      position: [0.0, 2.0, -2.0],
+    },
+  }
+
+  // Camera
+  entity Camera {
+    camera: {
+      fov: 45.0,
+      near: 0.1,
+      far: 100.0,
+      position: [0.0, 2.0, 8.0],
+      target: [0.0, 1.0, 0.0],
+    },
+  }
+
+  // Event handlers for SSS quality monitoring
+
+  on SkinHead.subsurface_scattering.quality_changed -> (event) {
+    console.log(`Burley SSS quality: samples=${event.samples}, radius=${event.effective_radius}`);
+  }
+
+  on WaxCandle.sss_christensen.computed -> (event) {
+    console.log(`Christensen SSS: MFP=[${event.mean_free_path}], albedo=[${event.albedo}]`);
+  }
+
+  on MarbleSculpture.sss_random_walk.path_traced -> (event) {
+    console.log(`Random Walk SSS: steps=${event.steps}, depth=${event.depth}, time=${event.time_ms}ms`);
+
+    if (event.time_ms > 100) {
+      console.warn(`⚠ Random Walk SSS exceeds 100ms budget: ${event.time_ms.toFixed(2)}ms`);
+    }
+  }
+
+  on frame_rendered -> (event) {
+    const burleyTime = SkinHead.subsurface_scattering.render_time_ms;
+    const christensenTime = WaxCandle.sss_christensen.render_time_ms;
+    const randomWalkTime = MarbleSculpture.sss_random_walk.render_time_ms;
+
+    // Performance monitoring
+    if (burleyTime > 2.0) {
+      console.warn(`Burley SSS slow: ${burleyTime.toFixed(2)}ms`);
+    }
+    if (christensenTime > 3.0) {
+      console.warn(`Christensen SSS slow: ${christensenTime.toFixed(2)}ms`);
+    }
+  }
+}
+
+// SSS parameter editor
+ui SSSEditor {
+  panel "Subsurface Scattering" {
+    section "Burley SSS (Skin)" {
+      slider "Red Radius (mm)" {
+        min: 0.1, max: 10.0, value: 4.82, step: 0.1,
+        onChange: (value) => {
+          SkinHead.subsurface_scattering.radius[0] = value;
+        }
+      }
+
+      slider "Green Radius (mm)" {
+        min: 0.1, max: 10.0, value: 3.05, step: 0.1,
+        onChange: (value) => {
+          SkinHead.subsurface_scattering.radius[1] = value;
+        }
+      }
+
+      slider "Blue Radius (mm)" {
+        min: 0.1, max: 10.0, value: 1.75, step: 0.1,
+        onChange: (value) => {
+          SkinHead.subsurface_scattering.radius[2] = value;
+        }
+      }
+
+      slider "Transmission" {
+        min: 0.0, max: 1.0, value: 0.5, step: 0.01,
+        onChange: (value) => {
+          SkinHead.subsurface_scattering.transmission = value;
+        }
+      }
+
+      slider "Thickness (mm)" {
+        min: 0.1, max: 10.0, value: 2.0, step: 0.1,
+        onChange: (value) => {
+          SkinHead.subsurface_scattering.thickness = value;
+        }
+      }
+
+      button "Preset: Fair Skin" -> () {
+        SkinHead.subsurface_scattering.radius = [4.82, 3.05, 1.75];
+        SkinHead.subsurface_scattering.color = [1.0, 0.8, 0.7];
+      }
+
+      button "Preset: Dark Skin" -> () {
+        SkinHead.subsurface_scattering.radius = [2.15, 1.35, 0.95];
+        SkinHead.subsurface_scattering.color = [0.6, 0.4, 0.3];
+      }
+    }
+
+    section "Christensen SSS (Wax)" {
+      slider "Anisotropy" {
+        min: -1.0, max: 1.0, value: 0.0, step: 0.01,
+        onChange: (value) => {
+          WaxCandle.sss_christensen.anisotropy = value;
+        }
+      }
+
+      slider "IOR" {
+        min: 1.0, max: 2.0, value: 1.45, step: 0.01,
+        onChange: (value) => {
+          WaxCandle.sss_christensen.ior = value;
+        }
+      }
+
+      slider "Scale" {
+        min: 0.1, max: 5.0, value: 1.0, step: 0.1,
+        onChange: (value) => {
+          WaxCandle.sss_christensen.scale = value;
+        }
+      }
+    }
+
+    section "Random Walk SSS (Marble)" {
+      slider "Max Steps" {
+        min: 16, max: 256, value: 128, step: 16,
+        onChange: (value) => {
+          MarbleSculpture.sss_random_walk.max_steps = value;
+        }
+      }
+
+      slider "Step Size (cm)" {
+        min: 0.001, max: 0.1, value: 0.01, step: 0.001,
+        onChange: (value) => {
+          MarbleSculpture.sss_random_walk.step_size = value;
+        }
+      }
+
+      slider "Anisotropy" {
+        min: -1.0, max: 1.0, value: 0.8, step: 0.01,
+        onChange: (value) => {
+          MarbleSculpture.sss_random_walk.anisotropy = value;
+        }
+      }
+
+      text "Render Time" {
+        value: () => `${MarbleSculpture.sss_random_walk.render_time_ms.toFixed(2)} ms`
+      }
+    }
+
+    section "Performance" {
+      text "Burley (Skin)" {
+        value: () => `${SkinHead.subsurface_scattering.render_time_ms.toFixed(2)} ms`
+      }
+
+      text "Christensen (Wax)" {
+        value: () => `${WaxCandle.sss_christensen.render_time_ms.toFixed(2)} ms`
+      }
+
+      text "Random Walk (Marble)" {
+        value: () => `${MarbleSculpture.sss_random_walk.render_time_ms.toFixed(2)} ms`
+      }
+
+      text "Total Frame Time" {
+        value: () => {
+          const total = SkinHead.subsurface_scattering.render_time_ms +
+                       WaxCandle.sss_christensen.render_time_ms +
+                       MarbleSculpture.sss_random_walk.render_time_ms;
+          return `${total.toFixed(2)} ms`;
+        }
+      }
+    }
+  }
+}
