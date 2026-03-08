@@ -450,8 +450,54 @@ export function materialToUSD(mat: CompiledMaterial): string {
   if (mat.metallic !== undefined) lines.push(`        float inputs:metallic = ${mat.metallic}`);
   if (mat.opacity !== undefined) lines.push(`        float inputs:opacity = ${mat.opacity}`);
   if (mat.ior !== undefined) lines.push(`        float inputs:ior = ${mat.ior}`);
+
+  // Emissive — scale color by intensity since USD has no separate intensity input
+  if (mat.emissiveColor) {
+    const rgb = hexToRGB(mat.emissiveColor).split(', ').map(Number);
+    const intensity = mat.emissiveIntensity ?? 1;
+    const scaled = rgb.map(c => Math.min(1, c * intensity));
+    lines.push(`        color3f inputs:emissiveColor = (${scaled.join(', ')})`);
+  }
+
   lines.push(`        token outputs:surface`);
   lines.push(`    }`);
+
+  // Texture reader nodes
+  const texEntries = Object.entries(mat.textureMaps);
+  if (texEntries.length > 0) {
+    const TEX_MAP: Record<string, { input: string; type: string }> = {
+      albedo_map: { input: 'diffuseColor', type: 'rgb' },
+      normal_map: { input: 'normal', type: 'rgb' },
+      roughness_map: { input: 'roughness', type: 'r' },
+      metallic_map: { input: 'metallic', type: 'r' },
+      ao_map: { input: 'occlusion', type: 'r' },
+      emission_map: { input: 'emissiveColor', type: 'rgb' },
+      displacement_map: { input: 'displacement', type: 'r' },
+    };
+
+    lines.push(`    def Shader "stReader" {`);
+    lines.push(`        uniform token info:id = "UsdPrimvarReader_float2"`);
+    lines.push(`        token inputs:varname = "st"`);
+    lines.push(`        float2 outputs:result`);
+    lines.push(`    }`);
+
+    for (const [channel, path] of texEntries) {
+      const mapping = TEX_MAP[channel];
+      if (!mapping) continue;
+      const readerName = `${mapping.input}Texture`;
+      lines.push(`    def Shader "${readerName}" {`);
+      lines.push(`        uniform token info:id = "UsdUVTexture"`);
+      lines.push(`        asset inputs:file = @textures/${path}@`);
+      lines.push(`        float2 inputs:st.connect = <${mat.name}/stReader.outputs:result>`);
+      if (mapping.type === 'rgb') {
+        lines.push(`        color3f outputs:rgb`);
+      } else {
+        lines.push(`        float outputs:r`);
+      }
+      lines.push(`    }`);
+    }
+  }
+
   lines.push(`}`);
   return lines.join('\n');
 }

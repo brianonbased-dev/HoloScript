@@ -30,6 +30,7 @@ import {
   audioSourceToUSD,
   weatherToUSD,
 } from './DomainBlockCompilerMixin';
+import { MATERIAL_PRESETS } from './R3FCompiler';
 
 // =============================================================================
 // TYPES
@@ -46,6 +47,8 @@ export interface USDZPipelineOptions {
   exportMaterials?: boolean;
   /** Default material */
   defaultMaterial?: string;
+  /** Pre-loaded texture image data keyed by path/name (PNG or JPEG bytes) */
+  textureData?: Record<string, Uint8Array>;
 }
 
 export interface USDMaterial {
@@ -54,8 +57,25 @@ export interface USDMaterial {
   metallic?: number;
   roughness?: number;
   emissiveColor?: [number, number, number];
+  emissiveIntensity?: number;
   opacity?: number;
   ior?: number;
+  // Advanced PBR
+  clearcoat?: number;
+  clearcoatRoughness?: number;
+  transmission?: number;
+  thickness?: number;
+  attenuationColor?: [number, number, number];
+  attenuationDistance?: number;
+  sheen?: number;
+  sheenRoughness?: number;
+  sheenColor?: [number, number, number];
+  iridescence?: number;
+  iridescenceIOR?: number;
+  anisotropy?: number;
+  anisotropyRotation?: number;
+  // Texture references
+  textureMaps?: Record<string, string>;
 }
 
 export interface USDGeometry {
@@ -102,6 +122,7 @@ export class USDZPipeline {
       includeAnimations: options.includeAnimations ?? false,
       exportMaterials: options.exportMaterials ?? true,
       defaultMaterial: options.defaultMaterial ?? 'DefaultMaterial',
+      textureData: options.textureData ?? {},
     };
   }
 
@@ -116,6 +137,196 @@ export class USDZPipeline {
 
     return [doc.header, doc.stage, doc.materials, doc.prims].join('\n\n');
   }
+
+  /**
+   * Generate a binary USDZ (uncompressed ZIP with 64-byte alignment)
+   * containing the USDA file and any embedded texture data.
+   */
+  generateUSDZ(composition: HoloComposition): Uint8Array {
+    const usda = this.generateUSDA(composition);
+    const usdaBytes = new TextEncoder().encode(usda);
+    const usdaName = `${this.sanitizeName(composition.name)}.usda`;
+
+    const files: Array<{ name: string; data: Uint8Array }> = [
+      { name: usdaName, data: usdaBytes },
+    ];
+
+    // Add texture files
+    if (this.options.textureData) {
+      for (const [path, data] of Object.entries(this.options.textureData)) {
+        if (data && data.length > 0) {
+          const texPath = path.startsWith('textures/') ? path : `textures/${path}`;
+          files.push({ name: texPath, data });
+        }
+      }
+    }
+
+    return USDZPipeline.createUncompressedZip(files);
+  }
+
+  /**
+   * Create an uncompressed ZIP with 64-byte aligned file data.
+   * USDZ requires uncompressed storage and 64-byte alignment per Apple spec.
+   */
+  private static createUncompressedZip(files: Array<{ name: string; data: Uint8Array }>): Uint8Array {
+    const localHeaders: Array<{ offset: number; nameBytes: Uint8Array; crc: number; size: number }> = [];
+    const chunks: Uint8Array[] = [];
+    let offset = 0;
+
+    for (const file of files) {
+      const nameBytes = new TextEncoder().encode(file.name);
+      const crc = USDZPipeline.crc32(file.data);
+
+      // Local file header (30 bytes + name + extra)
+      const headerSize = 30 + nameBytes.length;
+      // Calculate padding for 64-byte alignment of data
+      const paddingNeeded = (64 - ((offset + headerSize) % 64)) % 64;
+      const extraField = new Uint8Array(paddingNeeded);
+
+      const header = new Uint8Array(30 + nameBytes.length + paddingNeeded);
+      const view = new DataView(header.buffer);
+
+      // Local file header signature
+      view.setUint32(0, 0x04034b50, true);
+      // Version needed to extract
+      view.setUint16(4, 20, true);
+      // General purpose bit flag
+      view.setUint16(6, 0, true);
+      // Compression method (0 = store)
+      view.setUint16(8, 0, true);
+      // Last mod time/date
+      view.setUint16(10, 0, true);
+      view.setUint16(12, 0, true);
+      // CRC-32
+      view.setUint32(14, crc, true);
+      // Compressed size
+      view.setUint32(18, file.data.length, true);
+      // Uncompressed size
+      view.setUint32(22, file.data.length, true);
+      // File name length
+      view.setUint16(26, nameBytes.length, true);
+      // Extra field length
+      view.setUint16(28, paddingNeeded, true);
+      // File name
+      header.set(nameBytes, 30);
+      // Extra field (padding)
+      header.set(extraField, 30 + nameBytes.length);
+
+      localHeaders.push({ offset, nameBytes, crc, size: file.data.length });
+      chunks.push(header);
+      chunks.push(file.data);
+      offset += header.length + file.data.length;
+    }
+
+    // Central directory
+    const centralDirOffset = offset;
+    for (let i = 0; i < files.length; i++) {
+      const { nameBytes, crc, size } = localHeaders[i];
+      const localOffset = localHeaders[i].offset;
+
+      const entry = new Uint8Array(46 + nameBytes.length);
+      const view = new DataView(entry.buffer);
+
+      // Central directory file header signature
+      view.setUint32(0, 0x02014b50, true);
+      // Version made by
+      view.setUint16(4, 20, true);
+      // Version needed to extract
+      view.setUint16(6, 20, true);
+      // Flags
+      view.setUint16(8, 0, true);
+      // Compression method
+      view.setUint16(10, 0, true);
+      // Last mod time/date
+      view.setUint16(12, 0, true);
+      view.setUint16(14, 0, true);
+      // CRC-32
+      view.setUint32(16, crc, true);
+      // Compressed size
+      view.setUint32(20, size, true);
+      // Uncompressed size
+      view.setUint32(24, size, true);
+      // File name length
+      view.setUint16(28, nameBytes.length, true);
+      // Extra field length
+      view.setUint16(30, 0, true);
+      // File comment length
+      view.setUint16(32, 0, true);
+      // Disk number start
+      view.setUint16(34, 0, true);
+      // Internal file attributes
+      view.setUint16(36, 0, true);
+      // External file attributes
+      view.setUint32(38, 0, true);
+      // Relative offset of local header
+      view.setUint32(42, localOffset, true);
+      // File name
+      entry.set(nameBytes, 46);
+
+      chunks.push(entry);
+      offset += entry.length;
+    }
+
+    const centralDirSize = offset - centralDirOffset;
+
+    // End of central directory record
+    const eocd = new Uint8Array(22);
+    const eocdView = new DataView(eocd.buffer);
+    // Signature
+    eocdView.setUint32(0, 0x06054b50, true);
+    // Disk number
+    eocdView.setUint16(4, 0, true);
+    // Disk where central dir starts
+    eocdView.setUint16(6, 0, true);
+    // Number of central dir records on this disk
+    eocdView.setUint16(8, files.length, true);
+    // Total number of central dir records
+    eocdView.setUint16(10, files.length, true);
+    // Size of central directory
+    eocdView.setUint32(12, centralDirSize, true);
+    // Offset of central directory
+    eocdView.setUint32(16, centralDirOffset, true);
+    // Comment length
+    eocdView.setUint16(20, 0, true);
+
+    chunks.push(eocd);
+    offset += eocd.length;
+
+    // Concatenate all chunks
+    const result = new Uint8Array(offset);
+    let pos = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, pos);
+      pos += chunk.length;
+    }
+
+    return result;
+  }
+
+  /**
+   * Compute CRC-32 checksum for ZIP entries
+   */
+  private static crc32(data: Uint8Array): number {
+    // Build CRC lookup table on first call
+    if (!USDZPipeline._crc32Table) {
+      const table = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let j = 0; j < 8; j++) {
+          c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        table[i] = c;
+      }
+      USDZPipeline._crc32Table = table;
+    }
+
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < data.length; i++) {
+      crc = USDZPipeline._crc32Table[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+  private static _crc32Table: Uint32Array | null = null;
 
   /**
    * Build the complete USDA document
@@ -195,18 +406,49 @@ export class USDZPipeline {
   private collectMaterialsFromObject(obj: HoloObjectDecl): void {
     const color = this.findProp(obj, 'color');
     const material = this.findProp(obj, 'material');
+    const materialPreset = this.findProp(obj, 'materialPreset');
     const surface = this.findProp(obj, 'surface');
 
-    if (color || material || surface) {
+    if (color || material || materialPreset || surface) {
       const matName = `Material_${this.sanitizeName(obj.name)}`;
       const mat: USDMaterial = { name: matName };
 
+      // 1. Named material preset (e.g., material: "glass")
+      const presetName = typeof material === 'string' ? material
+        : typeof materialPreset === 'string' ? materialPreset : undefined;
+      if (presetName && MATERIAL_PRESETS[presetName]) {
+        const preset = MATERIAL_PRESETS[presetName];
+        if (preset.color) mat.baseColor = this.hexToRGB(preset.color);
+        if (preset.metalness !== undefined) mat.metallic = preset.metalness;
+        if (preset.roughness !== undefined) mat.roughness = preset.roughness;
+        if (preset.opacity !== undefined) mat.opacity = preset.opacity;
+        if (preset.emissive) mat.emissiveColor = this.hexToRGB(preset.emissive);
+        if (preset.emissiveIntensity !== undefined) mat.emissiveIntensity = preset.emissiveIntensity;
+        if (preset.transmission !== undefined) mat.transmission = preset.transmission;
+        if (preset.ior !== undefined) mat.ior = preset.ior;
+        if (preset.thickness !== undefined) mat.thickness = preset.thickness;
+        if (preset.clearcoat !== undefined) mat.clearcoat = preset.clearcoat;
+        if (preset.clearcoatRoughness !== undefined) mat.clearcoatRoughness = preset.clearcoatRoughness;
+        if (preset.sheen !== undefined) mat.sheen = preset.sheen;
+        if (preset.sheenRoughness !== undefined) mat.sheenRoughness = preset.sheenRoughness;
+        if (preset.sheenColor) mat.sheenColor = this.hexToRGB(preset.sheenColor);
+        if (preset.iridescence !== undefined) mat.iridescence = preset.iridescence;
+        if (preset.iridescenceIOR !== undefined) mat.iridescenceIOR = preset.iridescenceIOR;
+        if (preset.anisotropy !== undefined) mat.anisotropy = preset.anisotropy;
+        if (preset.anisotropyRotation !== undefined) mat.anisotropyRotation = preset.anisotropyRotation;
+        if (preset.attenuationColor) mat.attenuationColor = this.hexToRGB(preset.attenuationColor);
+        if (preset.attenuationDistance !== undefined) mat.attenuationDistance = preset.attenuationDistance;
+        if (preset.transparent && mat.opacity === undefined) mat.opacity = 0.99;
+      }
+
+      // 2. Direct color override
       if (typeof color === 'string') {
         mat.baseColor = this.hexToRGB(color);
       } else if (Array.isArray(color)) {
         mat.baseColor = color as [number, number, number];
       }
 
+      // 3. Material object (inline material definition)
       if (typeof material === 'object' && material !== null) {
         const m = material as Record<string, unknown>;
         if (m.color) mat.baseColor = this.parseColor(m.color);
@@ -214,9 +456,14 @@ export class USDZPipeline {
         if (typeof m.roughness === 'number') mat.roughness = m.roughness;
         if (m.emissive) mat.emissiveColor = this.parseColor(m.emissive);
         if (typeof m.opacity === 'number') mat.opacity = m.opacity;
+        if (typeof m.clearcoat === 'number') mat.clearcoat = m.clearcoat;
+        if (typeof m.clearcoatRoughness === 'number') mat.clearcoatRoughness = m.clearcoatRoughness;
+        if (typeof m.transmission === 'number') mat.transmission = m.transmission;
+        if (typeof m.ior === 'number') mat.ior = m.ior;
+        if (typeof m.thickness === 'number') mat.thickness = m.thickness;
       }
 
-      // Surface presets
+      // 4. Legacy surface presets (backward compatibility)
       if (surface === 'metal') {
         mat.metallic = 1.0;
         mat.roughness = 0.2;
@@ -224,11 +471,25 @@ export class USDZPipeline {
         mat.opacity = 0.1;
         mat.roughness = 0.0;
         mat.ior = 1.5;
+        mat.transmission = 0.95;
       } else if (surface === 'plastic') {
         mat.metallic = 0;
         mat.roughness = 0.5;
       } else if (surface === 'emissive' || surface === 'hologram') {
         mat.emissiveColor = mat.baseColor || [1, 1, 1];
+      }
+
+      // 5. Collect texture maps from object properties
+      const textureMaps: Record<string, string> = {};
+      for (const prop of obj.properties || []) {
+        if (typeof prop.value === 'string' && (prop.key.endsWith('Map') || prop.key.endsWith('_map'))) {
+          if (!prop.value.startsWith('#') && !prop.value.startsWith('rgb')) {
+            textureMaps[prop.key] = prop.value;
+          }
+        }
+      }
+      if (Object.keys(textureMaps).length > 0) {
+        mat.textureMaps = textureMaps;
       }
 
       this.materials.set(matName, mat);
@@ -256,6 +517,26 @@ export class USDZPipeline {
     }
   }
 
+  // Texture channel mapping: HoloScript → USD UsdPreviewSurface input name
+  private static readonly TEXTURE_CHANNEL_MAP: Record<string, { input: string; type: 'color3f' | 'float' | 'normal3f' }> = {
+    albedo_map: { input: 'diffuseColor', type: 'color3f' },
+    baseColorMap: { input: 'diffuseColor', type: 'color3f' },
+    normal_map: { input: 'normal', type: 'normal3f' },
+    normalMap: { input: 'normal', type: 'normal3f' },
+    roughness_map: { input: 'roughness', type: 'float' },
+    roughnessMap: { input: 'roughness', type: 'float' },
+    metallic_map: { input: 'metallic', type: 'float' },
+    metallicMap: { input: 'metallic', type: 'float' },
+    ao_map: { input: 'occlusion', type: 'float' },
+    occlusionMap: { input: 'occlusion', type: 'float' },
+    ambientOcclusionMap: { input: 'occlusion', type: 'float' },
+    emission_map: { input: 'emissiveColor', type: 'color3f' },
+    emissiveMap: { input: 'emissiveColor', type: 'color3f' },
+    displacement_map: { input: 'displacement', type: 'float' },
+    displacementMap: { input: 'displacement', type: 'float' },
+    heightMap: { input: 'displacement', type: 'float' },
+  };
+
   /**
    * Generate all materials
    */
@@ -268,44 +549,192 @@ export class USDZPipeline {
       lines.push(`def Material "${name}"`);
       lines.push('{');
 
-      // Surface shader
+      // Surface shader output connection
       lines.push(`    token outputs:surface.connect = </${name}/PBRShader.outputs:surface>`);
       lines.push('');
+
+      // Resolve texture connections
+      const textureConnections = this.resolveTextureConnections(mat);
 
       // PBR Shader
       lines.push(`    def Shader "PBRShader"`);
       lines.push('    {');
       lines.push('        uniform token info:id = "UsdPreviewSurface"');
 
-      if (mat.baseColor) {
+      // diffuseColor — may be connected to texture
+      if (textureConnections.has('diffuseColor')) {
+        lines.push(`        color3f inputs:diffuseColor.connect = </${name}/${textureConnections.get('diffuseColor')}.outputs:rgb>`);
+      } else if (mat.baseColor) {
         lines.push(
           `        color3f inputs:diffuseColor = (${mat.baseColor[0]}, ${mat.baseColor[1]}, ${mat.baseColor[2]})`
         );
       }
 
-      lines.push(`        float inputs:metallic = ${mat.metallic ?? 0}`);
-      lines.push(`        float inputs:roughness = ${mat.roughness ?? 0.5}`);
+      // metallic — may be connected to texture
+      if (textureConnections.has('metallic')) {
+        lines.push(`        float inputs:metallic.connect = </${name}/${textureConnections.get('metallic')}.outputs:r>`);
+      } else {
+        lines.push(`        float inputs:metallic = ${mat.metallic ?? 0}`);
+      }
 
-      if (mat.emissiveColor) {
+      // roughness — may be connected to texture
+      if (textureConnections.has('roughness')) {
+        lines.push(`        float inputs:roughness.connect = </${name}/${textureConnections.get('roughness')}.outputs:r>`);
+      } else {
+        lines.push(`        float inputs:roughness = ${mat.roughness ?? 0.5}`);
+      }
+
+      // emissiveColor — scale by emissiveIntensity (USD has no separate intensity)
+      if (textureConnections.has('emissiveColor')) {
+        lines.push(`        color3f inputs:emissiveColor.connect = </${name}/${textureConnections.get('emissiveColor')}.outputs:rgb>`);
+      } else if (mat.emissiveColor) {
+        const intensity = mat.emissiveIntensity ?? 1;
+        const scaled: [number, number, number] = [
+          Math.min(1, mat.emissiveColor[0] * intensity),
+          Math.min(1, mat.emissiveColor[1] * intensity),
+          Math.min(1, mat.emissiveColor[2] * intensity),
+        ];
         lines.push(
-          `        color3f inputs:emissiveColor = (${mat.emissiveColor[0]}, ${mat.emissiveColor[1]}, ${mat.emissiveColor[2]})`
+          `        color3f inputs:emissiveColor = (${scaled[0]}, ${scaled[1]}, ${scaled[2]})`
         );
       }
 
+      // opacity
       if (mat.opacity !== undefined && mat.opacity < 1) {
         lines.push(`        float inputs:opacity = ${mat.opacity}`);
       }
+      if (mat.transmission && mat.transmission > 0) {
+        lines.push(`        float inputs:opacityThreshold = 0`);
+      }
 
+      // ior
       if (mat.ior !== undefined) {
         lines.push(`        float inputs:ior = ${mat.ior}`);
       }
 
+      // clearcoat (native UsdPreviewSurface)
+      if (mat.clearcoat !== undefined && mat.clearcoat > 0) {
+        lines.push(`        float inputs:clearcoat = ${mat.clearcoat}`);
+      }
+      if (mat.clearcoatRoughness !== undefined && mat.clearcoat && mat.clearcoat > 0) {
+        lines.push(`        float inputs:clearcoatRoughness = ${mat.clearcoatRoughness}`);
+      }
+
+      // normal — may be connected to texture
+      if (textureConnections.has('normal')) {
+        lines.push(`        normal3f inputs:normal.connect = </${name}/${textureConnections.get('normal')}.outputs:rgb>`);
+      }
+
+      // occlusion — may be connected to texture
+      if (textureConnections.has('occlusion')) {
+        lines.push(`        float inputs:occlusion.connect = </${name}/${textureConnections.get('occlusion')}.outputs:r>`);
+      }
+
+      // displacement — may be connected to texture
+      if (textureConnections.has('displacement')) {
+        lines.push(`        float inputs:displacement.connect = </${name}/${textureConnections.get('displacement')}.outputs:r>`);
+      }
+
       lines.push('        token outputs:surface');
       lines.push('    }');
+
+      // Generate texture reader nodes
+      if (mat.textureMaps && Object.keys(mat.textureMaps).length > 0) {
+        lines.push('');
+        lines.push(...this.generateTextureReaders(name, mat));
+      }
+
+      // Metadata comments for properties not natively supported by UsdPreviewSurface
+      if (mat.transmission && mat.transmission > 0) {
+        lines.push(`    # HoloScript:transmission = ${mat.transmission}`);
+      }
+      if (mat.thickness && mat.thickness > 0) {
+        lines.push(`    # HoloScript:thickness = ${mat.thickness}`);
+      }
+      if (mat.attenuationColor) {
+        lines.push(`    # HoloScript:attenuationColor = (${mat.attenuationColor[0]}, ${mat.attenuationColor[1]}, ${mat.attenuationColor[2]})`);
+      }
+      if (mat.attenuationDistance !== undefined) {
+        lines.push(`    # HoloScript:attenuationDistance = ${mat.attenuationDistance}`);
+      }
+      if (mat.sheen && mat.sheen > 0) {
+        lines.push(`    # HoloScript:sheen = ${mat.sheen}`);
+        if (mat.sheenRoughness !== undefined) lines.push(`    # HoloScript:sheenRoughness = ${mat.sheenRoughness}`);
+        if (mat.sheenColor) lines.push(`    # HoloScript:sheenColor = (${mat.sheenColor[0]}, ${mat.sheenColor[1]}, ${mat.sheenColor[2]})`);
+      }
+      if (mat.iridescence && mat.iridescence > 0) {
+        lines.push(`    # HoloScript:iridescence = ${mat.iridescence}`);
+        if (mat.iridescenceIOR !== undefined) lines.push(`    # HoloScript:iridescenceIOR = ${mat.iridescenceIOR}`);
+      }
+      if (mat.anisotropy && mat.anisotropy > 0) {
+        lines.push(`    # HoloScript:anisotropy = ${mat.anisotropy}`);
+        if (mat.anisotropyRotation !== undefined) lines.push(`    # HoloScript:anisotropyRotation = ${mat.anisotropyRotation}`);
+      }
+
       lines.push('}');
     }
 
     return lines.join('\n');
+  }
+
+  /**
+   * Resolve which PBR inputs should be connected to textures
+   */
+  private resolveTextureConnections(mat: USDMaterial): Map<string, string> {
+    const connections = new Map<string, string>();
+    if (!mat.textureMaps) return connections;
+
+    for (const [channel] of Object.entries(mat.textureMaps)) {
+      const mapping = USDZPipeline.TEXTURE_CHANNEL_MAP[channel];
+      if (mapping && !connections.has(mapping.input)) {
+        const readerName = `${mapping.input}Texture`;
+        connections.set(mapping.input, readerName);
+      }
+    }
+    return connections;
+  }
+
+  /**
+   * Generate UsdUVTexture reader nodes for material textures
+   */
+  private generateTextureReaders(matName: string, mat: USDMaterial): string[] {
+    const lines: string[] = [];
+    if (!mat.textureMaps) return lines;
+
+    // ST reader (shared across all textures)
+    lines.push(`    def Shader "stReader"`);
+    lines.push('    {');
+    lines.push('        uniform token info:id = "UsdPrimvarReader_float2"');
+    lines.push('        token inputs:varname = "st"');
+    lines.push('        float2 outputs:result');
+    lines.push('    }');
+
+    const emitted = new Set<string>();
+    for (const [channel, path] of Object.entries(mat.textureMaps)) {
+      const mapping = USDZPipeline.TEXTURE_CHANNEL_MAP[channel];
+      if (!mapping || emitted.has(mapping.input)) continue;
+      emitted.add(mapping.input);
+
+      const readerName = `${mapping.input}Texture`;
+      const texPath = path.startsWith('textures/') ? path : `textures/${path}`;
+
+      lines.push('');
+      lines.push(`    def Shader "${readerName}"`);
+      lines.push('    {');
+      lines.push('        uniform token info:id = "UsdUVTexture"');
+      lines.push(`        asset inputs:file = @${texPath}@`);
+      lines.push(`        float2 inputs:st.connect = </${matName}/stReader.outputs:result>`);
+
+      if (mapping.type === 'color3f' || mapping.type === 'normal3f') {
+        lines.push('        color3f outputs:rgb');
+      } else {
+        lines.push('        float outputs:r');
+      }
+
+      lines.push('    }');
+    }
+
+    return lines;
   }
 
   /**
@@ -619,6 +1048,14 @@ export class USDZPipeline {
 export function generateUSDA(composition: HoloComposition, options?: USDZPipelineOptions): string {
   const pipeline = new USDZPipeline(options);
   return pipeline.generateUSDA(composition);
+}
+
+/**
+ * Generate binary USDZ from composition
+ */
+export function generateUSDZ(composition: HoloComposition, options?: USDZPipelineOptions): Uint8Array {
+  const pipeline = new USDZPipeline(options);
+  return pipeline.generateUSDZ(composition);
 }
 
 /**
