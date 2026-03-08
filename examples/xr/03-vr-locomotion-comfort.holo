@@ -1,0 +1,651 @@
+/**
+ * VR Locomotion & Comfort Example
+ *
+ * Demonstrates VR movement and comfort systems: teleportation, snap turning,
+ * comfort modes, room-scale setup, guardian/chaperone boundaries, and
+ * locomotion techniques to prevent VR sickness.
+ *
+ * Key Features:
+ * - Teleport: Arc teleportation, blink teleport, dash teleport
+ * - Snap Turn: Discrete rotation, comfort vignette
+ * - Comfort Mode: Vignette, tunneling, FOV reduction, reference frame
+ * - Room Scale: Physical space tracking, play area calibration
+ * - Guardian System: Safety boundaries, boundary visualization, warnings
+ * - Playspace: Multi-user space management, seated/standing/room-scale modes
+ *
+ * @version 5.1.0
+ * @category XR
+ */
+
+composition VRLocomotionComfortShowcase {
+  // VR environment
+  entity VRWorld {
+    mesh: { type: "plane", width: 100.0, height: 100.0 },
+    advanced_pbr: { base_color: [0.25, 0.3, 0.25], metallic: 0.0, roughness: 0.9 },
+    transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
+  }
+
+  // 1. Teleportation System
+  entity TeleportSystem {
+    teleport: {
+      enabled: true,
+      teleport_type: "arc",              // "arc", "blink", "dash", "point"
+
+      // Arc teleportation
+      arc_teleport: {
+        enabled: true,
+        arc_curve: "parabolic",          // "parabolic", "bezier", "straight"
+        arc_resolution: 32,              // Segments
+        max_distance: 10.0,              // Meters
+        arc_height: 2.0,                 // Meters (peak)
+        arc_color: [0.2, 0.6, 1.0, 0.7],
+        arc_thickness: 0.05,
+
+        // Landing validation
+        valid_surfaces: ["floor", "platform"],
+        invalid_slope: 45.0,             // Degrees max slope
+        edge_detection: true,
+        edge_buffer: 0.3,                // Meters from edge
+      },
+
+      // Blink teleport
+      blink_teleport: {
+        enabled: false,
+        fade_out_time: 0.1,              // Seconds
+        fade_in_time: 0.1,
+        fade_color: [0.0, 0.0, 0.0],
+        instant_movement: true,
+      },
+
+      // Dash teleport
+      dash_teleport: {
+        enabled: false,
+        dash_speed: 15.0,                // m/s
+        dash_acceleration: 30.0,         // m/s²
+        show_trail: true,
+        trail_duration: 0.5,
+      },
+
+      // Reticle/Marker
+      reticle: {
+        show_reticle: true,
+        reticle_type: "ring",            // "ring", "arrow", "custom"
+        reticle_size: 0.5,               // Meters
+        valid_color: [0.0, 1.0, 0.0],
+        invalid_color: [1.0, 0.0, 0.0],
+        rotation_preview: true,          // Show facing direction
+      },
+
+      // Teleport trigger
+      trigger: {
+        trigger_button: "trigger",       // Or "grip", "thumbstick_press"
+        require_release: true,           // Release to teleport
+        cancel_button: "B",
+        rotation_input: "thumbstick",    // Pre-rotate before teleport
+      },
+
+      // Post-teleport
+      post_teleport: {
+        camera_fade: true,
+        fade_duration: 0.2,
+        haptic_feedback: true,
+        audio_cue: "teleport_whoosh.wav",
+        cooldown: 0.5,                   // Seconds between teleports
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 2. Snap Turn System
+  entity SnapTurnSystem {
+    snap_turn: {
+      enabled: true,
+
+      // Rotation settings
+      rotation: {
+        snap_angle: 45.0,                // Degrees per snap
+        snap_angles_preset: [30.0, 45.0, 90.0],  // Quick select
+        current_preset: 45.0,
+        smooth_interpolation: true,
+        interpolation_time: 0.15,        // Seconds
+      },
+
+      // Input
+      input: {
+        input_type: "thumbstick",        // "thumbstick", "buttons", "gesture"
+        deadzone: 0.3,                   // Thumbstick deadzone
+        left_button: "X",                // Discrete buttons
+        right_button: "B",
+        repeat_delay: 0.3,               // Seconds before repeat
+      },
+
+      // Comfort features
+      comfort: {
+        vignette_enabled: true,
+        vignette_intensity: 0.7,         // 0-1
+        vignette_duration: 0.2,          // Seconds
+        vignette_color: [0.0, 0.0, 0.0],
+        fade_in_time: 0.1,
+        fade_out_time: 0.15,
+      },
+
+      // Audio/Haptics
+      feedback: {
+        audio_enabled: true,
+        audio_file: "snap_turn.wav",
+        haptic_pulse: true,
+        haptic_intensity: 0.3,
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 3. Comfort Mode System
+  entity ComfortModeManager {
+    comfort_mode: {
+      enabled: true,
+      comfort_level: "medium",           // "none", "low", "medium", "high", "maximum"
+
+      // Vignette (reduce peripheral vision during movement)
+      vignette: {
+        enabled: true,
+        intensity: 0.5,                  // 0-1
+        feather: 0.3,                    // Edge softness
+        color: [0.0, 0.0, 0.0],
+        dynamic_intensity: true,         // Stronger during fast movement
+        velocity_threshold: 2.0,         // m/s to trigger
+        max_intensity: 0.8,
+      },
+
+      // Tunneling (narrow FOV during movement)
+      tunneling: {
+        enabled: false,
+        tunnel_size: 0.4,                // 0-1 (0=pinhole, 1=full FOV)
+        tunnel_feather: 0.2,
+        activate_on_movement: true,
+        min_speed: 1.0,                  // m/s
+      },
+
+      // FOV reduction
+      fov_reduction: {
+        enabled: false,
+        normal_fov: 110.0,               // Degrees
+        reduced_fov: 70.0,
+        reduction_speed: 60.0,           // Degrees/second
+        trigger_velocity: 3.0,           // m/s
+      },
+
+      // Reference frame (cockpit, nose, etc.)
+      reference_frame: {
+        enabled: false,
+        frame_type: "cage",              // "cage", "nose", "cockpit", "grid"
+        frame_opacity: 0.3,
+        frame_distance: 0.5,             // Meters from eyes
+      },
+
+      // Rest frame (static reference)
+      rest_frame: {
+        enabled: true,
+        show_horizon: true,
+        show_grid: false,
+        grid_spacing: 1.0,               // Meters
+        fade_distance: 10.0,
+      },
+
+      // Movement dampening
+      dampening: {
+        enabled: false,
+        rotation_damping: 0.3,           // Reduce rotation speed
+        acceleration_damping: 0.5,       // Soften acceleration
+        deceleration_damping: 0.5,
+      },
+
+      // Anti-nausea
+      anti_nausea: {
+        head_bob_reduction: 0.7,         // Reduce camera bob
+        camera_smoothing: 0.3,
+        independent_rotation: true,      // Body vs head rotation
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 4. Room Scale System
+  entity RoomScaleSetup {
+    room_scale: {
+      enabled: true,
+      tracking_mode: "room_scale",       // "seated", "standing", "room_scale"
+
+      // Physical play area
+      play_area: {
+        width: 3.0,                      // Meters
+        depth: 3.0,
+        height: 2.5,
+        center: [0.0, 0.0, 0.0],
+        shape: "rectangle",              // "rectangle", "circle", "polygon"
+
+        // Boundary points (polygon)
+        boundary_points: [
+          [-1.5, 0.0, -1.5],
+          [1.5, 0.0, -1.5],
+          [1.5, 0.0, 1.5],
+          [-1.5, 0.0, 1.5],
+        ],
+      },
+
+      // Calibration
+      calibration: {
+        calibrated: true,
+        calibration_date: "2026-03-07",
+        recalibration_reminder: 30,      // Days
+        auto_height_adjust: true,
+        floor_offset: 0.0,               // Meters
+      },
+
+      // Tracking origin
+      origin: {
+        origin_type: "floor",            // "floor", "eye_level", "custom"
+        position: [0.0, 0.0, 0.0],
+        rotation: [0.0, 0.0, 0.0],
+        reset_on_startup: false,
+      },
+
+      // Movement within space
+      physical_movement: {
+        walking_enabled: true,
+        crouching_enabled: true,
+        jumping_enabled: false,          // Safety
+        prone_enabled: false,
+      },
+
+      // Space optimization
+      optimization: {
+        redirect_walking: false,         // Subtle redirect (experimental)
+        redirect_gain: 1.1,              // Multiplier
+        space_compression: false,        // Virtual space > physical
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 5. Guardian/Chaperone Boundary System
+  entity GuardianSystem {
+    guardian_system: {
+      enabled: true,
+      system_type: "guardian",           // "guardian" (Oculus) or "chaperone" (SteamVR)
+
+      // Boundary geometry
+      boundary: {
+        type: "user_defined",            // "user_defined", "stationary", "auto_detect"
+        geometry: "polygon",             // "polygon", "circle", "rectangle"
+        vertices: [
+          [-1.5, 0.0, -1.5],
+          [1.5, 0.0, -1.5],
+          [1.5, 0.0, 1.5],
+          [-1.5, 0.0, 1.5],
+        ],
+        height: 2.5,                     // Meters
+        floor_y: 0.0,
+      },
+
+      // Visualization
+      visualization: {
+        visibility_mode: "proximity",    // "always", "proximity", "never"
+        proximity_distance: 0.5,         // Meters (trigger distance)
+
+        // Boundary appearance
+        wall_style: "grid",              // "grid", "solid", "pulse", "minimal"
+        wall_color: [0.2, 0.6, 1.0, 0.5],
+        wall_thickness: 0.05,
+        grid_size: 0.3,                  // Meters
+
+        // Floor
+        show_floor_bounds: true,
+        floor_color: [0.2, 0.6, 1.0, 0.2],
+
+        // Dynamic intensity
+        fade_in_distance: 1.0,           // Start fading in
+        max_intensity_distance: 0.3,     // Full intensity
+      },
+
+      // Warnings
+      warnings: {
+        visual_warning: true,
+        haptic_warning: true,
+        audio_warning: true,
+        warning_threshold: 0.3,          // Meters from boundary
+
+        // Warning levels
+        soft_warning: { distance: 0.5, intensity: 0.3 },
+        medium_warning: { distance: 0.3, intensity: 0.6 },
+        hard_warning: { distance: 0.1, intensity: 1.0 },
+      },
+
+      // Safety features
+      safety: {
+        pause_on_boundary_cross: false,
+        fade_to_passthrough: true,       // Show real world
+        passthrough_distance: 0.1,       // Meters beyond boundary
+        emergency_stop: false,           // Stop all movement
+      },
+
+      // Passthrough integration
+      passthrough: {
+        enabled: true,
+        passthrough_mode: "boundary_only",  // "boundary_only", "full", "gradient"
+        passthrough_opacity: 0.7,
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 6. Playspace Manager (Multi-user)
+  entity PlayspaceManager {
+    playspace: {
+      enabled: true,
+      mode: "shared",                    // "solo", "shared", "networked"
+
+      // Playspace definition
+      playspace_geometry: {
+        total_area: 9.0,                 // m²
+        usable_area: 7.5,                // m² (accounting for furniture)
+        shape: "rectangular",
+        dimensions: [3.0, 3.0],
+      },
+
+      // Multi-user
+      multi_user: {
+        enabled: true,
+        max_users: 4,
+        current_users: 1,
+        user_spacing_min: 0.5,           // Meters between users
+        collision_avoidance: true,
+      },
+
+      // Space partitioning
+      partitioning: {
+        enabled: false,
+        partition_type: "dynamic",       // "static", "dynamic", "none"
+        partition_size: [1.5, 1.5],      // Per-user space
+        show_partitions: true,
+      },
+
+      // Furniture obstacles
+      obstacles: [
+        {
+          obstacle_id: "couch",
+          position: [2.0, 0.0, 0.0],
+          size: [2.0, 0.8, 1.0],
+          height: 0.5,
+          collision: true,
+          show_warning: true,
+        },
+      ],
+
+      // Modes
+      seated_mode: {
+        enabled: false,
+        chair_position: [0.0, 0.5, 0.0],
+        swivel_chair: true,
+        forward_direction: [0.0, 0.0, -1.0],
+      },
+
+      standing_mode: {
+        enabled: false,
+        play_area_diameter: 1.5,         // Meters (arm's reach)
+        allow_lean: true,
+      },
+
+      room_scale_mode: {
+        enabled: true,
+        full_locomotion: true,
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // VR Camera
+  entity VRCamera {
+    camera: {
+      type: "vr_stereo",
+      ipd: 0.063,
+      fov: 110.0,
+      near: 0.01,
+      far: 1000.0,
+    },
+    transform: {
+      position: [0.0, 1.7, 0.0],
+    },
+  }
+
+  // Event handlers
+
+  on TeleportSystem.teleport.teleport_initiated -> (event) {
+    console.log(`🚀 Teleport initiated: target=[${event.target_position.map(v => v.toFixed(2)).join(', ')}]`);
+    console.log(`  Distance: ${event.distance.toFixed(2)}m`);
+  }
+
+  on TeleportSystem.teleport.teleport_completed -> (event) {
+    console.log(`✓ Teleport completed in ${event.duration.toFixed(2)}s`);
+  }
+
+  on TeleportSystem.teleport.teleport_invalid -> (event) {
+    console.warn(`❌ Teleport invalid: ${event.reason}`);
+  }
+
+  on SnapTurnSystem.snap_turn.turned -> (event) {
+    console.log(`🔄 Snap turn: ${event.angle > 0 ? '+' : ''}${event.angle.toFixed(0)}°`);
+  }
+
+  on ComfortModeManager.comfort_mode.vignette_activated -> (event) {
+    console.log(`Comfort vignette activated: intensity=${(event.intensity * 100).toFixed(0)}%`);
+    console.log(`  Trigger: ${event.trigger_reason}, Velocity: ${event.velocity.toFixed(2)}m/s`);
+  }
+
+  on RoomScaleSetup.room_scale.tracking_mode_changed -> (event) {
+    console.log(`Tracking mode changed: ${event.old_mode} → ${event.new_mode}`);
+  }
+
+  on RoomScaleSetup.room_scale.recalibration_needed -> (event) {
+    console.warn(`⚠️ Room scale recalibration recommended (${event.days_since_calibration} days)`);
+  }
+
+  on GuardianSystem.guardian_system.boundary_approached -> (event) {
+    console.warn(`⚠️ Approaching guardian boundary: ${event.distance.toFixed(2)}m`);
+    console.log(`  Warning level: ${event.warning_level}`);
+  }
+
+  on GuardianSystem.guardian_system.boundary_crossed -> (event) {
+    console.error(`❌ Guardian boundary crossed!`);
+    console.log(`  Position: [${event.position.map(v => v.toFixed(2)).join(', ')}]`);
+  }
+
+  on PlayspaceManager.playspace.obstacle_proximity -> (event) {
+    console.warn(`⚠️ Near obstacle: ${event.obstacle_id} (${event.distance.toFixed(2)}m)`);
+  }
+
+  on PlayspaceManager.playspace.user_joined -> (event) {
+    console.log(`👤 User joined playspace: ${event.user_id}`);
+    console.log(`  Total users: ${event.total_users} / ${event.max_users}`);
+  }
+}
+
+// VR Locomotion UI
+ui VRLocomotionControls {
+  panel "VR Locomotion & Comfort" {
+    section "Teleportation" {
+      checkbox "Teleport Enabled" {
+        value: true,
+        onChange: (v) => { TeleportSystem.teleport.enabled = v; }
+      }
+
+      dropdown "Teleport Type" {
+        options: ["arc", "blink", "dash", "point"],
+        value: "arc",
+        onChange: (v) => { TeleportSystem.teleport.teleport_type = v; }
+      }
+
+      slider "Max Distance (m)" {
+        min: 2.0, max: 20.0, value: 10.0, step: 1.0,
+        onChange: (v) => { TeleportSystem.teleport.arc_teleport.max_distance = v; }
+      }
+
+      checkbox "Rotation Preview" {
+        value: true,
+        onChange: (v) => { TeleportSystem.teleport.reticle.rotation_preview = v; }
+      }
+    }
+
+    section "Snap Turn" {
+      checkbox "Snap Turn Enabled" {
+        value: true,
+        onChange: (v) => { SnapTurnSystem.snap_turn.enabled = v; }
+      }
+
+      dropdown "Snap Angle" {
+        options: ["30.0", "45.0", "90.0"],
+        value: "45.0",
+        onChange: (v) => { SnapTurnSystem.snap_turn.rotation.snap_angle = parseFloat(v); }
+      }
+
+      checkbox "Comfort Vignette" {
+        value: true,
+        onChange: (v) => { SnapTurnSystem.snap_turn.comfort.vignette_enabled = v; }
+      }
+
+      slider "Vignette Intensity" {
+        min: 0.0, max: 1.0, value: 0.7, step: 0.1,
+        onChange: (v) => { SnapTurnSystem.snap_turn.comfort.vignette_intensity = v; }
+      }
+    }
+
+    section "Comfort Mode" {
+      dropdown "Comfort Level" {
+        options: ["none", "low", "medium", "high", "maximum"],
+        value: "medium",
+        onChange: (v) => { ComfortModeManager.comfort_mode.comfort_level = v; }
+      }
+
+      checkbox "Vignette" {
+        value: true,
+        onChange: (v) => { ComfortModeManager.comfort_mode.vignette.enabled = v; }
+      }
+
+      slider "Vignette Intensity" {
+        min: 0.0, max: 1.0, value: 0.5, step: 0.1,
+        onChange: (v) => { ComfortModeManager.comfort_mode.vignette.intensity = v; }
+      }
+
+      checkbox "Tunneling" {
+        value: false,
+        onChange: (v) => { ComfortModeManager.comfort_mode.tunneling.enabled = v; }
+      }
+
+      checkbox "Rest Frame" {
+        value: true,
+        onChange: (v) => { ComfortModeManager.comfort_mode.rest_frame.enabled = v; }
+      }
+    }
+
+    section "Room Scale" {
+      dropdown "Tracking Mode" {
+        options: ["seated", "standing", "room_scale"],
+        value: "room_scale",
+        onChange: (v) => { RoomScaleSetup.room_scale.tracking_mode = v; }
+      }
+
+      text "Play Area" {
+        value: () => {
+          const w = RoomScaleSetup.room_scale.play_area.width;
+          const d = RoomScaleSetup.room_scale.play_area.depth;
+          return `${w.toFixed(1)}m × ${d.toFixed(1)}m`;
+        }
+      }
+
+      button "Recalibrate" -> () {
+        RoomScaleSetup.room_scale.start_calibration();
+      }
+
+      checkbox "Auto Height Adjust" {
+        value: true,
+        onChange: (v) => { RoomScaleSetup.room_scale.calibration.auto_height_adjust = v; }
+      }
+    }
+
+    section "Guardian System" {
+      checkbox "Guardian Enabled" {
+        value: true,
+        onChange: (v) => { GuardianSystem.guardian_system.enabled = v; }
+      }
+
+      dropdown "Visibility" {
+        options: ["always", "proximity", "never"],
+        value: "proximity",
+        onChange: (v) => { GuardianSystem.guardian_system.visualization.visibility_mode = v; }
+      }
+
+      slider "Proximity Distance (m)" {
+        min: 0.1, max: 2.0, value: 0.5, step: 0.1,
+        onChange: (v) => { GuardianSystem.guardian_system.visualization.proximity_distance = v; }
+      }
+
+      checkbox "Visual Warning" {
+        value: true,
+        onChange: (v) => { GuardianSystem.guardian_system.warnings.visual_warning = v; }
+      }
+
+      checkbox "Haptic Warning" {
+        value: true,
+        onChange: (v) => { GuardianSystem.guardian_system.warnings.haptic_warning = v; }
+      }
+
+      checkbox "Passthrough on Cross" {
+        value: true,
+        onChange: (v) => { GuardianSystem.guardian_system.safety.fade_to_passthrough = v; }
+      }
+    }
+
+    section "Playspace" {
+      dropdown "Mode" {
+        options: ["solo", "shared", "networked"],
+        value: "shared",
+        onChange: (v) => { PlayspaceManager.playspace.mode = v; }
+      }
+
+      text "Users" {
+        value: () => {
+          const current = PlayspaceManager.playspace.multi_user.current_users;
+          const max = PlayspaceManager.playspace.multi_user.max_users;
+          return `${current} / ${max}`;
+        }
+      }
+
+      text "Usable Area" {
+        value: () => `${PlayspaceManager.playspace.playspace_geometry.usable_area.toFixed(1)}m²`
+      }
+
+      checkbox "Collision Avoidance" {
+        value: true,
+        onChange: (v) => { PlayspaceManager.playspace.multi_user.collision_avoidance = v; }
+      }
+    }
+  }
+}
