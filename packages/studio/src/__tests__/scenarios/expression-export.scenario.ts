@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Scenario: Expression Editor & Export (Phase 4)
  *
@@ -19,7 +20,7 @@ import {
 } from '../../lib/ExpressionPresets';
 import { buildCharacterCard } from '../../components/character/export/ExportPanel';
 
-const { useCharacterStore } = await import('@/lib/store');
+const { useCharacterStore } = await import('@/lib/stores');
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

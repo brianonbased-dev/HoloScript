@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useCharacterStore } from '@/lib/store';
+import { useCharacterStore } from '@/lib/stores';
 import { extractBuiltinAnimations, buildClipFromFrames, type BoneFrame, type RecordedClip } from '@/lib/animationBuilder';
 import type { Keyframe, AnimTrack } from '@/hooks/useKeyframes';
 import {

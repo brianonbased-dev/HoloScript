@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 
-const { useCharacterStore } = await import('@/lib/store');
+const { useCharacterStore } = await import('@/lib/stores');
 const { BUILTIN_ITEMS } = await import('@/data/wardrobeItems');
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

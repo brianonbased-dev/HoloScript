@@ -18,7 +18,7 @@ import {
   type CharacterStoreActions,
 } from '../../lib/brittney/CharacterIntentParser';
 
-const { useCharacterStore } = await import('@/lib/store');
+const { useCharacterStore } = await import('@/lib/stores');
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

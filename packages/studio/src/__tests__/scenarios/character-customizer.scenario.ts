@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 // ── Store import ────────────────────────────────────────────────────────────
 
-const { useCharacterStore } = await import('@/lib/store');
+const { useCharacterStore } = await import('@/lib/stores');
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 

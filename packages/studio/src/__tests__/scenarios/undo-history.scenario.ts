@@ -18,7 +18,7 @@ import {
   getLastHistoryLabel,
 } from '@/lib/historyStore';
 import { useHistoryLabelStore } from '@/lib/historyLabelStore';
-import type { SceneNode } from '@/lib/store';
+import type { SceneNode } from '@/lib/stores';
 
 function makeNode(id: string, name: string): SceneNode {
   return {

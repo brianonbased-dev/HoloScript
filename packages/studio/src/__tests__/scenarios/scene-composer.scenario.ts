@@ -8,8 +8,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useSceneGraphStore, useSceneStore } from '@/lib/store';
-import type { SceneNode } from '@/lib/store';
+import { useSceneGraphStore, useSceneStore } from '@/lib/stores';
+import type { SceneNode } from '@/lib/stores';
 import { serializeScene, deserializeScene } from '@/lib/serializer';
 import type { HoloSceneMetadata } from '@/lib/serializer';
 import {
