@@ -6,8 +6,52 @@ A declarative language with tooling that compiles to multiple platforms. This ro
 
 > 📦 HoloScript includes its own full runtime engine (50+ subsystems). [Hololand](https://github.com/brianonbased-dev/Hololand) is an optional deployment platform that provides hosting, Brittney AI assistant, and additional platform adapters.
 
-> 🎯 **Current version: v3.42.0** — see [CHANGELOG.md](./CHANGELOG.md) for full release history.  
-> 🚀 **Active sprint: v3.5.0 Hololand Bootstrap** → [Jump to current work ↓](#-v350---hololand-bootstrap-build-in-vr-with-brittney-marchmay-2026)
+> 🎯 **Current version: v5.0.0** — see [CHANGELOG.md](./CHANGELOG.md) for full release history.
+> ✅ **Latest release: v5.0.0 Autonomous Ecosystems** → [Jump to latest ↓](#-v500---autonomous-ecosystems-march-2026)
+
+---
+
+## ✅ v5.0.0 - Autonomous Ecosystems (March 2026)
+
+**Status:** ✅ **RELEASED** | **Published:** March 7, 2026
+
+The autonomous ecosystems release brings agent federation, in-scene compute economies, feedback loop optimization, enterprise multi-tenancy, and post-quantum cryptography.
+
+### Core Features (51 commits, 25,000+ lines)
+
+| Feature | Status |
+| --- | --- |
+| **AgentPortalTrait** — Cross-scene agent communication, WebSocket relay, migration, federation | ✅ Complete |
+| **EconomyPrimitivesTrait** — In-scene compute credits, bounties, escrow, subscriptions | ✅ Complete |
+| **FeedbackLoopTrait** — Quality metrics, trend detection, auto-optimization signals | ✅ Complete |
+| **Enterprise Multi-Tenancy** — 7 traits (Tenant, RBAC, SSO, Quota, AuditLog, Analytics, ABTest) | ✅ Complete |
+| **Post-Quantum Cryptography** — HybridCryptoProvider, ML-DSA-65, ML-KEM-768, CBAC | ✅ Complete |
+| **Neural Rendering** — GaussianBudgetAnalyzer, PIDController, AndroidXR traits | ✅ Complete |
+| **Spatial Intelligence** — SpatialConstraintValidator, SpatiotemporalTraits | ✅ Complete |
+
+### New Packages
+
+| Package | Version | Purpose |
+| --- | --- | --- |
+| `@holoscript/agent-protocol` | 5.0.0 | uAA2++ 8-phase protocol, BaseAgent, PWG format |
+| `@holoscript/agent-sdk` | 5.0.0 | Mesh discovery, gossip protocol, Agent Card (A2A) |
+| `@holoscript/snn-webgpu` | 5.0.0 | WebGPU spiking neural networks, LIF simulation |
+| `@holoscript/vm-bridge` | 5.0.0 | Bridge HoloVM (60fps) with uAAL VM (7-phase) |
+
+### Export Targets
+
+| Target | ID | Purpose |
+| --- | --- | --- |
+| NIR (Neuromorphic IR) | #19 | Intel Loihi 2, neuromorphic hardware compilation |
+
+### Documentation
+
+| Document | Status |
+| --- | --- |
+| CHANGELOG.md v5.0.0 entry | ✅ Complete |
+| Package READMEs (agent-protocol, agent-sdk, snn-webgpu, vm-bridge) | ✅ Complete |
+| VISION_V5.md | ✅ Complete |
+| npm published (18 packages) | ✅ Complete |
 
 ---
 

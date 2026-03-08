@@ -1,8 +1,10 @@
 # HoloScript Agent API Reference
 
-## v3.4.0 - Agentic Choreography
+## v5.0.0 - Autonomous Ecosystems
 
-This document covers the public APIs introduced in Sprint 4 for multi-agent orchestration.
+This document covers the public APIs for multi-agent orchestration, enterprise multi-tenancy, agent federation, and autonomous compute economies.
+
+> **Note:** v5.0.0 adds new APIs for AgentPortal, EconomyPrimitives, FeedbackLoop, and 7 enterprise traits. See [CHANGELOG.md](../CHANGELOG.md) for full details.
 
 ---
 
