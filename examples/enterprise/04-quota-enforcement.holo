@@ -1,0 +1,344 @@
+/**
+ * Quota Enforcement — HoloScript v5.0 Enterprise Example
+ *
+ * Demonstrates resource quota enforcement with QuotaTrait.
+ * This example shows:
+ *  - Storage, compute, API call, and custom resource quotas
+ *  - Hard/soft/warn-only enforcement modes
+ *  - Per-user and per-tenant quota allocation
+ *  - Quota reset periods (daily, weekly, monthly)
+ *  - Real-time usage tracking
+ *  - Quota exceeded notifications
+ *
+ * Use Case: SaaS Resource Limits
+ *   - Prevent resource abuse
+ *   - Fair usage across tenants
+ *   - Tiered subscription limits
+ *   - Billing integration triggers
+ *
+ * Run this example:
+ *   holoc examples/enterprise/04-quota-enforcement.holo --target r3f
+ *
+ * @version 5.0.0
+ */
+
+scene ResourceQuotas {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ENTERPRISE TIER QUOTAS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity EnterpriseTenantQuotas {
+    traits: [quota];
+
+    quota: {
+      // Tenant-level quotas
+      tenantId: "550e8400-e29b-41d4-a716-446655440000",
+
+      quotas: {
+        // Storage quotas
+        storage_mb: {
+          limit: 100000,              // 100 GB
+          used: 45230,                // Currently using 45.23 GB
+          enforcement: "hard",        // Block when limit reached
+          resetPeriod: "monthly",
+          resetDay: 1,
+        },
+
+        // Compute quotas (GPU/CPU hours)
+        compute_hours: {
+          limit: 1000,                // 1000 hours per month
+          used: 342,
+          enforcement: "soft",        // Allow burst, bill overage
+          resetPeriod: "monthly",
+          resetDay: 1,
+        },
+
+        // API call quotas
+        api_calls: {
+          limit: 1000000,             // 1M API calls per day
+          used: 234567,
+          enforcement: "hard",
+          resetPeriod: "daily",
+          resetHour: 0,
+        },
+
+        // Concurrent users
+        concurrent_users: {
+          limit: 500,
+          used: 127,
+          enforcement: "hard",
+          resetPeriod: "none",        // Real-time tracking
+        },
+
+        // Scene count
+        scenes: {
+          limit: 1000,
+          used: 342,
+          enforcement: "warn_only",   // Alert but don't block
+          resetPeriod: "none",
+        },
+
+        // Agent executions (LLM inference)
+        agent_executions: {
+          limit: 100000,              // 100K executions per month
+          used: 23456,
+          enforcement: "hard",
+          resetPeriod: "monthly",
+          resetDay: 1,
+        },
+      },
+
+      // Per-user sub-quotas
+      userQuotas: {
+        "user_alice": {
+          storage_mb: { limit: 10000, used: 3420 },
+          compute_hours: { limit: 100, used: 23 },
+        },
+        "user_bob": {
+          storage_mb: { limit: 5000, used: 1230 },
+          compute_hours: { limit: 50, used: 12 },
+        },
+      },
+
+      // Notification thresholds
+      warnThresholds: {
+        storage_mb: 80,               // Warn at 80% usage
+        compute_hours: 85,
+        api_calls: 90,
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // STARTER TIER QUOTAS (Lower Limits)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity StarterTenantQuotas {
+    traits: [quota];
+
+    quota: {
+      tenantId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+
+      quotas: {
+        storage_mb: {
+          limit: 5000,                // 5 GB
+          used: 3456,
+          enforcement: "hard",
+          resetPeriod: "monthly",
+          resetDay: 1,
+        },
+
+        compute_hours: {
+          limit: 50,
+          used: 42,
+          enforcement: "hard",
+          resetPeriod: "monthly",
+          resetDay: 1,
+        },
+
+        api_calls: {
+          limit: 50000,               // 50K per day
+          used: 34567,
+          enforcement: "hard",
+          resetPeriod: "daily",
+          resetHour: 0,
+        },
+
+        concurrent_users: {
+          limit: 10,
+          used: 7,
+          enforcement: "hard",
+          resetPeriod: "none",
+        },
+
+        scenes: {
+          limit: 50,
+          used: 23,
+          enforcement: "hard",
+          resetPeriod: "none",
+        },
+      },
+    };
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Quota Usage
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(EnterpriseTenantQuotas, "quota_used") {
+    const percentage = (event.used / event.limit * 100).toFixed(1);
+    log(`📊 Quota usage: ${event.resource}`);
+    log(`  Used: ${event.used} / ${event.limit} (${percentage}%)`);
+    log(`  Increment: ${event.increment}`);
+  }
+
+  on(EnterpriseTenantQuotas, "quota_warning") {
+    const percentage = (event.used / event.limit * 100).toFixed(1);
+    log(`⚠️  Quota warning: ${event.resource}`);
+    log(`  Used: ${event.used} / ${event.limit} (${percentage}%)`);
+    log(`  Threshold: ${event.threshold}%`);
+  }
+
+  on(EnterpriseTenantQuotas, "quota_exceeded") {
+    log(`🚫 Quota EXCEEDED: ${event.resource}`);
+    log(`  Limit: ${event.limit}`);
+    log(`  Attempted: ${event.attempted}`);
+    log(`  Enforcement: ${event.enforcement}`);
+    if (event.enforcement === "soft") {
+      log(`  ✅ Allowing overage (soft enforcement)`);
+      log(`  💳 Overage will be billed`);
+    } else {
+      log(`  ❌ Request denied (hard enforcement)`);
+    }
+  }
+
+  on(StarterTenantQuotas, "quota_exceeded") {
+    log(`🛑 STARTER TIER: Quota exceeded for ${event.resource}`);
+    log(`  Upgrade to Professional for higher limits`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENT HANDLERS — Quota Reset
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  on(EnterpriseTenantQuotas, "quota_reset") {
+    log(`🔄 Quota reset: ${event.resource}`);
+    log(`  Previous usage: ${event.previousUsed}`);
+    log(`  New usage: ${event.newUsed} (reset to 0)`);
+    log(`  Reset period: ${event.resetPeriod}`);
+  }
+
+  on(EnterpriseTenantQuotas, "quota_rollover") {
+    log(`💰 Unused quota rolled over: ${event.resource}`);
+    log(`  Unused: ${event.unused}`);
+    log(`  Rolled to next period: ${event.rolledAmount}`);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // DEMO CONTROLS
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity DemoControls {
+    traits: [interactive];
+  }
+
+  // Demo 1: Upload large file (storage quota check)
+  on(DemoControls, "click") {
+    if (event.target === "upload_file_button") {
+      emit(EnterpriseTenantQuotas, "check_quota", {
+        resource: "storage_mb",
+        increment: 2500,              // Uploading 2.5 GB file
+        userId: "user_alice",
+      });
+      log("📤 Checking storage quota for 2.5 GB upload...");
+    }
+  }
+
+  // Demo 2: Run compute-intensive task
+  on(DemoControls, "click") {
+    if (event.target === "run_compute_button") {
+      emit(EnterpriseTenantQuotas, "check_quota", {
+        resource: "compute_hours",
+        increment: 5,                 // Task requires 5 GPU hours
+        userId: "user_bob",
+      });
+      log("🖥️  Checking compute quota for 5-hour GPU job...");
+    }
+  }
+
+  // Demo 3: Make API calls (burst scenario)
+  on(DemoControls, "click") {
+    if (event.target === "api_burst_button") {
+      emit(EnterpriseTenantQuotas, "check_quota", {
+        resource: "api_calls",
+        increment: 50000,             // Burst of 50K API calls
+      });
+      log("🌐 Checking API call quota for 50K burst...");
+    }
+  }
+
+  // Demo 4: Add concurrent user (session start)
+  on(DemoControls, "click") {
+    if (event.target === "user_login_button") {
+      emit(EnterpriseTenantQuotas, "check_quota", {
+        resource: "concurrent_users",
+        increment: 1,
+        userId: "user_charlie",
+      });
+      log("👤 Checking concurrent user quota...");
+    }
+  }
+
+  // Demo 5: Create new scene
+  on(DemoControls, "click") {
+    if (event.target === "create_scene_button") {
+      emit(EnterpriseTenantQuotas, "check_quota", {
+        resource: "scenes",
+        increment: 1,
+        userId: "user_alice",
+      });
+      log("🎬 Checking scene count quota...");
+    }
+  }
+
+  // Demo 6: Execute agent (LLM inference)
+  on(DemoControls, "click") {
+    if (event.target === "agent_execute_button") {
+      emit(EnterpriseTenantQuotas, "check_quota", {
+        resource: "agent_executions",
+        increment: 1,
+        userId: "user_bob",
+      });
+      log("🤖 Checking agent execution quota...");
+    }
+  }
+
+  // Demo 7: Get current quota status
+  on(DemoControls, "click") {
+    if (event.target === "quota_status_button") {
+      emit(EnterpriseTenantQuotas, "get_quota_status", {});
+      log("📊 Fetching quota status...");
+    }
+  }
+
+  on(EnterpriseTenantQuotas, "quota_status") {
+    log("📋 QUOTA STATUS REPORT");
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    for (const [resource, quota] of Object.entries(event.quotas)) {
+      const percentage = (quota.used / quota.limit * 100).toFixed(1);
+      const bar = "█".repeat(Math.floor(percentage / 5));
+      log(`${resource}:`);
+      log(`  [${bar.padEnd(20, "░")}] ${percentage}%`);
+      log(`  ${quota.used} / ${quota.limit} (${quota.enforcement})`);
+    }
+    log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  }
+
+  // Demo 8: Starter tier exceeds quota
+  on(DemoControls, "click") {
+    if (event.target === "starter_exceed_button") {
+      emit(StarterTenantQuotas, "check_quota", {
+        resource: "storage_mb",
+        increment: 2000,              // Trying to add 2GB (would exceed 5GB limit)
+      });
+      log("🛑 Starter tier attempting to exceed storage quota...");
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VISUALIZATION
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  entity QuotaDashboard {
+    geometry: plane;
+    position: [0, 2.5, -4];
+    scale: [6, 3, 1];
+    traits: [text_display];
+
+    text_display: {
+      content: "QUOTA ENFORCEMENT\n\n📊 Resource Types:\n  • Storage (MB/GB)\n  • Compute hours (GPU/CPU)\n  • API calls\n  • Concurrent users\n  • Scenes, agents, assets\n\n🛡️  Enforcement Modes:\n  • Hard - Block when exceeded\n  • Soft - Allow burst, bill overage\n  • Warn only - Alert but allow\n\n🔄 Reset Periods:\n  • None (real-time)\n  • Daily, Weekly, Monthly, Yearly\n  • Custom schedule\n\n⚙️  Features:\n  • Per-tenant quotas\n  • Per-user sub-quotas\n  • Usage warnings (80%, 90%)\n  • Automatic resets\n  • Billing integration",
+      fontSize: 0.11,
+      color: "#10b981",
+    };
+  }
+}
