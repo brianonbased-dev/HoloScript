@@ -66,7 +66,7 @@ export abstract class BaseAgent {
   abstract readonly identity: AgentIdentity;
 
   /** Phase 0: Gather data and context */
-  abstract intake(context: Record<string, unknown>): Promise<PhaseResult>;
+  abstract intake(input: unknown): Promise<PhaseResult>;
   /** Phase 1: Analyze and understand */
   abstract reflect(data: unknown): Promise<PhaseResult>;
   /** Phase 2: Take action */
