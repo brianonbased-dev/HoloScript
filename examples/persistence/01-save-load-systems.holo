@@ -1,0 +1,682 @@
+/**
+ * Save/Load Systems Example
+ *
+ * Demonstrates comprehensive save/load mechanics: manual saves, autosave,
+ * quicksave, checkpoints, save slots, and save data management.
+ *
+ * Key Features:
+ * - Save State: Full game state serialization with metadata
+ * - Load State: State restoration with validation and migration
+ * - Checkpoint: Automatic progression saves with rollback
+ * - Autosave: Periodic and event-based automatic saving
+ * - Quicksave: Instant single-slot save/load
+ * - Save Slot: Multi-slot management with thumbnails and metadata
+ *
+ * @version 5.1.0
+ * @category Persistence
+ */
+
+composition SaveLoadSystemsShowcase {
+  // Game world
+  entity GameWorld {
+    mesh: { type: "plane", width: 100.0, height: 100.0 },
+    advanced_pbr: { base_color: [0.3, 0.35, 0.3], metallic: 0.0, roughness: 0.9 },
+    transform: { position: [0.0, 0.0, 0.0], rotation: [-90.0, 0.0, 0.0] },
+  }
+
+  // 1. Save State System
+  entity SaveSystem {
+    save_state: {
+      enabled: true,
+      save_format: "json",               // "json", "binary", "compressed"
+
+      // What to save
+      save_scope: {
+        player_state: true,              // Position, health, inventory, etc.
+        world_state: true,               // Dynamic world objects, NPC states
+        quest_progress: true,
+        settings: true,
+        statistics: true,
+        achievements: false,             // Handled separately (cloud)
+      },
+
+      // Save data structure
+      data_schema: {
+        version: "1.0.0",                // Schema version for migration
+        game_version: "5.1.0",
+
+        player: {
+          position: [0.0, 0.0, 0.0],
+          rotation: [0.0, 0.0, 0.0],
+          health: 100.0,
+          max_health: 100.0,
+          mana: 50.0,
+          max_mana: 50.0,
+          level: 1,
+          experience: 0,
+          inventory: [],
+          equipped_items: {},
+          skills: [],
+          stats: {},
+        },
+
+        world: {
+          time_of_day: 12.0,             // Hours (24h format)
+          weather: "clear",
+          dynamic_objects: [],           // Moved items, destroyed objects
+          npc_states: [],                // NPC positions, relationships
+          unlocked_areas: [],
+        },
+
+        quests: {
+          active: [],
+          completed: [],
+          failed: [],
+          objectives: {},
+        },
+
+        metadata: {
+          save_time: null,               // ISO timestamp
+          play_time: 0.0,                // Total seconds played
+          save_count: 0,
+          location_name: "",
+          screenshot: null,              // Base64 thumbnail
+        },
+      },
+
+      // Compression
+      compression: {
+        enabled: true,
+        algorithm: "gzip",               // "gzip", "lz4", "zstd"
+        compression_level: 6,            // 1-9 (speed vs size)
+        min_size_for_compression: 1024, // Bytes (only compress if larger)
+      },
+
+      // Encryption (for anti-cheat)
+      encryption: {
+        enabled: false,
+        algorithm: "AES-256",
+        key_source: "user_specific",     // Or "global", "hardware_id"
+      },
+
+      // Save validation
+      validation: {
+        checksum: true,                  // Verify data integrity
+        schema_validation: true,         // Validate against schema
+        sanitize_input: true,            // Clean potentially malicious data
+      },
+
+      // Save location
+      storage: {
+        platform: "auto",                // "auto", "local", "cloud", "both"
+        path: "./saves/",                // Local save directory
+        filename_pattern: "save_{slot}_{timestamp}.sav",
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 2. Load State System
+  entity LoadSystem {
+    load_state: {
+      enabled: true,
+
+      // Load validation
+      validation: {
+        verify_checksum: true,
+        verify_schema: true,
+        allow_partial_load: false,       // Load what's valid, skip corrupt data
+        reject_incompatible_versions: true,
+      },
+
+      // Version migration
+      migration: {
+        enabled: true,
+        migrations: [
+          {
+            from_version: "0.9.0",
+            to_version: "1.0.0",
+            migration_script: "migrate_0_9_to_1_0",
+            description: "Add new inventory system fields",
+          },
+        ],
+        auto_migrate: true,
+        backup_before_migrate: true,
+      },
+
+      // Load behavior
+      behavior: {
+        fade_in_duration: 1.0,           // Seconds to fade in after load
+        show_loading_screen: true,
+        loading_screen_min_time: 2.0,    // Minimum display time
+        preload_assets: true,            // Load assets before spawning
+      },
+
+      // Error handling
+      error_handling: {
+        on_corrupt_save: "show_error",   // "show_error", "try_repair", "delete"
+        on_missing_data: "use_defaults", // "use_defaults", "abort", "prompt_user"
+        on_version_mismatch: "attempt_migrate",  // "attempt_migrate", "abort"
+        fallback_to_autosave: true,      // If manual save fails, try autosave
+      },
+
+      // Post-load
+      post_load: {
+        verify_world_state: true,
+        recalculate_dependencies: true,  // Recompute derived values
+        notify_systems: true,            // Notify all systems of state change
+        trigger_events: true,            // Fire load events for game logic
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 3. Checkpoint System
+  entity CheckpointSystem {
+    checkpoint: {
+      enabled: true,
+      checkpoint_type: "progression",    // "progression", "combat", "zone_change"
+
+      // Checkpoint triggers
+      triggers: [
+        {
+          type: "quest_milestone",
+          quest_id: "main_quest_001",
+          checkpoint_name: "Quest Started",
+        },
+        {
+          type: "boss_defeated",
+          checkpoint_name: "Boss Victory",
+          reward_items: ["boss_trophy"],
+        },
+        {
+          type: "zone_entered",
+          zone_id: "dungeon_entrance",
+          checkpoint_name: "Dungeon Entry",
+        },
+        {
+          type: "time_interval",
+          interval: 600.0,                // Every 10 minutes
+          checkpoint_name: "Periodic Checkpoint",
+        },
+      ],
+
+      // Checkpoint data (lighter than full save)
+      checkpoint_data: {
+        player_position: true,
+        player_health: true,
+        quest_state: true,
+        inventory_snapshot: false,       // Full inventory not needed
+        world_state: false,              // Don't save entire world
+      },
+
+      // Respawn behavior
+      respawn: {
+        enabled: true,
+        on_death: "last_checkpoint",     // Or "nearest_checkpoint", "start"
+        restore_health: true,
+        restore_mana: true,
+        keep_inventory: true,
+        penalty: {
+          type: "experience_loss",       // "experience_loss", "currency", "none"
+          amount: 0.1,                   // 10% XP loss
+        },
+      },
+
+      // Checkpoint visualization
+      visual: {
+        show_checkpoint_markers: true,
+        marker_icon: "checkpoint.png",
+        activation_vfx: "checkpoint_activate.vfx",
+        activation_sfx: "checkpoint_sound.wav",
+      },
+
+      // Storage
+      max_checkpoints: 10,               // Rolling buffer
+      auto_cleanup: true,                // Delete old checkpoints
+      save_to_disk: true,                // Persist across sessions
+    },
+
+    transform: {
+      position: [10.0, 0.0, 0.0],
+    },
+  }
+
+  // 4. Autosave System
+  entity AutosaveSystem {
+    autosave: {
+      enabled: true,
+
+      // Timing
+      timing: {
+        interval: 300.0,                 // Seconds (5 minutes)
+        interval_type: "idle_time",      // "idle_time", "play_time", "real_time"
+        min_time_between_saves: 60.0,    // Cooldown (1 minute)
+      },
+
+      // Triggers (save on these events)
+      event_triggers: [
+        "quest_completed",
+        "level_up",
+        "area_transition",
+        "major_item_acquired",
+        "boss_defeated",
+      ],
+
+      // Autosave slots
+      slots: {
+        count: 3,                        // Keep 3 rotating autosaves
+        rotation: "oldest_first",        // Overwrite oldest
+        separate_from_manual: true,      // Don't mix with manual saves
+      },
+
+      // Safety
+      safety: {
+        never_save_during: [
+          "combat",
+          "dialogue",
+          "cutscene",
+          "loading",
+        ],
+        defer_if_busy: true,             // Wait until safe
+        max_defer_time: 60.0,            // Seconds before forcing save
+      },
+
+      // Notifications
+      notifications: {
+        show_saving_icon: true,
+        icon_position: "bottom_right",
+        icon_duration: 2.0,              // Seconds
+        play_sound: false,               // Silent autosave
+      },
+
+      // Performance
+      performance: {
+        async_save: true,                // Don't block gameplay
+        throttle_during_action: true,    // Reduce save frequency if busy
+        save_in_background: true,
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 5. Quicksave System
+  entity QuicksaveSystem {
+    quicksave: {
+      enabled: true,
+
+      // Keybinding
+      hotkey: "F5",                      // Quicksave
+      load_hotkey: "F9",                 // Quickload
+
+      // Behavior
+      behavior: {
+        single_slot: true,               // Only one quicksave
+        overwrite_previous: true,
+        instant: true,                   // No confirmation dialog
+        allow_during_combat: false,
+      },
+
+      // Quicksave data (full save)
+      data_scope: "full",                // "full" or "minimal"
+
+      // Visual feedback
+      feedback: {
+        flash_screen: true,
+        flash_color: [1.0, 1.0, 1.0, 0.3],
+        flash_duration: 0.2,
+        show_notification: true,
+        notification_text: "Quicksaved",
+        notification_duration: 2.0,
+        play_sound: true,
+        sound_file: "quicksave.wav",
+      },
+
+      // Safety
+      safety: {
+        confirm_quickload: true,         // Prevent accidental load
+        warn_if_unsaved_progress: true,
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // 6. Save Slot System
+  entity SaveSlotManager {
+    save_slot: {
+      enabled: true,
+
+      // Slot configuration
+      slots: {
+        total_slots: 10,
+        autosave_slots: 3,               // Reserved for autosaves
+        manual_slots: 7,
+        quicksave_slots: 1,              // Reserved for quicksave
+      },
+
+      // Slot data
+      slot_metadata: [
+        {
+          slot_id: 0,
+          slot_type: "manual",
+          occupied: true,
+          save_name: "Before Boss Fight",
+          save_time: "2026-03-07 14:30:00",
+          play_time: 7200.0,             // 2 hours
+          player_level: 15,
+          location: "Castle Entrance",
+          screenshot: "screenshot_0.jpg",
+          file_size: 2048576,            // Bytes (2 MB)
+          schema_version: "1.0.0",
+        },
+        {
+          slot_id: 1,
+          slot_type: "manual",
+          occupied: false,
+        },
+        // ... more slots
+      ],
+
+      // UI presentation
+      ui: {
+        sort_by: "save_time",            // Or "slot_id", "play_time", "level"
+        show_thumbnails: true,
+        thumbnail_size: [256, 144],      // Pixels (16:9)
+        show_metadata: true,
+        metadata_fields: ["save_time", "play_time", "level", "location"],
+      },
+
+      // Slot operations
+      operations: {
+        allow_rename: true,
+        allow_delete: true,
+        allow_copy: true,
+        allow_export: true,              // Export save file
+        allow_import: true,              // Import save file
+        confirm_overwrite: true,
+      },
+
+      // Cloud sync (per slot)
+      cloud_sync: {
+        enabled: false,
+        sync_on_save: true,
+        sync_on_load: true,
+        conflict_resolution: "newest",   // "newest", "ask_user", "keep_both"
+      },
+
+      // Backup
+      backup: {
+        enabled: true,
+        backup_on_save: true,
+        max_backups_per_slot: 3,
+        backup_location: "./saves/backups/",
+      },
+    },
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Camera
+  entity Camera {
+    camera: {
+      fov: 70.0,
+      near: 0.1,
+      far: 1000.0,
+      position: [0.0, 10.0, 20.0],
+      target: [0.0, 0.0, 0.0],
+    },
+  }
+
+  // Event handlers
+
+  on SaveSystem.save_state.save_started -> (event) {
+    console.log(`💾 Save started: slot ${event.slot_id}, type=${event.save_type}`);
+  }
+
+  on SaveSystem.save_state.save_completed -> (event) {
+    console.log(`✓ Save completed: "${event.save_name}"`);
+    console.log(`  File size: ${(event.file_size / 1024).toFixed(1)} KB`);
+    console.log(`  Save time: ${event.save_duration.toFixed(2)}s`);
+    console.log(`  Compression ratio: ${((1 - event.compressed_size / event.uncompressed_size) * 100).toFixed(1)}%`);
+  }
+
+  on SaveSystem.save_state.save_failed -> (event) {
+    console.error(`❌ Save failed: ${event.error_message}`);
+    console.error(`  Reason: ${event.failure_reason}`);
+  }
+
+  on LoadSystem.load_state.load_started -> (event) {
+    console.log(`📂 Load started: "${event.save_name}" (${event.save_time})`);
+  }
+
+  on LoadSystem.load_state.load_completed -> (event) {
+    console.log(`✓ Load completed: ${event.load_duration.toFixed(2)}s`);
+    console.log(`  Player: Lv${event.player_level} at ${event.location}`);
+    console.log(`  Play time: ${(event.play_time / 3600).toFixed(1)} hours`);
+  }
+
+  on LoadSystem.load_state.migration_required -> (event) {
+    console.warn(`⚠️ Save migration required: v${event.from_version} → v${event.to_version}`);
+    console.log(`  ${event.migration_description}`);
+  }
+
+  on LoadSystem.load_state.load_failed -> (event) {
+    console.error(`❌ Load failed: ${event.error_message}`);
+
+    if (event.corruption_detected) {
+      console.error(`  Save file is corrupted or invalid`);
+    }
+  }
+
+  on CheckpointSystem.checkpoint.checkpoint_reached -> (event) {
+    console.log(`🚩 Checkpoint: "${event.checkpoint_name}"`);
+    console.log(`  Location: ${event.location}`);
+
+    if (event.reward_items && event.reward_items.length > 0) {
+      console.log(`  Rewards: ${event.reward_items.join(', ')}`);
+    }
+  }
+
+  on CheckpointSystem.checkpoint.respawn_triggered -> (event) {
+    console.log(`🔄 Respawning at checkpoint: "${event.checkpoint_name}"`);
+    console.log(`  Penalty: ${event.penalty_type} (-${(event.penalty_amount * 100).toFixed(0)}%)`);
+  }
+
+  on AutosaveSystem.autosave.autosave_triggered -> (event) {
+    console.log(`🔃 Autosave triggered: ${event.trigger_reason}`);
+  }
+
+  on AutosaveSystem.autosave.autosave_completed -> (event) {
+    console.log(`✓ Autosave completed: slot ${event.slot_id} (${(event.file_size / 1024).toFixed(1)} KB)`);
+  }
+
+  on AutosaveSystem.autosave.autosave_deferred -> (event) {
+    console.log(`⏸️ Autosave deferred: ${event.reason} (retry in ${event.retry_time.toFixed(0)}s)`);
+  }
+
+  on QuicksaveSystem.quicksave.quicksave_performed -> (event) {
+    console.log(`⚡ Quicksave performed (${event.save_duration.toFixed(2)}s)`);
+  }
+
+  on QuicksaveSystem.quicksave.quickload_performed -> (event) {
+    console.log(`⚡ Quickload performed: ${event.save_age.toFixed(0)}s ago`);
+  }
+
+  on SaveSlotManager.save_slot.slot_saved -> (event) {
+    console.log(`Slot ${event.slot_id} saved: "${event.save_name}"`);
+  }
+
+  on SaveSlotManager.save_slot.slot_deleted -> (event) {
+    console.log(`Slot ${event.slot_id} deleted: "${event.save_name}"`);
+  }
+
+  on SaveSlotManager.save_slot.slot_renamed -> (event) {
+    console.log(`Slot ${event.slot_id} renamed: "${event.old_name}" → "${event.new_name}"`);
+  }
+}
+
+// Save/Load UI
+ui SaveLoadControls {
+  panel "Save/Load Systems" {
+    section "Manual Save" {
+      button "Save Game" -> () {
+        SaveSystem.save_state.save({ slot: 0, save_name: "Manual Save" });
+      }
+
+      button "Load Game" -> () {
+        LoadSystem.load_state.load({ slot: 0 });
+      }
+
+      checkbox "Enable Compression" {
+        value: true,
+        onChange: (v) => { SaveSystem.save_state.compression.enabled = v; }
+      }
+
+      slider "Compression Level" {
+        min: 1, max: 9, value: 6, step: 1,
+        onChange: (v) => { SaveSystem.save_state.compression.compression_level = v; }
+      }
+
+      text "Save Count" {
+        value: () => `${SaveSystem.save_state.data_schema.metadata.save_count} saves`
+      }
+    }
+
+    section "Checkpoint" {
+      button "Trigger Checkpoint" -> () {
+        CheckpointSystem.checkpoint.create_checkpoint("Manual Checkpoint");
+      }
+
+      button "Respawn at Checkpoint" -> () {
+        CheckpointSystem.checkpoint.respawn();
+      }
+
+      checkbox "Enable Checkpoints" {
+        value: true,
+        onChange: (v) => { CheckpointSystem.checkpoint.enabled = v; }
+      }
+
+      text "Last Checkpoint" {
+        value: () => `${CheckpointSystem.checkpoint.last_checkpoint_name || "None"}`
+      }
+    }
+
+    section "Autosave" {
+      checkbox "Enable Autosave" {
+        value: true,
+        onChange: (v) => { AutosaveSystem.autosave.enabled = v; }
+      }
+
+      slider "Interval (minutes)" {
+        min: 1, max: 30, value: 5, step: 1,
+        onChange: (v) => { AutosaveSystem.autosave.timing.interval = v * 60.0; }
+      }
+
+      button "Force Autosave" -> () {
+        AutosaveSystem.autosave.trigger_immediate();
+      }
+
+      text "Time Until Next" {
+        value: () => {
+          const remaining = AutosaveSystem.autosave.time_until_next;
+          return remaining ? `${(remaining / 60).toFixed(1)} min` : "N/A";
+        }
+      }
+
+      text "Last Autosave" {
+        value: () => {
+          const time = AutosaveSystem.autosave.last_autosave_time;
+          return time ? `${(time / 60).toFixed(1)} min ago` : "Never";
+        }
+      }
+    }
+
+    section "Quicksave" {
+      button "Quicksave (F5)" -> () {
+        QuicksaveSystem.quicksave.save();
+      }
+
+      button "Quickload (F9)" -> () {
+        QuicksaveSystem.quicksave.load();
+      }
+
+      checkbox "Allow During Combat" {
+        value: false,
+        onChange: (v) => { QuicksaveSystem.quicksave.behavior.allow_during_combat = v; }
+      }
+
+      text "Quicksave Status" {
+        value: () => {
+          if (QuicksaveSystem.quicksave.has_quicksave) {
+            const age = QuicksaveSystem.quicksave.quicksave_age;
+            return `${(age / 60).toFixed(1)} min ago`;
+          }
+          return "No quicksave";
+        }
+      }
+    }
+
+    section "Save Slots" {
+      text "Occupied Slots" {
+        value: () => {
+          const occupied = SaveSlotManager.save_slot.slot_metadata.filter(s => s.occupied).length;
+          const total = SaveSlotManager.save_slot.slots.total_slots;
+          return `${occupied} / ${total}`;
+        }
+      }
+
+      button "Delete Slot 0" -> () {
+        SaveSlotManager.save_slot.delete_slot(0);
+      }
+
+      button "Rename Slot 0" -> () {
+        SaveSlotManager.save_slot.rename_slot(0, "Renamed Save");
+      }
+
+      button "Export Slot 0" -> () {
+        SaveSlotManager.save_slot.export_slot(0, "./exported_save.sav");
+      }
+
+      dropdown "Sort By" {
+        options: ["save_time", "play_time", "level", "slot_id"],
+        value: "save_time",
+        onChange: (v) => { SaveSlotManager.save_slot.ui.sort_by = v; }
+      }
+    }
+
+    section "Statistics" {
+      text "Total Play Time" {
+        value: () => {
+          const time = SaveSystem.save_state.data_schema.metadata.play_time;
+          return `${(time / 3600).toFixed(1)} hours`;
+        }
+      }
+
+      text "Total Saves" {
+        value: () => `${SaveSystem.save_state.data_schema.metadata.save_count}`
+      }
+
+      text "Total Autosaves" {
+        value: () => `${AutosaveSystem.autosave.total_autosaves}`
+      }
+
+      text "Total Checkpoints" {
+        value: () => `${CheckpointSystem.checkpoint.total_checkpoints}`
+      }
+    }
+  }
+}
