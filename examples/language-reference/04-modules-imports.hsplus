@@ -1,0 +1,412 @@
+// Language Reference: Modules & Imports (.hsplus format)
+// Comprehensive reference for code organization and reusability
+// For AI agent grounding and developer learning
+
+// === IMPORTING MODULES ===
+
+// Import entire module
+import GameUtils from "./utils/game.hsplus";
+
+// Import specific exports
+import { calculateScore, formatTime } from "./utils/helpers.hsplus";
+
+// Import with alias
+import { PlayerController as PC } from "./controllers/player.hsplus";
+
+// Import types (for TypeScript-like typing)
+import type { GameConfig, PlayerState } from "./types.hsplus";
+
+// Import composition
+import MainMenu from "./scenes/menu.hsplus";
+
+// === EXPORTING FROM MODULES ===
+
+// Export function
+export function calculateDamage(baseDamage, armor) {
+  const reduction = armor / (armor + 100);
+  return baseDamage * (1 - reduction);
+}
+
+// Export constant
+export const MAX_PLAYERS = 8;
+export const GAME_VERSION = "1.0.0";
+
+// Export object
+export const GameSettings = {
+  difficulty: "normal",
+  enableSound: true,
+  enableParticles: true
+};
+
+// Export template
+export template "Weapon" {
+  state {
+    damage: 10
+    durability: 100
+    equipped: false
+  }
+
+  actions {
+    use() {
+      console.log("Using weapon");
+      this.state.durability -= 1;
+
+      if (this.state.durability <= 0) {
+        this.break();
+      }
+    }
+
+    break() {
+      console.log("Weapon broke!");
+      this.destroy();
+    }
+  }
+
+  geometry: "box"
+}
+
+// Export composition
+export composition "WeaponShop" {
+  object "Counter" {
+    geometry: "box"
+    position: { x: 0, y: 1, z: -3 }
+  }
+}
+
+// Default export
+export default composition "MainGame" {
+  // Composition contents...
+}
+
+// === MODULE ORGANIZATION PATTERNS ===
+
+// === Pattern 1: Utility Module ===
+// File: utils/math.hsplus
+
+export function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+export function lerp(a, b, t) {
+  return a + (b - a) * clamp(t, 0, 1);
+}
+
+export function randomRange(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+export const MathConstants = {
+  PI: Math.PI,
+  TAU: Math.PI * 2,
+  DEG_TO_RAD: Math.PI / 180,
+  RAD_TO_DEG: 180 / Math.PI
+};
+
+// === Pattern 2: Component Library ===
+// File: components/ui.hsplus
+
+export template "Button" {
+  type: "ui"
+  uiType: "button"
+
+  state {
+    isHovered: false
+    isPressed: false
+  }
+
+  on_pointer_enter() {
+    this.state.isHovered = true;
+  }
+
+  on_pointer_exit() {
+    this.state.isHovered = false;
+  }
+
+  on_pointer_down() {
+    this.state.isPressed = true;
+  }
+
+  on_pointer_up() {
+    this.state.isPressed = false;
+  }
+}
+
+export template "ProgressBar" {
+  type: "ui"
+  uiType: "progressBar"
+
+  state {
+    value: 0
+    max: 100
+  }
+
+  computed {
+    percent: () => {
+      return (this.state.value / this.state.max) * 100;
+    }
+  }
+}
+
+// === Pattern 3: Game Systems Module ===
+// File: systems/inventory.hsplus
+
+export class InventorySystem {
+  constructor() {
+    this.items = [];
+    this.maxSlots = 20;
+  }
+
+  addItem(item) {
+    if (this.items.length >= this.maxSlots) {
+      console.log("Inventory full!");
+      return false;
+    }
+
+    this.items.push(item);
+    return true;
+  }
+
+  removeItem(itemId) {
+    const index = this.items.findIndex(item => item.id === itemId);
+    if (index !== -1) {
+      return this.items.splice(index, 1)[0];
+    }
+    return null;
+  }
+
+  getItem(itemId) {
+    return this.items.find(item => item.id === itemId);
+  }
+
+  clear() {
+    this.items = [];
+  }
+}
+
+export const inventoryManager = new InventorySystem();
+
+// === Pattern 4: Configuration Module ===
+// File: config/game.hsplus
+
+export const GameConfig = {
+  player: {
+    startHealth: 100,
+    startMana: 50,
+    moveSpeed: 5.0,
+    jumpForce: 10.0
+  },
+
+  world: {
+    gravity: -9.81,
+    timeScale: 1.0,
+    weatherEnabled: true
+  },
+
+  ui: {
+    showHealthBar: true,
+    showMinimap: true,
+    hudScale: 1.0
+  },
+
+  debug: {
+    showFPS: false,
+    showColliders: false,
+    godMode: false
+  }
+};
+
+// === USING MODULES IN COMPOSITION ===
+
+composition "GameExample" {
+  // Modules are imported at top of file
+  // import { Button, ProgressBar } from "./components/ui.hsplus";
+  // import { GameConfig } from "./config/game.hsplus";
+  // import { calculateDamage } from "./utils/combat.hsplus";
+
+  state {
+    playerHealth: 100  // Could use GameConfig.player.startHealth
+  }
+
+  actions {
+    takeDamage(damage, armor) {
+      // Use imported function
+      const actualDamage = calculateDamage(damage, armor);
+      state.playerHealth -= actualDamage;
+    }
+  }
+
+  // Use imported template
+  object "HealthBar" using "ProgressBar" {
+    position: { x: 10, y: 10 }
+
+    bind: {
+      value: "state.playerHealth",
+      max: 100
+    }
+  }
+
+  object "StartButton" using "Button" {
+    text: "Start Game"
+    position: { x: 10, y: 60 }
+
+    onClick: () => {
+      console.log("Game started!");
+    }
+  }
+}
+
+// === DYNAMIC IMPORTS ===
+
+composition "DynamicLoadExample" {
+  state {
+    currentLevel: null
+  }
+
+  actions {
+    async loadLevel(levelName) {
+      // Dynamic import
+      const level = await import(`./levels/${levelName}.hsplus`);
+
+      // Use imported level
+      state.currentLevel = level.default;
+
+      // Instantiate level
+      this.addComposition(level.default);
+    }
+
+    async loadPlugin(pluginName) {
+      try {
+        const plugin = await import(`./plugins/${pluginName}.hsplus`);
+
+        // Initialize plugin
+        if (plugin.initialize) {
+          plugin.initialize(this);
+        }
+
+        console.log("Plugin loaded:", pluginName);
+      } catch (error) {
+        console.error("Failed to load plugin:", error);
+      }
+    }
+  }
+
+  on_create() {
+    // Load initial level
+    this.loadLevel("level1");
+  }
+}
+
+// === RE-EXPORTING ===
+// File: index.hsplus (barrel export)
+
+// Re-export everything from multiple modules
+export * from "./components/ui.hsplus";
+export * from "./systems/inventory.hsplus";
+export * from "./utils/math.hsplus";
+
+// Re-export specific items
+export { GameConfig } from "./config/game.hsplus";
+export { PlayerController } from "./controllers/player.hsplus";
+
+// Re-export with rename
+export { MainGame as Game } from "./game.hsplus";
+
+// === CIRCULAR DEPENDENCY HANDLING ===
+// File: player.hsplus
+
+import type { Enemy } from "./enemy.hsplus";  // Use type import to avoid circular dependency
+
+export class Player {
+  constructor() {
+    this.health = 100;
+  }
+
+  attackEnemy(enemy) {
+    enemy.takeDamage(10);
+  }
+}
+
+// File: enemy.hsplus
+import type { Player } from "./player.hsplus";
+
+export class Enemy {
+  constructor() {
+    this.health = 50;
+  }
+
+  takeDamage(amount) {
+    this.health -= amount;
+  }
+
+  attackPlayer(player) {
+    player.takeDamage(5);
+  }
+}
+
+// === MODULE NAMESPACING ===
+
+composition "NamespaceExample" {
+  // Import entire module as namespace
+  // import * as MathUtils from "./utils/math.hsplus";
+
+  actions {
+    calculatePosition() {
+      // Use namespaced functions
+      const angle = MathUtils.randomRange(0, MathUtils.MathConstants.TAU);
+      const distance = MathUtils.lerp(1, 5, Math.random());
+
+      return {
+        x: Math.cos(angle) * distance,
+        z: Math.sin(angle) * distance
+      };
+    }
+  }
+}
+
+// === CONDITIONAL IMPORTS ===
+
+composition "ConditionalImportExample" {
+  state {
+    useAdvancedGraphics: true
+  }
+
+  actions {
+    async setupGraphics() {
+      if (state.useAdvancedGraphics) {
+        // Load advanced graphics module
+        const graphics = await import("./graphics/advanced.hsplus");
+        graphics.initialize();
+      } else {
+        // Load basic graphics module
+        const graphics = await import("./graphics/basic.hsplus");
+        graphics.initialize();
+      }
+    }
+  }
+
+  on_create() {
+    this.setupGraphics();
+  }
+}
+
+// === KEY MODULE CONCEPTS ===
+// 1. IMPORT: Bring code from other files
+// 2. EXPORT: Make code available to other files
+// 3. DEFAULT EXPORT: One main export per module
+// 4. NAMED EXPORTS: Multiple exports from one module
+// 5. DYNAMIC IMPORT: Load modules at runtime (async)
+// 6. RE-EXPORT: Pass through exports from another module
+// 7. TYPE IMPORT: Import only type information
+// 8. NAMESPACE IMPORT: Import all as single object
+// 9. ALIAS: Rename imports to avoid conflicts
+
+// === BEST PRACTICES ===
+// - One composition per file (like React components)
+// - Group related utilities in modules
+// - Use barrel exports (index.hsplus) for libraries
+// - Prefer named exports for clarity
+// - Use default export only for main composition
+// - Avoid circular dependencies
+// - Keep modules focused and cohesive
+// - Use dynamic imports for code splitting
+// - Type imports for TypeScript-like safety

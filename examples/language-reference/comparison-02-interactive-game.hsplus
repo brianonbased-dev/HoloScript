@@ -1,0 +1,297 @@
+// Cross-Format Comparison: Interactive Game (.hsplus format)
+// Same functionality in three formats: .hs, .hsplus, .holo
+// This is the EXTENDED (.hsplus) version
+
+composition "TargetPracticeGame" {
+
+  // === STATE MANAGEMENT ===
+  state {
+    score: 0
+    timeRemaining: 60.0
+    isGameActive: false
+    targetHits: 0
+    targetMisses: 0
+  }
+
+  // === COMPUTED VALUES ===
+  computed {
+    accuracy: () => {
+      const totalShots = state.targetHits + state.targetMisses;
+      if (totalShots === 0) return 0;
+      return ((state.targetHits / totalShots) * 100).toFixed(1);
+    }
+
+    timeRemainingFormatted: () => {
+      const minutes = Math.floor(state.timeRemaining / 60);
+      const seconds = Math.floor(state.timeRemaining % 60);
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    gameStatus: () => {
+      if (!state.isGameActive) {
+        return "Press Start to Play";
+      }
+      if (state.timeRemaining <= 0) {
+        return `Game Over! Final Score: ${state.score}`;
+      }
+      return "Playing...";
+    }
+  }
+
+  // === ACTIONS ===
+  actions {
+    startGame() {
+      state.isGameActive = true;
+      state.score = 0;
+      state.timeRemaining = 60.0;
+      state.targetHits = 0;
+      state.targetMisses = 0;
+
+      console.log("Game started!");
+    }
+
+    endGame() {
+      state.isGameActive = false;
+
+      console.log("Game ended!");
+      console.log("Final score:", state.score);
+      console.log("Accuracy:", computed.accuracy + "%");
+    }
+
+    hitTarget(targetName, points) {
+      if (!state.isGameActive) return;
+
+      state.score += points;
+      state.targetHits += 1;
+
+      console.log("Hit", targetName, "! +", points, "points");
+    }
+
+    missedShot() {
+      if (!state.isGameActive) return;
+
+      state.targetMisses += 1;
+      console.log("Missed shot!");
+    }
+
+    updateTimer(deltaTime) {
+      if (!state.isGameActive) return;
+
+      state.timeRemaining -= deltaTime;
+
+      if (state.timeRemaining <= 0) {
+        state.timeRemaining = 0;
+        this.endGame();
+      }
+    }
+  }
+
+  // === WATCHERS ===
+  watch {
+    score: (newScore, oldScore) => {
+      console.log("Score changed from", oldScore, "to", newScore);
+    }
+
+    timeRemaining: (time) => {
+      if (time <= 10 && time > 0 && state.isGameActive) {
+        console.log("WARNING: Only", Math.floor(time), "seconds remaining!");
+      }
+    }
+  }
+
+  // === ENVIRONMENT ===
+  environment {
+    backgroundColor: "#1a1a2e"
+    ambient: 0.5
+    shadows: true
+  }
+
+  // === GAME UPDATE LOOP ===
+  on_update(deltaTime) {
+    actions.updateTimer(deltaTime);
+  }
+
+  // === REUSABLE TARGET TEMPLATE ===
+  template "ClickableTarget" {
+    @interactive
+
+    geometry: "sphere"
+    radius: 0.4
+
+    state {
+      isActive: true
+      hitCount: 0
+      lastHitTime: 0
+    }
+
+    on_click(event) {
+      if (!this.state.isActive) return;
+      if (!state.isGameActive) return;
+
+      // Increment local hit count
+      this.state.hitCount += 1;
+      this.state.lastHitTime = Date.now();
+
+      // Award points (base 10, bonus for consecutive hits)
+      const points = 10 + (this.state.hitCount - 1) * 2;
+      actions.hitTarget(this.name, points);
+
+      // Visual feedback
+      this.playAnimation("pulse");
+      this.playSound("hit");
+
+      // Temporary disable
+      this.state.isActive = false;
+      setTimeout(() => {
+        this.state.isActive = true;
+      }, 500);
+    }
+
+    on_pointer_enter(event) {
+      if (this.state.isActive && state.isGameActive) {
+        // Highlight effect
+        this.emission = this.color;
+      }
+    }
+
+    on_pointer_exit(event) {
+      // Remove highlight
+      this.emission = "#000000";
+    }
+  }
+
+  // === SCENE OBJECTS ===
+
+  // Floor
+  object "Floor" {
+    geometry: "plane"
+    color: "#2a2a3a"
+    width: 20
+    height: 20
+    position: { x: 0, y: 0, z: 0 }
+
+    on_click(event) {
+      // Clicking floor counts as miss
+      actions.missedShot();
+    }
+  }
+
+  // Targets using template
+  object "RedTarget" using "ClickableTarget" {
+    color: "#ff4444"
+    position: { x: -2, y: 1.5, z: -5 }
+  }
+
+  object "GreenTarget" using "ClickableTarget" {
+    color: "#44ff44"
+    position: { x: 0, y: 1.5, z: -5 }
+  }
+
+  object "BlueTarget" using "ClickableTarget" {
+    color: "#4444ff"
+    position: { x: 2, y: 1.5, z: -5 }
+  }
+
+  // Lighting
+  object "MainLight" {
+    type: "light"
+    lightType: "point"
+    color: "#ffffff"
+    intensity: 1.0
+    position: { x: 0, y: 4, z: 0 }
+  }
+
+  // === REACTIVE UI ===
+
+  // Score Display
+  object "ScoreDisplay" {
+    type: "ui"
+    uiType: "text"
+    position: { x: 10, y: 10 }
+    fontSize: 24
+    color: "#ffffff"
+
+    // Reactive binding
+    bind: {
+      text: "`Score: ${state.score}`"
+    }
+  }
+
+  // Timer Display
+  object "TimerDisplay" {
+    type: "ui"
+    uiType: "text"
+    position: { x: 10, y: 40 }
+    fontSize: 24
+
+    bind: {
+      text: "`Time: ${computed.timeRemainingFormatted}`",
+      color: "state.timeRemaining <= 10 ? '#ff4444' : '#ffffff'"
+    }
+  }
+
+  // Accuracy Display
+  object "AccuracyDisplay" {
+    type: "ui"
+    uiType: "text"
+    position: { x: 10, y: 70 }
+    fontSize: 18
+    color: "#aaaaaa"
+
+    bind: {
+      text: "`Accuracy: ${computed.accuracy}%`"
+    }
+  }
+
+  // Status Display
+  object "StatusDisplay" {
+    type: "ui"
+    uiType: "text"
+    position: { x: 10, y: 100 }
+    fontSize: 20
+    color: "#44ff44"
+
+    bind: {
+      text: "computed.gameStatus"
+    }
+  }
+
+  // Start Button
+  object "StartButton" {
+    type: "ui"
+    uiType: "button"
+    text: "Start Game"
+    position: { x: 10, y: 140 }
+    width: 120
+    height: 40
+
+    onClick: () => {
+      actions.startGame();
+    }
+
+    // Hide when game is active
+    bind: {
+      visible: "!state.isGameActive || state.timeRemaining <= 0"
+    }
+  }
+}
+
+// === ADVANTAGES OF .hsplus FORMAT ===
+// + Full state management (score, timer, game state)
+// + Action functions (startGame, hitTarget, etc.)
+// + Computed values (accuracy, formatted time)
+// + Watchers for reactive side effects
+// + Template reusability (ClickableTarget used 3 times)
+// + Event handlers with full code (not just string references)
+// + Reactive UI bindings (text updates automatically)
+// + Local object state (each target tracks its own hits)
+// + Decorators for capabilities (@interactive)
+// + Complete game logic implementation
+
+// === WHEN TO USE .hsplus ===
+// - Interactive applications and games
+// - State-driven UI
+// - Complex event handling
+// - Reusable components via templates
+// - Reactive data flow
+// - 2D/3D applications with logic

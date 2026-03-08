@@ -1,0 +1,80 @@
+// Cross-Format Comparison: Simple Scene (.hsplus format)
+// Same functionality in three formats: .hs, .hsplus, .holo
+// This is the EXTENDED (.hsplus) version
+
+composition "InteractiveVRRoom" {
+
+  // === ENVIRONMENT ===
+  environment {
+    backgroundColor: "#1a1a2e"
+    ambient: 0.6
+    shadows: true
+  }
+
+  // === TEMPLATES ===
+  // Reusable template for grabbable balls
+  template "GrabbableBall" {
+    @grabbable {
+      hand: "both"
+      haptic: true
+    }
+    @throwable {
+      velocity: 5.0
+    }
+    @physics {
+      mass: 1.0
+      friction: 0.5
+      restitution: 0.7
+    }
+    @collidable
+
+    geometry: "sphere"
+    radius: 0.3
+  }
+
+  // === OBJECTS ===
+  // Floor
+  object "Floor" {
+    geometry: "plane"
+    color: "#2a2a3a"
+    width: 20
+    height: 20
+    position: { x: 0, y: 0, z: 0 }
+  }
+
+  // Red ball using template
+  object "RedBall" using "GrabbableBall" {
+    color: "#ff4444"
+    position: { x: -1, y: 1, z: -2 }
+  }
+
+  // Green ball using template
+  object "GreenBall" using "GrabbableBall" {
+    color: "#44ff44"
+    position: { x: 0, y: 1, z: -2 }
+  }
+
+  // Blue ball using template
+  object "BlueBall" using "GrabbableBall" {
+    color: "#4444ff"
+    position: { x: 1, y: 1, z: -2 }
+  }
+
+  // Point light
+  object "Light" {
+    type: "light"
+    lightType: "point"
+    color: "#ffffff"
+    intensity: 1.0
+    position: { x: 0, y: 3, z: 0 }
+  }
+}
+
+// === ADVANTAGES OF .hsplus FORMAT ===
+// + VR interactions with @grabbable, @throwable decorators
+// + Template reusability (GrabbableBall used 3 times)
+// + Decorator parameters for fine control
+// + Proper physics with @physics decorator
+// + Collision detection with @collidable
+// + Less code duplication
+// + Good for: VR/AR apps, games, interactive experiences

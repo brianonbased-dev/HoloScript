@@ -1,0 +1,345 @@
+// HoloScript Extended Syntax (.hsplus) - Templates & Decorators
+// Complete reference for .hsplus template and decorator syntax
+// For AI agents: Use this pattern for reusable, interactive scenes
+
+composition "TemplatesDecoratorsReference" {
+
+  // === BASIC TEMPLATE ===
+  // Templates are reusable object blueprints
+  template "BasicCube" {
+    geometry: "box"
+    color: "blue"
+  }
+
+  // Using a template
+  object "Cube1" using "BasicCube" {
+    position: { x: 0, y: 1, z: 0 }
+  }
+
+  object "Cube2" using "BasicCube" {
+    position: { x: 2, y: 1, z: 0 }
+    color: "red"  // Override template property
+  }
+
+  // === TEMPLATE WITH DECORATORS ===
+  // Decorators add functionality with @ syntax
+  template "InteractiveSphere" {
+    @grabbable           // Can be grabbed in VR
+    @throwable           // Can be thrown
+    @collidable          // Collision detection enabled
+
+    geometry: "sphere"
+    color: "green"
+    radius: 0.5
+  }
+
+  object "Ball1" using "InteractiveSphere" {
+    position: { x: -2, y: 2, z: 0 }
+  }
+
+  // === ALL STANDARD DECORATORS ===
+
+  // Physics decorators
+  template "PhysicsObject" {
+    @physics             // Enable physics simulation
+    @collidable          // Collision detection
+    @rigidbody           // Rigid body dynamics
+    geometry: "box"
+  }
+
+  // Interaction decorators
+  template "VRInteractive" {
+    @grabbable           // Can be grabbed with VR controllers
+    @throwable           // Can be thrown when grabbed
+    @pointable           // Can be pointed at with laser pointer
+    @hoverable           // Responds to hover events
+    @clickable           // Can be clicked/tapped
+    @draggable           // Can be dragged in 2D/3D
+    geometry: "sphere"
+  }
+
+  // Visual decorators
+  template "VisualEffects" {
+    @glowing             // Emits glow/bloom effect
+    @animated            // Enables animation system
+    @particle            // Particle emitter
+    @outlined            // Edge outline rendering
+    geometry: "box"
+  }
+
+  // Spatial decorators
+  template "SpatialFeatures" {
+    @anchored            // Fixed in AR/VR space
+    @billboard           // Always faces camera
+    @occludable          // Can be occluded by other objects
+    @transparent         // Transparent rendering
+    geometry: "plane"
+  }
+
+  // === DECORATORS WITH PARAMETERS ===
+  template "ParameterizedDecorators" {
+    @grabbable {
+      hand: "both"       // both | left | right
+      haptic: true
+      snapDistance: 0.1
+    }
+
+    @physics {
+      mass: 10
+      friction: 0.8
+      restitution: 0.5
+      gravity: true
+    }
+
+    @glowing {
+      intensity: 2.0
+      color: "#00ffff"
+      bloom: true
+    }
+
+    geometry: "sphere"
+  }
+
+  // === NESTED TEMPLATES ===
+  // Templates can inherit from other templates
+  template "BaseInteractive" {
+    @grabbable
+    @throwable
+    color: "white"
+  }
+
+  template "ColoredInteractive" using "BaseInteractive" {
+    @glowing
+    color: "cyan"
+  }
+
+  object "EnhancedObject" using "ColoredInteractive" {
+    position: { x: 0, y: 3, z: 0 }
+  }
+
+  // === TEMPLATE WITH STATE ===
+  template "StatefulButton" {
+    @clickable
+
+    geometry: "box"
+    width: 0.5
+    height: 0.2
+    depth: 0.1
+
+    state {
+      pressed: false
+      clickCount: 0
+    }
+  }
+
+  // === MULTIPLE DECORATORS ===
+  template "ComplexInteractive" {
+    @grabbable {
+      hand: "both"
+      haptic: true
+    }
+    @throwable {
+      velocity: 5.0
+      angularVelocity: 2.0
+    }
+    @physics {
+      mass: 5
+      friction: 0.6
+    }
+    @collidable {
+      layer: 1
+      mask: [1, 2, 3]
+    }
+    @glowing {
+      intensity: 1.5
+      color: "#ff00ff"
+    }
+
+    geometry: "sphere"
+    radius: 0.3
+    color: "magenta"
+  }
+
+  object "SuperBall" using "ComplexInteractive" {
+    position: { x: 0, y: 5, z: 0 }
+  }
+
+  // === CONDITIONAL DECORATORS ===
+  template "ConditionalFeatures" {
+    @grabbable
+    @physics
+
+    // Decorators can be conditional
+    @glowing when: state.active
+    @animated when: state.moving
+
+    geometry: "box"
+
+    state {
+      active: false
+      moving: false
+    }
+  }
+
+  // === DECORATOR COMBINATIONS ===
+
+  // VR game object
+  template "VRGameObject" {
+    @grabbable
+    @throwable
+    @physics
+    @collidable
+    @glowing
+    @outlined
+    geometry: "sphere"
+  }
+
+  // AR marker
+  template "ARMarker" {
+    @anchored
+    @billboard
+    @clickable
+    geometry: "plane"
+  }
+
+  // Particle system
+  template "ParticleEmitter" {
+    @particle {
+      count: 1000
+      rate: 100
+      lifetime: 2.0
+      color: "#ff6b00"
+      size: 0.1
+      velocity: [0, 1, 0]
+      spread: 45
+    }
+    geometry: "point"
+  }
+
+  // UI element
+  template "UIButton" {
+    @clickable
+    @hoverable
+    @outlined
+    @animated
+    geometry: "box"
+  }
+
+  // === ENVIRONMENT ===
+  environment {
+    backgroundColor: "#1a1a2e"
+    ambient: 0.5
+    shadows: true
+    fog: false
+  }
+
+  // === TEMPLATE VARIATIONS ===
+
+  // Small interactive
+  template "SmallInteractive" {
+    @grabbable
+    @throwable
+    geometry: "sphere"
+    radius: 0.2
+  }
+
+  // Medium interactive
+  template "MediumInteractive" {
+    @grabbable
+    @throwable
+    geometry: "sphere"
+    radius: 0.5
+  }
+
+  // Large interactive
+  template "LargeInteractive" {
+    @grabbable
+    @throwable
+    geometry: "sphere"
+    radius: 1.0
+  }
+
+  // Create instances of each size
+  object "SmallBall" using "SmallInteractive" {
+    position: { x: -2, y: 1, z: -2 }
+    color: "red"
+  }
+
+  object "MediumBall" using "MediumInteractive" {
+    position: { x: 0, y: 1, z: -2 }
+    color: "green"
+  }
+
+  object "LargeBall" using "LargeInteractive" {
+    position: { x: 2, y: 1, z: -2 }
+    color: "blue"
+  }
+
+  // === COMPLETE TEMPLATE EXAMPLE ===
+  template "FullFeaturedTemplate" {
+    // All decorators
+    @grabbable {
+      hand: "both"
+      haptic: true
+      snapDistance: 0.1
+    }
+    @throwable {
+      velocity: 10.0
+    }
+    @physics {
+      mass: 15
+      friction: 0.7
+      restitution: 0.6
+    }
+    @collidable {
+      layer: 1
+    }
+    @glowing {
+      intensity: 2.0
+      color: "#00ffaa"
+    }
+    @outlined {
+      color: "#ffffff"
+      width: 2
+    }
+    @animated
+
+    // Geometry
+    geometry: "box"
+    width: 1.0
+    height: 1.0
+    depth: 1.0
+
+    // Appearance
+    color: "#00ffaa"
+    material: "metal"
+    opacity: 1.0
+
+    // State (covered in next example)
+    state {
+      health: 100
+      active: true
+    }
+  }
+
+  object "CompleteExample" using "FullFeaturedTemplate" {
+    position: { x: 0, y: 2, z: -5 }
+  }
+}
+
+// === NOTES FOR AI AGENTS ===
+// 1. .hsplus format uses composition "Name" { } (quoted name)
+// 2. Templates define reusable blueprints: template "Name" { }
+// 3. Objects use templates: object "Name" using "Template" { }
+// 4. Decorators add functionality: @decoratorName or @decoratorName { params }
+// 5. Multiple decorators allowed on same template
+// 6. Objects can override template properties
+// 7. Templates can inherit: template "Child" using "Parent" { }
+// 8. Decorators are always @lowercase
+// 9. Common decorators: @grabbable, @throwable, @physics, @collidable, @glowing
+// 10. Decorator parameters use same syntax as object properties
+// 11. State blocks define reactive data (covered in state-actions example)
+// 12. Environment block sets scene-wide settings
+// 13. Always use composition as top-level container
+// 14. Decorators enable VR/AR interactions without manual code
+// 15. Combine decorators for complex behaviors

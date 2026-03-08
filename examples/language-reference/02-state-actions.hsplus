@@ -1,0 +1,378 @@
+// Language Reference: State Management & Actions (.hsplus format)
+// Comprehensive reference for state, actions, and reactive systems
+// For AI agent grounding and developer learning
+
+composition "StateManagementReference" {
+
+  // === STATE DECLARATIONS ===
+  // State values persist across frames and can trigger reactive updates
+
+  state {
+    // Primitive types
+    playerHealth: 100
+    playerMana: 50
+    score: 0
+    isGameActive: false
+    difficulty: "normal"
+
+    // Numeric state
+    timeRemaining: 300.0
+    enemyCount: 0
+    waveNumber: 1
+
+    // Object state
+    playerPosition: { x: 0, y: 0, z: 0 }
+    inventory: []
+    questLog: {
+      active: [],
+      completed: []
+    }
+
+    // Complex state structures
+    gameSettings: {
+      volume: 0.8,
+      quality: "high",
+      enableParticles: true
+    }
+  }
+
+  // === ACTION FUNCTIONS ===
+  // Actions modify state and trigger side effects
+
+  actions {
+    // Simple state updates
+    incrementScore(points) {
+      state.score += points;
+      console.log("Score increased by", points);
+    }
+
+    // Conditional state changes
+    takeDamage(amount) {
+      if (state.playerHealth > 0) {
+        state.playerHealth -= amount;
+
+        if (state.playerHealth <= 0) {
+          state.playerHealth = 0;
+          this.gameOver();
+        }
+      }
+    }
+
+    // Multiple state updates
+    healPlayer(amount) {
+      const maxHealth = 100;
+      state.playerHealth = Math.min(state.playerHealth + amount, maxHealth);
+
+      // Consume mana for healing
+      if (state.playerMana >= 10) {
+        state.playerMana -= 10;
+      }
+    }
+
+    // Complex logic with return values
+    spendMana(cost) {
+      if (state.playerMana >= cost) {
+        state.playerMana -= cost;
+        return true;
+      }
+      console.log("Not enough mana!");
+      return false;
+    }
+
+    // Array manipulation
+    addToInventory(item) {
+      state.inventory.push(item);
+      console.log("Added", item.name, "to inventory");
+    }
+
+    removeFromInventory(itemId) {
+      const index = state.inventory.findIndex(item => item.id === itemId);
+      if (index !== -1) {
+        const removed = state.inventory.splice(index, 1);
+        return removed[0];
+      }
+      return null;
+    }
+
+    // Object state updates
+    updatePlayerPosition(x, y, z) {
+      state.playerPosition = { x, y, z };
+    }
+
+    // Quest management
+    startQuest(questId) {
+      state.questLog.active.push({
+        id: questId,
+        startTime: Date.now(),
+        progress: 0
+      });
+    }
+
+    completeQuest(questId) {
+      const questIndex = state.questLog.active.findIndex(q => q.id === questId);
+      if (questIndex !== -1) {
+        const quest = state.questLog.active.splice(questIndex, 1)[0];
+        quest.completedTime = Date.now();
+        state.questLog.completed.push(quest);
+
+        // Reward player
+        this.incrementScore(100);
+        this.addToInventory({ id: "reward_" + questId, name: "Quest Reward" });
+      }
+    }
+
+    // Game flow actions
+    startGame() {
+      state.isGameActive = true;
+      state.score = 0;
+      state.playerHealth = 100;
+      state.playerMana = 50;
+      state.timeRemaining = 300.0;
+      state.waveNumber = 1;
+      console.log("Game started!");
+    }
+
+    gameOver() {
+      state.isGameActive = false;
+      console.log("Game Over! Final score:", state.score);
+    }
+
+    // Settings actions
+    updateVolume(newVolume) {
+      state.gameSettings.volume = Math.max(0, Math.min(1, newVolume));
+    }
+
+    setQuality(quality) {
+      const validQualities = ["low", "medium", "high", "ultra"];
+      if (validQualities.includes(quality)) {
+        state.gameSettings.quality = quality;
+      }
+    }
+  }
+
+  // === REACTIVE STATE (COMPUTED VALUES) ===
+  // Automatically update when dependencies change
+
+  computed {
+    // Health percentage
+    healthPercent: () => {
+      return (state.playerHealth / 100) * 100;
+    }
+
+    // Is player alive
+    isPlayerAlive: () => {
+      return state.playerHealth > 0;
+    }
+
+    // Total inventory weight
+    inventoryWeight: () => {
+      return state.inventory.reduce((total, item) => total + (item.weight || 0), 0);
+    }
+
+    // Active quest count
+    activeQuestCount: () => {
+      return state.questLog.active.length;
+    }
+
+    // Time remaining formatted
+    timeRemainingFormatted: () => {
+      const minutes = Math.floor(state.timeRemaining / 60);
+      const seconds = Math.floor(state.timeRemaining % 60);
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+  }
+
+  // === WATCHERS (REACTIVE SIDE EFFECTS) ===
+  // Execute code when specific state changes
+
+  watch {
+    // Watch single state value
+    playerHealth: (newValue, oldValue) => {
+      console.log("Health changed from", oldValue, "to", newValue);
+
+      if (newValue < 25 && oldValue >= 25) {
+        console.log("WARNING: Low health!");
+      }
+    }
+
+    // Watch computed value
+    isPlayerAlive: (isAlive) => {
+      if (!isAlive) {
+        console.log("Player died!");
+      }
+    }
+
+    // Watch object state (deep watch)
+    "questLog.active": {
+      deep: true,
+      handler: (newQuests) => {
+        console.log("Active quests updated:", newQuests.length, "active");
+      }
+    }
+
+    // Watch with immediate execution
+    score: {
+      immediate: true,
+      handler: (score) => {
+        console.log("Current score:", score);
+      }
+    }
+  }
+
+  // === STATE PERSISTENCE ===
+  persist {
+    // Specify which state to persist
+    include: ["score", "playerHealth", "inventory", "questLog"]
+
+    // Storage configuration
+    storage: "localStorage"
+    key: "game_save_state"
+
+    // Serialization
+    serializer: "json"
+
+    // Auto-save interval
+    autoSave: true
+    autoSaveInterval: 30000  // 30 seconds
+  }
+
+  // === EXAMPLE UI USING STATE ===
+
+  object "HealthBar" {
+    type: "ui"
+    uiType: "panel"
+    position: { x: 10, y: 10 }
+    width: 200
+    height: 30
+
+    // Reactive binding to state
+    bind: {
+      fillPercent: "computed.healthPercent"
+      visible: "state.isGameActive"
+    }
+
+    children: [
+      {
+        type: "text"
+        text: "Health"
+        color: "#ffffff"
+      },
+      {
+        type: "progressBar"
+        bind: {
+          value: "state.playerHealth"
+          max: 100
+        }
+        color: "#ff0000"
+      }
+    ]
+  }
+
+  object "ScoreDisplay" {
+    type: "ui"
+    uiType: "text"
+    position: { x: 10, y: 50 }
+    fontSize: 24
+
+    // Template string binding
+    bind: {
+      text: "`Score: ${state.score}`"
+    }
+  }
+
+  object "ActionButton" {
+    type: "ui"
+    uiType: "button"
+    position: { x: 10, y: 100 }
+    text: "Start Game"
+
+    // Event handler calling action
+    onClick: () => {
+      actions.startGame();
+    }
+
+    // Conditional visibility
+    bind: {
+      visible: "!state.isGameActive"
+    }
+  }
+
+  // === OBJECT INTERACTIONS WITH STATE ===
+
+  template "HealthPickup" {
+    @collidable
+
+    geometry: "sphere"
+    color: "#00ff00"
+    radius: 0.2
+
+    on_collision(event) {
+      if (event.other.name === "Player") {
+        // Call action to modify state
+        actions.healPlayer(25);
+
+        // Remove this pickup
+        this.destroy();
+      }
+    }
+  }
+
+  object "Pickup1" using "HealthPickup" {
+    position: { x: 2, y: 0.5, z: -3 }
+  }
+
+  template "Enemy" {
+    @collidable
+
+    state {
+      health: 50
+      isAlive: true
+    }
+
+    actions {
+      takeDamage(amount) {
+        this.state.health -= amount;
+
+        if (this.state.health <= 0) {
+          this.die();
+        }
+      }
+
+      die() {
+        this.state.isAlive = false;
+
+        // Update global state
+        state.enemyCount -= 1;
+        actions.incrementScore(10);
+
+        // Remove from scene
+        this.destroy();
+      }
+    }
+
+    geometry: "box"
+    color: "#ff0000"
+  }
+
+  object "Enemy1" using "Enemy" {
+    position: { x: -2, y: 0.5, z: -5 }
+  }
+}
+
+// === KEY .hsplus STATE CONCEPTS ===
+// 1. STATE BLOCK: Declare reactive state variables
+// 2. ACTIONS BLOCK: Define functions that modify state
+// 3. COMPUTED BLOCK: Derive values from state
+// 4. WATCH BLOCK: React to state changes
+// 5. PERSIST BLOCK: Configure state persistence
+// 6. BIND: Connect UI/objects to state reactively
+// 7. LOCAL STATE: Templates/objects can have their own state
+// 8. GLOBAL STATE: Top-level state accessible everywhere
+
+// === BEST PRACTICES ===
+// - Keep state minimal and focused
+// - Use computed values for derived data
+// - Actions are the only way to modify state
+// - Use watchers for side effects, not state updates
+// - Bind UI directly to state for reactive updates
+// - Persist only essential state data

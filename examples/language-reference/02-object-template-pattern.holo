@@ -1,0 +1,469 @@
+/**
+ * Language Reference: Object+Template Pattern (.holo format)
+ * Alternative .holo syntax using object and template keywords
+ * For AI agent grounding and developer learning
+ *
+ * NOTE: .holo supports TWO patterns:
+ * 1. Entity+Trait Pattern (see 01-entity-trait-pattern.holo)
+ * 2. Object+Template Pattern (THIS FILE)
+ *
+ * The object+template pattern is similar to .hsplus but with .holo's
+ * advanced trait configurations.
+ */
+
+composition ObjectTemplatePatternReference {
+
+  // === TEMPLATE DEFINITIONS ===
+  // Reusable configurations that can be instantiated multiple times
+
+  template GrabbableBall {
+    // Mesh configuration
+    mesh: {
+      type: "sphere",
+      radius: 0.3
+    }
+
+    // Advanced PBR material
+    advanced_pbr: {
+      base_color: [1.0, 1.0, 1.0],  // Default white, override in objects
+      metallic: 0.2,
+      roughness: 0.6,
+      emissive: [0.0, 0.0, 0.0],
+      emissive_intensity: 0.0
+    }
+
+    // Transform (default position, override in objects)
+    transform: {
+      position: [0.0, 0.0, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    // Physics configuration
+    rigidbody: {
+      mass: 1.0,
+      gravity_enabled: true,
+      linear_drag: 0.05,
+      angular_drag: 0.05,
+      constraints: {
+        freeze_rotation_x: false,
+        freeze_rotation_y: false,
+        freeze_rotation_z: false
+      }
+    }
+
+    // Collision detection
+    collider: {
+      type: "sphere",
+      is_trigger: false,
+      material: {
+        friction: 0.5,
+        bounciness: 0.7,
+        friction_combine: "average",
+        bounce_combine: "maximum"
+      }
+    }
+
+    // VR interaction
+    grabbable: {
+      enabled: true,
+      grab_type: "physics",
+      haptic_on_grab: true,
+      haptic_intensity: 0.5,
+      release_velocity_scale: 5.0,
+      attach_point: "center",
+      two_handed: false
+    }
+
+    // Event handlers
+    on_grab(event) {
+      console.log("Ball grabbed by", event.hand);
+
+      // Haptic feedback
+      if (event.controller) {
+        event.controller.pulse(0.5, 100);
+      }
+    }
+
+    on_release(event) {
+      console.log("Ball released with velocity", event.velocity);
+    }
+
+    on_collision_enter(event) {
+      console.log("Ball collided with", event.other.name);
+
+      // Play sound based on impact force
+      const impactForce = event.relativeVelocity.length();
+      if (impactForce > 2.0) {
+        this.playSound("impact_hard");
+      } else {
+        this.playSound("impact_soft");
+      }
+    }
+  }
+
+  // Template with nested configuration
+  template InteractiveButton {
+    mesh: {
+      type: "box",
+      width: 0.3,
+      height: 0.1,
+      depth: 0.3
+    }
+
+    advanced_pbr: {
+      base_color: [0.2, 0.6, 1.0],
+      metallic: 0.8,
+      roughness: 0.3
+    }
+
+    transform: {
+      position: [0.0, 1.5, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    // Button-specific traits
+    pokeable: {
+      enabled: true,
+      press_depth: 0.02,
+      spring_back: true,
+      spring_speed: 5.0
+    }
+
+    // Audio feedback
+    audio: {
+      sound: "button_click",
+      volume: 0.8,
+      spatial: true,
+      max_distance: 10.0
+    }
+
+    // Visual feedback
+    state: {
+      is_pressed: false
+    }
+
+    on_poke_start(event) {
+      this.state.is_pressed = true;
+
+      // Visual feedback
+      this.advanced_pbr.emissive = [0.2, 0.6, 1.0];
+      this.advanced_pbr.emissive_intensity = 2.0;
+
+      // Audio feedback
+      this.playSound("button_click");
+
+      // Trigger action
+      this.onButtonPress();
+    }
+
+    on_poke_end(event) {
+      this.state.is_pressed = false;
+
+      // Reset visual
+      this.advanced_pbr.emissive = [0.0, 0.0, 0.0];
+      this.advanced_pbr.emissive_intensity = 0.0;
+    }
+
+    onButtonPress() {
+      // Override this in object instances
+      console.log("Button pressed - override this method");
+    }
+  }
+
+  // Complex template with multiple systems
+  template SmartNPC {
+    mesh: {
+      type: "model",
+      model_path: "/models/characters/npc_basic.glb"
+    }
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    // AI behavior
+    behavior_tree: {
+      root: "selector",
+      nodes: [
+        {
+          type: "sequence",
+          name: "greet_player",
+          children: [
+            { type: "condition", check: "player_nearby" },
+            { type: "action", action: "wave" },
+            { type: "action", action: "say_greeting" }
+          ]
+        },
+        {
+          type: "action",
+          name: "idle",
+          action: "play_idle_animation"
+        }
+      ]
+    }
+
+    // Dialogue system
+    dialogue: {
+      greeting: "Hello traveler!",
+      farewell: "Safe travels!",
+      interaction_radius: 2.0
+    }
+
+    // Animation controller
+    animation_controller: {
+      default_state: "idle",
+      states: {
+        idle: { clip: "idle", loop: true },
+        wave: { clip: "wave", loop: false },
+        talk: { clip: "talk", loop: true }
+      },
+      transitions: [
+        { from: "idle", to: "wave", condition: "on_greet" },
+        { from: "wave", to: "talk", condition: "on_animation_complete" },
+        { from: "talk", to: "idle", condition: "on_dialogue_end" }
+      ]
+    }
+
+    // Proximity detection
+    proximity: {
+      radius: 3.0,
+      targets: ["player"]
+    }
+
+    on_proximity_enter(event) {
+      if (event.target.hasTag("player")) {
+        this.triggerGreeting();
+      }
+    }
+
+    triggerGreeting() {
+      this.playAnimation("wave");
+      this.speak(this.dialogue.greeting);
+    }
+  }
+
+  // === OBJECT INSTANCES ===
+  // Instantiate templates with specific configurations
+
+  // Simple floor
+  object Floor {
+    mesh: {
+      type: "plane",
+      width: 20.0,
+      height: 20.0
+    }
+
+    advanced_pbr: {
+      base_color: [0.16, 0.16, 0.23],
+      metallic: 0.0,
+      roughness: 0.9
+    }
+
+    transform: {
+      position: [0.0, 0.0, 0.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    collider: {
+      type: "box",
+      is_trigger: false,
+      size: [20.0, 0.1, 20.0]
+    }
+  }
+
+  // Instantiate template with overrides
+  object RedBall using GrabbableBall {
+    advanced_pbr: {
+      base_color: [1.0, 0.27, 0.27],  // Override color to red
+      metallic: 0.2,
+      roughness: 0.6
+    }
+
+    transform: {
+      position: [-1.0, 1.0, -2.0],
+      rotation: [0.0, 0.0, 0.0],
+      scale: [1.0, 1.0, 1.0]
+    }
+
+    // Override event handler
+    on_grab(event) {
+      console.log("Red ball grabbed!");
+
+      // Call parent handler
+      super.on_grab(event);
+
+      // Additional red ball specific logic
+      this.advanced_pbr.emissive = [1.0, 0.0, 0.0];
+    }
+  }
+
+  object GreenBall using GrabbableBall {
+    advanced_pbr: {
+      base_color: [0.27, 1.0, 0.27]  // Green
+    }
+
+    transform: {
+      position: [0.0, 1.0, -2.0]
+    }
+  }
+
+  object BlueBall using GrabbableBall {
+    advanced_pbr: {
+      base_color: [0.27, 0.27, 1.0]  // Blue
+    }
+
+    transform: {
+      position: [1.0, 1.0, -2.0]
+    }
+  }
+
+  // Button instances with custom actions
+  object StartButton using InteractiveButton {
+    transform: {
+      position: [-1.0, 1.5, -3.0]
+    }
+
+    onButtonPress() {
+      console.log("START button pressed!");
+      // Start game logic
+      this.composition.startGame();
+    }
+  }
+
+  object ResetButton using InteractiveButton {
+    transform: {
+      position: [1.0, 1.5, -3.0]
+    }
+
+    advanced_pbr: {
+      base_color: [1.0, 0.3, 0.3]  // Red button
+    }
+
+    onButtonPress() {
+      console.log("RESET button pressed!");
+      // Reset game logic
+      this.composition.resetGame();
+    }
+  }
+
+  // NPC instances
+  object Shopkeeper using SmartNPC {
+    transform: {
+      position: [3.0, 0.0, -5.0],
+      rotation: [0.0, 180.0, 0.0]
+    }
+
+    dialogue: {
+      greeting: "Welcome to my shop!",
+      farewell: "Come again soon!",
+      interaction_radius: 2.5
+    }
+
+    // Additional shopkeeper-specific traits
+    merchant: {
+      inventory: [
+        { item_id: "potion_health", price: 50, stock: 10 },
+        { item_id: "sword_iron", price: 200, stock: 3 }
+      ],
+      buy_rate: 0.5,
+      sell_rate: 1.0
+    }
+  }
+
+  object QuestGiver using SmartNPC {
+    transform: {
+      position: [-3.0, 0.0, -5.0],
+      rotation: [0.0, 180.0, 0.0]
+    }
+
+    dialogue: {
+      greeting: "I have a task for you...",
+      farewell: "Good luck, hero!",
+      interaction_radius: 2.0
+    }
+
+    quest_giver: {
+      available_quests: [
+        {
+          quest_id: "fetch_item",
+          title: "Retrieve the Ancient Scroll",
+          description: "Find the scroll in the abandoned temple",
+          rewards: { gold: 100, xp: 50 }
+        }
+      ]
+    }
+  }
+
+  // Lighting
+  object MainLight {
+    light: {
+      type: "point",
+      color: [1.0, 1.0, 1.0],
+      intensity: 1.0,
+      range: 20.0,
+      cast_shadows: true,
+      shadow_resolution: 2048
+    }
+
+    transform: {
+      position: [0.0, 4.0, 0.0]
+    }
+  }
+
+  // VR Camera rig
+  object VRCamera {
+    camera: {
+      type: "vr",
+      field_of_view: 90.0,
+      near_clip: 0.01,
+      far_clip: 1000.0,
+      eye_separation: 0.064
+    }
+
+    transform: {
+      position: [0.0, 1.7, 0.0]
+    }
+
+    // VR controller configuration
+    vr_controllers: {
+      left: {
+        model: "oculus_touch_left",
+        haptics_enabled: true
+      },
+      right: {
+        model: "oculus_touch_right",
+        haptics_enabled: true
+      }
+    }
+  }
+}
+
+// === KEY OBJECT+TEMPLATE PATTERN CONCEPTS ===
+// 1. TEMPLATE KEYWORD: Define reusable configurations
+// 2. OBJECT KEYWORD: Create instances (can use templates or standalone)
+// 3. USING CLAUSE: object X using TemplateY { overrides }
+// 4. TRAIT SYNTAX: Same as entity pattern (trait: { config })
+// 5. OVERRIDES: Objects can override any template property
+// 6. SUPER: Call parent template methods with super.methodName()
+// 7. COMPOSITION SCOPE: All objects/templates within composition block
+// 8. NESTED CONFIG: Complex trait configurations with nested objects
+
+// === WHEN TO USE OBJECT+TEMPLATE VS ENTITY PATTERN ===
+// Use OBJECT+TEMPLATE when:
+// - You have many similar objects (reusability)
+// - You want template inheritance
+// - You're migrating from .hsplus
+// - You prefer explicit instantiation syntax
+
+// Use ENTITY pattern when:
+// - Each object is unique
+// - You want more explicit trait declarations
+// - You prefer flat structure
+// - Maximum clarity over reusability
+
+// Both patterns support the same traits and features!
