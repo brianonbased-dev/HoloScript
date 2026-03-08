@@ -31,6 +31,8 @@ import {
   weatherToUSD,
   compileNarrativeBlock,
   narrativeToUSDA,
+  compilePaymentBlock,
+  paymentToUSDA,
 } from './DomainBlockCompilerMixin';
 import { MATERIAL_PRESETS } from './R3FCompiler';
 
@@ -1037,6 +1039,10 @@ export class USDZPipeline {
       narrative: (block) => {
         const narr = compileNarrativeBlock(block);
         return narrativeToUSDA(narr);
+      },
+      payment: (block) => {
+        const pay = compilePaymentBlock(block);
+        return paymentToUSDA(pay);
       },
     }, (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
 

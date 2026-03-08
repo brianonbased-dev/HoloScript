@@ -47,6 +47,8 @@ import {
   weatherToGodot,
   compileNarrativeBlock,
   narrativeToGodot,
+  compilePaymentBlock,
+  paymentToGodot,
 } from './DomainBlockCompilerMixin';
 
 export interface GodotCompilerOptions {
@@ -228,6 +230,10 @@ export class GodotCompiler extends CompilerBase {
       narrative: (block) => {
         const narr = compileNarrativeBlock(block);
         return narrativeToGodot(narr);
+      },
+      payment: (block) => {
+        const pay = compilePaymentBlock(block);
+        return paymentToGodot(pay);
       },
     }, (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
 

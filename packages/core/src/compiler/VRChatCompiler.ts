@@ -40,6 +40,8 @@ import {
   weatherToUnity,
   compileNarrativeBlock,
   narrativeToVRChat,
+  compilePaymentBlock,
+  paymentToVRChat,
 } from './DomainBlockCompilerMixin';
 
 export interface VRChatCompilerOptions {
@@ -274,6 +276,10 @@ export class VRChatCompiler extends CompilerBase {
       narrative: (block) => {
         const narr = compileNarrativeBlock(block);
         return narrativeToVRChat(narr);
+      },
+      payment: (block) => {
+        const pay = compilePaymentBlock(block);
+        return paymentToVRChat(pay);
       },
     }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
 

@@ -1226,6 +1226,8 @@ export type HoloDomainType =
   | 'codebase'  // codebase absorption: codebase, module_map, dependency_graph, call_graph
   // Narrative / StoryWeaver Protocol (v4.6)
   | 'narrative'  // narrative, chapter, dialogue_tree, choice, cutscene_sequence
+  // x402 Payment Protocol (v4.6)
+  | 'payment'   // paywall, payment_gate, subscription, tip_jar
   // Norm lifecycle / cultural engineering (v4.5)
   | 'norms'     // norm, metanorm, norm_proposal, norm_voting, norm_adoption, norm_violation, norm_sanction
   | 'custom';  // any user-defined block keyword
@@ -1289,6 +1291,22 @@ export interface CompiledNarrative {
   chapters: CompiledChapter[];
   variables?: Record<string, HoloValue>;
   startChapter?: string;
+}
+
+// =============================================================================
+// COMPILED PAYMENT IR (x402 Payment Protocol v4.6)
+// =============================================================================
+
+export interface CompiledPaywall {
+  name: string;
+  price: number;
+  asset: 'USDC' | 'ETH' | 'SOL';
+  network: 'base' | 'ethereum' | 'solana';
+  recipient: string;
+  description?: string;
+  type: 'one_time' | 'subscription' | 'tip' | 'per_use';
+  gatedContent?: string[];
+  revenueSplit?: { creator: number; platform: number; agent: number };
 }
 
 // =============================================================================

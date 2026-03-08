@@ -47,6 +47,8 @@ import {
   weatherToUnity,
   compileNarrativeBlock,
   narrativeToUnity,
+  compilePaymentBlock,
+  paymentToUnity,
 } from './DomainBlockCompilerMixin';
 
 export interface UnityCompilerOptions {
@@ -254,6 +256,10 @@ export class UnityCompiler extends CompilerBase {
       narrative: (block) => {
         const narr = compileNarrativeBlock(block);
         return narrativeToUnity(narr);
+      },
+      payment: (block) => {
+        const pay = compilePaymentBlock(block);
+        return paymentToUnity(pay);
       },
     }, (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`);
 

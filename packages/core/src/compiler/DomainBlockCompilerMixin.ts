@@ -2289,6 +2289,234 @@ export function narrativeToUSDA(narrative: CompiledNarrative): string {
 }
 
 // =============================================================================
+// x402 Payment Protocol Compilation
+// =============================================================================
+
+import type { CompiledPaywall } from '../parser/HoloCompositionTypes';
+
+export function compilePaymentBlock(block: HoloDomainBlock): CompiledPaywall {
+  const props = block.properties || {};
+
+  const paywallType: CompiledPaywall['type'] =
+    block.keyword === 'subscription' ? 'subscription'
+    : block.keyword === 'tip_jar' ? 'tip'
+    : block.keyword === 'per_use' || props.per_use ? 'per_use'
+    : 'one_time';
+
+  // Extract gated content from children or property
+  const gatedContent: string[] = [];
+  if (props.gated_content && Array.isArray(props.gated_content)) {
+    gatedContent.push(...(props.gated_content as string[]));
+  } else if (typeof props.gated_content === 'string') {
+    gatedContent.push(props.gated_content as string);
+  }
+  for (const child of (block.children || [])) {
+    const c = child as any;
+    if (c.name) gatedContent.push(c.name);
+  }
+
+  // Extract revenue split
+  let revenueSplit: CompiledPaywall['revenueSplit'] | undefined;
+  if (props.revenue_split && typeof props.revenue_split === 'object') {
+    const rs = props.revenue_split as Record<string, any>;
+    revenueSplit = {
+      creator: (rs.creator as number) ?? 80,
+      platform: (rs.platform as number) ?? 10,
+      agent: (rs.agent as number) ?? 10,
+    };
+  }
+
+  return {
+    name: block.name || 'unnamed',
+    price: (props.price as number) ?? 0,
+    asset: ((props.asset as string) ?? 'USDC') as CompiledPaywall['asset'],
+    network: ((props.network as string) ?? 'base') as CompiledPaywall['network'],
+    recipient: (props.recipient || props.wallet || '') as string,
+    description: (props.description || props.message) as string | undefined,
+    type: paywallType,
+    gatedContent: gatedContent.length > 0 ? gatedContent : undefined,
+    revenueSplit,
+  };
+}
+
+/** Generate Unity C# ScriptableObject paywall controller */
+export function paymentToUnity(paywall: CompiledPaywall): string {
+  const lines: string[] = [];
+  const safeName = paywall.name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  lines.push(`// x402 Paywall: ${paywall.name}`);
+  lines.push(`[CreateAssetMenu(menuName = "x402/${safeName}")]`);
+  lines.push(`public class ${safeName}Paywall : ScriptableObject {`);
+  lines.push(`    public decimal price = ${paywall.price}m;`);
+  lines.push(`    public string asset = "${paywall.asset}";`);
+  lines.push(`    public string network = "${paywall.network}";`);
+  lines.push(`    public string recipientWallet = "${paywall.recipient}";`);
+  lines.push(`    public string paywallType = "${paywall.type}";`);
+  if (paywall.description) {
+    lines.push(`    public string description = "${paywall.description}";`);
+  }
+  if (paywall.gatedContent && paywall.gatedContent.length > 0) {
+    lines.push(`    public string[] gatedObjects = new string[] { ${paywall.gatedContent.map(g => `"${g}"`).join(', ')} };`);
+  }
+  if (paywall.revenueSplit) {
+    lines.push(`    // Revenue split: ${paywall.revenueSplit.creator}% Creator, ${paywall.revenueSplit.platform}% Platform, ${paywall.revenueSplit.agent}% Agent`);
+  }
+  lines.push('');
+  lines.push('    public bool IsUnlocked { get; private set; }');
+  lines.push('');
+  lines.push('    public async Task<bool> RequestPayment() {');
+  lines.push('        // HTTP 402 payment flow via x402 protocol');
+  lines.push('        var response = await Http.Get(paymentEndpoint);');
+  lines.push('        if (response.StatusCode == 402) {');
+  lines.push('            var challenge = JsonUtility.FromJson<PaymentChallenge>(response.Body);');
+  lines.push('            return await ProcessPayment(challenge);');
+  lines.push('        }');
+  lines.push('        return false;');
+  lines.push('    }');
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+/** Generate Godot 4 GDScript payment gate controller */
+export function paymentToGodot(paywall: CompiledPaywall): string {
+  const lines: string[] = [];
+  const safeName = paywall.name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  lines.push(`# x402 Paywall: ${paywall.name}`);
+  lines.push('extends Node');
+  lines.push(`class_name ${safeName}Paywall`);
+  lines.push('');
+  lines.push('signal payment_required(price: float, asset: String)');
+  lines.push('signal payment_verified(tx_hash: String)');
+  lines.push('signal access_granted');
+  lines.push('');
+  lines.push(`var price: float = ${paywall.price}`);
+  lines.push(`var asset: String = "${paywall.asset}"`);
+  lines.push(`var network: String = "${paywall.network}"`);
+  lines.push(`var recipient: String = "${paywall.recipient}"`);
+  lines.push(`var paywall_type: String = "${paywall.type}"`);
+  lines.push('var is_unlocked: bool = false');
+  if (paywall.gatedContent && paywall.gatedContent.length > 0) {
+    lines.push(`var gated_objects: Array = [${paywall.gatedContent.map(g => `"${g}"`).join(', ')}]`);
+  }
+  lines.push('');
+  lines.push('func request_payment() -> void:');
+  lines.push('    payment_required.emit(price, asset)');
+  lines.push('');
+  lines.push('func verify_payment(tx_hash: String) -> void:');
+  lines.push('    payment_verified.emit(tx_hash)');
+  lines.push('    is_unlocked = true');
+  lines.push('    access_granted.emit()');
+  if (paywall.gatedContent && paywall.gatedContent.length > 0) {
+    lines.push('    for obj_name in gated_objects:');
+    lines.push('        var node = get_node_or_null(obj_name)');
+    lines.push('        if node: node.visible = true');
+  }
+
+  return lines.join('\n');
+}
+
+/** Generate VRChat SDK3 UdonSharp paywall controller */
+export function paymentToVRChat(paywall: CompiledPaywall): string {
+  const lines: string[] = [];
+  const safeName = paywall.name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  lines.push(`// x402 Paywall: ${paywall.name} (VRChat UdonSharp)`);
+  lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
+  lines.push(`public class ${safeName}Paywall : UdonSharpBehaviour {`);
+  lines.push('    [UdonSynced] public bool isUnlocked = false;');
+  lines.push(`    public float price = ${paywall.price}f;`);
+  lines.push(`    public string asset = "${paywall.asset}";`);
+  lines.push(`    public string network = "${paywall.network}";`);
+  lines.push(`    public string paymentUrl = "https://hololand.app/pay/${safeName}";`);
+  if (paywall.gatedContent && paywall.gatedContent.length > 0) {
+    lines.push('    public GameObject[] gatedObjects;');
+  }
+  lines.push('');
+  lines.push('    public override void Interact() {');
+  lines.push('        if (!isUnlocked) {');
+  lines.push('            VRCUrl url = new VRCUrl(paymentUrl);');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('');
+  lines.push('    public void OnPaymentVerified() {');
+  lines.push('        if (!Networking.IsOwner(gameObject)) {');
+  lines.push('            Networking.SetOwner(Networking.LocalPlayer, gameObject);');
+  lines.push('        }');
+  lines.push('        isUnlocked = true;');
+  lines.push('        RequestSerialization();');
+  lines.push('    }');
+  lines.push('');
+  lines.push('    public override void OnDeserialization() {');
+  if (paywall.gatedContent && paywall.gatedContent.length > 0) {
+    lines.push('        foreach (var obj in gatedObjects) {');
+    lines.push('            if (obj != null) obj.SetActive(isUnlocked);');
+    lines.push('        }');
+  }
+  lines.push('    }');
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+/** Generate React-compatible payment gate config for R3F renderer */
+export function paymentToR3F(paywall: CompiledPaywall): string {
+  const lines: string[] = [];
+  const safeName = paywall.name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  lines.push(`// x402 Paywall: ${paywall.name} (R3F/React)`);
+  lines.push(`export const ${safeName}PaywallConfig = {`);
+  lines.push(`  name: "${paywall.name}",`);
+  lines.push(`  price: ${paywall.price},`);
+  lines.push(`  asset: "${paywall.asset}",`);
+  lines.push(`  network: "${paywall.network}",`);
+  lines.push(`  recipient: "${paywall.recipient}",`);
+  lines.push(`  type: "${paywall.type}",`);
+  if (paywall.description) {
+    lines.push(`  description: "${paywall.description}",`);
+  }
+  if (paywall.gatedContent && paywall.gatedContent.length > 0) {
+    lines.push(`  gatedContent: [${paywall.gatedContent.map(g => `"${g}"`).join(', ')}],`);
+  }
+  if (paywall.revenueSplit) {
+    lines.push(`  revenueSplit: { creator: ${paywall.revenueSplit.creator}, platform: ${paywall.revenueSplit.platform}, agent: ${paywall.revenueSplit.agent} },`);
+  }
+  lines.push('};');
+
+  return lines.join('\n');
+}
+
+/** Generate USD customData annotations for AR monetization */
+export function paymentToUSDA(paywall: CompiledPaywall): string {
+  const lines: string[] = [];
+  const safeName = paywall.name.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  lines.push(`def Scope "Paywall_${safeName}" {`);
+  lines.push(`    custom string holoscript:paywallType = "${paywall.type}"`);
+  lines.push(`    custom float holoscript:price = ${paywall.price}`);
+  lines.push(`    custom string holoscript:asset = "${paywall.asset}"`);
+  lines.push(`    custom string holoscript:network = "${paywall.network}"`);
+  if (paywall.recipient) {
+    lines.push(`    custom string holoscript:recipient = "${paywall.recipient}"`);
+  }
+  if (paywall.description) {
+    lines.push(`    custom string holoscript:description = "${paywall.description}"`);
+  }
+  if (paywall.gatedContent && paywall.gatedContent.length > 0) {
+    lines.push(`    custom string[] holoscript:gatedContent = [${paywall.gatedContent.map(g => `"${g}"`).join(', ')}]`);
+  }
+  if (paywall.revenueSplit) {
+    lines.push(`    custom float holoscript:revenueSplitCreator = ${paywall.revenueSplit.creator}`);
+    lines.push(`    custom float holoscript:revenueSplitPlatform = ${paywall.revenueSplit.platform}`);
+    lines.push(`    custom float holoscript:revenueSplitAgent = ${paywall.revenueSplit.agent}`);
+  }
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+// =============================================================================
 // Domain Block Router
 // =============================================================================
 

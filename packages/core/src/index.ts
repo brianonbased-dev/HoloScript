@@ -132,6 +132,7 @@ export type {
   CompiledDialogueLine,
   CompiledChoice,
   CompiledCutsceneAction,
+  CompiledPaywall,
 } from './parser/HoloCompositionTypes';
 
 // HoloScript+ Enhanced Parser with Trait Annotations (NEW - Phase 3)
@@ -673,6 +674,12 @@ export {
   narrativeToVRChat,
   narrativeToR3F,
   narrativeToUSDA,
+  compilePaymentBlock,
+  paymentToUnity,
+  paymentToGodot,
+  paymentToVRChat,
+  paymentToR3F,
+  paymentToUSDA,
   type CompiledMaterial,
   type CompiledPhysics,
   type CompiledCollider,
@@ -2541,6 +2548,16 @@ export {
 export type {
   CompilePlatformTarget,
 } from './compiler/PlatformConditionalCompilerMixin';
+
+// @platform() Annotation Compiler (Block-level dead-code elimination)
+export {
+  PlatformConditionalCompiler,
+  createPlatformConditionalCompiler,
+} from './compiler/platform/PlatformConditionalCompiler';
+export type {
+  PlatformBlock as PlatformAnnotationBlock,
+  PlatformConditionalResult,
+} from './compiler/platform/PlatformConditionalCompiler';
 
 
 // ═══════════════════════════════════════════════════════════════════

@@ -314,6 +314,11 @@ type TokenType =
   | 'CHAPTER'
   | 'DIALOGUE_TREE'
   | 'CUTSCENE_SEQUENCE'
+  // Payment / x402 Protocol (v4.7)
+  | 'PAYWALL'
+  | 'PAYMENT_GATE'
+  | 'SUBSCRIPTION'
+  | 'TIP_JAR'
   // Spatial primitives
   | 'SPAWN_GROUP'
   | 'WAYPOINTS'
@@ -575,6 +580,11 @@ const KEYWORDS: Record<string, TokenType> = {
   dialogue_tree: 'DIALOGUE_TREE',
   cutscene_sequence: 'CUTSCENE_SEQUENCE',
   cutscene: 'CUTSCENE_SEQUENCE',
+  // Payment / x402 Protocol (v4.7)
+  paywall: 'PAYWALL',
+  payment_gate: 'PAYMENT_GATE',
+  subscription: 'SUBSCRIPTION',
+  tip_jar: 'TIP_JAR',
   true: 'BOOLEAN',
   false: 'BOOLEAN',
   null: 'NULL',
@@ -5017,6 +5027,8 @@ export class HoloCompositionParser {
     'NORM_PROPOSAL', 'NORM_VOTING', 'NORM_ADOPTION', 'NORM_VIOLATION', 'NORM_SANCTION',
     // Narrative / StoryWeaver Protocol (v4.6)
     'NARRATIVE_BLOCK', 'CHAPTER', 'DIALOGUE_TREE', 'CUTSCENE_SEQUENCE',
+    // Payment / x402 Protocol (v4.7)
+    'PAYWALL', 'PAYMENT_GATE', 'SUBSCRIPTION', 'TIP_JAR',
   ]);
 
   /** Token → domain type mapping */
@@ -5059,6 +5071,9 @@ export class HoloCompositionParser {
     // Narrative / StoryWeaver Protocol (v4.6)
     NARRATIVE_BLOCK: 'narrative', CHAPTER: 'narrative',
     DIALOGUE_TREE: 'narrative', CUTSCENE_SEQUENCE: 'narrative',
+    // Payment / x402 Protocol (v4.7)
+    PAYWALL: 'payment', PAYMENT_GATE: 'payment',
+    SUBSCRIPTION: 'payment', TIP_JAR: 'payment',
   };
 
   /** Check if current token is a domain block token */
