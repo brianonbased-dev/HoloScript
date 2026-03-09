@@ -1,0 +1,1774 @@
+composition "studio" {
+
+  environment {
+    skybox: "dark-grid"
+    ambient_light: 0.4
+    shadows: true
+  }
+
+  // Codebase: 835 files, 11416 symbols, 185923 LOC
+  // Languages: typescript(835)
+
+  spatial_group "root" {
+    object "BundleBudget" @interface @public {
+      position: [43.78, 371.25, 12634.71]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "interface BundleBudget"
+      loc: 22
+    }
+    object "BundleAnalysisResult" @interface @public {
+      position: [-301.23, 67.93, 12627]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "interface BundleAnalysisResult"
+      loc: 16
+    }
+    object "BudgetCheckResult" @interface @public {
+      position: [-552.66, 479.07, 12627.17]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "interface BudgetCheckResult"
+      loc: 25
+    }
+    object "BundleSummary" @interface @public {
+      position: [271.3, -1105.06, 12605]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "interface BundleSummary"
+      loc: 25
+    }
+    object "STUDIO_BUNDLE_BUDGETS" @public {
+      position: [-156.2, 846.86, 12632.32]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      loc: 111
+    }
+    object "BundleBudgetChecker" @class @public {
+      position: [806.32, 99.98, 12608.78]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "class BundleBudgetChecker"
+      loc: 98
+    }
+    object "BundleBudgetChecker.constructor" @method @public {
+      position: [-139.93, -927.5, 12588.96]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "BundleBudgetChecker.constructor((budgets: BundleBudget[] = STUDIO_BUNDLE_BUDGETS))"
+      loc: 3
+      owner: "BundleBudgetChecker"
+    }
+    object "BundleBudgetChecker.checkFile" @method @public {
+      position: [-783.34, 224.36, 12627.57]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "BundleBudgetChecker.checkFile((fileName: string, sizeBytes: number, gzipBytes: number))"
+      loc: 40
+      owner: "BundleBudgetChecker"
+    }
+    object "BundleBudgetChecker.generateReport" @method @public {
+      position: [901.54, 1268.14, 12959.28]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "BundleBudgetChecker.generateReport((
+    checks: BudgetCheckResult[],
+    summary: BundleSummary,
+    commitHash?: string
+  ))"
+      loc: 17
+      owner: "BundleBudgetChecker"
+    }
+    object "BundleBudgetChecker.formatBytes" @method @public {
+      position: [-445.44, -963.06, 12638.45]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "BundleBudgetChecker.formatBytes((bytes: number))"
+      loc: 5
+      owner: "BundleBudgetChecker"
+    }
+    object "getAnalyzerWebpackConfig" @function @public {
+      position: [-347.67, 1471.63, 12658.61]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "function getAnalyzerWebpackConfig(())"
+      loc: 17
+    }
+    object "getPerformanceHints" @function @public {
+      position: [491.76, -866.12, 12618.74]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "function getPerformanceHints((isCI: boolean))"
+      loc: 11
+    }
+    object "BundleBaseline" @interface @public {
+      position: [-1091.37, 331.73, 12560.72]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "interface BundleBaseline"
+      loc: 19
+    }
+    object "compareToBaseline" @function @public {
+      position: [1357.28, -549.63, 12208.26]
+      color: "#3178c6"
+      language: "typescript"
+      file: "bundle-analysis.config.ts"
+      signature: "function compareToBaseline((
+  current: BundleSummary,
+  baseline: BundleBaseline
+)): : {
+  totalDelta: number;
+  totalDeltaPercent: number;
+  initialDelta: number;
+  initialDeltaPercent: number;
+  improved: boolean;
+  message: string;
+}"
+      loc: 38
+    }
+    object "test" @function @public {
+      position: [-1027.17, -823.1, 12530.53]
+      color: "#3178c6"
+      language: "typescript"
+      file: "debug-parser.ts"
+      signature: "function test(())"
+      loc: 19
+    }
+    object "fs" @public {
+      position: [371.48, 989.99, 12517.85]
+      color: "#3178c6"
+      language: "typescript"
+      file: "fix-imports.js"
+      loc: 1
+    }
+    object "path" @public {
+      position: [1090.85, -1189.19, 12517.25]
+      color: "#3178c6"
+      language: "typescript"
+      file: "fix-imports.js"
+      loc: 1
+    }
+    object "walk" @function @public {
+      position: [-1405.28, 351.78, 12553.23]
+      color: "#3178c6"
+      language: "typescript"
+      file: "fix-imports.js"
+      signature: "function walk((dir))"
+      loc: 27
+    }
+    object "path" @public {
+      position: [1090.85, -1189.19, 12517.25]
+      color: "#3178c6"
+      language: "typescript"
+      file: "next.config.js"
+      loc: 1
+    }
+    object "nextConfig" @public {
+      position: [1312.62, 709.5, 12542.53]
+      color: "#3178c6"
+      language: "typescript"
+      file: "next.config.js"
+      loc: 49
+    }
+    object "code" @public {
+      position: [-528.42, -1455.63, 12545.28]
+      color: "#3178c6"
+      language: "typescript"
+      file: "test_debug.js"
+      loc: 7
+    }
+  }
+
+  spatial_group "e2e" {
+    object "EDITOR_URL" @public {
+      position: [-604.81, 1347.49, 12539.96]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/create-page.spec.js"
+      loc: 1
+    }
+    object "tree" @public {
+      position: [1387.16, -614.96, 12567.7]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/create-page.spec.js"
+      loc: 1
+    }
+    object "addBtn" @public {
+      position: [-1446.39, -490.28, 12546.89]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/create-page.spec.js"
+      loc: 1
+    }
+    object "input" @public {
+      position: [700.98, 1383.02, 12531.91]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/create-page.spec.js"
+      loc: 1
+    }
+    object "shareBtn" @public {
+      position: [458.77, -1557.46, 12530.78]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/create-page.spec.js"
+      loc: 1
+    }
+    object "EDITOR_URL" @public {
+      position: [-604.81, 1347.49, 12539.96]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/create-page.spec.ts"
+      loc: 1
+    }
+    object "tree" @public {
+      position: [1387.16, -614.96, 12567.7]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/create-page.spec.ts"
+      loc: 1
+    }
+    object "addBtn" @public {
+      position: [-1446.39, -490.28, 12546.89]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/create-page.spec.ts"
+      loc: 1
+    }
+    object "input" @public {
+      position: [700.98, 1383.02, 12531.91]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/create-page.spec.ts"
+      loc: 1
+    }
+    object "shareBtn" @public {
+      position: [458.77, -1557.46, 12530.78]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/create-page.spec.ts"
+      loc: 1
+    }
+    object "codeTab" @public {
+      position: [-1365.06, 821.97, 12532.62]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/editor.spec.js"
+      loc: 1
+    }
+    object "editor" @public {
+      position: [1606.61, 380.36, 12524.1]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/editor.spec.js"
+      loc: 1
+    }
+    object "editorContent" @public {
+      position: [-926.1, -1417.13, 12516.57]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/editor.spec.js"
+      loc: 1
+    }
+    object "text" @public {
+      position: [-345.81, 1704.39, 12488.86]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/editor.spec.js"
+      loc: 1
+    }
+    object "errorArea" @public {
+      position: [1448.85, -983.72, 12508.84]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/editor.spec.js"
+      loc: 1
+    }
+    object "codeTab" @public {
+      position: [-1365.06, 821.97, 12532.62]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/editor.spec.ts"
+      loc: 1
+    }
+    object "editor" @public {
+      position: [1606.61, 380.36, 12524.1]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/editor.spec.ts"
+      loc: 1
+    }
+    object "editorContent" @public {
+      position: [-926.1, -1417.13, 12516.57]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/editor.spec.ts"
+      loc: 1
+    }
+    object "text" @public {
+      position: [-345.81, 1704.39, 12488.86]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/editor.spec.ts"
+      loc: 1
+    }
+    object "errorArea" @public {
+      position: [1448.85, -983.72, 12508.84]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/editor.spec.ts"
+      loc: 1
+    }
+    object "publishBtn" @public {
+      position: [-1740.35, -271.87, 12501.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.js"
+      loc: 1
+    }
+    object "publishBtn" @public {
+      position: [-1740.35, -271.87, 12501.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.js"
+      loc: 1
+    }
+    object "modal" @public {
+      position: [1075.42, 1448.06, 12488.46]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.js"
+      loc: 1
+    }
+    object "publishBtn" @public {
+      position: [-1740.35, -271.87, 12501.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.js"
+      loc: 1
+    }
+    object "closeBtn" @public {
+      position: [216.6, -1835.26, 12489.13]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.js"
+      loc: 1
+    }
+    object "modal" @public {
+      position: [1075.42, 1448.06, 12488.46]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.js"
+      loc: 1
+    }
+    object "canvas" @public {
+      position: [-1425.45, 1172.82, 12487.88]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.js"
+      loc: 1
+    }
+    object "profiler" @public {
+      position: [1882.17, 141.8, 12484.41]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.js"
+      loc: 1
+    }
+    object "publishBtn" @public {
+      position: [-1740.35, -271.87, 12501.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.ts"
+      loc: 1
+    }
+    object "publishBtn" @public {
+      position: [-1740.35, -271.87, 12501.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.ts"
+      loc: 1
+    }
+    object "modal" @public {
+      position: [1075.42, 1448.06, 12488.46]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.ts"
+      loc: 1
+    }
+    object "publishBtn" @public {
+      position: [-1740.35, -271.87, 12501.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.ts"
+      loc: 1
+    }
+    object "closeBtn" @public {
+      position: [216.6, -1835.26, 12489.13]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.ts"
+      loc: 3
+    }
+    object "modal" @public {
+      position: [1075.42, 1448.06, 12488.46]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.ts"
+      loc: 1
+    }
+    object "canvas" @public {
+      position: [-1425.45, 1172.82, 12487.88]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.ts"
+      loc: 1
+    }
+    object "profiler" @public {
+      position: [1882.17, 141.8, 12484.41]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/publish.spec.ts"
+      loc: 1
+    }
+    object "EDITOR_URL" @public {
+      position: [-604.81, 1347.49, 12539.96]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.js"
+      loc: 1
+    }
+    object "shaderToggle" @public {
+      position: [-1292.88, -1413.24, 12479.12]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.js"
+      loc: 1
+    }
+    object "canvas" @public {
+      position: [-1425.45, 1172.82, 12487.88]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.js"
+      loc: 1
+    }
+    object "addNodeLabel" @public {
+      position: [-54.34, 1939.26, 12474.03]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.js"
+      loc: 1
+    }
+    object "nodesBefore" @public {
+      position: [1410.75, -1397.99, 12470.8]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.js"
+      loc: 1
+    }
+    object "paletteBtn" @public {
+      position: [-1974.86, 59.44, 12470.54]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.js"
+      loc: 1
+    }
+    object "compileBtn" @public {
+      position: [1502.78, 1338.67, 12463.45]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.js"
+      loc: 1
+    }
+    object "undoBtn" @public {
+      position: [-191.78, -2030.58, 12461.88]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.js"
+      loc: 1
+    }
+    object "redoBtn" @public {
+      position: [-1257.07, 1611.75, 12460.72]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.js"
+      loc: 1
+    }
+    object "EDITOR_URL" @public {
+      position: [-604.81, 1347.49, 12539.96]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.ts"
+      loc: 1
+    }
+    object "shaderToggle" @public {
+      position: [-1292.88, -1413.24, 12479.12]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.ts"
+      loc: 3
+    }
+    object "canvas" @public {
+      position: [-1425.45, 1172.82, 12487.88]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.ts"
+      loc: 1
+    }
+    object "addNodeLabel" @public {
+      position: [-54.34, 1939.26, 12474.03]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.ts"
+      loc: 1
+    }
+    object "nodesBefore" @public {
+      position: [1410.75, -1397.99, 12470.8]
+      color: "#3178c6"
+      language: "typescript"
+      file: "e2e/shader-editor.spec.ts"
+      loc: 1
+    }
+    // ... 21 more symbols collapsed
+  }
+
+  spatial_group "public" {
+    object "BenchmarkUtils" @public {
+      position: [1247.15, 1950.3, 12416.25]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/browser-benchmark.js"
+      loc: 96
+    }
+    object "runBenchmark" @function @public {
+      position: [392.46, -2310.85, 12411.98]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/browser-benchmark.js"
+      signature: "function runBenchmark(())"
+      loc: 156
+    }
+    object "quickBenchmark" @function @public {
+      position: [-1854.12, 1442.27, 12410.28]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/browser-benchmark.js"
+      signature: "function quickBenchmark(())"
+      loc: 27
+    }
+    object "CACHE_NAME" @public {
+      position: [2374.01, 183.17, 12405.07]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/sw.js"
+      loc: 1
+    }
+    object "STATIC_ASSETS" @public {
+      position: [-1648.91, -1742.44, 12400.85]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/sw.js"
+      loc: 5
+    }
+    object "url" @public {
+      position: [39.98, 2418.11, 12396.72]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/sw.js"
+      loc: 1
+    }
+    object "clone" @public {
+      position: [1613.96, -1838.96, 12391.93]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/sw.js"
+      loc: 1
+    }
+    object "CompositionNode" @public {
+      position: [-2435.17, 275.33, 12389.87]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-compiler.d.ts"
+      loc: 1
+    }
+    object "CompileTarget" @public {
+      position: [2007.88, 1451.38, 12384.35]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-compiler.d.ts"
+      loc: 1
+    }
+    object "CompileResult" @public {
+      position: [-517.76, -2443.56, 12380.39]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-compiler.d.ts"
+      loc: 1
+    }
+    object "TraitDef" @public {
+      position: [-1272.07, 2160.66, 12377.74]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-generator.d.ts"
+      loc: 1
+    }
+    object "ParseResult" @public {
+      position: [2419.56, -752.64, 12373.19]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-parser.d.ts"
+      loc: 1
+    }
+    object "TypeInfo" @public {
+      position: [-2309.52, -1071.1, 12369.51]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-type-checker.d.ts"
+      loc: 1
+    }
+    object "Diagnostic" @public {
+      position: [992.76, 2369.06, 12364.4]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-type-checker.d.ts"
+      loc: 1
+    }
+    object "PropertyValue" @public {
+      position: [863.01, -2445.56, 12359.7]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      loc: 1
+    }
+    object "PropertyValueStringVal" @interface @public {
+      position: [-2290.72, 1231.53, 12357.21]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface PropertyValueStringVal"
+      loc: 4
+    }
+    object "PropertyValueNumberVal" @interface @public {
+      position: [2549.06, 635.39, 12351.94]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface PropertyValueNumberVal"
+      loc: 4
+    }
+    object "PropertyValueBooleanVal" @interface @public {
+      position: [-1473.44, -2196.96, 12347.67]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface PropertyValueBooleanVal"
+      loc: 4
+    }
+    object "PropertyValueArrayVal" @interface @public {
+      position: [-394.94, 2631.98, 12343.7]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface PropertyValueArrayVal"
+      loc: 4
+    }
+    object "PropertyValueObjectVal" @interface @public {
+      position: [2080.35, -1699.95, 12338.89]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface PropertyValueObjectVal"
+      loc: 4
+    }
+    object "PropertyValueNullVal" @interface @public {
+      position: [-2692.3, -137.96, 12335.91]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface PropertyValueNullVal"
+      loc: 3
+    }
+    object "Position" @interface @public {
+      position: [1915.05, 1930.67, 12330.58]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface Position"
+      loc: 5
+    }
+    object "Span" @interface @public {
+      position: [-124.15, -2737.05, 12326.31]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface Span"
+      loc: 4
+    }
+    object "Property" @interface @public {
+      position: [-1757.41, 2114.28, 12323.54]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface Property"
+      loc: 5
+    }
+    object "EnvironmentNode" @interface @public {
+      position: [2746.08, -386.88, 12318.76]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface EnvironmentNode"
+      loc: 4
+    }
+    object "ActionNode" @interface @public {
+      position: [-2306.46, -1564.83, 12315]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface ActionNode"
+      loc: 6
+    }
+    object "TemplateNode" @interface @public {
+      position: [654.19, 2728.13, 12310.57]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface TemplateNode"
+      loc: 8
+    }
+    object "ObjectNode" @interface @public {
+      position: [1359.67, -2479.74, 12305.89]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface ObjectNode"
+      loc: 7
+    }
+    object "SpatialGroupNode" @interface @public {
+      position: [-2681.93, 923.19, 12303.28]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface SpatialGroupNode"
+      loc: 5
+    }
+    object "AnimationNode" @interface @public {
+      position: [2625.54, 1131.12, 12298.3]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface AnimationNode"
+      loc: 10
+    }
+    object "TimelineEntry" @interface @public {
+      position: [-1191.75, -2617.89, 12294.22]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface TimelineEntry"
+      loc: 5
+    }
+    object "TimelineNode" @interface @public {
+      position: [-887.81, 2749.13, 12290.85]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface TimelineNode"
+      loc: 5
+    }
+    object "LightNode" @interface @public {
+      position: [2525.61, -1447.89, 12286.23]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface LightNode"
+      loc: 6
+    }
+    object "CameraNode" @interface @public {
+      position: [-2853.94, -628.23, 12283.04]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface CameraNode"
+      loc: 6
+    }
+    object "EventHandler" @interface @public {
+      position: [1697.02, 2403.26, 12278.25]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface EventHandler"
+      loc: 6
+    }
+    object "CompositionNode" @interface @public {
+      position: [-2435.17, 275.33, 12389.87]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface CompositionNode"
+      loc: 13
+    }
+    object "Severity" @public {
+      position: [362.35, -2939.58, 12273.92]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      loc: 1
+    }
+    object "Diagnostic" @interface @public {
+      position: [992.76, 2369.06, 12364.4]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface Diagnostic"
+      loc: 6
+    }
+    object "ParseResult" @public {
+      position: [2419.56, -752.64, 12373.19]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      loc: 1
+    }
+    object "ParseResultOk" @interface @public {
+      position: [-2254.57, 1934.53, 12271.26]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface ParseResultOk"
+      loc: 4
+    }
+    object "ParseResultErr" @interface @public {
+      position: [2990.93, 88.41, 12266.52]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface ParseResultErr"
+      loc: 4
+    }
+    object "ValidationResult" @interface @public {
+      position: [-2164.76, -2087.2, 12262.72]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface ValidationResult"
+      loc: 4
+    }
+    object "TraitDef" @interface @public {
+      position: [-1272.07, 2160.66, 12377.74]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface TraitDef"
+      loc: 5
+    }
+    object "CompileTarget" @public {
+      position: [2007.88, 1451.38, 12384.35]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      loc: 1
+    }
+    object "CompileResult" @public {
+      position: [-517.76, -2443.56, 12380.39]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      loc: 1
+    }
+    object "CompileResultText" @interface @public {
+      position: [192.06, 3015.99, 12258.81]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface CompileResultText"
+      loc: 4
+    }
+    object "CompileResultBinary" @interface @public {
+      position: [1901.32, -2375.85, 12254.2]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface CompileResultBinary"
+      loc: 4
+    }
+    object "CompileResultError" @interface @public {
+      position: [-3014.69, 478.16, 12251.41]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-types.d.ts"
+      signature: "interface CompileResultError"
+      loc: 4
+    }
+    object "ValidationResult" @public {
+      position: [-2164.76, -2087.2, 12262.72]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-validator.d.ts"
+      loc: 1
+    }
+    object "TraitDef" @public {
+      position: [-1272.07, 2160.66, 12377.74]
+      color: "#3178c6"
+      language: "typescript"
+      file: "public/wasm/interfaces/holoscript-core-validator.d.ts"
+      loc: 1
+    }
+    // ... 22 more symbols collapsed
+  }
+
+  spatial_group "scripts" {
+    object "STUDIO_ROOT" @public {
+      position: [-184.95, -3284.76, 12191.09]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/copy-wasm.ts"
+      loc: 1
+    }
+    object "COMPONENT_DIST" @public {
+      position: [-2086.73, 2556.16, 12188.12]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/copy-wasm.ts"
+      loc: 1
+    }
+    object "OUTPUT_DIR" @public {
+      position: [3283.43, -481.08, 12183.49]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/copy-wasm.ts"
+      loc: 1
+    }
+    object "COPY_FILES" @public {
+      position: [-2759.9, -1865.74, 12179.86]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/copy-wasm.ts"
+      loc: 6
+    }
+    object "main" @function @public {
+      position: [778.59, 3254.02, 12175.78]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/copy-wasm.ts"
+      signature: "function main(())"
+      loc: 44
+    }
+    object "prop" @function @public {
+      position: [1629.35, -2942.94, 12171.27]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/generate-models.ts"
+      signature: "function prop((key: string, value: any)): : HoloObjectProperty"
+      loc: 3
+    }
+    object "obj" @function @public {
+      position: [-3197.21, 1075.55, 12168.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/generate-models.ts"
+      signature: "function obj((
+  name: string,
+  geometry: string,
+  position: number[],
+  scale: number[],
+  color: string,
+  extra: Record<string, any> = {},
+  children?: HoloObjectDecl[]
+)): : HoloObjectDecl"
+      loc: 26
+    }
+    object "composition" @function @public {
+      position: [3100.6, 1372.65, 12163.71]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/generate-models.ts"
+      signature: "function composition((name: string, objects: HoloObjectDecl[])): : HoloComposition"
+      loc: 25
+    }
+    object "MODELS" @public {
+      position: [-1368.87, -3118.57, 12159.69]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/generate-models.ts"
+      loc: 254
+    }
+    object "outDir" @public {
+      position: [-1100.78, 3234.75, 12156.31]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/generate-models.ts"
+      loc: 1
+    }
+    object "pipeline" @public {
+      position: [3011.47, -1651.8, 12151.74]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/generate-models.ts"
+      loc: 1
+    }
+    object "result" @public {
+      position: [-860.05, -2050.82, 12432.98]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/generate-models.ts"
+      loc: 1
+    }
+    object "outPath" @public {
+      position: [-3347.8, -815.37, 12148.42]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/generate-models.ts"
+      loc: 1
+    }
+    object "kb" @public {
+      position: [1925.95, 2875.84, 12144.01]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/generate-models.ts"
+      loc: 1
+    }
+    object "args" @public {
+      position: [522.25, -3437.99, 12139.7]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "inputPath" @public {
+      position: [-2714.12, 2188.77, 12136.72]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "printStats" @public {
+      position: [3496.88, 220.2, 12132.11]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "outputJson" @public {
+      position: [-2440.84, -2531.9, 12128.31]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "cleanArgs" @public {
+      position: [88.37, 3528.28, 12124.49]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "ext" @public {
+      position: [2328.44, -2674.66, 12119.97]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "source" @public {
+      position: [-3533.03, 402.03, 12116.86]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "inputName" @public {
+      position: [2888.8, 2100.3, 12112.32]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "lineCount" @public {
+      position: [-715.95, -3513.97, 12108.2]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "startParse" @public {
+      position: [-1851.89, 3082.65, 12104.95]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "parser" @public {
+      position: [3463.68, -1026.42, 12100.4]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "result" @public {
+      position: [-860.05, -2050.82, 12432.98]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "parseTime" @public {
+      position: [-3258.24, -1586.36, 12096.84]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "loc" @public {
+      position: [1333.81, 3384.19, 12092.66]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "ast" @public {
+      position: [1307.61, -3411.11, 12088.25]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "objectCount" @public {
+      position: [-3276.7, 1635.85, 12085.16]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "parseStatus" @public {
+      position: [3535.79, 1012.97, 12080.58]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "loc" @public {
+      position: [1333.81, 3384.19, 12092.66]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "startCompile" @public {
+      position: [-1930.54, -3146, 12076.62]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "pipeline" @public {
+      position: [3011.47, -1651.8, 12151.74]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "compileTime" @public {
+      position: [-706.19, 3634.26, 12072.98]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "outputSize" @public {
+      position: [2988.79, -2211.49, 12068.45]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "outputName" @public {
+      position: [-3707.71, -388.94, 12065.09]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "stats" @public {
+      position: [2478.74, 2803.78, 12060.67]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      loc: 1
+    }
+    object "countObjects" @function @public {
+      position: [66.41, -3756.05, 12056.42]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/holo2glb.ts"
+      signature: "function countObjects((comp: any)): : number"
+      loc: 15
+    }
+    object "src" @public {
+      position: [-2593.93, 2730.29, 12053.18]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/recompile-dragon.ts"
+      loc: 4
+    }
+    object "parser" @public {
+      position: [3463.68, -1026.42, 12100.4]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/recompile-dragon.ts"
+      loc: 1
+    }
+    object "r" @public {
+      position: [3772.41, -260.32, 12048.62]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/recompile-dragon.ts"
+      loc: 1
+    }
+    object "pipeline" @public {
+      position: [3011.47, -1651.8, 12151.74]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/recompile-dragon.ts"
+      loc: 1
+    }
+    object "result" @public {
+      position: [-860.05, -2050.82, 12432.98]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/recompile-dragon.ts"
+      loc: 1
+    }
+    object "out" @public {
+      position: [-2966.75, -2363.38, 12044.84]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/recompile-dragon.ts"
+      loc: 1
+    }
+    object "abs" @public {
+      position: [589.82, 3759.25, 12040.85]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/test-parse.ts"
+      loc: 1
+    }
+    object "src" @public {
+      position: [-2593.93, 2730.29, 12053.18]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/test-parse.ts"
+      loc: 1
+    }
+    object "parser" @public {
+      position: [3463.68, -1026.42, 12100.4]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/test-parse.ts"
+      loc: 1
+    }
+    object "r" @public {
+      position: [3772.41, -260.32, 12048.62]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/test-parse.ts"
+      loc: 1
+    }
+    object "lines" @public {
+      position: [2113.54, -3182.27, 12036.37]
+      color: "#3178c6"
+      language: "typescript"
+      file: "scripts/test-parse.ts"
+      loc: 1
+    }
+    // ... 8 more symbols collapsed
+  }
+
+  spatial_group "src" {
+    object "AssetPackItem" @interface @public {
+      position: [1879.63, 3423.4, 12008.57]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/asset-packs/route.ts"
+      signature: "interface AssetPackItem"
+      loc: 7
+    }
+    object "AssetPack" @interface @public {
+      position: [930.89, -3807.28, 12004.2]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/asset-packs/route.ts"
+      signature: "interface AssetPack"
+      loc: 11
+    }
+    object "PACKS" @public {
+      position: [-3266.97, 2181.87, 12000.91]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/asset-packs/route.ts"
+      loc: 281
+    }
+    object "GET" @function @public {
+      position: [3896.6, 602.85, 11996.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/asset-packs/route.ts"
+      signature: "function GET((request: NextRequest))"
+      loc: 15
+    }
+    object "UPLOAD_DIR" @public {
+      position: [-2472.83, -3086.35, 11992.4]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/assets/process/route.ts"
+      loc: 1
+    }
+    object "ensureUploadDir" @function @public {
+      position: [-265.82, 3956.92, 11988.57]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/assets/process/route.ts"
+      signature: "function ensureUploadDir(())"
+      loc: 5
+    }
+    object "POST" @function @public {
+      position: [2880.58, -2746.6, 11984.06]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/assets/process/route.ts"
+      signature: "function POST((req: Request))"
+      loc: 78
+    }
+    object "GET" @function @public {
+      position: [3896.6, 602.85, 11996.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/assets/process/route.ts"
+      signature: "function GET((req: Request))"
+      loc: 35
+    }
+    object "AssetCategory" @public {
+      position: [-3988.9, 78.27, 11980.63]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/assets/route.ts"
+      loc: 1
+    }
+    object "Asset" @interface @public {
+      position: [3001.95, 2648.19, 11976.19]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/assets/route.ts"
+      signature: "interface Asset"
+      loc: 12
+    }
+    object "SEED_ASSETS" @public {
+      position: [-424.85, -3993.44, 11971.97]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/assets/route.ts"
+      loc: 149
+    }
+    object "catalog" @public {
+      position: [-2392.37, 3237.37, 11968.52]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/assets/route.ts"
+      loc: 2
+    }
+    object "GET" @function @public {
+      position: [3896.6, 602.85, 11996.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/assets/route.ts"
+      signature: "function GET((request: NextRequest))"
+      loc: 19
+    }
+    object "AudioType" @public {
+      position: [3965.2, -771.21, 11963.99]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/audio/route.ts"
+      loc: 1
+    }
+    object "AudioPreset" @interface @public {
+      position: [-3453.28, -2116.34, 11960.22]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/audio/route.ts"
+      signature: "interface AudioPreset"
+      loc: 13
+    }
+    object "PRESETS" @public {
+      position: [1116.28, 3905.63, 11956.11]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/audio/route.ts"
+      loc: 109
+    }
+    object "presets" @public {
+      position: [1822.84, -3645.24, 11951.67]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/audio/route.ts"
+      loc: 1
+    }
+    object "GET" @function @public {
+      position: [3896.6, 602.85, 11996.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/audio/route.ts"
+      signature: "function GET((request: NextRequest))"
+      loc: 14
+    }
+    object "AudioPreset" @interface @public {
+      position: [-3453.28, -2116.34, 11960.22]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/audio-presets/route.ts"
+      signature: "interface AudioPreset"
+      loc: 14
+    }
+    object "PRESETS" @public {
+      position: [1116.28, 3905.63, 11956.11]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/audio-presets/route.ts"
+      loc: 165
+    }
+    object "GET" @function @public {
+      position: [3896.6, 602.85, 11996.36]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/audio-presets/route.ts"
+      signature: "function GET((request: NextRequest))"
+      loc: 12
+    }
+    object "OLLAMA_BASE" @public {
+      position: [-3815.66, 1457.74, 11948.3]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/autocomplete/route.ts"
+      loc: 1
+    }
+    object "MODEL" @public {
+      position: [3809.58, 1510.54, 11943.8]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/autocomplete/route.ts"
+      loc: 1
+    }
+    object "CompletionRequest" @interface @public {
+      position: [-1792.65, -3698.42, 11939.72]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/autocomplete/route.ts"
+      signature: "interface CompletionRequest"
+      loc: 5
+    }
+    object "buildPrompt" @function @public {
+      position: [-1182.86, 3946.61, 11936.04]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/autocomplete/route.ts"
+      signature: "function buildPrompt((prefix: string, suffix: string))"
+      loc: 3
+    }
+    object "POST" @function @public {
+      position: [2880.58, -2746.6, 11984.06]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/autocomplete/route.ts"
+      signature: "function POST((request: Request))"
+      loc: 47
+    }
+    object "SYSTEM_PROMPT" @public {
+      position: [3551.12, -2115.93, 11931.53]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 19
+    }
+    object "BRITTNEY_SERVICE_URL" @public {
+      position: [-4056.96, -842.06, 11927.94]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "response" @public {
+      position: [2426.83, 3373.6, 11923.62]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 5
+    }
+    object "reader" @public {
+      position: [492.61, -4139.28, 11919.32]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "decoder" @public {
+      position: [-3168.03, 2723.06, 11915.9]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "buffer" @public {
+      position: [4188.62, 135.51, 11911.38]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "{ done, value }" @public {
+      position: [-3003.72, -2937.92, 11907.48]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "lines" @public {
+      position: [2113.54, -3182.27, 12036.37]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "trimmed" @public {
+      position: [226.97, 4206.31, 11903.53]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "event" @public {
+      position: [2684.05, -3263.58, 11899.08]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 4
+    }
+    object "ollamaUrl" @public {
+      position: [-4192.91, 592.58, 11895.62]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "model" @public {
+      position: [3500.4, 2405.34, 11891.19]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "systemMsg" @public {
+      position: [-957.3, -4149.94, 11887.03]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "response" @public {
+      position: [2426.83, 3373.6, 11923.62]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 10
+    }
+    object "reader" @public {
+      position: [492.61, -4139.28, 11919.32]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "decoder" @public {
+      position: [-3168.03, 2723.06, 11915.9]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "buffer" @public {
+      position: [4188.62, 135.51, 11911.38]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "{ done, value }" @public {
+      position: [-3003.72, -2937.92, 11907.48]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "lines" @public {
+      position: [2113.54, -3182.27, 12036.37]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "chunk" @public {
+      position: [-2105.01, 3713.1, 11883.46]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "apiKey" @public {
+      position: [4073.55, -1317.39, 11878.97]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "model" @public {
+      position: [3500.4, 2405.34, 11891.19]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "systemMsg" @public {
+      position: [-957.3, -4149.94, 11887.03]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 1
+    }
+    object "response" @public {
+      position: [2426.83, 3373.6, 11923.62]
+      color: "#3178c6"
+      language: "typescript"
+      file: "src/app/api/brittney/route.ts"
+      loc: 13
+    }
+    // ... 10870 more symbols collapsed
+  }
+
+  logic {
+    on_interact("test"): { test() }
+    on_interact("test"): { test() }
+    on_interact("walk"): { walk() }
+    on_interact("walk"): { walk() }
+    on_interact("runBenchmark"): { runBenchmark() }
+    on_interact("runBenchmark"): { runBenchmark() }
+    on_interact("quickBenchmark"): { quickBenchmark() }
+    on_interact("main"): { main() }
+    on_interact("prop"): { prop() }
+    on_interact("obj"): { obj() }
+    on_interact("composition"): { composition() }
+    on_interact("countObjects"): { countObjects() }
+    on_interact("ensureUploadDir"): { ensureUploadDir() }
+    on_interact("buildPrompt"): { buildPrompt() }
+    on_interact("gradeFromScore"): { gradeFromScore() }
+    on_interact("analyseCode"): { analyseCode() }
+    on_interact("buildFrames"): { buildFrames() }
+    on_interact("buildVars"): { buildVars() }
+    on_interact("findExamplesDir"): { findExamplesDir() }
+    on_interact("extractDescription"): { extractDescription() }
+    on_interact("extractTraits"): { extractTraits() }
+    on_interact("extractTraits"): { extractTraits() }
+    on_interact("extractTraits"): { extractTraits() }
+    on_interact("prettifyName"): { prettifyName() }
+    on_interact("scanExamples"): { scanExamples() }
+    on_interact("eulerToQuat"): { eulerToQuat() }
+    on_interact("buildGltf"): { buildGltf() }
+    on_interact("encodeGLB"): { encodeGLB() }
+    on_interact("parseScene"): { parseScene() }
+    on_interact("toGLTF"): { toGLTF() }
+    on_interact("toUSD"): { toUSD() }
+    on_interact("toJSON"): { toJSON() }
+    on_interact("crc32"): { crc32() }
+    on_interact("crc32"): { crc32() }
+    on_interact("buildZip"): { buildZip() }
+    on_interact("buildZip"): { buildZip() }
+    on_interact("toOBJ"): { toOBJ() }
+    on_interact("toFBX"): { toFBX() }
+    on_interact("tryBrittneyCloud"): { tryBrittneyCloud() }
+    on_interact("tryLLMService"): { tryLLMService() }
+    on_interact("tryOllama"): { tryOllama() }
+    on_interact("extractHoloScript"): { extractHoloScript() }
+    on_interact("uid"): { uid() }
+    on_interact("uid"): { uid() }
+    on_interact("fetchPolyHaven"): { fetchPolyHaven() }
+    on_interact("normalizeType"): { normalizeType() }
+    on_interact("shortType"): { shortType() }
+    on_interact("ensurePublishDir"): { ensurePublishDir() }
+    on_interact("makePackId"): { makePackId() }
+    on_interact("getRegistry"): { getRegistry() }
+    on_interact("getRegistry"): { getRegistry() }
+    on_interact("getRegistry"): { getRegistry() }
+    on_interact("pruneExpired"): { pruneExpired() }
+    on_interact("parseHoloScript"): { parseHoloScript() }
+    on_interact("broadcast"): { broadcast() }
+    on_interact("broadcast"): { broadcast() }
+    on_interact("broadcast"): { broadcast() }
+    on_interact("makeVersionId"): { makeVersionId() }
+    on_interact("randomPick"): { randomPick() }
+    on_interact("randomPick"): { randomPick() }
+    on_interact("randomFloat"): { randomFloat() }
+    on_interact("randomFloat"): { randomFloat() }
+    on_interact("randomFloat"): { randomFloat() }
+    on_interact("randomInt"): { randomInt() }
+    on_interact("randomInt"): { randomInt() }
+    on_interact("randomInt"): { randomInt() }
+    on_interact("randomHex"): { randomHex() }
+    on_interact("generateTraitDefinition"): { generateTraitDefinition() }
+    on_interact("generateCompositionLine"): { generateCompositionLine() }
+    on_interact("generateSpatialEquation"): { generateSpatialEquation() }
+    on_interact("generateSpatialEquation"): { generateSpatialEquation() }
+    on_interact("validateTraitSyntax"): { validateTraitSyntax() }
+    on_interact("validateCompositionSyntax"): { validateCompositionSyntax() }
+    on_interact("executeJob"): { executeJob() }
+    on_interact("quickParse"): { quickParse() }
+    on_interact("handleOpen"): { handleOpen() }
+    on_interact("handleDelete"): { handleDelete() }
+    on_interact("sendCommand"): { sendCommand() }
+    on_interact("fetchScene"): { fetchScene() }
+    on_interact("fetchScene"): { fetchScene() }
+    on_interact("handleGenerate"): { handleGenerate() }
+    on_interact("copyText"): { copyText() }
+    on_interact("handler"): { handler() }
+    on_interact("handler"): { handler() }
+    on_interact("handleUse"): { handleUse() }
+    on_interact("makeId"): { makeId() }
+    on_interact("loadGLTFFromBuffer"): { loadGLTFFromBuffer() }
+    on_interact("useAssetDropProcessor"): { useAssetDropProcessor() }
+    on_interact("useAssetDropProcessor"): { useAssetDropProcessor() }
+    on_interact("makeTraitSnippet"): { makeTraitSnippet() }
+    on_interact("copyTrait"): { copyTrait() }
+    on_interact("generateSnippet"): { generateSnippet() }
+    on_interact("copySnippet"): { copySnippet() }
+    on_interact("copy"): { copy() }
+    on_interact("handleTimelineClick"): { handleTimelineClick() }
+    on_interact("handleFileSelect"): { handleFileSelect() }
+    on_interact("handleSelectTemplate"): { handleSelectTemplate() }
+    on_interact("getCategoryIcon"): { getCategoryIcon() }
+    on_interact("getCategoryColor"): { getCategoryColor() }
+    on_interact("sliderToWeight"): { sliderToWeight() }
+    // ... 100+ edges (truncated for readability)
+  }
+
+}
