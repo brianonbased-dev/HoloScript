@@ -1300,6 +1300,242 @@ export interface CompiledRobotics {
 }
 
 // =============================================================================
+// COMPILED IoT IR (v4.8)
+// =============================================================================
+
+export interface CompiledIoT {
+  name: string;
+  keyword: string;
+  /** Device type: sensor, actuator, gateway, controller */
+  deviceType?: string;
+  /** Communication protocol: mqtt, coap, http, websocket, zigbee, ble */
+  protocol?: string;
+  /** Telemetry fields to stream */
+  telemetryFields?: string[];
+  /** Update interval in milliseconds */
+  updateInterval?: number;
+  /** Digital twin model reference */
+  twinModel?: string;
+  /** Data bindings (property -> source) */
+  bindings?: Record<string, string>;
+  traits: string[];
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
+// COMPILED DataViz IR (v4.8)
+// =============================================================================
+
+export interface CompiledDataViz {
+  name: string;
+  keyword: string;
+  /** Chart type: bar, line, scatter, pie, heatmap, treemap, network */
+  chartType?: string;
+  /** Data source reference or inline data */
+  dataSource?: string;
+  /** Axes configuration */
+  axes?: { x?: string; y?: string; z?: string };
+  /** Metric aggregation: sum, avg, min, max, count */
+  aggregation?: string;
+  /** Refresh interval in ms */
+  refreshInterval?: number;
+  /** Widget dimensions */
+  dimensions?: { width: number; height: number };
+  traits: string[];
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
+// COMPILED Education IR (v4.8)
+// =============================================================================
+
+export interface CompiledEducation {
+  name: string;
+  keyword: string;
+  /** Content type: lesson, quiz, curriculum, exercise */
+  contentType?: string;
+  /** Difficulty level: beginner, intermediate, advanced */
+  difficulty?: string;
+  /** Learning objectives */
+  objectives?: string[];
+  /** Quiz questions (for quiz keyword) */
+  questions?: Array<{ question: string; options?: string[]; answer?: string }>;
+  /** Prerequisites (lesson/module names) */
+  prerequisites?: string[];
+  /** Estimated duration in minutes */
+  duration?: number;
+  traits: string[];
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
+// COMPILED Music IR (v4.8)
+// =============================================================================
+
+export interface CompiledMusic {
+  name: string;
+  keyword: string;
+  /** Instrument type: synth, sampler, drum_machine, effect */
+  instrumentType?: string;
+  /** Tempo in BPM */
+  bpm?: number;
+  /** Time signature: [numerator, denominator] */
+  timeSignature?: [number, number];
+  /** Key signature: C, Am, F#m, etc. */
+  key?: string;
+  /** Audio effect chain names */
+  effects?: string[];
+  /** Sequence pattern (note data) */
+  pattern?: string;
+  /** Number of bars/measures */
+  bars?: number;
+  traits: string[];
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
+// COMPILED Architecture IR (v4.8)
+// =============================================================================
+
+export interface CompiledArchitecture {
+  name: string;
+  keyword: string;
+  /** Structure type: room, floor, building, zone */
+  structureType?: string;
+  /** Floor area in square meters */
+  area?: number;
+  /** Height in meters */
+  height?: number;
+  /** Wall material */
+  wallMaterial?: string;
+  /** Floor material */
+  floorMaterial?: string;
+  /** HVAC zone temperature setpoint (Celsius) */
+  temperatureSetpoint?: number;
+  /** Occupancy capacity */
+  capacity?: number;
+  /** Building code reference */
+  buildingCode?: string;
+  traits: string[];
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
+// COMPILED Web3 IR (v4.8)
+// =============================================================================
+
+export interface CompiledWeb3 {
+  name: string;
+  keyword: string;
+  /** Contract/token standard: ERC20, ERC721, ERC1155, custom */
+  standard?: string;
+  /** Blockchain network: ethereum, polygon, base, solana, arbitrum */
+  network?: string;
+  /** Contract address */
+  contractAddress?: string;
+  /** ABI function signatures */
+  functions?: string[];
+  /** Token supply (for token keyword) */
+  supply?: number;
+  /** Governance voting threshold */
+  votingThreshold?: number;
+  traits: string[];
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
+// COMPILED Procedural IR (v4.8)
+// =============================================================================
+
+export interface CompiledProcedural {
+  name: string;
+  keyword: string;
+  /** Generation type: terrain, scatter, distribute, L-system, noise */
+  genType?: string;
+  /** Random seed */
+  seed?: number;
+  /** Density for scatter/distribute */
+  density?: number;
+  /** Scale range [min, max] */
+  scaleRange?: [number, number];
+  /** Noise parameters */
+  noise?: { type: string; octaves: number; frequency: number; amplitude: number };
+  /** Source mesh/prefab to scatter */
+  sourceMesh?: string;
+  traits: string[];
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
+// COMPILED Rendering IR (v4.8)
+// =============================================================================
+
+export interface CompiledRendering {
+  name: string;
+  keyword: string;
+  /** LOD levels with distance thresholds */
+  lodLevels?: Array<{ distance: number; mesh?: string; detail?: number }>;
+  /** Render layer/queue */
+  renderLayer?: string;
+  /** Shadow mode: none, cast, receive, both */
+  shadowMode?: string;
+  /** Culling mode: none, frustum, occlusion */
+  cullingMode?: string;
+  /** Draw order priority */
+  sortOrder?: number;
+  traits: string[];
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
+// COMPILED Navigation IR (v4.8)
+// =============================================================================
+
+export interface CompiledNavigation {
+  name: string;
+  keyword: string;
+  /** Agent radius for navmesh generation */
+  agentRadius?: number;
+  /** Agent height */
+  agentHeight?: number;
+  /** Max slope angle in degrees */
+  maxSlope?: number;
+  /** Step height */
+  stepHeight?: number;
+  /** Agent speed */
+  speed?: number;
+  /** Avoidance priority */
+  avoidancePriority?: number;
+  /** Behavior tree root node type */
+  behaviorRoot?: string;
+  traits: string[];
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
+// COMPILED Input IR (v4.8)
+// =============================================================================
+
+export interface CompiledInput {
+  name: string;
+  keyword: string;
+  /** Input type: button, axis, gesture, gaze, hand_tracking */
+  inputType?: string;
+  /** Platform binding: keyboard, gamepad, vr_controller, touch */
+  platform?: string;
+  /** Key/button binding */
+  binding?: string;
+  /** Action name mapped to this input */
+  action?: string;
+  /** Gesture recognition threshold */
+  threshold?: number;
+  /** Interaction distance (for spatial inputs) */
+  interactionDistance?: number;
+  traits: string[];
+  properties: Record<string, unknown>;
+}
+
+// =============================================================================
 // NORM LIFECYCLE BLOCKS (v4.5 — March 2026)
 // CRSEC Model: Creation, Representation, Spreading, Evaluation, Compliance
 //

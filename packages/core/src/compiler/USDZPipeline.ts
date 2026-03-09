@@ -37,6 +37,26 @@ import {
   healthcareToUSDA,
   compileRoboticsBlock,
   roboticsToUSDA,
+  compileIoTBlock,
+  iotToUSDA,
+  compileDataVizBlock,
+  datavizToUSDA,
+  compileEducationBlock,
+  educationToUSDA,
+  compileMusicBlock,
+  musicToUSDA,
+  compileArchitectureBlock,
+  architectureToUSDA,
+  compileWeb3Block,
+  web3ToUSDA,
+  compileProceduralBlock,
+  proceduralToUSDA,
+  compileRenderingBlock,
+  renderingToUSDA,
+  compileNavigationBlock,
+  navigationToUSDA,
+  compileInputBlock,
+  inputToUSDA,
 } from './DomainBlockCompilerMixin';
 import { MATERIAL_PRESETS } from './R3FCompiler';
 
@@ -1099,6 +1119,16 @@ export class USDZPipeline {
           const r = compileRoboticsBlock(block);
           return roboticsToUSDA(r);
         },
+        iot: (block) => iotToUSDA(compileIoTBlock(block)),
+        dataviz: (block) => datavizToUSDA(compileDataVizBlock(block)),
+        education: (block) => educationToUSDA(compileEducationBlock(block)),
+        music: (block) => musicToUSDA(compileMusicBlock(block)),
+        architecture: (block) => architectureToUSDA(compileArchitectureBlock(block)),
+        web3: (block) => web3ToUSDA(compileWeb3Block(block)),
+        procedural: (block) => proceduralToUSDA(compileProceduralBlock(block)),
+        rendering: (block) => renderingToUSDA(compileRenderingBlock(block)),
+        navigation: (block) => navigationToUSDA(compileNavigationBlock(block)),
+        input: (block) => inputToUSDA(compileInputBlock(block)),
       },
       (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`
     );

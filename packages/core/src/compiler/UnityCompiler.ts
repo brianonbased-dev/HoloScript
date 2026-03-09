@@ -53,6 +53,26 @@ import {
   healthcareToUnity,
   compileRoboticsBlock,
   roboticsToUnity,
+  compileIoTBlock,
+  iotToUnity,
+  compileDataVizBlock,
+  datavizToUnity,
+  compileEducationBlock,
+  educationToUnity,
+  compileMusicBlock,
+  musicToUnity,
+  compileArchitectureBlock,
+  architectureToUnity,
+  compileWeb3Block,
+  web3ToUnity,
+  compileProceduralBlock,
+  proceduralToUnity,
+  compileRenderingBlock,
+  renderingToUnity,
+  compileNavigationBlock,
+  navigationToUnity,
+  compileInputBlock,
+  inputToUnity,
 } from './DomainBlockCompilerMixin';
 
 export interface UnityCompilerOptions {
@@ -275,6 +295,16 @@ export class UnityCompiler extends CompilerBase {
           const r = compileRoboticsBlock(block);
           return roboticsToUnity(r);
         },
+        iot: (block) => iotToUnity(compileIoTBlock(block)),
+        dataviz: (block) => datavizToUnity(compileDataVizBlock(block)),
+        education: (block) => educationToUnity(compileEducationBlock(block)),
+        music: (block) => musicToUnity(compileMusicBlock(block)),
+        architecture: (block) => architectureToUnity(compileArchitectureBlock(block)),
+        web3: (block) => web3ToUnity(compileWeb3Block(block)),
+        procedural: (block) => proceduralToUnity(compileProceduralBlock(block)),
+        rendering: (block) => renderingToUnity(compileRenderingBlock(block)),
+        navigation: (block) => navigationToUnity(compileNavigationBlock(block)),
+        input: (block) => inputToUnity(compileInputBlock(block)),
       },
       (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
     );

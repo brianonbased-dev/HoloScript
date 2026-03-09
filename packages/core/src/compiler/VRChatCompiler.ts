@@ -46,6 +46,26 @@ import {
   healthcareToVRChat,
   compileRoboticsBlock,
   roboticsToVRChat,
+  compileIoTBlock,
+  iotToVRChat,
+  compileDataVizBlock,
+  datavizToVRChat,
+  compileEducationBlock,
+  educationToVRChat,
+  compileMusicBlock,
+  musicToVRChat,
+  compileArchitectureBlock,
+  architectureToVRChat,
+  compileWeb3Block,
+  web3ToVRChat,
+  compileProceduralBlock,
+  proceduralToVRChat,
+  compileRenderingBlock,
+  renderingToVRChat,
+  compileNavigationBlock,
+  navigationToVRChat,
+  compileInputBlock,
+  inputToVRChat,
 } from './DomainBlockCompilerMixin';
 
 export interface VRChatCompilerOptions {
@@ -299,6 +319,16 @@ export class VRChatCompiler extends CompilerBase {
           const r = compileRoboticsBlock(block);
           return roboticsToVRChat(r);
         },
+        iot: (block) => iotToVRChat(compileIoTBlock(block)),
+        dataviz: (block) => datavizToVRChat(compileDataVizBlock(block)),
+        education: (block) => educationToVRChat(compileEducationBlock(block)),
+        music: (block) => musicToVRChat(compileMusicBlock(block)),
+        architecture: (block) => architectureToVRChat(compileArchitectureBlock(block)),
+        web3: (block) => web3ToVRChat(compileWeb3Block(block)),
+        procedural: (block) => proceduralToVRChat(compileProceduralBlock(block)),
+        rendering: (block) => renderingToVRChat(compileRenderingBlock(block)),
+        navigation: (block) => navigationToVRChat(compileNavigationBlock(block)),
+        input: (block) => inputToVRChat(compileInputBlock(block)),
       },
       (block) => `// Domain block: ${block.domain}/${block.keyword} "${block.name}"`
     );

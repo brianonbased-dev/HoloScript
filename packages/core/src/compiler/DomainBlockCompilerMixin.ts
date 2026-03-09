@@ -3309,6 +3309,1111 @@ export function roboticsToUSDA(robotics: CompiledRobotics): string {
 }
 
 // =============================================================================
+// IoT Domain Compilation
+// =============================================================================
+
+import type {
+  CompiledIoT,
+  CompiledDataViz,
+  CompiledEducation,
+  CompiledMusic,
+  CompiledArchitecture,
+  CompiledWeb3,
+  CompiledProcedural,
+  CompiledRendering,
+  CompiledNavigation,
+  CompiledInput,
+} from '../parser/HoloCompositionTypes';
+
+export function compileIoTBlock(block: HoloDomainBlock): CompiledIoT {
+  const props = block.properties || {};
+  let telemetryFields: string[] | undefined;
+  if (Array.isArray(props.telemetry_fields)) {
+    telemetryFields = props.telemetry_fields as string[];
+  } else if (typeof props.telemetry_fields === 'string') {
+    telemetryFields = [props.telemetry_fields as string];
+  }
+  let bindings: Record<string, string> | undefined;
+  if (props.bindings && typeof props.bindings === 'object') {
+    bindings = props.bindings as Record<string, string>;
+  }
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    deviceType: (props.device_type || props.type) as string | undefined,
+    protocol: props.protocol as string | undefined,
+    telemetryFields,
+    updateInterval: props.update_interval as number | undefined,
+    twinModel: (props.twin_model || props.model) as string | undefined,
+    bindings,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+export function iotToR3F(iot: CompiledIoT): string {
+  const safeName = iot.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// IoT: ${iot.name} (${iot.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${iot.name}",`);
+  lines.push(`  type: "${iot.keyword}",`);
+  if (iot.deviceType) lines.push(`  deviceType: "${iot.deviceType}",`);
+  if (iot.protocol) lines.push(`  protocol: "${iot.protocol}",`);
+  if (iot.telemetryFields) lines.push(`  telemetryFields: [${iot.telemetryFields.map((f) => `"${f}"`).join(', ')}],`);
+  if (iot.updateInterval) lines.push(`  updateInterval: ${iot.updateInterval},`);
+  if (iot.twinModel) lines.push(`  twinModel: "${iot.twinModel}",`);
+  lines.push('};');
+  return lines.join('\n');
+}
+
+export function iotToUnity(iot: CompiledIoT): string {
+  const safeName = iot.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// IoT: ${iot.name}`);
+  lines.push(`public class ${safeName}IoT : MonoBehaviour {`);
+  lines.push(`    public string deviceType = "${iot.keyword}";`);
+  if (iot.protocol) lines.push(`    public string protocol = "${iot.protocol}";`);
+  if (iot.updateInterval) lines.push(`    public float updateInterval = ${iot.updateInterval / 1000}f;`);
+  if (iot.telemetryFields) lines.push(`    public string[] telemetryFields = new string[] { ${iot.telemetryFields.map((f) => `"${f}"`).join(', ')} };`);
+  if (iot.twinModel) lines.push(`    public string twinModel = "${iot.twinModel}";`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function iotToGodot(iot: CompiledIoT): string {
+  const lines: string[] = [];
+  lines.push(`# IoT: ${iot.name}`);
+  lines.push('extends Node');
+  lines.push('');
+  lines.push(`@export var device_type: String = "${iot.keyword}"`);
+  if (iot.protocol) lines.push(`@export var protocol: String = "${iot.protocol}"`);
+  if (iot.updateInterval) lines.push(`@export var update_interval: float = ${iot.updateInterval / 1000}`);
+  if (iot.telemetryFields) lines.push(`@export var telemetry_fields: PackedStringArray = [${iot.telemetryFields.map((f) => `"${f}"`).join(', ')}]`);
+  if (iot.twinModel) lines.push(`@export var twin_model: String = "${iot.twinModel}"`);
+  lines.push('');
+  lines.push('signal telemetry_received(field: String, value: float)');
+  lines.push('signal connection_changed(connected: bool)');
+  return lines.join('\n');
+}
+
+export function iotToVRChat(iot: CompiledIoT): string {
+  const safeName = iot.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// IoT: ${iot.name}`);
+  lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
+  lines.push(`public class ${safeName}IoT : UdonSharpBehaviour {`);
+  lines.push(`    public string deviceType = "${iot.keyword}";`);
+  if (iot.telemetryFields) lines.push(`    [UdonSynced] public string telemetryData = "";`);
+  if (iot.updateInterval) lines.push(`    public float updateInterval = ${iot.updateInterval / 1000}f;`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function iotToUSDA(iot: CompiledIoT): string {
+  const safeName = iot.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`def Scope "IoT_${safeName}" {`);
+  lines.push(`    custom string holoscript:deviceType = "${iot.keyword}"`);
+  if (iot.protocol) lines.push(`    custom string holoscript:protocol = "${iot.protocol}"`);
+  if (iot.updateInterval) lines.push(`    custom float holoscript:updateInterval = ${iot.updateInterval}`);
+  if (iot.twinModel) lines.push(`    custom string holoscript:twinModel = "${iot.twinModel}"`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// DataViz Domain Compilation
+// =============================================================================
+
+export function compileDataVizBlock(block: HoloDomainBlock): CompiledDataViz {
+  const props = block.properties || {};
+  let axes: CompiledDataViz['axes'];
+  if (props.x_axis || props.y_axis || props.z_axis) {
+    axes = { x: props.x_axis as string, y: props.y_axis as string, z: props.z_axis as string };
+  } else if (props.axes && typeof props.axes === 'object') {
+    const a = props.axes as Record<string, any>;
+    axes = { x: a.x, y: a.y, z: a.z };
+  }
+  let dimensions: CompiledDataViz['dimensions'];
+  if (props.width != null || props.height != null) {
+    dimensions = { width: (props.width as number) ?? 400, height: (props.height as number) ?? 300 };
+  }
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    chartType: (props.chart_type || props.type) as string | undefined,
+    dataSource: (props.data_source || props.source) as string | undefined,
+    axes,
+    aggregation: props.aggregation as string | undefined,
+    refreshInterval: props.refresh_interval as number | undefined,
+    dimensions,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+export function datavizToR3F(dv: CompiledDataViz): string {
+  const safeName = dv.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// DataViz: ${dv.name} (${dv.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${dv.name}",`);
+  lines.push(`  type: "${dv.keyword}",`);
+  if (dv.chartType) lines.push(`  chartType: "${dv.chartType}",`);
+  if (dv.dataSource) lines.push(`  dataSource: "${dv.dataSource}",`);
+  if (dv.axes) lines.push(`  axes: ${JSON.stringify(dv.axes)},`);
+  if (dv.aggregation) lines.push(`  aggregation: "${dv.aggregation}",`);
+  if (dv.refreshInterval) lines.push(`  refreshInterval: ${dv.refreshInterval},`);
+  if (dv.dimensions) lines.push(`  dimensions: { width: ${dv.dimensions.width}, height: ${dv.dimensions.height} },`);
+  lines.push('};');
+  return lines.join('\n');
+}
+
+export function datavizToUnity(dv: CompiledDataViz): string {
+  const safeName = dv.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// DataViz: ${dv.name}`);
+  lines.push(`public class ${safeName}DataViz : MonoBehaviour {`);
+  lines.push(`    public string vizType = "${dv.keyword}";`);
+  if (dv.chartType) lines.push(`    public string chartType = "${dv.chartType}";`);
+  if (dv.dataSource) lines.push(`    public string dataSource = "${dv.dataSource}";`);
+  if (dv.refreshInterval) lines.push(`    public float refreshInterval = ${dv.refreshInterval / 1000}f;`);
+  if (dv.dimensions) {
+    lines.push(`    public float width = ${dv.dimensions.width}f;`);
+    lines.push(`    public float height = ${dv.dimensions.height}f;`);
+  }
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function datavizToGodot(dv: CompiledDataViz): string {
+  const lines: string[] = [];
+  lines.push(`# DataViz: ${dv.name}`);
+  lines.push('extends Control');
+  lines.push('');
+  lines.push(`@export var viz_type: String = "${dv.keyword}"`);
+  if (dv.chartType) lines.push(`@export var chart_type: String = "${dv.chartType}"`);
+  if (dv.dataSource) lines.push(`@export var data_source: String = "${dv.dataSource}"`);
+  if (dv.refreshInterval) lines.push(`@export var refresh_interval: float = ${dv.refreshInterval / 1000}`);
+  if (dv.dimensions) {
+    lines.push(`@export var chart_width: float = ${dv.dimensions.width}`);
+    lines.push(`@export var chart_height: float = ${dv.dimensions.height}`);
+  }
+  lines.push('');
+  lines.push('signal data_updated(values: Array)');
+  return lines.join('\n');
+}
+
+export function datavizToVRChat(dv: CompiledDataViz): string {
+  const safeName = dv.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// DataViz: ${dv.name}`);
+  lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
+  lines.push(`public class ${safeName}DataViz : UdonSharpBehaviour {`);
+  lines.push(`    public string vizType = "${dv.keyword}";`);
+  if (dv.chartType) lines.push(`    public string chartType = "${dv.chartType}";`);
+  if (dv.dataSource) lines.push(`    [UdonSynced] public string dataJson = "";`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function datavizToUSDA(dv: CompiledDataViz): string {
+  const safeName = dv.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`def Scope "DataViz_${safeName}" {`);
+  lines.push(`    custom string holoscript:vizType = "${dv.keyword}"`);
+  if (dv.chartType) lines.push(`    custom string holoscript:chartType = "${dv.chartType}"`);
+  if (dv.dataSource) lines.push(`    custom string holoscript:dataSource = "${dv.dataSource}"`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Education Domain Compilation
+// =============================================================================
+
+export function compileEducationBlock(block: HoloDomainBlock): CompiledEducation {
+  const props = block.properties || {};
+  let objectives: string[] | undefined;
+  if (Array.isArray(props.objectives)) objectives = props.objectives as string[];
+  let prerequisites: string[] | undefined;
+  if (Array.isArray(props.prerequisites)) prerequisites = props.prerequisites as string[];
+  let questions: CompiledEducation['questions'];
+  if (Array.isArray(props.questions)) {
+    questions = (props.questions as any[]).map((q) =>
+      typeof q === 'string' ? { question: q } : q
+    );
+  }
+  // Extract questions from children (quiz sub-blocks)
+  for (const child of block.children || []) {
+    const c = child as any;
+    if (c.keyword === 'question' && c.name) {
+      if (!questions) questions = [];
+      questions.push({
+        question: c.name,
+        options: c.properties?.options as string[] | undefined,
+        answer: c.properties?.answer as string | undefined,
+      });
+    }
+  }
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    contentType: (props.content_type || block.keyword) as string,
+    difficulty: props.difficulty as string | undefined,
+    objectives,
+    questions,
+    prerequisites,
+    duration: props.duration as number | undefined,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+export function educationToR3F(edu: CompiledEducation): string {
+  const safeName = edu.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Education: ${edu.name} (${edu.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${edu.name}",`);
+  lines.push(`  type: "${edu.keyword}",`);
+  if (edu.difficulty) lines.push(`  difficulty: "${edu.difficulty}",`);
+  if (edu.objectives) lines.push(`  objectives: [${edu.objectives.map((o) => `"${o}"`).join(', ')}],`);
+  if (edu.duration) lines.push(`  duration: ${edu.duration},`);
+  if (edu.questions) lines.push(`  questions: ${JSON.stringify(edu.questions)},`);
+  if (edu.prerequisites) lines.push(`  prerequisites: [${edu.prerequisites.map((p) => `"${p}"`).join(', ')}],`);
+  lines.push('};');
+  return lines.join('\n');
+}
+
+export function educationToUnity(edu: CompiledEducation): string {
+  const safeName = edu.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Education: ${edu.name}`);
+  lines.push(`public class ${safeName}Education : MonoBehaviour {`);
+  lines.push(`    public string contentType = "${edu.keyword}";`);
+  if (edu.difficulty) lines.push(`    public string difficulty = "${edu.difficulty}";`);
+  if (edu.duration) lines.push(`    public int durationMinutes = ${edu.duration};`);
+  if (edu.objectives) lines.push(`    public string[] objectives = new string[] { ${edu.objectives.map((o) => `"${o}"`).join(', ')} };`);
+  if (edu.questions) lines.push(`    public int questionCount = ${edu.questions.length};`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function educationToGodot(edu: CompiledEducation): string {
+  const lines: string[] = [];
+  lines.push(`# Education: ${edu.name}`);
+  lines.push('extends Node');
+  lines.push('');
+  lines.push(`@export var content_type: String = "${edu.keyword}"`);
+  if (edu.difficulty) lines.push(`@export var difficulty: String = "${edu.difficulty}"`);
+  if (edu.duration) lines.push(`@export var duration_minutes: int = ${edu.duration}`);
+  if (edu.objectives) lines.push(`@export var objectives: PackedStringArray = [${edu.objectives.map((o) => `"${o}"`).join(', ')}]`);
+  lines.push('');
+  lines.push('signal lesson_completed(score: float)');
+  lines.push('signal quiz_submitted(answers: Dictionary)');
+  return lines.join('\n');
+}
+
+export function educationToVRChat(edu: CompiledEducation): string {
+  const safeName = edu.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Education: ${edu.name}`);
+  lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
+  lines.push(`public class ${safeName}Education : UdonSharpBehaviour {`);
+  lines.push(`    public string contentType = "${edu.keyword}";`);
+  if (edu.difficulty) lines.push(`    public string difficulty = "${edu.difficulty}";`);
+  if (edu.questions) lines.push(`    [UdonSynced] public int currentQuestion = 0;`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function educationToUSDA(edu: CompiledEducation): string {
+  const safeName = edu.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`def Scope "Education_${safeName}" {`);
+  lines.push(`    custom string holoscript:contentType = "${edu.keyword}"`);
+  if (edu.difficulty) lines.push(`    custom string holoscript:difficulty = "${edu.difficulty}"`);
+  if (edu.duration) lines.push(`    custom int holoscript:durationMinutes = ${edu.duration}`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Music Domain Compilation
+// =============================================================================
+
+export function compileMusicBlock(block: HoloDomainBlock): CompiledMusic {
+  const props = block.properties || {};
+  let timeSignature: [number, number] | undefined;
+  if (Array.isArray(props.time_signature) && props.time_signature.length === 2) {
+    timeSignature = props.time_signature as [number, number];
+  }
+  let effects: string[] | undefined;
+  if (Array.isArray(props.effects)) effects = props.effects as string[];
+  // Extract effects from children
+  for (const child of block.children || []) {
+    const c = child as any;
+    if (c.keyword === 'effect' && c.name) {
+      if (!effects) effects = [];
+      effects.push(c.name);
+    }
+  }
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    instrumentType: (props.instrument_type || props.type) as string | undefined,
+    bpm: props.bpm as number | undefined,
+    timeSignature,
+    key: props.key as string | undefined,
+    effects,
+    pattern: props.pattern as string | undefined,
+    bars: props.bars as number | undefined,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+export function musicToR3F(music: CompiledMusic): string {
+  const safeName = music.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Music: ${music.name} (${music.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${music.name}",`);
+  lines.push(`  type: "${music.keyword}",`);
+  if (music.instrumentType) lines.push(`  instrumentType: "${music.instrumentType}",`);
+  if (music.bpm) lines.push(`  bpm: ${music.bpm},`);
+  if (music.timeSignature) lines.push(`  timeSignature: [${music.timeSignature.join(', ')}],`);
+  if (music.key) lines.push(`  key: "${music.key}",`);
+  if (music.effects) lines.push(`  effects: [${music.effects.map((e) => `"${e}"`).join(', ')}],`);
+  if (music.pattern) lines.push(`  pattern: "${music.pattern}",`);
+  if (music.bars) lines.push(`  bars: ${music.bars},`);
+  lines.push('};');
+  return lines.join('\n');
+}
+
+export function musicToUnity(music: CompiledMusic): string {
+  const safeName = music.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Music: ${music.name}`);
+  lines.push(`public class ${safeName}Music : MonoBehaviour {`);
+  lines.push(`    public string musicType = "${music.keyword}";`);
+  if (music.instrumentType) lines.push(`    public string instrumentType = "${music.instrumentType}";`);
+  if (music.bpm) lines.push(`    public float bpm = ${music.bpm}f;`);
+  if (music.key) lines.push(`    public string musicalKey = "${music.key}";`);
+  if (music.effects) lines.push(`    public string[] effects = new string[] { ${music.effects.map((e) => `"${e}"`).join(', ')} };`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function musicToGodot(music: CompiledMusic): string {
+  const lines: string[] = [];
+  lines.push(`# Music: ${music.name}`);
+  lines.push('extends Node');
+  lines.push('');
+  lines.push(`@export var music_type: String = "${music.keyword}"`);
+  if (music.instrumentType) lines.push(`@export var instrument_type: String = "${music.instrumentType}"`);
+  if (music.bpm) lines.push(`@export var bpm: float = ${music.bpm}`);
+  if (music.key) lines.push(`@export var musical_key: String = "${music.key}"`);
+  if (music.bars) lines.push(`@export var bars: int = ${music.bars}`);
+  lines.push('');
+  lines.push('signal beat(beat_number: int)');
+  lines.push('signal bar_changed(bar_number: int)');
+  return lines.join('\n');
+}
+
+export function musicToVRChat(music: CompiledMusic): string {
+  const safeName = music.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Music: ${music.name}`);
+  lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
+  lines.push(`public class ${safeName}Music : UdonSharpBehaviour {`);
+  lines.push(`    public string musicType = "${music.keyword}";`);
+  if (music.bpm) lines.push(`    [UdonSynced] public float bpm = ${music.bpm}f;`);
+  if (music.instrumentType) lines.push(`    public string instrumentType = "${music.instrumentType}";`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function musicToUSDA(music: CompiledMusic): string {
+  const safeName = music.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`def Scope "Music_${safeName}" {`);
+  lines.push(`    custom string holoscript:musicType = "${music.keyword}"`);
+  if (music.instrumentType) lines.push(`    custom string holoscript:instrumentType = "${music.instrumentType}"`);
+  if (music.bpm) lines.push(`    custom float holoscript:bpm = ${music.bpm}`);
+  if (music.key) lines.push(`    custom string holoscript:key = "${music.key}"`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Architecture Domain Compilation
+// =============================================================================
+
+export function compileArchitectureBlock(block: HoloDomainBlock): CompiledArchitecture {
+  const props = block.properties || {};
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    structureType: (props.structure_type || block.keyword) as string,
+    area: props.area as number | undefined,
+    height: props.height as number | undefined,
+    wallMaterial: (props.wall_material || props.wall) as string | undefined,
+    floorMaterial: (props.floor_material || props.floor) as string | undefined,
+    temperatureSetpoint: (props.temperature_setpoint || props.temperature) as number | undefined,
+    capacity: props.capacity as number | undefined,
+    buildingCode: (props.building_code || props.code) as string | undefined,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+export function architectureToR3F(arch: CompiledArchitecture): string {
+  const safeName = arch.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Architecture: ${arch.name} (${arch.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${arch.name}",`);
+  lines.push(`  type: "${arch.keyword}",`);
+  if (arch.area) lines.push(`  area: ${arch.area},`);
+  if (arch.height) lines.push(`  height: ${arch.height},`);
+  if (arch.wallMaterial) lines.push(`  wallMaterial: "${arch.wallMaterial}",`);
+  if (arch.floorMaterial) lines.push(`  floorMaterial: "${arch.floorMaterial}",`);
+  if (arch.capacity) lines.push(`  capacity: ${arch.capacity},`);
+  if (arch.temperatureSetpoint) lines.push(`  temperatureSetpoint: ${arch.temperatureSetpoint},`);
+  lines.push('};');
+  return lines.join('\n');
+}
+
+export function architectureToUnity(arch: CompiledArchitecture): string {
+  const safeName = arch.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Architecture: ${arch.name}`);
+  lines.push(`public class ${safeName}Architecture : MonoBehaviour {`);
+  lines.push(`    public string structureType = "${arch.keyword}";`);
+  if (arch.area) lines.push(`    public float area = ${arch.area}f;`);
+  if (arch.height) lines.push(`    public float height = ${arch.height}f;`);
+  if (arch.wallMaterial) lines.push(`    public string wallMaterial = "${arch.wallMaterial}";`);
+  if (arch.floorMaterial) lines.push(`    public string floorMaterial = "${arch.floorMaterial}";`);
+  if (arch.capacity) lines.push(`    public int capacity = ${arch.capacity};`);
+  if (arch.temperatureSetpoint) lines.push(`    public float temperatureSetpoint = ${arch.temperatureSetpoint}f;`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function architectureToGodot(arch: CompiledArchitecture): string {
+  const lines: string[] = [];
+  lines.push(`# Architecture: ${arch.name}`);
+  lines.push('extends Node3D');
+  lines.push('');
+  lines.push(`@export var structure_type: String = "${arch.keyword}"`);
+  if (arch.area) lines.push(`@export var area: float = ${arch.area}`);
+  if (arch.height) lines.push(`@export var height: float = ${arch.height}`);
+  if (arch.wallMaterial) lines.push(`@export var wall_material: String = "${arch.wallMaterial}"`);
+  if (arch.floorMaterial) lines.push(`@export var floor_material: String = "${arch.floorMaterial}"`);
+  if (arch.capacity) lines.push(`@export var capacity: int = ${arch.capacity}`);
+  if (arch.temperatureSetpoint) {
+    lines.push(`@export var temperature_setpoint: float = ${arch.temperatureSetpoint}`);
+    lines.push('');
+    lines.push('signal temperature_changed(temp: float)');
+  }
+  return lines.join('\n');
+}
+
+export function architectureToVRChat(arch: CompiledArchitecture): string {
+  const safeName = arch.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Architecture: ${arch.name}`);
+  lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
+  lines.push(`public class ${safeName}Architecture : UdonSharpBehaviour {`);
+  lines.push(`    public string structureType = "${arch.keyword}";`);
+  if (arch.area) lines.push(`    public float area = ${arch.area}f;`);
+  if (arch.height) lines.push(`    public float height = ${arch.height}f;`);
+  if (arch.capacity) lines.push(`    public int capacity = ${arch.capacity};`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function architectureToUSDA(arch: CompiledArchitecture): string {
+  const safeName = arch.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`def Scope "Architecture_${safeName}" {`);
+  lines.push(`    custom string holoscript:structureType = "${arch.keyword}"`);
+  if (arch.area) lines.push(`    custom float holoscript:area = ${arch.area}`);
+  if (arch.height) lines.push(`    custom float holoscript:height = ${arch.height}`);
+  if (arch.wallMaterial) lines.push(`    custom string holoscript:wallMaterial = "${arch.wallMaterial}"`);
+  if (arch.capacity) lines.push(`    custom int holoscript:capacity = ${arch.capacity}`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Web3 Domain Compilation
+// =============================================================================
+
+export function compileWeb3Block(block: HoloDomainBlock): CompiledWeb3 {
+  const props = block.properties || {};
+  let functions: string[] | undefined;
+  if (Array.isArray(props.functions)) functions = props.functions as string[];
+  // Extract functions from children
+  for (const child of block.children || []) {
+    const c = child as any;
+    if (c.keyword === 'function' && c.name) {
+      if (!functions) functions = [];
+      functions.push(c.name);
+    }
+  }
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    standard: (props.standard || props.token_standard) as string | undefined,
+    network: props.network as string | undefined,
+    contractAddress: (props.contract_address || props.address) as string | undefined,
+    functions,
+    supply: (props.supply || props.total_supply) as number | undefined,
+    votingThreshold: (props.voting_threshold || props.threshold) as number | undefined,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+export function web3ToR3F(web3: CompiledWeb3): string {
+  const safeName = web3.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Web3: ${web3.name} (${web3.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${web3.name}",`);
+  lines.push(`  type: "${web3.keyword}",`);
+  if (web3.standard) lines.push(`  standard: "${web3.standard}",`);
+  if (web3.network) lines.push(`  network: "${web3.network}",`);
+  if (web3.contractAddress) lines.push(`  contractAddress: "${web3.contractAddress}",`);
+  if (web3.functions) lines.push(`  functions: [${web3.functions.map((f) => `"${f}"`).join(', ')}],`);
+  if (web3.supply) lines.push(`  supply: ${web3.supply},`);
+  if (web3.votingThreshold) lines.push(`  votingThreshold: ${web3.votingThreshold},`);
+  lines.push('};');
+  return lines.join('\n');
+}
+
+export function web3ToUnity(web3: CompiledWeb3): string {
+  const safeName = web3.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Web3: ${web3.name}`);
+  lines.push(`public class ${safeName}Web3 : MonoBehaviour {`);
+  lines.push(`    public string web3Type = "${web3.keyword}";`);
+  if (web3.standard) lines.push(`    public string standard = "${web3.standard}";`);
+  if (web3.network) lines.push(`    public string network = "${web3.network}";`);
+  if (web3.contractAddress) lines.push(`    public string contractAddress = "${web3.contractAddress}";`);
+  if (web3.supply) lines.push(`    public long totalSupply = ${web3.supply};`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function web3ToGodot(web3: CompiledWeb3): string {
+  const lines: string[] = [];
+  lines.push(`# Web3: ${web3.name}`);
+  lines.push('extends Node');
+  lines.push('');
+  lines.push(`@export var web3_type: String = "${web3.keyword}"`);
+  if (web3.standard) lines.push(`@export var standard: String = "${web3.standard}"`);
+  if (web3.network) lines.push(`@export var network: String = "${web3.network}"`);
+  if (web3.contractAddress) lines.push(`@export var contract_address: String = "${web3.contractAddress}"`);
+  lines.push('');
+  lines.push('signal transaction_confirmed(tx_hash: String)');
+  lines.push('signal wallet_connected(address: String)');
+  return lines.join('\n');
+}
+
+export function web3ToVRChat(web3: CompiledWeb3): string {
+  const safeName = web3.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Web3: ${web3.name}`);
+  lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
+  lines.push(`public class ${safeName}Web3 : UdonSharpBehaviour {`);
+  lines.push(`    public string web3Type = "${web3.keyword}";`);
+  if (web3.standard) lines.push(`    public string standard = "${web3.standard}";`);
+  if (web3.network) lines.push(`    public string network = "${web3.network}";`);
+  if (web3.contractAddress) lines.push(`    [UdonSynced] public string walletState = "";`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function web3ToUSDA(web3: CompiledWeb3): string {
+  const safeName = web3.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`def Scope "Web3_${safeName}" {`);
+  lines.push(`    custom string holoscript:web3Type = "${web3.keyword}"`);
+  if (web3.standard) lines.push(`    custom string holoscript:standard = "${web3.standard}"`);
+  if (web3.network) lines.push(`    custom string holoscript:network = "${web3.network}"`);
+  if (web3.contractAddress) lines.push(`    custom string holoscript:contractAddress = "${web3.contractAddress}"`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Procedural Domain Compilation
+// =============================================================================
+
+export function compileProceduralBlock(block: HoloDomainBlock): CompiledProcedural {
+  const props = block.properties || {};
+  let scaleRange: [number, number] | undefined;
+  if (Array.isArray(props.scale_range) && props.scale_range.length === 2) {
+    scaleRange = props.scale_range as [number, number];
+  }
+  let noise: CompiledProcedural['noise'];
+  if (props.noise_type || props.octaves || props.frequency) {
+    noise = {
+      type: (props.noise_type as string) ?? 'perlin',
+      octaves: (props.octaves as number) ?? 4,
+      frequency: (props.frequency as number) ?? 1.0,
+      amplitude: (props.amplitude as number) ?? 1.0,
+    };
+  } else if (props.noise && typeof props.noise === 'object') {
+    const n = props.noise as Record<string, any>;
+    noise = {
+      type: n.type ?? 'perlin',
+      octaves: n.octaves ?? 4,
+      frequency: n.frequency ?? 1.0,
+      amplitude: n.amplitude ?? 1.0,
+    };
+  }
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    genType: (props.gen_type || props.type || block.keyword) as string,
+    seed: props.seed as number | undefined,
+    density: props.density as number | undefined,
+    scaleRange,
+    noise,
+    sourceMesh: (props.source_mesh || props.source || props.mesh) as string | undefined,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+export function proceduralToR3F(proc: CompiledProcedural): string {
+  const safeName = proc.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Procedural: ${proc.name} (${proc.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${proc.name}",`);
+  lines.push(`  type: "${proc.keyword}",`);
+  if (proc.genType) lines.push(`  genType: "${proc.genType}",`);
+  if (proc.seed != null) lines.push(`  seed: ${proc.seed},`);
+  if (proc.density) lines.push(`  density: ${proc.density},`);
+  if (proc.scaleRange) lines.push(`  scaleRange: [${proc.scaleRange.join(', ')}],`);
+  if (proc.noise) lines.push(`  noise: ${JSON.stringify(proc.noise)},`);
+  if (proc.sourceMesh) lines.push(`  sourceMesh: "${proc.sourceMesh}",`);
+  lines.push('};');
+  return lines.join('\n');
+}
+
+export function proceduralToUnity(proc: CompiledProcedural): string {
+  const safeName = proc.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Procedural: ${proc.name}`);
+  lines.push(`public class ${safeName}Procedural : MonoBehaviour {`);
+  lines.push(`    public string genType = "${proc.keyword}";`);
+  if (proc.seed != null) lines.push(`    public int seed = ${proc.seed};`);
+  if (proc.density) lines.push(`    public float density = ${proc.density}f;`);
+  if (proc.scaleRange) {
+    lines.push(`    public float scaleMin = ${proc.scaleRange[0]}f;`);
+    lines.push(`    public float scaleMax = ${proc.scaleRange[1]}f;`);
+  }
+  if (proc.noise) {
+    lines.push(`    public int octaves = ${proc.noise.octaves};`);
+    lines.push(`    public float frequency = ${proc.noise.frequency}f;`);
+    lines.push(`    public float amplitude = ${proc.noise.amplitude}f;`);
+  }
+  if (proc.sourceMesh) lines.push(`    public string sourceMesh = "${proc.sourceMesh}";`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function proceduralToGodot(proc: CompiledProcedural): string {
+  const lines: string[] = [];
+  lines.push(`# Procedural: ${proc.name}`);
+  lines.push('extends Node3D');
+  lines.push('');
+  lines.push(`@export var gen_type: String = "${proc.keyword}"`);
+  if (proc.seed != null) lines.push(`@export var seed: int = ${proc.seed}`);
+  if (proc.density) lines.push(`@export var density: float = ${proc.density}`);
+  if (proc.scaleRange) {
+    lines.push(`@export var scale_min: float = ${proc.scaleRange[0]}`);
+    lines.push(`@export var scale_max: float = ${proc.scaleRange[1]}`);
+  }
+  if (proc.noise) {
+    lines.push(`@export var octaves: int = ${proc.noise.octaves}`);
+    lines.push(`@export var frequency: float = ${proc.noise.frequency}`);
+    lines.push(`@export var amplitude: float = ${proc.noise.amplitude}`);
+  }
+  lines.push('');
+  lines.push('signal generation_complete(instance_count: int)');
+  return lines.join('\n');
+}
+
+export function proceduralToVRChat(proc: CompiledProcedural): string {
+  const safeName = proc.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Procedural: ${proc.name}`);
+  lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
+  lines.push(`public class ${safeName}Procedural : UdonSharpBehaviour {`);
+  lines.push(`    public string genType = "${proc.keyword}";`);
+  if (proc.seed != null) lines.push(`    [UdonSynced] public int seed = ${proc.seed};`);
+  if (proc.density) lines.push(`    public float density = ${proc.density}f;`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function proceduralToUSDA(proc: CompiledProcedural): string {
+  const safeName = proc.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`def Scope "Procedural_${safeName}" {`);
+  lines.push(`    custom string holoscript:genType = "${proc.keyword}"`);
+  if (proc.seed != null) lines.push(`    custom int holoscript:seed = ${proc.seed}`);
+  if (proc.density) lines.push(`    custom float holoscript:density = ${proc.density}`);
+  if (proc.sourceMesh) lines.push(`    custom string holoscript:sourceMesh = "${proc.sourceMesh}"`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Rendering Domain Compilation
+// =============================================================================
+
+export function compileRenderingBlock(block: HoloDomainBlock): CompiledRendering {
+  const props = block.properties || {};
+  let lodLevels: CompiledRendering['lodLevels'];
+  if (Array.isArray(props.levels)) {
+    lodLevels = (props.levels as any[]).map((l) =>
+      typeof l === 'object' ? l : { distance: l }
+    );
+  }
+  // Extract LOD levels from children
+  for (const child of block.children || []) {
+    const c = child as any;
+    if (c.keyword === 'level' || c.keyword === 'lod_level') {
+      if (!lodLevels) lodLevels = [];
+      lodLevels.push({
+        distance: (c.properties?.distance as number) ?? 0,
+        mesh: c.name || undefined,
+        detail: c.properties?.detail as number | undefined,
+      });
+    }
+  }
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    lodLevels,
+    renderLayer: (props.render_layer || props.layer) as string | undefined,
+    shadowMode: (props.shadow_mode || props.shadow) as string | undefined,
+    cullingMode: (props.culling_mode || props.culling) as string | undefined,
+    sortOrder: props.sort_order as number | undefined,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+export function renderingToR3F(rendering: CompiledRendering): string {
+  const safeName = rendering.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Rendering: ${rendering.name} (${rendering.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${rendering.name}",`);
+  lines.push(`  type: "${rendering.keyword}",`);
+  if (rendering.lodLevels) lines.push(`  lodLevels: ${JSON.stringify(rendering.lodLevels)},`);
+  if (rendering.renderLayer) lines.push(`  renderLayer: "${rendering.renderLayer}",`);
+  if (rendering.shadowMode) lines.push(`  shadowMode: "${rendering.shadowMode}",`);
+  if (rendering.cullingMode) lines.push(`  cullingMode: "${rendering.cullingMode}",`);
+  if (rendering.sortOrder != null) lines.push(`  sortOrder: ${rendering.sortOrder},`);
+  lines.push('};');
+  return lines.join('\n');
+}
+
+export function renderingToUnity(rendering: CompiledRendering): string {
+  const safeName = rendering.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Rendering: ${rendering.name}`);
+  lines.push(`public class ${safeName}Rendering : MonoBehaviour {`);
+  lines.push(`    public string renderType = "${rendering.keyword}";`);
+  if (rendering.lodLevels) {
+    lines.push('    void Start() {');
+    lines.push('        var lodGroup = gameObject.AddComponent<LODGroup>();');
+    lines.push(`        var lods = new LOD[${rendering.lodLevels.length}];`);
+    rendering.lodLevels.forEach((l, i) => {
+      const screenHeight = 1 / (1 + l.distance * 0.01);
+      lines.push(`        lods[${i}] = new LOD(${screenHeight.toFixed(3)}f, GetComponentsInChildren<Renderer>());`);
+    });
+    lines.push('        lodGroup.SetLODs(lods);');
+    lines.push('    }');
+  }
+  if (rendering.shadowMode) {
+    const mode = rendering.shadowMode === 'none' ? 'Off' : rendering.shadowMode === 'cast' ? 'On' : 'TwoSided';
+    lines.push(`    public ShadowCastingMode shadowMode = ShadowCastingMode.${mode};`);
+  }
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function renderingToGodot(rendering: CompiledRendering): string {
+  const lines: string[] = [];
+  lines.push(`# Rendering: ${rendering.name}`);
+  lines.push('extends Node3D');
+  lines.push('');
+  lines.push(`@export var render_type: String = "${rendering.keyword}"`);
+  if (rendering.shadowMode) lines.push(`@export var shadow_mode: String = "${rendering.shadowMode}"`);
+  if (rendering.cullingMode) lines.push(`@export var culling_mode: String = "${rendering.cullingMode}"`);
+  if (rendering.sortOrder != null) lines.push(`@export var sort_order: int = ${rendering.sortOrder}`);
+  if (rendering.lodLevels) {
+    lines.push('');
+    for (let i = 0; i < rendering.lodLevels.length; i++) {
+      const l = rendering.lodLevels[i];
+      lines.push(`@export var lod${i}_distance: float = ${l.distance}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+export function renderingToVRChat(rendering: CompiledRendering): string {
+  const safeName = rendering.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Rendering: ${rendering.name}`);
+  lines.push(`public class ${safeName}Rendering : UdonSharpBehaviour {`);
+  lines.push(`    public string renderType = "${rendering.keyword}";`);
+  if (rendering.lodLevels) lines.push(`    public int lodLevels = ${rendering.lodLevels.length};`);
+  if (rendering.shadowMode) lines.push(`    public string shadowMode = "${rendering.shadowMode}";`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function renderingToUSDA(rendering: CompiledRendering): string {
+  const safeName = rendering.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`def Scope "Rendering_${safeName}" {`);
+  lines.push(`    custom string holoscript:renderType = "${rendering.keyword}"`);
+  if (rendering.shadowMode) lines.push(`    custom string holoscript:shadowMode = "${rendering.shadowMode}"`);
+  if (rendering.cullingMode) lines.push(`    custom string holoscript:cullingMode = "${rendering.cullingMode}"`);
+  if (rendering.lodLevels) lines.push(`    custom int holoscript:lodLevels = ${rendering.lodLevels.length}`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Navigation Domain Compilation
+// =============================================================================
+
+export function compileNavigationBlock(block: HoloDomainBlock): CompiledNavigation {
+  const props = block.properties || {};
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    agentRadius: (props.agent_radius || props.radius) as number | undefined,
+    agentHeight: (props.agent_height || props.height) as number | undefined,
+    maxSlope: (props.max_slope || props.slope) as number | undefined,
+    stepHeight: (props.step_height || props.step) as number | undefined,
+    speed: props.speed as number | undefined,
+    avoidancePriority: (props.avoidance_priority || props.priority) as number | undefined,
+    behaviorRoot: (props.behavior_root || props.root_node) as string | undefined,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+export function navigationToR3F(nav: CompiledNavigation): string {
+  const safeName = nav.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Navigation: ${nav.name} (${nav.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${nav.name}",`);
+  lines.push(`  type: "${nav.keyword}",`);
+  if (nav.agentRadius) lines.push(`  agentRadius: ${nav.agentRadius},`);
+  if (nav.agentHeight) lines.push(`  agentHeight: ${nav.agentHeight},`);
+  if (nav.maxSlope) lines.push(`  maxSlope: ${nav.maxSlope},`);
+  if (nav.stepHeight) lines.push(`  stepHeight: ${nav.stepHeight},`);
+  if (nav.speed) lines.push(`  speed: ${nav.speed},`);
+  if (nav.avoidancePriority != null) lines.push(`  avoidancePriority: ${nav.avoidancePriority},`);
+  if (nav.behaviorRoot) lines.push(`  behaviorRoot: "${nav.behaviorRoot}",`);
+  lines.push('};');
+  return lines.join('\n');
+}
+
+export function navigationToUnity(nav: CompiledNavigation): string {
+  const safeName = nav.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Navigation: ${nav.name}`);
+  lines.push(`public class ${safeName}Navigation : MonoBehaviour {`);
+  lines.push(`    public string navType = "${nav.keyword}";`);
+  lines.push('    void Start() {');
+  if (nav.keyword === 'navmesh' || nav.keyword === 'nav_mesh') {
+    lines.push('        var surface = gameObject.AddComponent<NavMeshSurface>();');
+    if (nav.agentRadius) lines.push(`        // Agent radius: ${nav.agentRadius}`);
+    if (nav.maxSlope) lines.push(`        // Max slope: ${nav.maxSlope} degrees`);
+  } else {
+    lines.push('        var agent = gameObject.AddComponent<NavMeshAgent>();');
+    if (nav.speed) lines.push(`        agent.speed = ${nav.speed}f;`);
+    if (nav.agentRadius) lines.push(`        agent.radius = ${nav.agentRadius}f;`);
+    if (nav.agentHeight) lines.push(`        agent.height = ${nav.agentHeight}f;`);
+    if (nav.stepHeight) lines.push(`        agent.baseOffset = ${nav.stepHeight}f;`);
+    if (nav.avoidancePriority != null) lines.push(`        agent.avoidancePriority = ${nav.avoidancePriority};`);
+  }
+  lines.push('    }');
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function navigationToGodot(nav: CompiledNavigation): string {
+  const lines: string[] = [];
+  lines.push(`# Navigation: ${nav.name}`);
+  if (nav.keyword === 'navmesh' || nav.keyword === 'nav_mesh') {
+    lines.push('extends NavigationRegion3D');
+    lines.push('');
+    if (nav.agentRadius) lines.push(`@export var agent_radius: float = ${nav.agentRadius}`);
+    if (nav.maxSlope) lines.push(`@export var max_slope: float = ${nav.maxSlope}`);
+  } else {
+    lines.push('extends NavigationAgent3D');
+    lines.push('');
+    if (nav.speed) lines.push(`@export var speed: float = ${nav.speed}`);
+    if (nav.agentRadius) lines.push(`@export var agent_radius: float = ${nav.agentRadius}`);
+    if (nav.agentHeight) lines.push(`@export var agent_height: float = ${nav.agentHeight}`);
+    if (nav.avoidancePriority != null) lines.push(`@export var avoidance_priority: int = ${nav.avoidancePriority}`);
+  }
+  lines.push('');
+  lines.push('signal navigation_finished');
+  lines.push('signal path_changed(new_path: PackedVector3Array)');
+  return lines.join('\n');
+}
+
+export function navigationToVRChat(nav: CompiledNavigation): string {
+  const safeName = nav.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Navigation: ${nav.name}`);
+  lines.push('[UdonBehaviourSyncMode(BehaviourSyncMode.Manual)]');
+  lines.push(`public class ${safeName}Navigation : UdonSharpBehaviour {`);
+  lines.push(`    public string navType = "${nav.keyword}";`);
+  if (nav.speed) lines.push(`    public float speed = ${nav.speed}f;`);
+  if (nav.agentRadius) lines.push(`    public float agentRadius = ${nav.agentRadius}f;`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function navigationToUSDA(nav: CompiledNavigation): string {
+  const safeName = nav.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`def Scope "Navigation_${safeName}" {`);
+  lines.push(`    custom string holoscript:navType = "${nav.keyword}"`);
+  if (nav.agentRadius) lines.push(`    custom float holoscript:agentRadius = ${nav.agentRadius}`);
+  if (nav.agentHeight) lines.push(`    custom float holoscript:agentHeight = ${nav.agentHeight}`);
+  if (nav.speed) lines.push(`    custom float holoscript:speed = ${nav.speed}`);
+  if (nav.maxSlope) lines.push(`    custom float holoscript:maxSlope = ${nav.maxSlope}`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Input Domain Compilation
+// =============================================================================
+
+export function compileInputBlock(block: HoloDomainBlock): CompiledInput {
+  const props = block.properties || {};
+  return {
+    name: block.name || 'unnamed',
+    keyword: block.keyword,
+    inputType: (props.input_type || props.type || block.keyword) as string,
+    platform: props.platform as string | undefined,
+    binding: (props.binding || props.key || props.button) as string | undefined,
+    action: props.action as string | undefined,
+    threshold: props.threshold as number | undefined,
+    interactionDistance: (props.interaction_distance || props.distance) as number | undefined,
+    traits: block.traits || [],
+    properties: props,
+  };
+}
+
+export function inputToR3F(input: CompiledInput): string {
+  const safeName = input.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Input: ${input.name} (${input.keyword})`);
+  lines.push(`export const ${safeName}Config = {`);
+  lines.push(`  name: "${input.name}",`);
+  lines.push(`  type: "${input.keyword}",`);
+  if (input.inputType) lines.push(`  inputType: "${input.inputType}",`);
+  if (input.platform) lines.push(`  platform: "${input.platform}",`);
+  if (input.binding) lines.push(`  binding: "${input.binding}",`);
+  if (input.action) lines.push(`  action: "${input.action}",`);
+  if (input.threshold) lines.push(`  threshold: ${input.threshold},`);
+  if (input.interactionDistance) lines.push(`  interactionDistance: ${input.interactionDistance},`);
+  lines.push('};');
+  return lines.join('\n');
+}
+
+export function inputToUnity(input: CompiledInput): string {
+  const safeName = input.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Input: ${input.name}`);
+  lines.push(`public class ${safeName}Input : MonoBehaviour {`);
+  lines.push(`    public string inputType = "${input.keyword}";`);
+  if (input.binding) lines.push(`    public string binding = "${input.binding}";`);
+  if (input.action) lines.push(`    public string action = "${input.action}";`);
+  if (input.threshold) lines.push(`    public float threshold = ${input.threshold}f;`);
+  if (input.interactionDistance) lines.push(`    public float interactionDistance = ${input.interactionDistance}f;`);
+  if (input.platform === 'vr_controller') {
+    lines.push('    void Update() {');
+    lines.push('        // XR input polling');
+    lines.push('        var device = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);');
+    lines.push(`        device.TryGetFeatureValue(CommonUsages.trigger, out float triggerValue);`);
+    lines.push('    }');
+  }
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function inputToGodot(input: CompiledInput): string {
+  const lines: string[] = [];
+  lines.push(`# Input: ${input.name}`);
+  lines.push('extends Node');
+  lines.push('');
+  lines.push(`@export var input_type: String = "${input.keyword}"`);
+  if (input.binding) lines.push(`@export var binding: String = "${input.binding}"`);
+  if (input.action) lines.push(`@export var action_name: String = "${input.action}"`);
+  if (input.threshold) lines.push(`@export var threshold: float = ${input.threshold}`);
+  if (input.interactionDistance) lines.push(`@export var interaction_distance: float = ${input.interactionDistance}`);
+  lines.push('');
+  lines.push('signal action_triggered(action: String, value: float)');
+  lines.push('signal gesture_recognized(gesture: String)');
+  return lines.join('\n');
+}
+
+export function inputToVRChat(input: CompiledInput): string {
+  const safeName = input.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`// Input: ${input.name}`);
+  lines.push(`public class ${safeName}Input : UdonSharpBehaviour {`);
+  lines.push(`    public string inputType = "${input.keyword}";`);
+  if (input.action) lines.push(`    public string action = "${input.action}";`);
+  if (input.interactionDistance) lines.push(`    public float interactionDistance = ${input.interactionDistance}f;`);
+  if (input.keyword === 'interaction' || input.keyword === 'gesture_profile') {
+    lines.push('    public override void Interact() {');
+    lines.push('        // Handle VRChat interaction');
+    lines.push('    }');
+  }
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function inputToUSDA(input: CompiledInput): string {
+  const safeName = input.name.replace(/[^a-zA-Z0-9_]/g, '_');
+  const lines: string[] = [];
+  lines.push(`def Scope "Input_${safeName}" {`);
+  lines.push(`    custom string holoscript:inputType = "${input.keyword}"`);
+  if (input.binding) lines.push(`    custom string holoscript:binding = "${input.binding}"`);
+  if (input.action) lines.push(`    custom string holoscript:action = "${input.action}"`);
+  if (input.interactionDistance) lines.push(`    custom float holoscript:interactionDistance = ${input.interactionDistance}`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// =============================================================================
 // Domain Block Router
 // =============================================================================
 

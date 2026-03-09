@@ -53,6 +53,26 @@ import {
   healthcareToGodot,
   compileRoboticsBlock,
   roboticsToGodot,
+  compileIoTBlock,
+  iotToGodot,
+  compileDataVizBlock,
+  datavizToGodot,
+  compileEducationBlock,
+  educationToGodot,
+  compileMusicBlock,
+  musicToGodot,
+  compileArchitectureBlock,
+  architectureToGodot,
+  compileWeb3Block,
+  web3ToGodot,
+  compileProceduralBlock,
+  proceduralToGodot,
+  compileRenderingBlock,
+  renderingToGodot,
+  compileNavigationBlock,
+  navigationToGodot,
+  compileInputBlock,
+  inputToGodot,
 } from './DomainBlockCompilerMixin';
 
 export interface GodotCompilerOptions {
@@ -249,6 +269,16 @@ export class GodotCompiler extends CompilerBase {
           const r = compileRoboticsBlock(block);
           return roboticsToGodot(r);
         },
+        iot: (block) => iotToGodot(compileIoTBlock(block)),
+        dataviz: (block) => datavizToGodot(compileDataVizBlock(block)),
+        education: (block) => educationToGodot(compileEducationBlock(block)),
+        music: (block) => musicToGodot(compileMusicBlock(block)),
+        architecture: (block) => architectureToGodot(compileArchitectureBlock(block)),
+        web3: (block) => web3ToGodot(compileWeb3Block(block)),
+        procedural: (block) => proceduralToGodot(compileProceduralBlock(block)),
+        rendering: (block) => renderingToGodot(compileRenderingBlock(block)),
+        navigation: (block) => navigationToGodot(compileNavigationBlock(block)),
+        input: (block) => inputToGodot(compileInputBlock(block)),
       },
       (block) => `# Domain block: ${block.domain}/${block.keyword} "${block.name}"`
     );
