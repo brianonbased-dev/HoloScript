@@ -25,10 +25,12 @@
 | **2. Medical Tower of Babel** | Medical interop is DATA mapping, not spatial compilation. |
 | **9. Uncanny Valley** | Perceptual psychology, not a compilation target. |
 
-## 1 DOESN'T HELP
-| Problem | Why |
+## 1 REFRAMES TO SOLVE
+| Problem | The Reframing |
 | :--- | :--- |
-| **13. Cross-Platform Determinism** | Multi-target compilation makes bit-exact determinism worse, not better. |
+| **13. Cross-Platform Determinism** | Reframed to **Behavioral Determinism**. `HoloScript` provides a behavioral specification standard; traits serve as verifiable conformance contracts rather than bit-exact numerical constants. |
+
+
 
 ---
 
