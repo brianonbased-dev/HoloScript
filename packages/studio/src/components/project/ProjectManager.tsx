@@ -17,6 +17,7 @@ import {
   Star,
   Trash2,
 } from 'lucide-react';
+import { formatBytes } from '@holoscript/std';
 
 export interface HoloProject {
   id: string;
@@ -72,11 +73,6 @@ const DEMO_PROJECTS: HoloProject[] = [
   },
 ];
 
-function formatBytes(b: number): string {
-  if (b < 1024) return `${b}B`;
-  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)}KB`;
-  return `${(b / 1048576).toFixed(1)}MB`;
-}
 function timeAgo(ts: number): string {
   const d = Date.now() - ts;
   if (d < 3600000) return `${Math.floor(d / 60000)}m ago`;

@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { runSafetyPass, type SafetyPassResult } from '@holoscript/core';
+import { extractTraits } from '@holoscript/std';
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -31,19 +32,6 @@ const VERDICT_STYLES: Record<string, { bg: string; text: string; icon: string; l
   caution: { bg: 'bg-amber-500/15', text: 'text-amber-400', icon: '⚠️', label: 'Caution' },
   unsafe: { bg: 'bg-red-500/15', text: 'text-red-400', icon: '🚫', label: 'Unsafe' },
 };
-
-/**
- * Extract @trait names from HoloScript source code (lightweight parse).
- */
-function extractTraits(code: string): string[] {
-  const re = /@([a-zA-Z_]\w*)/g;
-  const traits = new Set<string>();
-  let m;
-  while ((m = re.exec(code)) !== null) {
-    traits.add(`@${m[1]}`);
-  }
-  return [...traits];
-}
 
 /**
  * Build minimal EffectASTNode from extracted traits.

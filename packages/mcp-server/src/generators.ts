@@ -3,6 +3,7 @@
  *
  * AI-powered generation of HoloScript code from natural language.
  */
+import { capitalize } from '@holoscript/std';
 
 // Trait suggestions based on keywords
 const TRAIT_KEYWORDS: Record<string, string[]> = {
@@ -409,9 +410,6 @@ function extractObjectName(description: string): string {
   return capitalize(lastWord.replace(/[^a-zA-Z0-9]/g, ''));
 }
 
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
 
 function generateEnvironment(description: string, style: string): string {
   const lowerDesc = description.toLowerCase();

@@ -12,7 +12,19 @@ export { DecalBatcher } from './DecalBatcher';
 export { DecalSystem } from './DecalSystem';
 export { FogSystem } from './FogSystem';
 export { LightingModel } from './LightingModel';
-export { MaterialLibrary } from './MaterialLibrary';
+export {
+  MaterialLibrary,
+  MATERIAL_PRESETS as RENDERING_MATERIAL_PRESETS,
+  type MaterialDef,
+  type MaterialInstance,
+  type MaterialType as RenderingMaterialType,
+  type TextureSlot,
+  type BlendMode,
+  type CullMode,
+  hexToRGBA,
+  rgbaToHex,
+  createDefaultMaterialDef,
+} from './MaterialLibrary';
 export { MaterialSystem } from './MaterialSystem';
 export { PostProcessing } from './PostProcessing';
 export { PostProcessStack } from './PostProcessStack';

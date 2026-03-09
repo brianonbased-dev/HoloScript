@@ -26,6 +26,7 @@ import { SketchToolbar } from '@/components/sketch/SketchToolbar';
 import { useSceneGraphSync } from '@/hooks/useSceneGraphSync';
 import { useBuilderStore, snapToGrid } from '@/lib/stores/builderStore';
 import { BuilderHotbar } from '@/components/builder/BuilderHotbar';
+import { ContentCameraUI, ContentCameraCapture } from '@/components/camera/ContentCameraUI';
 import * as THREE from 'three';
 
 interface SceneRendererProps {
@@ -429,7 +430,14 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         {(process.env.NODE_ENV !== 'production' || showPerfOverlay) && (
           <Stats className="!bottom-2 !left-auto !right-2 !top-auto" />
         )}
+        
+        {/* Handles WebM video recording of the Canvas stream */}
+        <ContentCameraCapture />
       </Canvas>
+      
+      {/* Social Aspect Ratio Overlays & Recording UI */}
+      <ContentCameraUI />
+
       {/* Gizmo mode toolbar — top-left overlay */}
       <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur">
         {(['translate', 'rotate', 'scale'] as const).map((m) => (

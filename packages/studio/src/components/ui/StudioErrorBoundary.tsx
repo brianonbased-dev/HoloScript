@@ -12,6 +12,7 @@
 
 import React, { Component, ErrorInfo } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { extractASTPathFromStack } from '@/lib/unified-error-schemas';
 
 // ─── Error Classification ─────────────────────────────────────────────────────
 
@@ -58,26 +59,31 @@ interface Props {
 interface State {
   error: Error | null;
   classified: ClassifiedError | null;
+  astPath: string | null;
 }
 
 export class StudioErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { error: null, classified: null };
+    this.state = { error: null, classified: null, astPath: null };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { error, classified: classifyError(error) };
+    return { error, classified: classifyError(error), astPath: null };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     const classified = classifyError(error);
-    console.error(`[StudioErrorBoundary][${classified.category}]`, error, info.componentStack);
+    const astPath = extractASTPathFromStack(info.componentStack || '');
+    
+    this.setState({ astPath });
+    console.error(`[StudioErrorBoundary][${classified.category}] AST Path: ${astPath}`, error, info.componentStack);
+    
     this.props.onError?.(error, info);
   }
 
   private handleReset = () => {
-    this.setState({ error: null, classified: null });
+    this.setState({ error: null, classified: null, astPath: null });
   };
 
   render() {
@@ -112,6 +118,11 @@ export class StudioErrorBoundary extends Component<Props, State> {
             {CATEGORY_LABELS[classified.category]}
           </span>
           <p className="mt-1 max-w-xs text-xs text-red-400/80">{error.message}</p>
+          {this.state.astPath && (
+            <p className="mt-1.5 max-w-xs text-[10.5px] font-mono text-red-400">
+              AST Path: {this.state.astPath}
+            </p>
+          )}
           <p className="mt-1 max-w-xs text-[10px] text-red-400/60">{classified.suggestion}</p>
         </div>
         <button

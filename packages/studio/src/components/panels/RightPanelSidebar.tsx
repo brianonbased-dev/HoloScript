@@ -13,6 +13,7 @@ import { MarketplacePanel } from './MarketplacePanel';
 import { PlatformPicker } from './PlatformPicker';
 import { TraitInspector } from './TraitInspector';
 import { PhysicsPreviewPanel } from './PhysicsPreviewPanel';
+import { BehaviorPanel } from './BehaviorPanel';
 import { BehaviorTreePanel } from './BehaviorTreePanel';
 import { DialoguePanel } from './DialoguePanel';
 import { ECSInspectorPanel } from './ECSInspectorPanel';
@@ -53,6 +54,7 @@ import { ModelViewerPanel } from './ModelViewerPanel';
 import { TemplateGalleryPanel } from './TemplateGalleryPanel';
 import { useDomainFilter, type DomainProfile } from '../../hooks/useDomainFilter';
 import type { EffectASTNode } from '@holoscript/core';
+import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 
 // Re-export from shared types (breaks circular dependency)
 export type { PanelTab } from '../../types/panels';
@@ -102,6 +104,7 @@ const TAB_CATEGORIES: TabCategory[] = [
     headerIcon: '⚙',
     tabs: [
       { id: 'physics', icon: '⚡', label: 'Physics', title: 'Physics simulation preview' },
+      { id: 'behavior', icon: '🏃', label: 'Behavior', title: 'Character animation behaviors' },
       { id: 'ai', icon: '🧠', label: 'AI', title: 'Behavior tree editor & debugger' },
       { id: 'dialogue', icon: '💬', label: 'Dialogue', title: 'Dialogue graph editor' },
       { id: 'ecs', icon: '🔧', label: 'ECS', title: 'Entity-Component-System inspector' },
@@ -212,6 +215,36 @@ export function RightPanelSidebar({
   } = useDomainFilter();
   const [showSearch, setShowSearch] = useState(false);
 
+  // ── Contextual Context Switching ──
+  const selectedObjectId = useEditorStore((s) => s.selectedObjectId);
+  const nodes = useSceneGraphStore((s) => s.nodes);
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (selectedObjectId !== lastSelectedId) {
+      setLastSelectedId(selectedObjectId);
+      if (selectedObjectId) {
+        const node = nodes.find((n) => n.id === selectedObjectId);
+        if (node) {
+          if (node.type === 'gltfModel') {
+            setActiveTab('behavior');
+            if (!isOpen) setIsOpen(true);
+          } else {
+            const hasAnimation = node.traits.some((t) => t.name === 'animation');
+            if (hasAnimation) {
+              setActiveTab('animation');
+              if (!isOpen) setIsOpen(true);
+            } else if (node.type === 'mesh') {
+               // For standard props/meshes
+              setActiveTab('traits');
+              if (!isOpen) setIsOpen(true);
+            }
+          }
+        }
+      }
+    }
+  }, [selectedObjectId, lastSelectedId, nodes, isOpen]);
+
   const handleTabClick = (tab: PanelTab) => {
     if (activeTab === tab && isOpen) {
       setIsOpen(false);
@@ -259,6 +292,7 @@ export function RightPanelSidebar({
             {activeTab === 'marketplace' && <MarketplacePanel worldId={worldId} />}
             {activeTab === 'platform' && <PlatformPicker />}
             {activeTab === 'traits' && <TraitInspector showCulture />}
+            {activeTab === 'behavior' && <BehaviorPanel />}
             {activeTab === 'physics' && <PhysicsPreviewPanel />}
             {activeTab === 'ai' && <BehaviorTreePanel />}
             {activeTab === 'dialogue' && <DialoguePanel />}

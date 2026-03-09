@@ -15,6 +15,7 @@ export type PanelTab =
   | 'dialogue'
   | 'ecs'
   | 'animation'
+  | 'behavior'
   | 'audio'
   | 'procgen'
   | 'multiplayer'

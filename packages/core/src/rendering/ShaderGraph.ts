@@ -35,11 +35,23 @@ export interface ShaderNodeDef {
   code: string; // GLSL snippet with {{input_name}} / {{output_name}} placeholders
 }
 
+export interface ShaderPortRef {
+  id: string;
+  name: string;
+  direction: 'in' | 'out';
+  type: ShaderDataType;
+}
+
 export interface ShaderNode {
   id: string;
   type: string;
   position: { x: number; y: number };
   overrides: Record<string, number | number[]>;
+  category?: string;
+  inputs?: ShaderPort[];
+  outputs?: ShaderPort[];
+  ports?: ShaderPortRef[];
+  properties?: Record<string, unknown>;
 }
 
 export interface ShaderConnection {
@@ -151,12 +163,15 @@ let _shaderConnId = 0;
 
 export class ShaderGraph {
   readonly id: string;
-  private nodes: Map<string, ShaderNode> = new Map();
-  private connections: ShaderConnection[] = [];
+  name: string;
+  nodes: Map<string, ShaderNode> = new Map();
+  connections: ShaderConnection[] = [];
+  version = 0;
   private nodeDefs: Map<string, ShaderNodeDef> = new Map();
 
-  constructor(id?: string) {
-    this.id = id ?? `shader_${Date.now()}`;
+  constructor(name?: string) {
+    this.name = name ?? '';
+    this.id = `shader_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     for (const [type, def] of Object.entries(SHADER_NODES)) {
       this.nodeDefs.set(type, def);
     }
@@ -173,14 +188,53 @@ export class ShaderGraph {
     overrides: Record<string, number | number[]> = {}
   ): ShaderNode | null {
     if (!this.nodeDefs.has(type)) return null;
-    const node: ShaderNode = { id: `sn_${_shaderNodeId++}`, type, position: { x, y }, overrides };
+    const def = this.nodeDefs.get(type)!;
+    const node: ShaderNode = {
+      id: `sn_${_shaderNodeId++}`,
+      type,
+      position: { x, y },
+      overrides,
+      category: 'builtin',
+      inputs: def.inputs,
+      outputs: def.outputs,
+      ports: [
+        ...def.inputs.map((p) => ({ id: p.name, name: p.name, direction: 'in' as const, type: p.type })),
+        ...def.outputs.map((p) => ({ id: p.name, name: p.name, direction: 'out' as const, type: p.type })),
+      ],
+      properties: {},
+    };
     this.nodes.set(node.id, node);
+    this.version++;
+    return node;
+  }
+
+  createNode(type: string, position: { x: number; y: number }): ShaderNode | null {
+    const def = this.nodeDefs.get(type);
+    const inputs = def?.inputs ?? [];
+    const outputs = def?.outputs ?? [];
+    const node: ShaderNode = {
+      id: `sn_${_shaderNodeId++}`,
+      type,
+      position: { x: position.x, y: position.y },
+      overrides: {},
+      category: def ? 'builtin' : 'custom',
+      inputs,
+      outputs,
+      ports: [
+        ...inputs.map((p) => ({ id: p.name, name: p.name, direction: 'in' as const, type: p.type })),
+        ...outputs.map((p) => ({ id: p.name, name: p.name, direction: 'out' as const, type: p.type })),
+      ],
+      properties: {},
+    };
+    this.nodes.set(node.id, node);
+    this.version++;
     return node;
   }
 
   removeNode(id: string): boolean {
     if (!this.nodes.delete(id)) return false;
     this.connections = this.connections.filter((c) => c.fromNode !== id && c.toNode !== id);
+    this.version++;
     return true;
   }
 
@@ -192,6 +246,28 @@ export class ShaderGraph {
   }
   getNodeCount(): number {
     return this.nodes.size;
+  }
+
+  setNodePosition(id: string, x: number, y: number): boolean {
+    const node = this.nodes.get(id);
+    if (!node) return false;
+    node.position = { x, y };
+    this.version++;
+    return true;
+  }
+
+  setNodeProperty(id: string, key: string, value: unknown): boolean {
+    const node = this.nodes.get(id);
+    if (!node) return false;
+    if (!node.properties) node.properties = {};
+    node.properties[key] = value;
+    this.version++;
+    return true;
+  }
+
+  getNodeProperty(id: string, key: string): unknown {
+    const node = this.nodes.get(id);
+    return node?.properties?.[key];
   }
 
   // ---------------------------------------------------------------------------
@@ -215,11 +291,57 @@ export class ShaderGraph {
       toPort,
     };
     this.connections.push(conn);
+    this.version++;
     return conn;
+  }
+
+  disconnectPort(nodeId: string, portId: string): void {
+    this.connections = this.connections.filter(
+      (c) =>
+        !(
+          (c.fromNode === nodeId && c.fromPort === portId) ||
+          (c.toNode === nodeId && c.toPort === portId)
+        )
+    );
+    this.version++;
   }
 
   getConnections(): ShaderConnection[] {
     return [...this.connections];
+  }
+
+  getNodeConnections(nodeId: string): ShaderConnection[] {
+    return this.connections.filter((c) => c.fromNode === nodeId || c.toNode === nodeId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Serialization
+  // ---------------------------------------------------------------------------
+
+  toJSON(): { name: string; id: string; nodes: [string, ShaderNode][]; connections: ShaderConnection[] } {
+    return {
+      name: this.name,
+      id: this.id,
+      nodes: [...this.nodes.entries()],
+      connections: [...this.connections],
+    };
+  }
+
+  static fromJSON(json: { name: string; id?: string; nodes: [string, ShaderNode][]; connections: ShaderConnection[] }): ShaderGraph {
+    const graph = new ShaderGraph(json.name);
+    for (const [key, node] of json.nodes) {
+      graph.nodes.set(key, node);
+    }
+    graph.connections = [...json.connections];
+    return graph;
+  }
+
+  serialize(): string {
+    return JSON.stringify(this.toJSON());
+  }
+
+  static deserialize(str: string): ShaderGraph {
+    return ShaderGraph.fromJSON(JSON.parse(str));
   }
 
   // ---------------------------------------------------------------------------

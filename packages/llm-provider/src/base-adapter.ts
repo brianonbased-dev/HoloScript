@@ -17,6 +17,7 @@ import type {
   LLMProviderConfig,
   TokenUsage,
 } from './types';
+import { extractTraits } from '@holoscript/std';
 
 // =============================================================================
 // HoloScript Generation System Prompt
@@ -107,7 +108,7 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
 
         const code = this.extractHoloScriptCode(response.content);
         const validation = this.validateHoloScriptOutput(code);
-        const detectedTraits = this.extractTraits(code);
+        const detectedTraits = extractTraits(code);
 
         return {
           code,
@@ -226,17 +227,7 @@ Return ONLY the HoloScript code, no explanations or markdown.`;
     return { valid: errors.length === 0, errors };
   }
 
-  /**
-   * Extract all trait names from HoloScript code.
-   */
-  protected extractTraits(code: string): string[] {
-    const traits: string[] = [];
-    let match: RegExpExecArray | null;
-    while ((match = TRAIT_REGEX.exec(code)) !== null) {
-      traits.push(`@${match[1]}`);
-    }
-    return [...new Set(traits)]; // deduplicate
-  }
+
 
   protected sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

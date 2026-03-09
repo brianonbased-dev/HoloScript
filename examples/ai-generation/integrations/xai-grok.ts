@@ -6,6 +6,7 @@
  */
 
 import { HoloScriptPlusParser, HoloCompositionParser, parseHolo } from '@holoscript/core';
+import { extractTraits, capitalize } from '@holoscript/std';
 
 // Types
 interface GrokContext {
@@ -256,10 +257,7 @@ function generateLogicBlock(): string {
 `;
 }
 
-function extractTraits(code: string): string[] {
-  const matches = code.match(/@\w+/g) || [];
-  return [...new Set(matches)];
-}
+
 
 function extractGeometry(description: string): string {
   const lower = description.toLowerCase();
@@ -307,9 +305,7 @@ function extractName(description: string): string {
   return capitalize(last.replace(/[^a-zA-Z0-9]/g, ''));
 }
 
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
+
 
 function randomPosition(): string {
   const x = (Math.random() * 4 - 2).toFixed(1);

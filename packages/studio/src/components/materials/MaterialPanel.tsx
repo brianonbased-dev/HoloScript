@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { Palette, X, Search, Copy, Plus, ChevronDown } from 'lucide-react';
-import { useSceneStore } from '@/lib/stores';
+import { useSceneStore, useEditorStore, useSceneGraphStore } from '@/lib/stores';
 
 interface MaterialPreset {
   id: string;
@@ -59,7 +59,7 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
   // Custom tweaking state
   const [selected, setSelected] = useState<MaterialPreset | null>(null);
   const [albedo, setAlbedo] = useState('#ffffff');
-  const [roughness, setRoughness] = useState(0.5);
+  const [glossiness, setGlossiness] = useState(0.5); // 1.0 - roughness
   const [metallic, setMetallic] = useState(0.0);
   const [emissive, setEmissive] = useState('');
   const [emissiveInt, setEmissiveInt] = useState(2.0);
@@ -68,6 +68,31 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
 
   const setCode = useSceneStore((s) => s.setCode);
   const code = useSceneStore((s) => s.code) ?? '';
+
+  // Scene connection for instant slider updates
+  const selectedObjectId = useEditorStore((s) => s.selectedObjectId);
+  const nodes = useSceneGraphStore((s) => s.nodes);
+  const applyTransientMaterial = useSceneGraphStore((s) => s.applyTransientMaterial);
+
+  // Sync panel state seamlessly from the selected node's material trait
+  useEffect(() => {
+    if (selectedObjectId) {
+      const node = nodes.find((n) => n.id === selectedObjectId);
+      if (node) {
+        const matTrait = node.traits.find((t) => t.name === 'material');
+        if (matTrait?.properties) {
+          const props = matTrait.properties as any;
+          if (props.albedo) setAlbedo(props.albedo);
+          if (props.color) setAlbedo(props.color);
+          if (props.roughness !== undefined) setGlossiness(1.0 - props.roughness);
+          if (props.metallic !== undefined) setMetallic(props.metallic);
+          if (props.emissive) setEmissive(props.emissive);
+          if (props.emissiveIntensity !== undefined) setEmissiveInt(props.emissiveIntensity);
+          if (props.opacity !== undefined) setOpacity(props.opacity);
+        }
+      }
+    }
+  }, [selectedObjectId, nodes]);
 
   useEffect(() => {
     setLoading(true);
@@ -86,7 +111,7 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
   const loadPreset = (p: MaterialPreset) => {
     setSelected(p);
     setAlbedo(p.albedo);
-    setRoughness(p.roughness);
+    setGlossiness(1.0 - p.roughness);
     setMetallic(p.metallic);
     setEmissive(p.emissive ?? '');
     setEmissiveInt(p.emissiveIntensity ?? 2.0);
@@ -95,12 +120,18 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
 
   const currentSnippet = buildSnippet({
     albedo,
-    roughness,
+    roughness: 1.0 - glossiness,
     metallic,
     emissive: emissive || undefined,
     emissiveIntensity: emissive ? emissiveInt : undefined,
     opacity,
   });
+
+  const handleUpdate = (updates: Partial<{ albedo: string; roughness: number; metallic: number; emissive: string; emissiveIntensity: number; opacity: number }>) => {
+    if (selectedObjectId) {
+      applyTransientMaterial(selectedObjectId, updates);
+    }
+  };
 
   const insert = () => {
     const name = selected?.name ?? 'Custom';
@@ -179,10 +210,10 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
 
       {/* Sliders */}
       <div className="flex-1 overflow-y-auto space-y-3 p-3">
-        {/* Albedo */}
+        {/* Color Tint / Albedo */}
         <label className="block">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-[9px] text-studio-muted">Albedo</span>
+            <span className="text-[9px] text-studio-muted">Color Tint</span>
             <div className="flex items-center gap-1.5">
               <div
                 className="h-3 w-3 rounded-full border border-studio-border"
@@ -194,24 +225,31 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
           <input
             type="color"
             value={albedo}
-            onChange={(e) => setAlbedo(e.target.value)}
+            onChange={(e) => {
+              setAlbedo(e.target.value);
+              handleUpdate({ albedo: e.target.value });
+            }}
             className="h-7 w-full cursor-pointer rounded-lg border border-studio-border"
           />
         </label>
 
-        {/* Roughness */}
+        {/* Glossiness (Inverses Roughness) */}
         <label className="block">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-[9px] text-studio-muted">Roughness</span>
-            <span className="font-mono text-[9px] text-studio-text">{roughness.toFixed(2)}</span>
+            <span className="text-[9px] text-studio-muted">Glossiness</span>
+            <span className="font-mono text-[9px] text-studio-text">{(glossiness * 100).toFixed(0)}%</span>
           </div>
           <input
             type="range"
             min={0}
             max={1}
             step={0.01}
-            value={roughness}
-            onChange={(e) => setRoughness(Number(e.target.value))}
+            value={glossiness}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setGlossiness(val);
+              handleUpdate({ roughness: 1.0 - val });
+            }}
             className="w-full accent-studio-accent"
           />
         </label>
@@ -220,7 +258,7 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
         <label className="block">
           <div className="mb-1 flex items-center justify-between">
             <span className="text-[9px] text-studio-muted">Metallic</span>
-            <span className="font-mono text-[9px] text-studio-text">{metallic.toFixed(2)}</span>
+            <span className="font-mono text-[9px] text-studio-text">{(metallic * 100).toFixed(0)}%</span>
           </div>
           <input
             type="range"
@@ -228,7 +266,11 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
             max={1}
             step={0.01}
             value={metallic}
-            onChange={(e) => setMetallic(Number(e.target.value))}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setMetallic(val);
+              handleUpdate({ metallic: val });
+            }}
             className="w-full accent-studio-accent"
           />
         </label>
@@ -249,7 +291,10 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
               <input
                 type="color"
                 value={emissive}
-                onChange={(e) => setEmissive(e.target.value)}
+                onChange={(e) => {
+                  setEmissive(e.target.value);
+                  handleUpdate({ emissive: e.target.value, emissiveIntensity: emissiveInt });
+                }}
                 className="h-7 w-full cursor-pointer rounded-lg border border-studio-border"
               />
               <div className="flex items-center justify-between">
@@ -262,7 +307,11 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
                 max={10}
                 step={0.1}
                 value={emissiveInt}
-                onChange={(e) => setEmissiveInt(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setEmissiveInt(val);
+                  handleUpdate({ emissiveIntensity: val });
+                }}
                 className="w-full accent-studio-accent"
               />
             </>
@@ -273,7 +322,7 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
         <label className="block">
           <div className="mb-1 flex items-center justify-between">
             <span className="text-[9px] text-studio-muted">Opacity</span>
-            <span className="font-mono text-[9px] text-studio-text">{opacity.toFixed(2)}</span>
+            <span className="font-mono text-[9px] text-studio-text">{(opacity * 100).toFixed(0)}%</span>
           </div>
           <input
             type="range"
@@ -281,7 +330,11 @@ export function MaterialPanel({ onClose }: MaterialPanelProps) {
             max={1}
             step={0.01}
             value={opacity}
-            onChange={(e) => setOpacity(Number(e.target.value))}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setOpacity(val);
+              handleUpdate({ opacity: val });
+            }}
             className="w-full accent-studio-accent"
           />
         </label>

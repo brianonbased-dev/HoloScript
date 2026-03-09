@@ -14,6 +14,19 @@
 export type BlendMode = 'opaque' | 'transparent' | 'additive' | 'multiply';
 export type CullMode = 'none' | 'front' | 'back';
 
+/**
+ * Material type classification for UI and editor workflows.
+ * Maps to high-level rendering strategies.
+ */
+export type MaterialType =
+  | 'standard'
+  | 'physical'
+  | 'basic'
+  | 'emissive'
+  | 'toon'
+  | 'glass'
+  | 'metal';
+
 export interface TextureSlot {
   textureId: string;
   uvChannel: number;
@@ -21,9 +34,21 @@ export interface TextureSlot {
   offset: { x: number; y: number };
 }
 
+/**
+ * Unified PBR material definition.
+ *
+ * This is the single canonical material type used across all HoloScript
+ * subsystems: the rendering MaterialLibrary, the MaterialEditor tool,
+ * shader graphs, and export compilers.
+ *
+ * Color values use linear RGBA objects (not hex strings) for precision
+ * and compatibility with GPU pipelines.
+ */
 export interface MaterialDef {
   id: string;
   name: string;
+  /** High-level material classification for editor UI (default: 'standard') */
+  materialType?: MaterialType;
   // PBR properties
   albedo: { r: number; g: number; b: number; a: number };
   metallic: number; // 0-1
@@ -47,6 +72,64 @@ export interface MaterialDef {
   // Custom
   shaderGraphId?: string;
   customUniforms?: Record<string, number | number[]>;
+  /** Arbitrary extension properties for editor/plugin use */
+  properties?: Record<string, unknown>;
+}
+
+// =============================================================================
+// COLOR UTILITIES
+// =============================================================================
+
+/**
+ * Convert a hex color string (#RRGGBB or #RRGGBBAA) to an RGBA object
+ * with linear color values (0-1).
+ */
+export function hexToRGBA(hex: string): { r: number; g: number; b: number; a: number } {
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.substring(0, 2), 16) / 255;
+  const g = parseInt(clean.substring(2, 4), 16) / 255;
+  const b = parseInt(clean.substring(4, 6), 16) / 255;
+  const a = clean.length >= 8 ? parseInt(clean.substring(6, 8), 16) / 255 : 1;
+  return { r, g, b, a };
+}
+
+/**
+ * Convert an RGBA object (0-1 values) to a hex color string (#RRGGBB).
+ */
+export function rgbaToHex(color: { r: number; g: number; b: number; a?: number }): string {
+  const toHex = (v: number) =>
+    Math.round(Math.max(0, Math.min(1, v)) * 255)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${toHex(color.r)}${toHex(color.g)}${toHex(color.b)}`;
+}
+
+/**
+ * Create a default MaterialDef with sensible PBR defaults.
+ * Useful for editors and tools that need a starting point.
+ */
+export function createDefaultMaterialDef(
+  id: string,
+  name?: string,
+  materialType?: MaterialType
+): MaterialDef {
+  return {
+    id,
+    name: name ?? id,
+    materialType: materialType ?? 'standard',
+    albedo: { r: 0.8, g: 0.8, b: 0.8, a: 1 },
+    metallic: 0,
+    roughness: 0.5,
+    emission: { r: 0, g: 0, b: 0 },
+    emissionStrength: 0,
+    normalScale: 1,
+    aoStrength: 1,
+    blendMode: 'opaque',
+    cullMode: 'back',
+    depthWrite: true,
+    depthTest: true,
+    doubleSided: false,
+  };
 }
 
 export interface MaterialInstance {

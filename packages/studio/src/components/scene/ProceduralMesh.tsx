@@ -269,7 +269,6 @@ export function useKeyframeAnimation(
     // Simple sine-based interpolation for "breathe" effect
     if (firstKey.includes('breathe') || firstKey.includes('pulse') || firstKey.includes('Pulse')) {
       const breathe = 1 + Math.sin(t * Math.PI * 2) * 0.05;
-      meshRef.current.scale.set(breathe, breathe, breathe);
     }
   });
 }

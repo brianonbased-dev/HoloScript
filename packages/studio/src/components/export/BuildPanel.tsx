@@ -40,6 +40,7 @@ import {
   type BuildConfig,
 } from '@/lib/buildService';
 import { useSceneStore } from '@/lib/stores';
+import { formatBytes } from '@holoscript/std';
 
 const TARGET_ICONS: Record<BuildTarget, typeof Globe> = {
   web: Globe,
@@ -49,12 +50,6 @@ const TARGET_ICONS: Record<BuildTarget, typeof Globe> = {
   gltf: Box,
   json: FileJson,
 };
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export function BuildPanel() {
   const code = useSceneStore((s) => s.code);

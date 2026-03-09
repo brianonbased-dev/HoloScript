@@ -10,10 +10,9 @@ vi.mock('three', async () => {
   const actual = await vi.importActual<typeof THREE>('three');
   return {
     ...actual,
-    CanvasTexture: vi.fn().mockImplementation((canvas: HTMLCanvasElement) => ({
-      canvas,
-      needsUpdate: false,
-    })),
+    CanvasTexture: vi.fn().mockImplementation(function (canvas: HTMLCanvasElement) {
+      return { canvas, needsUpdate: false };
+    }),
   };
 });
 

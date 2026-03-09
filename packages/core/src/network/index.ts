@@ -169,6 +169,24 @@ export {
   type IInteractable,
 } from './LatencyCompensation';
 
+// Dead-Reckoning Bridge (Track 3A: Physics + Networking interop)
+export {
+  DeadReckoningPredictor,
+  PhysicsAuthorityResolver,
+  extractPhysicsSnapshot,
+  estimatePhysicsBandwidth,
+  DEFAULT_DEAD_RECKONING_CONFIG,
+  SNAPSHOT_BYTE_SIZE,
+  type DeadReckoningConfig,
+  type DeadReckoningThresholds,
+  type CorrectionStrategy,
+  type AuthorityMode,
+  type PhysicsSnapshot,
+  type CorrectionResult,
+  type AuthorityRequest,
+  type BandwidthEstimate,
+} from './DeadReckoningBridge';
+
 // Merged from networking/
 export { CRDT } from './CRDT';
 export { DeltaCompressor } from './DeltaCompressor';

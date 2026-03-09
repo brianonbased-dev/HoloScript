@@ -10,16 +10,15 @@ const mockCompile = vi.fn();
 const mockCompileComposition = vi.fn();
 
 vi.mock('@holoscript/core', () => ({
-  HoloScriptPlusParser: vi.fn().mockImplementation(() => ({
-    parse: mockParse,
-  })),
-  HoloCompositionParser: vi.fn().mockImplementation(() => ({
-    parse: mockParse,
-  })),
-  R3FCompiler: vi.fn().mockImplementation(() => ({
-    compile: mockCompile,
-    compileComposition: mockCompileComposition,
-  })),
+  HoloScriptPlusParser: vi.fn().mockImplementation(function () {
+    return { parse: mockParse };
+  }),
+  HoloCompositionParser: vi.fn().mockImplementation(function () {
+    return { parse: mockParse };
+  }),
+  R3FCompiler: vi.fn().mockImplementation(function () {
+    return { compile: mockCompile, compileComposition: mockCompileComposition };
+  }),
 }));
 
 describe('useScenePipeline', () => {

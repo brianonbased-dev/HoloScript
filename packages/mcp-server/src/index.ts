@@ -5,9 +5,10 @@
  * Enables AI agents (Grok, Claude, Copilot, etc.) to parse, validate,
  * generate, and COMPILE HoloScript code to 18+ platforms.
  *
- * 43+ tools across 5 categories:
+ * 45+ tools across 6 categories:
  * - Core (15): Parse, validate, generate, render, share
  * - Compiler (9): Compile to Unity, Unreal, URDF, SDF, WebGPU, WASM, R3F, etc.
+ * - GLTF (2): Import glTF/GLB to .holo, compile .holo to glTF/GLB
  * - Graph (6): Parse-to-graph, visualize, design, diff, connections
  * - IDE (9): Scan, diagnostics, autocomplete, refactor, docs, hover
  * - Brittney-Lite AI (4): Explain errors, fix code, review, scaffold
@@ -27,6 +28,7 @@ import { compilerTools, handleCompilerTool } from './compiler-tools';
 import { handleCodebaseTool } from './codebase-tools';
 import { handleGraphRagTool } from './graph-rag-tools';
 import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
+import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
 
 // Create MCP server
 const server = new Server(
@@ -51,6 +53,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       ...snapshotTools,
       ...monitoringTools,
       ...selfImproveTools,
+      ...gltfImportTools,
       ...PluginManager.getTools(),
     ],
   };
@@ -125,6 +128,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    // Check GLTF Import/Export tools (import_gltf, compile_to_gltf)
+    const gltfResult = await handleGltfTool(name, args || {});
+    if (gltfResult !== null) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify(gltfResult, null, 2) }],
+      };
+    }
+
     const result = await handleTool(name, args || {});
     return {
       content: [
@@ -167,3 +178,4 @@ export * from './graph-tools';
 export * from './ide-tools';
 export * from './brittney-lite';
 export * from './compiler-tools';
+export * from './gltf-import-tools';

@@ -4,58 +4,47 @@
  * Material Editor with Live Preview
  * Unity/Substance-style material editing with real-time preview sphere.
  * Supports PBR materials, procedural textures, and visual presets.
+ *
+ * Uses the unified MaterialDef type from the rendering MaterialLibrary,
+ * eliminating duplicate PBR schemas across the codebase.
  */
 
-/**
- * Material definition
- */
-export interface Material {
-  /** Material ID */
-  id: string;
-  /** Material name */
-  name: string;
-  /** Material type */
-  type: 'standard' | 'physical' | 'basic' | 'emissive' | 'toon' | 'glass' | 'metal';
-  /** Base color */
-  color?: string;
-  /** Metalness (0-1) */
-  metalness?: number;
-  /** Roughness (0-1) */
-  roughness?: number;
-  /** Emissive color */
-  emissiveColor?: string;
-  /** Emissive intensity */
-  emissiveIntensity?: number;
-  /** Opacity (0-1) */
-  opacity?: number;
-  /** Transparent flag */
-  transparent?: boolean;
-  /** Texture maps */
-  textures?: {
-    albedo?: string;
-    metalness?: string;
-    roughness?: string;
-    normal?: string;
-    ao?: string;
-    emissive?: string;
-  };
-  /** Custom properties */
-  properties?: Record<string, any>;
-}
+import type { MaterialDef, MaterialType } from '../rendering/MaterialLibrary';
+import {
+  hexToRGBA,
+  rgbaToHex,
+  createDefaultMaterialDef,
+} from '../rendering/MaterialLibrary';
+
+// Re-export MaterialDef so existing consumers of MaterialEditor types
+// can access the canonical type without changing their imports.
+export type { MaterialDef, MaterialType } from '../rendering/MaterialLibrary';
+export { hexToRGBA, rgbaToHex, createDefaultMaterialDef } from '../rendering/MaterialLibrary';
 
 /**
- * Material preset
+ * @deprecated Use MaterialDef from rendering/MaterialLibrary instead.
+ * This alias is kept for backward compatibility.
  */
-export interface MaterialPreset {
+export type Material = MaterialDef;
+
+/**
+ * Material preset for the editor UI
+ */
+export interface MaterialEditorPreset {
   /** Preset name */
   name: string;
   /** Preset category */
   category: string;
-  /** Material configuration */
-  material: Partial<Material>;
-  /** Preview color */
+  /** Material configuration overrides */
+  material: Partial<MaterialDef>;
+  /** Preview color (hex string for CSS rendering) */
   previewColor: string;
 }
+
+/**
+ * @deprecated Use MaterialEditorPreset instead.
+ */
+export type MaterialPreset = MaterialEditorPreset;
 
 /**
  * Material editor configuration
@@ -79,10 +68,11 @@ export interface MaterialEditorConfig {
  * Material Editor
  *
  * Professional material editing with live preview sphere.
+ * All materials use the unified MaterialDef type from the rendering subsystem.
  */
 export class MaterialEditor {
   private readonly config: Required<MaterialEditorConfig>;
-  private materials = new Map<string, Material>();
+  private materials = new Map<string, MaterialDef>();
   private currentMaterialId: string | null = null;
   private container: HTMLElement | null = null;
   private previewCanvas: HTMLCanvasElement | null = null;
@@ -91,83 +81,128 @@ export class MaterialEditor {
   private previewCamera: any = null; // THREE.Camera
   private previewSphere: any = null; // THREE.Mesh
 
-  // Material presets
-  private static readonly PRESETS: MaterialPreset[] = [
+  // Material presets (using unified MaterialDef schema)
+  private static readonly PRESETS: MaterialEditorPreset[] = [
     {
       name: 'Concrete',
       category: 'Construction',
-      material: { type: 'standard', color: '#808080', metalness: 0.0, roughness: 0.9 },
+      material: {
+        materialType: 'standard',
+        albedo: { r: 0.502, g: 0.502, b: 0.502, a: 1 },
+        metallic: 0.0,
+        roughness: 0.9,
+      },
       previewColor: '#808080',
     },
     {
       name: 'Metal',
       category: 'Metal',
-      material: { type: 'metal', color: '#888888', metalness: 1.0, roughness: 0.2 },
+      material: {
+        materialType: 'metal',
+        albedo: { r: 0.533, g: 0.533, b: 0.533, a: 1 },
+        metallic: 1.0,
+        roughness: 0.2,
+      },
       previewColor: '#888888',
     },
     {
       name: 'Gold',
       category: 'Metal',
-      material: { type: 'metal', color: '#ffd700', metalness: 1.0, roughness: 0.15 },
+      material: {
+        materialType: 'metal',
+        albedo: { r: 1.0, g: 0.843, b: 0.0, a: 1 },
+        metallic: 1.0,
+        roughness: 0.15,
+      },
       previewColor: '#ffd700',
     },
     {
       name: 'Copper',
       category: 'Metal',
-      material: { type: 'metal', color: '#b87333', metalness: 1.0, roughness: 0.25 },
+      material: {
+        materialType: 'metal',
+        albedo: { r: 0.722, g: 0.451, b: 0.2, a: 1 },
+        metallic: 1.0,
+        roughness: 0.25,
+      },
       previewColor: '#b87333',
     },
     {
       name: 'Chrome',
       category: 'Metal',
-      material: { type: 'metal', color: '#cccccc', metalness: 1.0, roughness: 0.05 },
+      material: {
+        materialType: 'metal',
+        albedo: { r: 0.8, g: 0.8, b: 0.8, a: 1 },
+        metallic: 1.0,
+        roughness: 0.05,
+      },
       previewColor: '#cccccc',
     },
     {
       name: 'Wood',
       category: 'Natural',
-      material: { type: 'standard', color: '#8b6f47', metalness: 0.0, roughness: 0.7 },
+      material: {
+        materialType: 'standard',
+        albedo: { r: 0.545, g: 0.435, b: 0.278, a: 1 },
+        metallic: 0.0,
+        roughness: 0.7,
+      },
       previewColor: '#8b6f47',
     },
     {
       name: 'Plastic',
       category: 'Synthetic',
-      material: { type: 'physical', color: '#ff6b6b', metalness: 0.0, roughness: 0.4 },
+      material: {
+        materialType: 'physical',
+        albedo: { r: 1.0, g: 0.42, b: 0.42, a: 1 },
+        metallic: 0.0,
+        roughness: 0.4,
+      },
       previewColor: '#ff6b6b',
     },
     {
       name: 'Glass',
       category: 'Transparent',
       material: {
-        type: 'glass',
-        color: '#ffffff',
-        metalness: 0.0,
+        materialType: 'glass',
+        albedo: { r: 1.0, g: 1.0, b: 1.0, a: 0.3 },
+        metallic: 0.0,
         roughness: 0.0,
-        opacity: 0.3,
-        transparent: true,
+        blendMode: 'transparent',
+        doubleSided: true,
       },
       previewColor: 'rgba(255, 255, 255, 0.3)',
     },
     {
       name: 'Rubber',
       category: 'Synthetic',
-      material: { type: 'standard', color: '#333333', metalness: 0.0, roughness: 0.8 },
+      material: {
+        materialType: 'standard',
+        albedo: { r: 0.2, g: 0.2, b: 0.2, a: 1 },
+        metallic: 0.0,
+        roughness: 0.8,
+      },
       previewColor: '#333333',
     },
     {
       name: 'Ceramic',
       category: 'Natural',
-      material: { type: 'physical', color: '#f0f0f0', metalness: 0.0, roughness: 0.3 },
+      material: {
+        materialType: 'physical',
+        albedo: { r: 0.941, g: 0.941, b: 0.941, a: 1 },
+        metallic: 0.0,
+        roughness: 0.3,
+      },
       previewColor: '#f0f0f0',
     },
     {
       name: 'Neon',
       category: 'Emissive',
       material: {
-        type: 'emissive',
-        color: '#00ff00',
-        emissiveColor: '#00ff00',
-        emissiveIntensity: 2.0,
+        materialType: 'emissive',
+        albedo: { r: 0.0, g: 1.0, b: 0.0, a: 1 },
+        emission: { r: 0.0, g: 1.0, b: 0.0 },
+        emissionStrength: 2.0,
       },
       previewColor: '#00ff00',
     },
@@ -175,10 +210,10 @@ export class MaterialEditor {
       name: 'Glow',
       category: 'Emissive',
       material: {
-        type: 'emissive',
-        color: '#60a5fa',
-        emissiveColor: '#60a5fa',
-        emissiveIntensity: 1.5,
+        materialType: 'emissive',
+        albedo: { r: 0.376, g: 0.647, b: 0.98, a: 1 },
+        emission: { r: 0.376, g: 0.647, b: 0.98 },
+        emissionStrength: 1.5,
       },
       previewColor: '#60a5fa',
     },
@@ -731,7 +766,8 @@ export class MaterialEditor {
   }
 
   /**
-   * Update preview material
+   * Update preview material (THREE.js sphere).
+   * Accepts hex color strings for THREE.js Color.set() compatibility.
    */
   private updatePreviewMaterial(params: any): void {
     if (!this.previewSphere) return;
@@ -770,11 +806,12 @@ export class MaterialEditor {
   }
 
   /**
-   * Save current material
+   * Save current material.
+   * Returns a fully-formed MaterialDef (the unified PBR type).
    */
-  public saveMaterial(): Material {
+  public saveMaterial(): MaterialDef {
     const id = `material_${Date.now()}`;
-    const material: Material = this.getCurrentMaterial();
+    const material: MaterialDef = this.getCurrentMaterial();
     material.id = id;
 
     this.materials.set(id, material);
@@ -787,9 +824,11 @@ export class MaterialEditor {
   }
 
   /**
-   * Get current material configuration
+   * Get current material configuration from the editor UI.
+   * Reads hex color values from DOM inputs and converts to RGBA objects
+   * for the unified MaterialDef type.
    */
-  public getCurrentMaterial(): Material {
+  public getCurrentMaterial(): MaterialDef {
     const typeSelect = document.getElementById('material-type') as HTMLSelectElement;
     const colorInput = document.getElementById('base-color') as HTMLInputElement;
     const metalnessInput = document.getElementById('metalness') as HTMLInputElement;
@@ -800,30 +839,41 @@ export class MaterialEditor {
       'emissive-intensity'
     ) as HTMLInputElement;
 
-    const material: Material = {
-      id: '',
-      name: 'Custom Material',
-      type: (typeSelect?.value as any) || 'standard',
-      color: colorInput?.value || '#888888',
-      metalness: parseFloat(metalnessInput?.value || '0.5'),
-      roughness: parseFloat(roughnessInput?.value || '0.5'),
-      opacity: parseFloat(opacityInput?.value || '1.0'),
-      transparent: parseFloat(opacityInput?.value || '1.0') < 1.0,
-    };
+    const materialType = (typeSelect?.value as MaterialType) || 'standard';
+    const colorHex = colorInput?.value || '#888888';
+    const albedo = hexToRGBA(colorHex);
+    const opacity = parseFloat(opacityInput?.value || '1.0');
+    albedo.a = opacity;
 
-    if (material.type === 'emissive') {
-      material.emissiveColor = emissiveColorInput?.value || '#00ff00';
-      material.emissiveIntensity = parseFloat(emissiveIntensityInput?.value || '1.0');
+    const material: MaterialDef = createDefaultMaterialDef('', 'Custom Material', materialType);
+    material.albedo = albedo;
+    material.metallic = parseFloat(metalnessInput?.value || '0.5');
+    material.roughness = parseFloat(roughnessInput?.value || '0.5');
+
+    if (opacity < 1.0) {
+      material.blendMode = 'transparent';
+    }
+
+    if (materialType === 'emissive') {
+      const emissiveHex = emissiveColorInput?.value || '#00ff00';
+      const emissiveRgba = hexToRGBA(emissiveHex);
+      material.emission = { r: emissiveRgba.r, g: emissiveRgba.g, b: emissiveRgba.b };
+      material.emissionStrength = parseFloat(emissiveIntensityInput?.value || '1.0');
     }
 
     return material;
   }
 
   /**
-   * Load material
+   * Load a MaterialDef into the editor UI.
+   * Converts RGBA objects back to hex strings for DOM color inputs.
    */
-  public loadMaterial(material: Material): void {
+  public loadMaterial(material: MaterialDef): void {
     this.currentMaterialId = material.id;
+
+    // Convert MaterialDef colors to hex for the UI
+    const colorHex = rgbaToHex(material.albedo);
+    const emissiveHex = rgbaToHex(material.emission);
 
     // Update UI
     const typeSelect = document.getElementById('material-type') as HTMLSelectElement;
@@ -836,51 +886,44 @@ export class MaterialEditor {
       'emissive-intensity'
     ) as HTMLInputElement;
 
-    if (typeSelect) typeSelect.value = material.type;
-    if (colorInput) colorInput.value = material.color || '#888888';
-    if (metalnessInput) metalnessInput.value = (material.metalness || 0.5).toString();
-    if (roughnessInput) roughnessInput.value = (material.roughness || 0.5).toString();
-    if (opacityInput) opacityInput.value = (material.opacity || 1.0).toString();
+    if (typeSelect) typeSelect.value = material.materialType || 'standard';
+    if (colorInput) colorInput.value = colorHex;
+    if (metalnessInput) metalnessInput.value = material.metallic.toString();
+    if (roughnessInput) roughnessInput.value = material.roughness.toString();
+    if (opacityInput) opacityInput.value = (material.albedo.a ?? 1.0).toString();
 
-    if (material.emissiveColor && emissiveColorInput) {
-      emissiveColorInput.value = material.emissiveColor;
+    if (emissiveColorInput) {
+      emissiveColorInput.value = emissiveHex;
     }
 
-    if (material.emissiveIntensity !== undefined && emissiveIntensityInput) {
-      emissiveIntensityInput.value = material.emissiveIntensity.toString();
+    if (emissiveIntensityInput) {
+      emissiveIntensityInput.value = material.emissionStrength.toString();
     }
 
     // Update value displays
-    document.getElementById('color-value')!.textContent = material.color || '#888888';
-    document.getElementById('metalness-value')!.textContent = (material.metalness || 0.5).toFixed(
-      2
-    );
-    document.getElementById('roughness-value')!.textContent = (material.roughness || 0.5).toFixed(
-      2
-    );
-    document.getElementById('opacity-value')!.textContent = (material.opacity || 1.0).toFixed(2);
+    document.getElementById('color-value')!.textContent = colorHex;
+    document.getElementById('metalness-value')!.textContent = material.metallic.toFixed(2);
+    document.getElementById('roughness-value')!.textContent = material.roughness.toFixed(2);
+    document.getElementById('opacity-value')!.textContent = (material.albedo.a ?? 1.0).toFixed(2);
 
-    if (material.emissiveColor) {
-      document.getElementById('emissive-color-value')!.textContent = material.emissiveColor;
-    }
-
-    if (material.emissiveIntensity !== undefined) {
+    if (material.emissionStrength > 0) {
+      document.getElementById('emissive-color-value')!.textContent = emissiveHex;
       document.getElementById('emissive-intensity-value')!.textContent =
-        material.emissiveIntensity.toFixed(1);
+        material.emissionStrength.toFixed(1);
     }
 
     // Update material type visibility
-    this.updateMaterialType(material.type);
+    this.updateMaterialType(material.materialType || 'standard');
 
-    // Update preview
+    // Update preview (using hex for THREE.js compatibility)
     this.updatePreviewMaterial({
-      color: material.color,
-      metalness: material.metalness,
+      color: colorHex,
+      metalness: material.metallic,
       roughness: material.roughness,
-      opacity: material.opacity,
-      transparent: material.transparent,
-      emissive: material.emissiveColor,
-      emissiveIntensity: material.emissiveIntensity,
+      opacity: material.albedo.a ?? 1.0,
+      transparent: material.blendMode === 'transparent',
+      emissive: emissiveHex,
+      emissiveIntensity: material.emissionStrength,
     });
 
     if (this.config.debug) {
@@ -889,23 +932,23 @@ export class MaterialEditor {
   }
 
   /**
-   * Load preset
+   * Load a preset by name.
+   * Merges preset overrides with default MaterialDef values.
    */
   public loadPreset(presetName: string): void {
     const preset = MaterialEditor.PRESETS.find((p) => p.name === presetName);
     if (!preset) return;
 
-    const material: Material = {
+    // Create a full MaterialDef from the preset overrides
+    const material: MaterialDef = {
+      ...createDefaultMaterialDef(
+        `preset_${presetName.toLowerCase()}`,
+        presetName,
+        preset.material.materialType
+      ),
+      ...preset.material,
       id: `preset_${presetName.toLowerCase()}`,
       name: presetName,
-      type: preset.material.type || 'standard',
-      color: preset.material.color,
-      metalness: preset.material.metalness,
-      roughness: preset.material.roughness,
-      opacity: preset.material.opacity,
-      transparent: preset.material.transparent,
-      emissiveColor: preset.material.emissiveColor,
-      emissiveIntensity: preset.material.emissiveIntensity,
     };
 
     this.loadMaterial(material);
@@ -948,16 +991,16 @@ export class MaterialEditor {
   }
 
   /**
-   * Get all materials
+   * Get all materials (returns unified MaterialDef objects)
    */
-  public getMaterials(): Material[] {
+  public getMaterials(): MaterialDef[] {
     return Array.from(this.materials.values());
   }
 
   /**
    * Get presets
    */
-  public static getPresets(): MaterialPreset[] {
+  public static getPresets(): MaterialEditorPreset[] {
     return MaterialEditor.PRESETS;
   }
 

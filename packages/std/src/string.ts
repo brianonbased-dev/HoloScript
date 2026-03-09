@@ -503,3 +503,14 @@ export function similarity(a: string, b: string): number {
   if (maxLen === 0) return 1;
   return 1 - levenshtein(a, b) / maxLen;
 }
+
+/**
+ * Extract HoloScript traits (e.g., @grabbable) from a code string
+ */
+export function extractTraits(code: string): string[] {
+  const re = /@([a-zA-Z_]\w*)/g;
+  const traits = new Set<string>();
+  let m;
+  while ((m = re.exec(code)) !== null) traits.add(`@${m[1]}`);
+  return [...traits];
+}

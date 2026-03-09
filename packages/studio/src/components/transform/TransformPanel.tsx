@@ -50,7 +50,7 @@ export function TransformPanel({
   // Read selected node transform directly from the store (single source of truth)
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const nodes = useSceneGraphStore((s) => s.nodes);
-  const updateNodeTransform = useSceneGraphStore((s) => s.updateNodeTransform);
+  const applyTransientTransform = useSceneGraphStore((s) => s.applyTransientTransform);
 
   const selectedNode = useMemo(
     () => (selectedId ? nodes.find((n) => n.id === selectedId) : null),
@@ -71,12 +71,12 @@ export function TransformPanel({
   const update = useCallback(
     (partial: Partial<TransformData>) => {
       if (selectedId) {
-        // Write directly to the scene graph store — no local state lag
-        updateNodeTransform(selectedId, partial);
+        // Write directly to the active Three.js mesh for 0-frame latency during drag/type
+        applyTransientTransform(selectedId, partial);
       }
       onChange?.({ ...t, ...partial });
     },
-    [selectedId, updateNodeTransform, onChange, t]
+    [selectedId, applyTransientTransform, onChange, t]
   );
 
   const snap = useCallback(

@@ -16,6 +16,7 @@ import {
   EXAMPLE_SCENES,
   type PlaygroundEditorOptions,
 } from './editor/monaco-setup.js';
+import { extractTraits } from '@holoscript/std';
 
 import {
   SceneManager,
@@ -170,7 +171,7 @@ function parseForPreview(source: string): SceneNode[] {
       type: 'orb',
       name,
       properties: props,
-      traits: extractTraits(body),
+      traits: extractTraits(body).map(t => t.replace('@', '')),
     });
   }
 
@@ -213,12 +214,3 @@ function parseProperties(body: string): Record<string, unknown> {
   return props;
 }
 
-function extractTraits(body: string): string[] {
-  const traits: string[] = [];
-  const traitPattern = /@(\w+)/g;
-  let m: RegExpExecArray | null;
-  while ((m = traitPattern.exec(body)) !== null) {
-    traits.push(m[1]);
-  }
-  return traits;
-}

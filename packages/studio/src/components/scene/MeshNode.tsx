@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, Suspense } from 'react';
+import { useRef, Suspense, useEffect } from 'react';
 import type { R3FNode } from '@holoscript/core';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
@@ -45,6 +45,7 @@ export function MeshNode({ node }: MeshNodeProps) {
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
   const removeNode = useSceneGraphStore((s) => s.removeNode);
+  const setNodeRef = useSceneGraphStore((s) => s.setNodeRef);
   const builderMode = useBuilderStore((s) => s.builderMode);
 
   const { props } = node;
@@ -55,6 +56,12 @@ export function MeshNode({ node }: MeshNodeProps) {
   const scale = props.scale || [1, 1, 1];
   const isSelected = node.id === selectedId;
   const isBreakMode = builderMode === 'break';
+
+  useEffect(() => {
+    if (meshRef.current) {
+      setNodeRef(node.id, meshRef.current);
+    }
+  }, [node.id, setNodeRef]);
 
   const matProps = getMaterialProps(node);
 

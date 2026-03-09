@@ -157,6 +157,7 @@ export {
   wordWrap,
   levenshtein,
   similarity,
+  extractTraits,
 } from './string.js';
 
 // Economic primitives (v4.3)

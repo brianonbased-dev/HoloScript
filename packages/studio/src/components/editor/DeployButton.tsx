@@ -21,6 +21,7 @@ import {
   gateCheck,
   type MarketplacePackage,
 } from '@holoscript/core';
+import { extractTraits } from '@holoscript/std';
 
 // ═══════════════════════════════════════════════════════════════════
 
@@ -49,13 +50,7 @@ const STATUS_STYLES: Record<DeployStatus, { bg: string; text: string; label: str
   error: { bg: 'bg-red-500/20', text: 'text-red-400', label: '✗ Deploy Failed' },
 };
 
-function extractTraits(code: string): string[] {
-  const re = /@([a-zA-Z_]\w*)/g;
-  const traits = new Set<string>();
-  let m;
-  while ((m = re.exec(code)) !== null) traits.add(`@${m[1]}`);
-  return [...traits];
-}
+
 
 export function DeployButton({
   code,

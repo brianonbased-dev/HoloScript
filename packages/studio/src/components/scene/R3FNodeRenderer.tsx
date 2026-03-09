@@ -146,15 +146,20 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
     case 'EffectComposer':
       return <PostProcessingNode node={node} />;
 
-    case 'gltfModel':
+    case 'gltfModel': {
+      const animTrait = node.traits.find((t: any) => t.name === 'animation');
+      const action = animTrait ? (animTrait.properties.state as string) : 'idle';
       return (
         <GLTFModelNode
+          node={node}
           src={props.src || props.model || ''}
           position={props.position}
           rotation={props.rotation}
           scale={props.scale}
+          action={action}
         />
       );
+    }
 
     case 'rectAreaLight':
       return (

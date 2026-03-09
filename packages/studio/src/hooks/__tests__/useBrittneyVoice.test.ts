@@ -31,7 +31,7 @@ const createMockRecognition = (): MockSpeechRecognition => ({
   abort: vi.fn(),
 });
 
-const MockSpeechRecognitionConstructor = vi.fn(() => {
+const MockSpeechRecognitionConstructor = vi.fn().mockImplementation(function () {
   mockRecognitionInstance = createMockRecognition();
   return mockRecognitionInstance;
 });

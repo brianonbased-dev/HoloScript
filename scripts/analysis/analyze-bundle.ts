@@ -7,6 +7,7 @@
 import { execSync } from 'child_process';
 import { existsSync, statSync, readdirSync } from 'fs';
 import { join } from 'path';
+import { formatBytes } from '@holoscript/std';
 
 const DIST_DIR = join(__dirname, '../packages/core/dist');
 const COMPILER_DIR = join(DIST_DIR, 'compiler');
@@ -17,13 +18,6 @@ interface BundleStats {
   sizeFormatted: string;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-}
 
 function analyzeBundle() {
   console.log('📊 HoloScript Bundle Analysis\n');

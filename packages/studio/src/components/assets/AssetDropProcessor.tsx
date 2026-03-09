@@ -61,6 +61,16 @@ async function loadGLTFFromBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
                 mat.transparent = true;
               }
 
+              // Prevent Z-fighting on default GLB drops
+              mat.polygonOffset = true;
+              mat.polygonOffsetFactor = 1;
+              mat.polygonOffsetUnits = 1;
+
+              // Force depthWrite to avoid shadow sorting issues if transparent
+              if (mat.transparent) {
+                mat.depthWrite = true;
+              }
+
               mat.needsUpdate = true;
             };
 
@@ -73,9 +83,10 @@ async function loadGLTFFromBuffer(buffer: ArrayBuffer): Promise<THREE.Group> {
             }
           }
         });
+        gltf.scene.userData.animations = gltf.animations || [];
         resolve(gltf.scene);
       },
-      reject
+      (error) => reject(error)
     );
   });
 }
@@ -136,29 +147,70 @@ export function useAssetDropProcessor() {
 
         // 4) Extract meshes → scene nodes
         let meshCount = 0;
-        group.traverse((obj) => {
-          if (!(obj instanceof THREE.Mesh)) return;
-          meshCount++;
+        
+        // Compute the overall bounding box of the parsed group to snap it to the floor
+        const box = new THREE.Box3().setFromObject(group);
+        const yOffset = box.min.y < 0 ? Math.abs(box.min.y) : -box.min.y;
 
-          const p = obj.position;
-          const r = obj.rotation;
-          const s = obj.scale;
+        // Auto-detect characters (if it has animations or 'rig'/'armature'/'mixamorig' in name, or if there is a SkinnedMesh)
+        let isCharacter = false;
+        if (group.userData.animations && group.userData.animations.length > 0) {
+          isCharacter = true;
+        } else {
+          group.traverse((obj) => {
+            if (
+              obj.name.toLowerCase().includes('rig') ||
+              obj.name.toLowerCase().includes('armature') ||
+              obj.name.toLowerCase().includes('mixamorig') ||
+              (obj as THREE.SkinnedMesh).isSkinnedMesh
+            ) {
+              isCharacter = true;
+            }
+          });
+        }
 
+        if (isCharacter) {
           const node: SceneNode = {
             id: makeId(),
-            name: obj.name || `Mesh_${meshCount}`,
-            type: 'mesh',
+            name: asset.name.replace(/\.[^/.]+$/, ''),
+            type: 'gltfModel',
             parentId: null,
-            position: [p.x, p.y, p.z],
-            rotation: [r.x, r.y, r.z],
-            scale: [s.x, s.y, s.z],
+            position: [0, yOffset, 0],
+            rotation: [0, 0, 0],
+            scale: [1, 1, 1],
             traits: [
-              { name: 'mesh', properties: { geometry: 'imported', src: asset.src } },
-              { name: 'material', properties: { color: '#ffffff', type: 'standard' } },
+              { name: 'gltf', properties: { src: asset.src } },
+              { name: 'animation', properties: { state: 'idle' } },
             ],
           };
           addNode(node);
-        });
+          meshCount = 1;
+        } else {
+          group.traverse((obj) => {
+            if (!(obj instanceof THREE.Mesh)) return;
+            meshCount++;
+
+            const p = obj.position;
+            const r = obj.rotation;
+            const s = obj.scale;
+
+            const node: SceneNode = {
+              id: makeId(),
+              name: obj.name || `Mesh_${meshCount}`,
+              type: 'mesh',
+              parentId: null,
+              position: [p.x, p.y + yOffset, p.z],
+              rotation: [r.x, r.y, r.z],
+              scale: [s.x, s.y, s.z],
+              traits: [
+                { name: 'mesh', properties: { geometry: 'imported', src: asset.src } },
+                { name: 'material', properties: { color: '#ffffff', type: 'standard' } },
+              ],
+            };
+
+            addNode(node);
+          });
+        }
 
         setStatus({ state: 'done', fileName: file.name, meshCount });
         setTimeout(() => setStatus({ state: 'idle' }), 3000);
