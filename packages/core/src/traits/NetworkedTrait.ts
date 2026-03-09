@@ -289,7 +289,7 @@ export class NetworkedTrait {
         await this.rtcTransport.initialize();
         this.rtcTransport.onMessage((msg: unknown) => {
           const networkMsg = msg as NetworkMessage & { fromPeer?: string };
-          this.handleNetworkMessage(networkMsg);
+          this.handleNetworkMessage(networkMsg as unknown as Record<string, unknown>);
         });
         this.activeTransport = 'webrtc';
         this.connected = true;
@@ -313,7 +313,7 @@ export class NetworkedTrait {
         });
         await this.wsTransport.connect();
         this.wsTransport.onMessage('state-sync', (msg: NetworkMessage) => {
-          this.handleNetworkMessage(msg);
+          this.handleNetworkMessage(msg as unknown as Record<string, unknown>);
         });
         this.activeTransport = 'websocket';
         this.connected = true;
@@ -343,7 +343,7 @@ export class NetworkedTrait {
         await this.wsTransport.connect();
 
         this.wsTransport.onMessage('state-sync', (msg: NetworkMessage) => {
-          this.handleNetworkMessage(msg);
+          this.handleNetworkMessage(msg as unknown as Record<string, unknown>);
         });
 
         this.activeTransport = 'websocket';
@@ -370,7 +370,7 @@ export class NetworkedTrait {
 
         this.rtcTransport.onMessage((msg: unknown) => {
           const networkMsg = msg as NetworkMessage & { fromPeer?: string };
-          this.handleNetworkMessage(networkMsg);
+          this.handleNetworkMessage(networkMsg as unknown as Record<string, unknown>);
         });
 
         this.activeTransport = 'webrtc';
@@ -577,7 +577,68 @@ export class NetworkedTrait {
       }
     }
 
-    return buffer[buffer.length - 1];
+    const latest = buffer[buffer.length - 1];
+    
+    // Extrapolate if past the latest sample
+    if (latest.timestamp <= renderTime) {
+      const dtMs = renderTime - latest.timestamp;
+      // @ts-ignore - access internal config helper
+      const interpConfig = typeof this['getInterpolationConfig'] === 'function' ? this['getInterpolationConfig']() : this.config.interpolation;
+      const maxExtrapolationMs = (interpConfig && typeof interpConfig === 'object' ? interpConfig.maxExtrapolation : 250) ?? 250;
+      
+      if (dtMs > 0 && dtMs <= maxExtrapolationMs) {
+        const dtSec = dtMs / 1000;
+        const props = latest.properties;
+        let position = [...latest.position] as [number, number, number];
+        let rotation = [...latest.rotation] as [number, number, number, number];
+        
+        // Extrapolate Position using linear velocity
+        const vel = props.velocity as { x: number; y: number; z: number } | undefined;
+        if (vel) {
+          position[0] += vel.x * dtSec;
+          position[1] += vel.y * dtSec;
+          position[2] += vel.z * dtSec;
+        }
+        
+        // Extrapolate Rotation using angular velocity (quaternion integration)
+        const aVel = props.angularVelocity as { x: number; y: number; z: number } | undefined;
+        if (aVel) {
+          const wx = aVel.x * dtSec;
+          const wy = aVel.y * dtSec;
+          const wz = aVel.z * dtSec;
+          const len = Math.sqrt(wx * wx + wy * wy + wz * wz);
+          if (len > 0.0001) {
+            const halfLen = len * 0.5;
+            const sinHalf = Math.sin(halfLen);
+            const cosHalf = Math.cos(halfLen);
+            const dqx = (wx / len) * sinHalf;
+            const dqy = (wy / len) * sinHalf;
+            const dqz = (wz / len) * sinHalf;
+            const dqw = cosHalf;
+            
+            const qx = rotation[0], qy = rotation[1], qz = rotation[2], qw = rotation[3];
+            
+            const nx = dqw * qx + dqx * qw + dqy * qz - dqz * qy;
+            const ny = dqw * qy - dqx * qz + dqy * qw + dqz * qx;
+            const nz = dqw * qz + dqx * qy - dqy * qx + dqz * qw;
+            const nw = dqw * qw - dqx * qx - dqy * qy - dqz * qz;
+            
+            const norm = Math.sqrt(nx * nx + ny * ny + nz * nz + nw * nw) || 1;
+            rotation = [nx / norm, ny / norm, nz / norm, nw / norm];
+          }
+        }
+        
+        return {
+          timestamp: renderTime,
+          position,
+          rotation,
+          scale: latest.scale,
+          properties: latest.properties,
+        };
+      }
+    }
+
+    return latest;
   }
 
   private lerpVector3(

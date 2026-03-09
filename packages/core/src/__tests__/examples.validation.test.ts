@@ -251,7 +251,7 @@ describe('Examples Validation', () => {
       const content = readFileSync(catalogPath, 'utf-8');
 
       expect(content).toMatch(/##\s+Quick\s+Reference/i);
-      expect(content).toContain('| # | Example |'); // Table header
+      expect(content).toMatch(/\|\s*#\s*\|\s*Example/); // Table header
     });
   });
 

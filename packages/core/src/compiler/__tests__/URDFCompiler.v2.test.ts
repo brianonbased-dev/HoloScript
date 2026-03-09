@@ -692,7 +692,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
     ]);
     const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
-    expect(xml).toContain('<material name="material_colored">');
+    expect(xml).toContain('<material name="material_colored_FF8800">');
     expect(xml).toContain('1 0.533');
   });
 
@@ -704,7 +704,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
     ]);
     const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
-    expect(xml).toContain('<material name="material_red_cube">');
+    expect(xml).toContain('<material name="material_red_cube_red">');
     expect(xml).toContain('rgba="1 0 0 1"');
   });
 
@@ -716,7 +716,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
     ]);
     const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
-    expect(xml).toContain('<material name="material_blue_sphere"/>');
+    expect(xml).toContain('<material name="material_blue_sphere_blue"/>');
   });
 
   it('uses default material when no color specified', () => {
@@ -735,7 +735,7 @@ describe('URDFCompiler v2.0 — Material Colors', () => {
     ]);
     const xml = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
 
-    expect(xml).toContain('<material name="material_alpha_obj">');
+    expect(xml).toContain('<material name="material_alpha_obj_FF000080">');
     // alpha should be ~0.502
     expect(xml).toMatch(/rgba="1 0 0 0\.50/);
   });

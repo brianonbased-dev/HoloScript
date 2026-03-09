@@ -20,6 +20,20 @@ import {
 import { getRBAC, ResourceType } from './identity/AgentRBAC';
 import { UnauthorizedCompilerAccessError } from './CompilerBase';
 import { WorkflowStep } from './identity/AgentIdentity';
+import { ASTNodePool } from './ObjectPool';
+
+const r3fNodePool = new ASTNodePool<R3FNode>(
+  () => ({ type: '', props: {} }),
+  (node) => {
+    node.type = '';
+    node.id = undefined;
+    node.props = {};
+    node.children = undefined;
+    node.traits = undefined;
+    node.directives = undefined;
+  },
+  20000 // Higher capacity since R3F trees can be large
+);
 
 export interface R3FNode {
   type: string;
@@ -2155,6 +2169,17 @@ export class R3FCompiler {
     return root;
   }
 
+  private createNode(type: string, props: Record<string, any> = {}, id?: string): R3FNode {
+    const node = r3fNodePool.acquire();
+    node.type = type;
+    node.id = id;
+    node.props = props;
+    node.children = [];
+    node.traits = new Map();
+    node.directives = [];
+    return node;
+  }
+
   public compileNode(node: ASTNode): R3FNode {
     // Dispatch to dedicated methods for rich node types
     if (node.type === 'system') {
@@ -2167,14 +2192,13 @@ export class R3FCompiler {
     const rawProps = (node as any).properties || {};
     const type = this.mapType(node.type, rawProps);
 
-    const r3fNode: R3FNode = {
-      type,
-      id: (node as any).id || (node as any).name,
-      props: this.compileProperties(node, rawProps),
-      children: [],
-      traits: new Map(),
-      directives: node.directives || [],
-    };
+    const r3fNode = r3fNodePool.acquire();
+    r3fNode.type = type;
+    r3fNode.id = (node as any).id || (node as any).name;
+    r3fNode.props = this.compileProperties(node, rawProps);
+    r3fNode.children = [];
+    r3fNode.traits = new Map();
+    r3fNode.directives = node.directives || [];
 
     if (node.directives) {
       for (const directive of node.directives) {
@@ -2201,13 +2225,13 @@ export class R3FCompiler {
   public compileComposition(composition: any, agentToken?: string, outputPath?: string): R3FNode {
     this.validateCompilerAccess(agentToken, outputPath);
 
-    const root: R3FNode = {
-      type: 'group',
-      id: composition.name,
-      props: {},
-      children: [],
-      traits: new Map(),
-    };
+    const root = r3fNodePool.acquire();
+    root.type = 'group';
+    root.id = composition.name;
+    root.props = {};
+    root.children = [];
+    root.traits = new Map();
+    root.directives = [];
 
     // Build template map for trait merging
     const templateMap = new Map<string, any>();
@@ -2361,7 +2385,14 @@ export class R3FCompiler {
       props.castShadow = true;
     }
 
-    return { type, id: light.name, props };
+    const r3fNode = r3fNodePool.acquire();
+    r3fNode.type = type;
+    r3fNode.id = light.name;
+    r3fNode.props = props;
+    r3fNode.children = [];
+    r3fNode.traits = new Map();
+    r3fNode.directives = [];
+    return r3fNode;
   }
 
   private compileEffectsBlock(effects: any): R3FNode {
@@ -2378,10 +2409,12 @@ export class R3FCompiler {
           noise: 'Noise',
         };
         const type = effectMapping[effect.effectType] || effect.effectType;
-        children.push({ type, props: { ...effect.properties } });
+        children.push(this.createNode(type, { ...effect.properties }));
       }
     }
-    return { type: 'EffectComposer', props: {}, children };
+    const composer = this.createNode('EffectComposer', {});
+    composer.children = children;
+    return composer;
   }
 
   private compileCameraBlock(camera: any): R3FNode {
@@ -2398,7 +2431,7 @@ export class R3FCompiler {
       }
     }
     props.cameraType = camera.cameraType;
-    return { type: 'Camera', id: '__camera', props };
+    return this.createNode('Camera', props, '__camera');
   }
 
   private compileEnvironmentBlock(env: any): R3FNode[] {
@@ -2416,104 +2449,73 @@ export class R3FCompiler {
     if (presetName) {
       const preset = ENVIRONMENT_PRESETS[presetName];
       if (preset) {
-        nodes.push({
-          type: 'Environment',
-          props: { background: true, preset: preset.envPreset || presetName },
-          children: [],
-        });
+        nodes.push(this.createNode('Environment', { background: true, preset: preset.envPreset || presetName }));
 
         if (preset.lighting?.ambient) {
-          nodes.push({
-            type: 'ambientLight',
-            props: {
-              color: preset.lighting.ambient.color,
-              intensity: preset.lighting.ambient.intensity,
-            },
-          });
+          nodes.push(this.createNode('ambientLight', {
+            color: preset.lighting.ambient.color,
+            intensity: preset.lighting.ambient.intensity,
+          }));
         }
         if (preset.lighting?.directional) {
           const dl = preset.lighting.directional;
-          nodes.push({
-            type: 'directionalLight',
-            props: {
-              color: dl.color,
-              intensity: dl.intensity,
-              position: dl.position,
-              castShadow: dl.shadows !== false,
-              'shadow-mapSize': [2048, 2048],
-            },
-          });
+          nodes.push(this.createNode('directionalLight', {
+            color: dl.color,
+            intensity: dl.intensity,
+            position: dl.position,
+            castShadow: dl.shadows !== false,
+            'shadow-mapSize': [2048, 2048],
+          }));
         }
         if (preset.lighting?.points) {
           for (const pl of preset.lighting.points) {
-            nodes.push({
-              type: 'pointLight',
-              props: {
-                color: pl.color,
-                intensity: pl.intensity,
-                position: pl.position,
-                distance: pl.distance,
-              },
-            });
+            nodes.push(this.createNode('pointLight', {
+              color: pl.color,
+              intensity: pl.intensity,
+              position: pl.position,
+              distance: pl.distance,
+            }));
           }
         }
         if (preset.fog) {
-          nodes.push({
-            type: 'fog',
-            props: {
-              attach: 'fog',
-              color: preset.fog.color,
-              near: preset.fog.near,
-              far: preset.fog.far,
-            },
-          });
+          nodes.push(this.createNode('fog', {
+            attach: 'fog',
+            color: preset.fog.color,
+            near: preset.fog.near,
+            far: preset.fog.far,
+          }));
         }
         if (preset.ground) {
-          nodes.push({
-            type: 'mesh',
-            id: '__ground',
-            props: {
-              hsType: 'plane',
-              rotation: [-Math.PI / 2, 0, 0],
-              position: [0, -0.01, 0],
-              receiveShadow: true,
-              args: [200, 200],
-              color: preset.ground.color,
-              materialProps: { roughness: 0.8, metalness: 0.0 },
-            },
-            children: [],
-          });
+          nodes.push(this.createNode('mesh', {
+            hsType: 'plane',
+            rotation: [-Math.PI / 2, 0, 0],
+            position: [0, -0.01, 0],
+            receiveShadow: true,
+            args: [200, 200],
+            color: preset.ground.color,
+            materialProps: { roughness: 0.8, metalness: 0.0 },
+          }, '__ground'));
         }
       } else {
-        nodes.push({
-          type: 'Environment',
-          props: { background: true, preset: presetName },
-          children: [],
-        });
+        nodes.push(this.createNode('Environment', { background: true, preset: presetName }));
       }
     }
 
     // Explicit ambient_light
     if (envProps.ambient_light !== undefined) {
-      nodes.push({
-        type: 'ambientLight',
-        props: {
-          intensity: typeof envProps.ambient_light === 'number' ? envProps.ambient_light : 0.5,
-        },
-      });
+      nodes.push(this.createNode('ambientLight', {
+        intensity: typeof envProps.ambient_light === 'number' ? envProps.ambient_light : 0.5,
+      }));
     }
 
     // Explicit fog
     if (envProps.fog && typeof envProps.fog === 'object') {
-      nodes.push({
-        type: 'fog',
-        props: {
-          attach: 'fog',
-          color: envProps.fog.color || '#cccccc',
-          near: envProps.fog.near || 10,
-          far: envProps.fog.far || 100,
-        },
-      });
+      nodes.push(this.createNode('fog', {
+        attach: 'fog',
+        color: envProps.fog.color || '#cccccc',
+        near: envProps.fog.near || 10,
+        far: envProps.fog.far || 100,
+      }));
     }
 
     return nodes;
@@ -2925,7 +2927,7 @@ export class R3FCompiler {
       }
     }
 
-    const r3fNode: R3FNode = { type, id: obj.name, props, children: [], traits: new Map() };
+    const r3fNode = this.createNode(type, props, obj.name);
 
     if (obj.children) {
       for (const child of obj.children) {
@@ -2965,14 +2967,10 @@ export class R3FCompiler {
       }
     }
 
-    const r3fNode: R3FNode = {
-      type: 'System',
-      id: node.id || node.name,
-      props,
-      children: [],
-      traits: new Map(),
-      directives: node.directives || [],
-    };
+    const r3fNode = this.createNode('System', props, node.id || node.name);
+    if (node.directives) {
+      r3fNode.directives = node.directives;
+    }
 
     // Add trait directives
     if (node.directives) {
@@ -3031,14 +3029,10 @@ export class R3FCompiler {
       }
     }
 
-    const r3fNode: R3FNode = {
-      type: 'Component',
-      id: node.id || node.name,
-      props,
-      children: [],
-      traits: new Map(),
-      directives: node.directives || [],
-    };
+    const r3fNode = this.createNode('Component', props, node.id || node.name);
+    if (node.directives) {
+      r3fNode.directives = node.directives;
+    }
 
     // Add trait directives
     if (node.directives) {
@@ -3114,13 +3108,7 @@ export class R3FCompiler {
       }
     }
 
-    return {
-      type: 'Template',
-      id: node.name,
-      props,
-      children: [],
-      traits: new Map(),
-    };
+    return this.createNode('Template', props, node.name);
   }
 
   private compileSpatialGroup(group: any, templateMap?: Map<string, any>): R3FNode {
@@ -3136,7 +3124,7 @@ export class R3FCompiler {
       }
     }
 
-    const node: R3FNode = { type: 'group', id: group.name, props, children: [], traits: new Map() };
+    const node = this.createNode('group', props, group.name);
 
     if (group.objects) {
       for (const obj of group.objects)
@@ -3166,15 +3154,12 @@ export class R3FCompiler {
           entryProps.method = action.method;
           if (action.args) entryProps.args = action.args;
         }
-        entries.push({ type: 'TimelineEntry', props: entryProps });
+        entries.push(this.createNode('TimelineEntry', entryProps));
       }
     }
-    return {
-      type: 'Timeline',
-      id: timeline.name,
-      props: { autoplay: timeline.autoplay, loop: timeline.loop },
-      children: entries,
-    };
+    const timelineNode = this.createNode('Timeline', { autoplay: timeline.autoplay, loop: timeline.loop }, timeline.name);
+    timelineNode.children = entries;
+    return timelineNode;
   }
 
   private compileAudioBlock(audio: any): R3FNode {
@@ -3190,7 +3175,7 @@ export class R3FCompiler {
         }
       }
     }
-    return { type: 'Audio', id: audio.name, props };
+    return this.createNode('Audio', props, audio.name);
   }
 
   private compileZoneBlock(zone: any): R3FNode {
@@ -3208,7 +3193,7 @@ export class R3FCompiler {
         body: h.body,
       }));
     }
-    return { type: 'Zone', id: zone.name, props };
+    return this.createNode('Zone', props, zone.name);
   }
 
   private compileUIBlock(ui: any): R3FNode {
@@ -3225,10 +3210,12 @@ export class R3FCompiler {
             }
           }
         }
-        children.push({ type: 'UIElement', id: el.name, props: elProps });
+        children.push(this.createNode('UIElement', elProps, el.name));
       }
     }
-    return { type: 'UI', id: '__ui', props: {}, children };
+    const uiNode = this.createNode('UI', {}, '__ui');
+    uiNode.children = children;
+    return uiNode;
   }
 
   private compileTransitionBlock(transition: any): R3FNode {
@@ -3238,7 +3225,7 @@ export class R3FCompiler {
         props[prop.key] = prop.value;
       }
     }
-    return { type: 'Transition', id: transition.name, props };
+    return this.createNode('Transition', props, transition.name);
   }
 
   private compileConditionalBlock(cond: any, templateMap?: Map<string, any>): R3FNode {
@@ -3260,14 +3247,12 @@ export class R3FCompiler {
         elseChildren.push(this.compileSpatialGroup(g, templateMap));
     }
 
-    return {
-      type: 'ConditionalGroup',
-      props: {
-        condition: cond.condition,
-        elseChildren: elseChildren.length > 0 ? elseChildren : undefined,
-      },
-      children,
-    };
+    const conditionalNode = this.createNode('ConditionalGroup', {
+      condition: cond.condition,
+      elseChildren: elseChildren.length > 0 ? elseChildren : undefined,
+    });
+    conditionalNode.children = children;
+    return conditionalNode;
   }
 
   private compileForEachBlock(iter: any, templateMap?: Map<string, any>): R3FNode {
@@ -3281,11 +3266,9 @@ export class R3FCompiler {
         templateChildren.push(this.compileSpatialGroup(g, templateMap));
     }
 
-    return {
-      type: 'ForEachGroup',
-      props: { variable: iter.variable, iterable: iter.iterable },
-      children: templateChildren,
-    };
+    const forEachNode = this.createNode('ForEachGroup', { variable: iter.variable, iterable: iter.iterable });
+    forEachNode.children = templateChildren;
+    return forEachNode;
   }
 
   /**
@@ -3303,17 +3286,14 @@ export class R3FCompiler {
   private injectDefaultLighting(root: R3FNode): void {
     if (!this.treeHasLights(root)) {
       root.children?.unshift(
-        { type: 'ambientLight', props: { intensity: 0.4, color: '#ffffff' } },
-        {
-          type: 'directionalLight',
-          props: {
-            intensity: 1.0,
-            position: [5, 10, 5],
-            castShadow: true,
-            'shadow-mapSize': [2048, 2048],
-            color: '#ffffff',
-          },
-        }
+        this.createNode('ambientLight', { intensity: 0.4, color: '#ffffff' }),
+        this.createNode('directionalLight', {
+          intensity: 1.0,
+          position: [5, 10, 5],
+          castShadow: true,
+          'shadow-mapSize': [2048, 2048],
+          color: '#ffffff',
+        })
       );
     }
   }
@@ -3334,15 +3314,17 @@ export class R3FCompiler {
 
     const ppTrait = node.traits?.get('postprocessing' as any);
     if (ppTrait) {
-      if (ppTrait.bloom) effects.push({ type: 'Bloom', props: ppTrait.bloom });
-      if (ppTrait.ssao) effects.push({ type: 'SSAO', props: ppTrait.ssao });
-      if (ppTrait.vignette) effects.push({ type: 'Vignette', props: ppTrait.vignette });
+      if (ppTrait.bloom) effects.push(this.createNode('Bloom', ppTrait.bloom));
+      if (ppTrait.ssao) effects.push(this.createNode('SSAO', ppTrait.ssao));
+      if (ppTrait.vignette) effects.push(this.createNode('Vignette', ppTrait.vignette));
     }
     if (node.props.bloom) {
-      effects.push({
-        type: 'Bloom',
-        props: typeof node.props.bloom === 'object' ? node.props.bloom : { intensity: 1.0 },
-      });
+      effects.push(
+        this.createNode(
+          'Bloom',
+          typeof node.props.bloom === 'object' ? node.props.bloom : { intensity: 1.0 }
+        )
+      );
     }
 
     node.children?.forEach((child) => effects.push(...this.extractPostProcessingNodes(child)));

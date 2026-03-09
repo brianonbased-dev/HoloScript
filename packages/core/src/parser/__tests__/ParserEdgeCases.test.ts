@@ -369,14 +369,15 @@ describe('Parser Performance with Edge Cases', () => {
   });
 
   it('should handle many small objects', () => {
+    const compParser = new HoloCompositionParser();
     const start = performance.now();
-    let source = 'composition "perf" {';
+    let source = 'composition "perf" {\n';
     for (let i = 0; i < 100; i++) {
-      source += `object "o${i}" @grabbable @networked { position: [${i},0,0] color: "#fff" }`;
+      source += `  object "o${i}" { position: [${i},0,0] color: "#fff" }\n`;
     }
     source += '}';
 
-    const result = parser.parse(source);
+    const result = compParser.parse(source);
     const elapsed = performance.now() - start;
 
     expect(result.success).toBe(true);

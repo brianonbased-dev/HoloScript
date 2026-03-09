@@ -171,9 +171,8 @@ describe('Scenario: Robot Engineer — URDF Import', () => {
   it('URDF joint → @joint trait with correct axis/limits on the corresponding SceneNode', () => {
     const j1 = arm.joints.find((j) => j.name === 'joint_1')!;
     const trait = jointToTrait(j1);
-    expect(trait).toContain('axis: [0 1 0]');
-    expect(trait).toContain('min: -1.571');
-    expect(trait).toContain('max: 1.571');
+    expect(trait).toContain('axis: [0, 1, 0]');
+    expect(trait).toContain('limits: { min: -1.571, max: 1.571, effort: 100.000, velocity: 1.000 }');
   });
 
   it('workspace bounds visualized as a sphere mesh in the 3D viewport', () => {
@@ -191,7 +190,7 @@ describe('Scenario: Robot Engineer — URDF Import', () => {
       name: 'slider',
       type: 'prismatic',
       axis: [1, 0, 0],
-      limits: { min: 0, max: 0.5 },
+      limits: { min: 0, max: 0.5, effort: 100, velocity: 1 },
       parent: '1',
       child: '2',
       origin: { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
@@ -358,7 +357,7 @@ describe('Scenario: Robot Engineer — Forward Kinematics', () => {
           type: 'revolute',
           name: '',
           axis: [0, 1, 0],
-          limits: { min: 0, max: 0 },
+          limits: { min: 0, max: 0, effort: 100, velocity: 1 },
           child: '',
           parent: '',
           origin: { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
@@ -385,7 +384,7 @@ describe('Scenario: Robot Engineer — Forward Kinematics', () => {
         type: 'revolute',
         name: '',
         axis: [0, 1, 0],
-        limits: { min: -1, max: 1 },
+        limits: { min: -1, max: 1, effort: 100, velocity: 1 },
         child: '',
         parent: '',
         origin: { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
@@ -440,7 +439,7 @@ describe('Scenario: Robot Engineer — HoloScript Trait Generation', () => {
       name: 'test',
       type: 'fixed',
       axis: [0, 0, 1],
-      limits: { min: 0, max: 0 },
+      limits: { min: 0, max: 0, effort: 100, velocity: 1 },
       parent: '1',
       child: '2',
       origin: { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },

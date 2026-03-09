@@ -58,6 +58,23 @@ import {
   createEmissiveStrengthExtension,
   declareExtensions,
 } from './gltf/extensions';
+import { ASTNodePool } from './ObjectPool';
+
+const gltfNodePool = new ASTNodePool<GLTFNode>(
+  () => ({ name: '' }),
+  (node) => {
+    node.name = '';
+    node.translation = undefined;
+    node.rotation = undefined;
+    node.scale = undefined;
+    node.mesh = undefined;
+    node.skin = undefined;
+    node.children = undefined;
+    node.camera = undefined;
+    node.extras = undefined;
+  },
+  10000
+);
 
 // =============================================================================
 // TYPES
@@ -843,7 +860,33 @@ export class GLTFPipeline extends CompilerBase {
 
   private options: Required<GLTFPipelineOptions>;
   private compositor: TraitCompositor;
-  private bufferData: number[] = [];
+  private bufferData: Uint8Array = new Uint8Array(1024 * 1024 * 10); // Start with 10MB
+  private bufferByteLength: number = 0;
+
+  private ensureBufferCapacity(needed: number): void {
+    if (this.bufferByteLength + needed > this.bufferData.length) {
+      const newLen = Math.max(this.bufferData.length * 2, this.bufferByteLength + needed, 1024 * 1024 * 10);
+      const newArr = new Uint8Array(newLen);
+      newArr.set(this.bufferData.subarray(0, this.bufferByteLength));
+      this.bufferData = newArr;
+    }
+  }
+
+  private appendToBuffer(data: Uint8Array): void {
+    this.ensureBufferCapacity(data.length);
+    this.bufferData.set(data, this.bufferByteLength);
+    this.bufferByteLength += data.length;
+  }
+
+  private padBuffer(alignment: number): void {
+    const remainder = this.bufferByteLength % alignment;
+    if (remainder !== 0) {
+      const padding = alignment - remainder;
+      this.ensureBufferCapacity(padding);
+      this.bufferByteLength += padding;
+    }
+  }
+
   private accessors: GLTFAccessor[] = [];
   private bufferViews: GLTFBufferView[] = [];
   private meshes: GLTFMesh[] = [];
@@ -978,7 +1021,7 @@ export class GLTFPipeline extends CompilerBase {
   /** Read a Float32 from the buffer at byteOffset */
   private readFloat32(byteOffset: number): number {
     const bytes = new Uint8Array(4);
-    for (let i = 0; i < 4; i++) bytes[i] = this.bufferData[byteOffset + i] || 0;
+    bytes.set(this.bufferData.subarray(byteOffset, byteOffset + 4));
     return new Float32Array(bytes.buffer)[0];
   }
 
@@ -986,7 +1029,7 @@ export class GLTFPipeline extends CompilerBase {
   private writeFloat32(byteOffset: number, value: number): void {
     const f32 = new Float32Array([value]);
     const view = new Uint8Array(f32.buffer);
-    for (let i = 0; i < 4; i++) this.bufferData[byteOffset + i] = view[i];
+    this.bufferData.set(view, byteOffset);
   }
 
   /**
@@ -1052,7 +1095,7 @@ export class GLTFPipeline extends CompilerBase {
           for (let i = 0; i < iCount; i++) {
             const off = idxBV.byteOffset + i * compSize;
             if (compSize === 2) {
-              indices[i] = (this.bufferData[off] || 0) | ((this.bufferData[off + 1] || 0) << 8);
+              indices[i] = this.bufferData[off] | (this.bufferData[off + 1] << 8);
             } else {
               indices[i] = this.readFloat32(off); // uint32 — rare for our use
             }
@@ -1298,7 +1341,7 @@ export class GLTFPipeline extends CompilerBase {
     this.skinMeshes();
 
     // Create buffer
-    const buffer = new Uint8Array(this.bufferData);
+    const buffer = this.bufferData.slice(0, this.bufferByteLength);
 
     // Build glTF document
     const gltf = this.buildDocument(composition.name, buffer.byteLength);
@@ -1326,7 +1369,7 @@ export class GLTFPipeline extends CompilerBase {
    * Reset pipeline state for new compilation
    */
   private reset(): void {
-    this.bufferData = [];
+    this.bufferByteLength = 0;
     this.accessors = [];
     this.bufferViews = [];
     this.meshes = [];
@@ -1445,13 +1488,12 @@ export class GLTFPipeline extends CompilerBase {
       meshIndex = this.createAdvancedMesh(object.name, shapeType, scale, object);
     }
 
-    // Create node
-    const node: GLTFNode = {
-      name: object.name || `node_${this.nodes.length}`,
-      translation: position,
-      rotation: this.eulerToQuaternion(rotation),
-      scale: [1, 1, 1], // Scale is baked into geometry
-    };
+    // Create node from pool
+    const node = gltfNodePool.acquire();
+    node.name = object.name || `node_${this.nodes.length}`;
+    node.translation = position;
+    node.rotation = this.eulerToQuaternion(rotation);
+    node.scale = [1, 1, 1]; // Scale is baked into geometry
 
     if (meshIndex !== undefined) {
       node.mesh = meshIndex;
@@ -1507,11 +1549,12 @@ export class GLTFPipeline extends CompilerBase {
           ] as [number, number, number])
         : ([0, 0, 0] as [number, number, number]);
 
-    const node: GLTFNode = {
-      name: group.name || `group_${this.nodes.length}`,
-      translation: position,
-      children: childIndices.length > 0 ? childIndices : undefined,
-    };
+    const node = gltfNodePool.acquire();
+    node.name = group.name || `group_${this.nodes.length}`;
+    node.translation = position;
+    if (childIndices.length > 0) {
+      node.children = childIndices;
+    }
 
     const nodeIndex = this.nodes.length;
     this.nodes.push(node);
@@ -2134,14 +2177,9 @@ export class GLTFPipeline extends CompilerBase {
     const mimeType = isPNG ? 'image/png' : isJPEG ? 'image/jpeg' : 'image/png';
 
     // Embed image bytes in the glTF buffer
-    const byteOffset = this.bufferData.length;
-    for (let i = 0; i < imageData.length; i++) {
-      this.bufferData.push(imageData[i]);
-    }
-    // Pad to 4-byte alignment
-    while (this.bufferData.length % 4 !== 0) {
-      this.bufferData.push(0);
-    }
+    const byteOffset = this.bufferByteLength;
+    this.appendToBuffer(imageData);
+    this.padBuffer(4);
 
     // Create buffer view
     const bufferViewIndex = this.bufferViews.length;
@@ -2200,14 +2238,9 @@ export class GLTFPipeline extends CompilerBase {
     const pngData = encodePNG(pixels, TEX_SIZE, TEX_SIZE);
 
     // Embed PNG in the glTF buffer
-    const byteOffset = this.bufferData.length;
-    for (let i = 0; i < pngData.length; i++) {
-      this.bufferData.push(pngData[i]);
-    }
-    // Pad to 4-byte alignment
-    while (this.bufferData.length % 4 !== 0) {
-      this.bufferData.push(0);
-    }
+    const byteOffset = this.bufferByteLength;
+    this.appendToBuffer(pngData);
+    this.padBuffer(4);
 
     // Create buffer view for the image
     const bufferViewIndex = this.bufferViews.length;
@@ -2244,13 +2277,9 @@ export class GLTFPipeline extends CompilerBase {
     const normalPixels = generateScaleNormalMap(TEX_SIZE);
     const normalPng = encodePNG(normalPixels, TEX_SIZE, TEX_SIZE);
 
-    const normalByteOffset = this.bufferData.length;
-    for (let i = 0; i < normalPng.length; i++) {
-      this.bufferData.push(normalPng[i]);
-    }
-    while (this.bufferData.length % 4 !== 0) {
-      this.bufferData.push(0);
-    }
+    const normalByteOffset = this.bufferByteLength;
+    this.appendToBuffer(normalPng);
+    this.padBuffer(4);
 
     const normalBVIndex = this.bufferViews.length;
     this.bufferViews.push({
@@ -2284,15 +2313,11 @@ export class GLTFPipeline extends CompilerBase {
     type: string,
     componentType: number
   ): number {
-    const byteOffset = this.bufferData.length;
+    const byteOffset = this.bufferByteLength;
 
     const view = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-    for (let i = 0; i < view.length; i++) {
-      this.bufferData.push(view[i]);
-    }
-    while (this.bufferData.length % 4 !== 0) {
-      this.bufferData.push(0);
-    }
+    this.appendToBuffer(view);
+    this.padBuffer(4);
 
     const bufferViewIndex = this.bufferViews.length;
     this.bufferViews.push({
@@ -2325,7 +2350,7 @@ export class GLTFPipeline extends CompilerBase {
     type: 'SCALAR' | 'VEC2' | 'VEC3' | 'VEC4',
     computeBounds: boolean = false
   ): number {
-    const byteOffset = this.bufferData.length;
+    const byteOffset = this.bufferByteLength;
     const componentType =
       data instanceof Uint32Array ? 5125 : data instanceof Uint16Array ? 5123 : 5126; // UNSIGNED_INT, UNSIGNED_SHORT, or FLOAT
     const _bytesPerComponent =
@@ -2333,14 +2358,8 @@ export class GLTFPipeline extends CompilerBase {
 
     // Append data to buffer
     const view = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-    for (let i = 0; i < view.length; i++) {
-      this.bufferData.push(view[i]);
-    }
-
-    // Pad to 4-byte alignment
-    while (this.bufferData.length % 4 !== 0) {
-      this.bufferData.push(0);
-    }
+    this.appendToBuffer(view);
+    this.padBuffer(4);
 
     // Create buffer view
     const bufferViewIndex = this.bufferViews.length;

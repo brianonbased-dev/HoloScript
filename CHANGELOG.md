@@ -11,6 +11,11 @@ All notable changes to HoloScript are documented here.
 - **Gizmo Synchronization**: Eliminated the 1-frame Gizmo sync latency in `SceneRenderer.tsx` by utilizing direct `onMouseUp` event handling rather than reactive hook bindings.
 - **Global Error Boundary**: Standardized runtime crashes by mapping `componentDidCatch` stack frames to AST component paths for direct debugging.
 
+### Core Engine Hardening (Track 2)
+- **AST Node Object Pool**: Eliminated garbage collection overhead in `R3FCompiler.ts` and `GLTFPipeline.ts` by pooling heavily-instantiated AST component nodes.
+- **GLB Buffer Streaming**: Resolved Out-Of-Memory (OOM) crashes on massive procedural scenarios by replacing inefficient Array primitives with native `Uint8Array` allocations. Successfully validated the compilation of 50,000 spatial meshes under a 512MB heap limit, creating a 219MB GLB export seamlessly.
+- **AI Coverage Push**: Wrote 50+ new Vitest scenarios verifying edge cases within the AI `DialogueRunner` under deeply nested loads, and Spatial Navigation `AStarPathfinder` execution boundaries during disjoint mesh navigation.
+
 ## [5.0.0] — 2026-03-04 (Autonomous Ecosystems)
 
 ### Major Features

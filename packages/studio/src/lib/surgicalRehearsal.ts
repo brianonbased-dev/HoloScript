@@ -54,8 +54,24 @@ export interface SurgicalInstrument {
   name: string;
   type: InstrumentType;
   tipPosition: Vec3;
+  previousTipPosition?: Vec3; // For Continuous Collision Detection (CCD)
   safetyRadius: number; // cm — keep this far from critical structures
   maxForceNewtons: number;
+}
+
+export interface PatientVitals {
+  heartRateBPM: number;
+  spO2: number;        // 0-100%
+  systolicBP: number;  // mmHg
+  diastolicBP: number; // mmHg
+  respiratoryRate: number; // breaths/min
+}
+
+export interface MedicalTelemetry {
+  timestamp: number;
+  vitals: PatientVitals;
+  hapticMultiplier: number;
+  warningState: 'normal' | 'caution' | 'critical';
 }
 
 export interface ProcedureStep {
@@ -98,16 +114,74 @@ export function distance3D(a: Vec3, b: Vec3): number {
   return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2);
 }
 
+/**
+ * Calculates the shortest distance from point P to the line segment AB.
+ */
+export function distanceToSegment(p: Vec3, a: Vec3, b: Vec3): number {
+  const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
+  const ap = { x: p.x - a.x, y: p.y - a.y, z: p.z - a.z };
+  
+  const lenSq = ab.x ** 2 + ab.y ** 2 + ab.z ** 2;
+  // If a == b, return distance from p to a
+  if (lenSq === 0) return distance3D(p, a);
+
+  // Project p onto ab, but deferring the division by lenSq
+  let t = (ap.x * ab.x + ap.y * ab.y + ap.z * ab.z) / lenSq;
+  
+  // Clamp t to [0, 1] to limit to the segment
+  if (t < 0) t = 0;
+  else if (t > 1) t = 1;
+
+  // Find the closest point on the segment
+  const closest = {
+    x: a.x + t * ab.x,
+    y: a.y + t * ab.y,
+    z: a.z + t * ab.z
+  };
+
+  return distance3D(p, closest);
+}
+
 export function isNearCriticalStructure(
   instrument: SurgicalInstrument,
   landmarks: AnatomicalLandmark[]
 ): AnatomicalLandmark | null {
   for (const lm of landmarks) {
     if (!lm.critical) continue;
-    const dist = distance3D(instrument.tipPosition, lm.position);
+    
+    // Use CCD segment test if we have previous position to prevent high-velocity tunneling
+    const dist = instrument.previousTipPosition 
+      ? distanceToSegment(lm.position, instrument.previousTipPosition, instrument.tipPosition)
+      : distance3D(instrument.tipPosition, lm.position);
+      
     if (dist < instrument.safetyRadius) return lm;
   }
   return null;
+}
+
+/**
+ * Process IoT vitals to generate real-time feedback multipliers (e.g. for haptics/lighting).
+ */
+export function processVitalsTelemetry(vitals: PatientVitals): MedicalTelemetry {
+  let warningState: 'normal' | 'caution' | 'critical' = 'normal';
+  let hapticMultiplier = 1.0;
+
+  // Tachycardia or bradycardia
+  if (vitals.heartRateBPM > 120 || vitals.heartRateBPM < 50) {
+    warningState = 'caution';
+    hapticMultiplier = 1.5; // Stiffer haptic feedback under stress
+  }
+  if (vitals.heartRateBPM > 160 || vitals.heartRateBPM < 40 || vitals.spO2 < 88) {
+    warningState = 'critical';
+    hapticMultiplier = 2.0; // Max resistance if patient crashing
+  }
+
+  return {
+    timestamp: Date.now(),
+    vitals,
+    hapticMultiplier,
+    warningState
+  };
 }
 
 export function hapticResistanceForTissue(tissue: TissueType): number {

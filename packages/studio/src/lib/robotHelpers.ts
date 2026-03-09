@@ -15,7 +15,8 @@ export interface Joint {
   name: string;
   type: JointType;
   axis: [number, number, number]; // unit vector
-  limits: { min: number; max: number }; // radians (revolute/prismatic) or null (continuous/fixed)
+  limits: { min: number; max: number; effort: number; velocity: number }; // radians/meters or zero
+  dynamics?: { damping: number; friction: number };
   parent: string;
   child: string;
   origin: { x: number; y: number; z: number; roll: number; pitch: number; yaw: number };
@@ -69,6 +70,19 @@ export function parseRobotDefinition(urdfXml: string): RobotDefinition {
     // limits
     const limitLower = parseFloat(extractAttr(block, 'limit', 'lower') ?? '0');
     const limitUpper = parseFloat(extractAttr(block, 'limit', 'upper') ?? '0');
+    const limitEffort = parseFloat(extractAttr(block, 'limit', 'effort') ?? '100');
+    const limitVelocity = parseFloat(extractAttr(block, 'limit', 'velocity') ?? '1');
+
+    // dynamics
+    let dynamics: { damping: number; friction: number } | undefined;
+    const dampingAttr = extractAttr(block, 'dynamics', 'damping');
+    const frictionAttr = extractAttr(block, 'dynamics', 'friction');
+    if (dampingAttr !== null || frictionAttr !== null) {
+      dynamics = {
+        damping: parseFloat(dampingAttr ?? '0'),
+        friction: parseFloat(frictionAttr ?? '0'),
+      };
+    }
 
     // parent / child
     const parent = extractAttr(block, 'parent', 'link') ?? '';
@@ -84,7 +98,8 @@ export function parseRobotDefinition(urdfXml: string): RobotDefinition {
       name: jName,
       type: jType,
       axis,
-      limits: { min: limitLower, max: limitUpper },
+      limits: { min: limitLower, max: limitUpper, effort: limitEffort, velocity: limitVelocity },
+      dynamics,
       parent,
       child,
       origin: {
@@ -228,11 +243,19 @@ export function inverseKinematics(
  * Used to generate templates from parsed URDF.
  */
 export function jointToTrait(joint: Joint): string {
-  const axis = joint.axis.join(' ');
+  const axis = joint.axis.join(', ');
   if (joint.type === 'fixed') {
     return `@joint("${joint.name}", type: "fixed")`;
   }
-  return `@joint("${joint.name}", type: "${joint.type}", axis: [${axis}], min: ${joint.limits.min.toFixed(3)}, max: ${joint.limits.max.toFixed(3)})`;
+  
+  let traitStr = `@joint("${joint.name}", type: "${joint.type}", axis: [${axis}]`;
+  traitStr += `, limits: { min: ${joint.limits.min.toFixed(3)}, max: ${joint.limits.max.toFixed(3)}, effort: ${joint.limits.effort.toFixed(3)}, velocity: ${joint.limits.velocity.toFixed(3)} }`;
+  
+  if (joint.dynamics) {
+    traitStr += `, damping: ${joint.dynamics.damping.toFixed(3)}, friction: ${joint.dynamics.friction.toFixed(3)}`;
+  }
+  
+  return traitStr + `)`;
 }
 
 // ── XML Helpers ───────────────────────────────────────────────────────────────
