@@ -167,11 +167,15 @@ export class ShaderGraph {
   nodes: Map<string, ShaderNode> = new Map();
   connections: ShaderConnection[] = [];
   version = 0;
+  readonly createdAt: number;
+  updatedAt: number;
   private nodeDefs: Map<string, ShaderNodeDef> = new Map();
 
-  constructor(name?: string) {
+  constructor(name?: string, id?: string) {
     this.name = name ?? '';
-    this.id = `shader_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    this.id = id ?? `shader_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    this.createdAt = Date.now();
+    this.updatedAt = Date.now();
     for (const [type, def] of Object.entries(SHADER_NODES)) {
       this.nodeDefs.set(type, def);
     }
@@ -231,10 +235,18 @@ export class ShaderGraph {
     return node;
   }
 
+  /** Add a pre-built ShaderNode directly (used by undo/redo systems). */
+  addCustomNode(node: ShaderNode): void {
+    this.nodes.set(node.id, node);
+    this.version++;
+    this.updatedAt = Date.now();
+  }
+
   removeNode(id: string): boolean {
     if (!this.nodes.delete(id)) return false;
     this.connections = this.connections.filter((c) => c.fromNode !== id && c.toNode !== id);
     this.version++;
+    this.updatedAt = Date.now();
     return true;
   }
 
@@ -283,6 +295,9 @@ export class ShaderGraph {
     if (!this.nodes.has(fromNode) || !this.nodes.has(toNode)) return null;
     if (fromNode === toNode) return null;
 
+    // Cycle detection: would adding fromNode→toNode create a cycle?
+    if (this._wouldCreateCycle(fromNode, toNode)) return null;
+
     const conn: ShaderConnection = {
       id: `sc_${_shaderConnId++}`,
       fromNode,
@@ -292,7 +307,27 @@ export class ShaderGraph {
     };
     this.connections.push(conn);
     this.version++;
+    this.updatedAt = Date.now();
     return conn;
+  }
+
+  /** Check if adding an edge from→to would create a cycle via DFS. */
+  private _wouldCreateCycle(from: string, to: string): boolean {
+    // If there's already a path from 'to' back to 'from', adding from→to creates a cycle.
+    const visited = new Set<string>();
+    const stack = [to];
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      if (current === from) return true;
+      if (visited.has(current)) continue;
+      visited.add(current);
+      for (const conn of this.connections) {
+        if (conn.fromNode === current) {
+          stack.push(conn.toNode);
+        }
+      }
+    }
+    return false;
   }
 
   disconnectPort(nodeId: string, portId: string): void {
@@ -328,7 +363,7 @@ export class ShaderGraph {
   }
 
   static fromJSON(json: { name: string; id?: string; nodes: [string, ShaderNode][]; connections: ShaderConnection[] }): ShaderGraph {
-    const graph = new ShaderGraph(json.name);
+    const graph = new ShaderGraph(json.name, json.id);
     for (const [key, node] of json.nodes) {
       graph.nodes.set(key, node);
     }

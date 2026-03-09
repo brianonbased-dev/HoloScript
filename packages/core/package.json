@@ -64,6 +64,10 @@
     "./traits": {
       "types": "./dist/traits/index.d.ts",
       "import": "./dist/traits/index.js"
+    },
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "import": "./dist/tools/index.js"
     }
   },
   "scripts": {

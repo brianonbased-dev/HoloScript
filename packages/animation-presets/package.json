@@ -1,0 +1,37 @@
+{
+  "name": "@holoscript/animation-presets",
+  "version": "1.0.0",
+  "description": "Pre-configured @animated trait parameter sets for common character behaviors with Mixamo clip mapping",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "holoscript",
+    "animation",
+    "presets",
+    "mixamo",
+    "character",
+    "spatial-computing"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianonbased-dev/Holoscript.git",
+    "directory": "packages/animation-presets"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

@@ -133,6 +133,8 @@ export type {
   CompiledChoice,
   CompiledCutsceneAction,
   CompiledPaywall,
+  CompiledHealthcare,
+  CompiledRobotics,
 } from './parser/HoloCompositionTypes';
 
 // HoloScript+ Enhanced Parser with Trait Annotations (NEW - Phase 3)
@@ -691,6 +693,18 @@ export {
   paymentToVRChat,
   paymentToR3F,
   paymentToUSDA,
+  compileHealthcareBlock,
+  healthcareToR3F,
+  healthcareToUnity,
+  healthcareToGodot,
+  healthcareToVRChat,
+  healthcareToUSDA,
+  compileRoboticsBlock,
+  roboticsToR3F,
+  roboticsToUnity,
+  roboticsToGodot,
+  roboticsToVRChat,
+  roboticsToUSDA,
   type CompiledMaterial,
   type CompiledPhysics,
   type CompiledCollider,
@@ -1147,6 +1161,8 @@ export {
   type CompressionFormat,
   type PerformanceRecommendation,
 } from './services/PlatformPerformanceOptimizer';
+
+
 
 // Type Checker
 export {

@@ -29,6 +29,7 @@ export default defineConfig({
         'packages/ai-validator/src/**/*.ts',
         'packages/holoscript-cdn/src/**/*.ts',
         'packages/std/src/**/*.ts',
+        'packages/animation-presets/src/**/*.ts',
       ],
       exclude: [
         '**/*.test.ts',
@@ -80,6 +81,7 @@ export default defineConfig({
       'packages/marketplace-web/vitest.config.ts',
       'packages/marketplace-api/vitest.config.ts',
       'packages/auth/vitest.config.ts',
+      'packages/animation-presets/vitest.config.ts',
 
       // ── Packages without a vitest.config.ts (inline) ─────────────────
       {
